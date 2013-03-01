@@ -1,7 +1,7 @@
 <?php 
-include '../common/eiseGrid/inc_eiseGrid.php';
-$arrJS[] = '../common/eiseGrid/eiseGrid.js';
-$arrCSS[] = '../common/eiseGrid/eiseGrid.css';
+include commonStuffAbsolutePath.'eiseGrid/inc_eiseGrid.php';
+$arrJS[] = commonStuffRelativePath.'eiseGrid/eiseGrid.js';
+$arrCSS[] = commonStuffRelativePath.'eiseGrid/eiseGrid.css';
 
 $DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['DataAction'] );
 
@@ -86,7 +86,7 @@ $arrActions[]= Array ('title' => $rwSta["entTitle"]
 	   , 'action' => "entity_form.php?dbName=$dbName&entID=".$rwSta["entID"]
 	   , 'class'=> 'ss_arrow_left'
 	);
-include('../common/eiseIntra/inc-frame_top.php');
+include eiseIntraAbsolutePath."inc-frame_top.php";
 ?>
 <script>
 $(document).ready(function(){  
@@ -283,5 +283,5 @@ $gridSAT->Execute();
 
 
 <?php
-include('../common/eiseIntra/inc-frame_bottom.php');
+include eiseIntraAbsolutePath."inc-frame_bottom.php";
  ?>

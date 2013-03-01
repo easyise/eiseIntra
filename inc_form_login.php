@@ -1,21 +1,18 @@
 <?php
-include ("../common/inc_config.php");
-include ("../common/eiseIntra/inc_mysql.php");
-include ("../common/eiseIntra/inc_intra.php");
-$arrJS[] = "../common/eiseIntra/intra.js";
-$arrCSS[] = "../common/eiseIntra/intra.css";
-$arrCSS[] = "../common/screen.css";
-include "common/config.php";
+$arrJS[] = eiseIntraRelativePath."intra.js";
+$arrCSS[] = eiseIntraRelativePath."intra.css";
+$arrCSS[] = commonStuffRelativePath."screen.css";
 
 $DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
 
-$oSQL = new sql($DBHOST, $DBUSER, $DBPASS, $DBNAME, false, CP_UTF8);
+if (!isset($oSQL))
+    $oSQL = new sql($DBHOST, $DBUSER, $DBPASS, $DBNAME, false, CP_UTF8);
 if($authmethod!="mysql") $oSQL->connect();
 $intra = new eiseIntra($oSQL);
 
 
 switch ($DataAction){
-   case "login":
+    case "login":
        $auth_str = base64_decode($_POST["authstring"]);
 
        preg_match("/^([^\:]+)\:([\S ]+)$/i", $auth_str, $arrMatches);
@@ -27,13 +24,21 @@ switch ($DataAction){
        
         if ($intra->Authenticate($login, $password, $strError, (isset($authmethod) ? $authmethod : "LDAP"))){
             $intra->session_initialize();
-            $_SESSION["usrID"] = strtoupper($login);
+            
             $_SESSION["last_login_time"] = Date("Y-m-d H:i:s");
-            SetCookie("last_succesfull_usrID", $login);
+            if($authmethod=="mysql"){
+                $_SESSION["usrID"] = $login;
+                $_SESSION["DBHOST"] = $oSQL->dbhost;
+                $_SESSION["DBPASS"] = $oSQL->dbpass;
+                $_SESSION["DBNAME"] = $oSQL->dbname;
+            } else {
+                $_SESSION["usrID"] = strtoupper($login);
+            }
+            SetCookie("last_succesfull_usrID", $login, eiseIntraCookieExpire, eiseIntraCookiePath);
             header ("Location: ".(isset($_COOKIE["PageNoAuth"]) ? $_COOKIE["PageNoAuth"] : "index.php"));
         } else {
-            SetCookie("last_succesfull_usrID", "");
-            header ("Location: login.php?error=".$intra->translate("Bad password or user name."));
+            SetCookie("last_succesfull_usrID", "", eiseIntraCookieExpire, eiseIntraCookiePath);
+            header ("Location: login.php?error=".$strError);
         }
         die();
         break;
@@ -191,7 +196,7 @@ function LoginForm(){
     
     var host = (frm.host!=null ? frm.host.value : "");
     
-    var authstr = (host!="" ? host+":" : "")+login+":"+password;
+    var authstr = login+":"+password;
 
     if (login.match(/^[a-z0-9_\\\/\@\.\-]{1,24}$/i)==null){
       alert("You should specify your login name");
@@ -262,6 +267,5 @@ if ($flagShowHost) {?>
 <div>Please enter your <strong><?php echo ($binding ? "Windows" : "database"); ?></strong> login/password.</div>
 </form>
 </div>
-
 </body>
 </html>

@@ -4,11 +4,12 @@ if ($_GET["pane"])
 else 
    $paneSrc = (isset($defaultPaneSrc) ? $defaultPaneSrc : "about.php") ;
 
-$arrJS[] = "../common/jquery/jquery.simple.tree.js";
-$arrJS[] = "../common/eiseIntra/intra.js";
-$arrCSS[] = "../common/jquery/simpletree.css";
-$arrCSS[] = "../common/eiseIntra/intra.css";
-$arrCSS[] = "../common/screen.css";
+$arrJS[] = jQueryRelativePath."simpleTree/jquery.simple.tree.js";
+$arrCSS[] = jQueryRelativePath."simpleTree/simpletree.css";
+
+$arrJS[] = eiseIntraRelativePath."intra.js";
+$arrCSS[] = eiseIntraRelativePath."intra.css";
+$arrCSS[] = commonStuffRelativePath."screen.css";
    
  ?><!DOCTYPE html>
 <html>
@@ -71,7 +72,7 @@ $(document).ready(function(){
     <div id="login_info"><?php echo $intra->translate("You're logged in as"); ?> <?php 
     
     if ($authmethod=="mysql"){
-        echo $arrAuth["DBUSER"]."@".$arrAuth["DBHOST"];
+        echo $oSQL->dbuser."@".$oSQL->dbhost;
     } else {
         echo $intra->arrUsrData["usrName{$intra->local}"] ;
         if (count($intra->arrUsrData["roles"]))

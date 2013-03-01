@@ -1,4 +1,14 @@
 <?php
+/***********************************************************************
+
+eiseIntra core class
+
+***********************************************************************/
+
+
+include "inc_config.php";
+include "inc_mysql.php";
+
 class eiseIntra {
 
 function __construct($oSQL, $conf = Array()){
@@ -84,8 +94,17 @@ function Authenticate($login, $password, &$strError, $method="LDAP"){
                 return true;
         }
     case "mysql":
-       SetCookie("authstring", $_POST["authstring"]);
-       return true;
+        $oSQL->dbhost = $_POST["host"];
+        $oSQL->dbuser = $login;
+        $oSQL->dbpass = $password;
+        $oSQL->dbname = (!$_POST["database"] ? 'mysql' : $_POST["database"]) ;
+        try {
+            $oSQL->connect();
+        } catch(Exception $e){
+            $strError = $e->getMessage();
+            return false;
+        }
+        return true;
     case "database":
     case "DB":
         if(!$oSQL->connect()){
@@ -107,7 +126,7 @@ function Authenticate($login, $password, &$strError, $method="LDAP"){
 
 
 function session_initialize(){
-   session_set_cookie_params(0, "/");
+   session_set_cookie_params(0, eiseIntraCookiePath);
    session_start();
 } 
 

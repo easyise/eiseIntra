@@ -1,7 +1,7 @@
 <?php 
-include '../common/eiseGrid/inc_eiseGrid.php';
-$arrJS[] = '../common/eiseGrid/eiseGrid.js';
-$arrCSS[] = '../common/eiseGrid/eiseGrid.css';
+include commonStuffAbsolutePath.'eiseGrid/inc_eiseGrid.php';
+$arrJS[] = commonStuffRelativePath.'eiseGrid/eiseGrid.js';
+$arrCSS[] = commonStuffRelativePath.'eiseGrid/eiseGrid.css';
 
 $oSQL->dbname=(isset($_POST["dbName"]) ? $_POST["dbName"] : $_GET["dbName"]);
 $dbName = $oSQL->dbname;
@@ -422,7 +422,7 @@ if ($easyAdmin){
 	);
 }
 
-include("../common/eiseIntra/inc-frame_top.php");
+include eiseIntraAbsolutePath."inc-frame_top.php";
 ?>
 <h1><?php  echo $rwEnt["entTitle"] ; ?></h1>
 
@@ -525,5 +525,5 @@ function checkForm(){
 </script>
 
 <?php
-include("../common/eiseIntra/inc-frame_bottom.php");
+include eiseIntraAbsolutePath."inc-frame_bottom.php";
  ?>

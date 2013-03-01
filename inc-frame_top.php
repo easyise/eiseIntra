@@ -1,8 +1,8 @@
 <?php 
-$arrCSS[] = "../common/images/sprites/sprite.css";
-$arrJS[] = "../common/eiseIntra/intra.js";
-$arrCSS[] = "../common/eiseIntra/intra.css";
-$arrCSS[] = "../common/screen.css";
+$arrCSS[] = imagesRelativePath."sprites/sprite.css";
+$arrJS[] = eiseIntraRelativePath."intra.js";
+$arrCSS[] = eiseIntraRelativePath."intra.css";
+$arrCSS[] = commonStuffRelativePath."screen.css";
 
  ?><!DOCTYPE html>
 <html>

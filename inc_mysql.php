@@ -53,10 +53,10 @@ class sql{
       
       if ($this->dbh == 0) {
         if ($this->flagPersistent) {
-           $this->dbh = mysql_pconnect($this->$dbhost,$this->dbuser,$this->dbpass);
+           $this->dbh = @mysql_pconnect($this->$dbhost,$this->dbuser,$this->dbpass);
         }
         else {
-           $this->dbh = mysql_connect($this->dbhost, $this->dbuser, $this->dbpass);
+           $this->dbh = @mysql_connect($this->dbhost, $this->dbuser, $this->dbpass);
         }
         
       }
@@ -186,7 +186,7 @@ class sql{
     function not_right($error="MySQL error") {
       $this->errordesc = mysql_error();
       $this->errornum  = mysql_errno();  
-      throw new Exception("{$this->errordesc}:\r\n {$this->errornum}\r\n");
+      throw new Exception($error." - {$this->errornum}: {$this->errordesc}\r\n");
     }
     
     function sql ($dbhost, $dbuser, $dbpass, $dbname, $flagPersistent=false) {
