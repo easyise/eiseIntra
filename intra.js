@@ -59,10 +59,14 @@ function eiseIntraAdjustPane(){
     
     var divTOC = $('#toc');
     
-    divTOC.css("height", height+"px");
-    divTOC.css("max-height", height+"px");
+    //MBP = Margin+Border+Padding
     
+    var divTocMBP = divTOC.outerHeight(true) - divTOC.height();
     
+    divTOC.css("height", (height-divTocMBP)+"px");
+    divTOC.css("max-height", (height-divTocMBP)+"px");
+    
+    divPaneMBP = oPane.outerHeight(true) - oPane.height();
     height = height - (oPane.outerHeight(true) - oPane.height()) - 3;
     //height = height - 2;
     
