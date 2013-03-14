@@ -42,11 +42,6 @@ function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array()){
     $rwEnt = $this->rwEnt;
     $strLocal = $this->intra->local;
     
-    GLOBAL $arrJS, $arrCSS;
-    $arrJS[] = "{$eiseListPath}/eiseList.js";
-    $arrCSS[] = "{$eiseListPath}/eiseList.css";
-    include_once("{$eiseListPath}/inc_eiseList.php");
-    
     $listName = $entID;
 
     $staID = isset($_GET[$entID."_staID"]) ? $_GET[$entID."_staID"] : $_COOKIE[$entID."_staID"];
@@ -60,7 +55,11 @@ function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array()){
         $this->rwSta = $rwSta;
     }
 
-    $lst = new eiseList($oSQL, $listName, Array('title'=>$this->rwEnt["entTitle{$strLocal}"]));
+    $lst = new eiseList($oSQL, $listName, Array('title'=>($this->intra->arrUsrData["pagTitle{$strLocal}"]!="" 
+            ? $this->intra->arrUsrData["pagTitle{$strLocal}"]
+            : $this->intra->arrUsrData["pagTitle"]).($staID!="" ? ': '.$rwSta["staTitle{$strLocal}"] : '')
+        ,  "intra" => $this->intra
+        ));
 
     $lst->cookieName = $listName.$staID;
     $lst->cookieExpire = time()+60*60*24*30;

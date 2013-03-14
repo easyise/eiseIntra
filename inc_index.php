@@ -22,12 +22,6 @@ $intra->loadJS();
 <script>
 $(document).ready(function(){
     
-    eiseIntraAdjustPane();
-    
-    $(window).resize(function(){
-        eiseIntraAdjustPane();
-    });
-    
     $('.simpleTree').simpleTree({
 		autoclose: false,
         drag:false,
@@ -57,15 +51,20 @@ $(document).ready(function(){
 		animate:true
 		,docToFolderConvert:true
 		});
+    
+    layout = new eiseIntraLayout({menushown: true});
+    
+    $(window).resize(function(){
+        layout.adjustPane();
+    });
+    
+    $(window).resize();
+    
 });
 </script>
 </head>
 <body>  
 
-<table style="width:100%;height:100%;border-spacing: 0;border: 0;">
-<tbody>
-<tr>
-<td colspan="2">
 <div id="header">
 	<a href="index.php" target="_top"><div id="corner_logo"><?php echo $intra->conf["stpCompanyName"]; ?></div></a>
 	<div id="app_title"><?php echo $title; ?></div>
@@ -83,11 +82,6 @@ $(document).ready(function(){
     <a class="lang-<?php echo $localLanguage.($intra->local=="Local" ? " sel" : "") ?>" href="index.php?local=on"><?php  echo $localCountry ; ?></a>
 	</div>
 </div>
-</td>
-</tr>
-
-<tr>
-<td>
 <div id="toc">
 
 <?php 
@@ -98,11 +92,7 @@ if (isset($toc_generator) && file_exists($toc_generator)){
 ?>
 
 </div>
-</td>
-<td style="width:100%;padding: 0;border:0;margin:0;"><iframe id="pane" name="pane" src="<?php echo $paneSrc ; ?>" style="width:100%;height:100%;position:relative;border:0;" frameborder=0></iframe></td>
-</tr>
-</tbody>
-</table>
+<iframe id="pane" name="pane" src="<?php echo $paneSrc ; ?>" style="position:fixed;" frameborder=0></iframe>
 
 </body>
 </html>

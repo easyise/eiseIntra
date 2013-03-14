@@ -9,6 +9,8 @@ $sql = "SELECT PG1.pagID
             , PG1.pagFlagShowInMenu
             , PG1.pagEntityID
             , COUNT(DISTINCT PG2.pagID) as iLevelInside
+            , (SELECT COUNT(*) FROM stbl_page CH 
+                WHERE CH.pagParentID=PG1.pagID AND CH.pagFlagShowInMenu=1) as nChildren
             , MAX(PGR.pgrFlagRead) as FlagRead
             , MAX(PGR.pgrFlagWrite) as FlagWrite
     FROM stbl_page PG1
@@ -30,12 +32,12 @@ $sql = "SELECT PG1.pagID
             , PG1.pagFlagShowInMenu
     HAVING (MAX(PGR.pgrFlagRead)=1 OR MAX(PGR.pgrFlagWrite)=1) 
     ORDER BY PG1.pagIdxLeft";
-
+    
     $rs = $oSQL->do_query($sql);
 	?>
 
     
-<ul class="simpleTree" id="toc">
+<ul class="simpleTree">
 <li id="menu_root" class="root"><span><strong>Menu</strong></span>
 <?php
 $strOutput .= "";	
@@ -48,10 +50,10 @@ while ($rw = $oSQL->fetch_array($rs)){
     $hrefSuffix = "";
     
     for ($i=$rw_old["iLevelInside"]; $i>$rw["iLevelInside"]; $i--)
-       echo "</ul>\r\n\r\n";
+       echo "</ul></li>\r\n\r\n";
     
     for ($i=$rw_old["iLevelInside"]; $i<$rw["iLevelInside"]; $i++)
-       echo "<ul>\r\n";
+       echo "<ul>";
     
     if (preg_match("/list\.php$/", $rw["pagFile"]) && $rw["pagEntityID"]!=""){
        $hrefSuffix = "?".$rw["pagEntityID"]."_staID=";
@@ -70,7 +72,7 @@ while ($rw = $oSQL->fetch_array($rs)){
         ? "</a>"
         : ""
         )
-        ."\r\n";
+        .($rw["nChildren"]==0 ? "</li>" : "")."\r\n";
    
    if ($hrefSuffix){
       $sqlSta = "SELECT * FROM stbl_status WHERE staEntityID='".$rw["pagEntityID"]."' AND staFlagDeleted=0";
