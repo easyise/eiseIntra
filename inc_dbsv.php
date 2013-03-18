@@ -1,12 +1,16 @@
 <?php 
 /*
 class DBSV
+version 2.0 beta
 DataBase Schema Version tool
 requires inc_*sql.php
 
 takes content of given directory with SQL version files 
 and run it sequentially, starting from a script number greated than one 
 from current system DBSV version
+
+ update version 2.0:
+supports multi-branch development with gaps in version numbering
 
 Connection *SQL user shoudl have enough privileges to modify schema in current database.
 */
@@ -64,19 +68,26 @@ function Execute(){
     }
 
     chdir($this->strDir);
-    for ($i=($verNumber+1);$i<=$newVerNo;$i++){
-        if (!isset($arrFiles[$i])){
-            echo "ERROR: Cannot get SQL script for version #$i.";
+    $newVer = $verNumber+1;
+    foreach($arrFiles as $ver => $file){
+        if ($ver < $newVer)
+            continue;
+            
+        if (!isset($arrFiles[$newVer])){
+            echo "ERROR: Cannot get SQL script for version #{$newVer}. ";
+            $ver = $oSQL->d("SELECT MAX(verNumber) FROM stbl_version");
+            echo "Current version is {$ver}.\r\n";
             return;
         }
-        $fh = fopen($arrFiles[$i], "r");
         $oSQL->do_query("START TRANSACTION");
-        $this->parse_mysql_dump($arrFiles[$i]);
-        $oSQL->do_query("INSERT INTO stbl_version (verNumber, verDate, verDesc) VALUES ($i, NOW(), '')");
+        $this->parse_mysql_dump($arrFiles[$newVer]);
+        $oSQL->do_query("INSERT INTO stbl_version (verNumber, verDate, verDesc) VALUES ({$newVer}, NOW(), '')");
         $oSQL->do_query("COMMIT");
-        echo "Version is now #".sprintf("%03d",$i)."\r\n";
-        fclose($fh);
+        $ver = $oSQL->d("SELECT MAX(verNumber) FROM stbl_version");
+        echo "Version is now #".sprintf("%03d",$ver)."\r\n";
+        $newVer = $ver+1;
     }
+
     echo "Execution complete";
 }
 
