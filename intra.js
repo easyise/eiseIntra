@@ -1,6 +1,6 @@
 function intraInitializeForm(){
    
-    $('input.intra_date, input.intra_datetime').each(function() {
+    $('input.eiseIntra_date, input.eiseIntra_datetime').each(function() {
         $(this).datepicker({
 			changeMonth: true,
 			changeYear: true,
@@ -9,9 +9,12 @@ function intraInitializeForm(){
             firstDay: 1
             , yearRange: 'c-7:c+7'
         })
+        $(this).bind("dblclick", function(){
+            eiseIntra_setCurrentDate(this);
+        })
     });
     
-    $('input.intra_ajax_dropdown').each(function(){
+    $('input.eiseIntra_ajax_dropdown').each(function(){
         
         var data = $(this).attr('src');
 		eval ("var arrData="+data+";");
@@ -52,6 +55,27 @@ function intraInitializeForm(){
 		});
     });
 
+}
+
+function eiseIntra_setCurrentDate(oInp){
+    
+    var today = new Date();
+    var dd = today.getDate();
+    var mm = today.getMonth()+1; //January is 0!
+    var hh = today.getHours();
+    var mn = today.getMinutes();
+    var yyyy = today.getFullYear();
+    
+    if(dd<10){dd='0'+dd} if(mm<10){mm='0'+mm} 
+    if(hh<10){hh='0'+hh} if(mn<10){mn='0'+mn} 
+    
+    var date = dd+'.'+mm+'.'+yyyy;
+    var time = hh+':'+mn;
+    if ($(oInp).hasClass('eiseIntra_datetime')){
+        $(oInp).val(date+' '+time);
+    } else {
+        $(oInp).val(date);
+    }
 }
 
 function eiseIntraAdjustPane(){
@@ -112,13 +136,14 @@ function initialize_inputs(){
     intraInitializeForm();
 }
 
-function showModalWindow(idDivContents, strTitle){ //requires jquery
+function showModalWindow(idDivContents, strTitle, width){ //requires jquery
     
     var selDiv = '#'+idDivContents;
     
     $(selDiv).attr('title', strTitle);
     $(selDiv).dialog({
             modal: true
+            , width: width!=undefined ? width : 300
         });
     
 }

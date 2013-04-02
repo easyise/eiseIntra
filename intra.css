@@ -41,6 +41,7 @@ td     {  	vertical-align: top; padding: 0;}
         display: block;
         overflow: hidden;
         position: fixed;
+        z-index: 10;
 }
 
 div.menubutton  {
@@ -61,5 +62,68 @@ div.menubutton  {
     white-space: nowrap;
     z-index: 125;
 }
+
+.eiseIntraError {
+    border: 1px solid #f30;
+    background-color: #ff9966;
+    color: #660000;
+    line-height: 1.5em;
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAIsSURBVDjLpVNLSJQBEP7+h6uu62vLVAJDW1KQTMrINQ1vPQzq1GOpa9EppGOHLh0kCEKL7JBEhVCHihAsESyJiE4FWShGRmauu7KYiv6Pma+DGoFrBQ7MzGFmPr5vmDFIYj1mr1WYfrHPovA9VVOqbC7e/1rS9ZlrAVDYHig5WB0oPtBI0TNrUiC5yhP9jeF4X8NPcWfopoY48XT39PjjXeF0vWkZqOjd7LJYrmGasHPCCJbHwhS9/F8M4s8baid764Xi0Ilfp5voorpJfn2wwx/r3l77TwZUvR+qajXVn8PnvocYfXYH6k2ioOaCpaIdf11ivDcayyiMVudsOYqFb60gARJYHG9DbqQFmSVNjaO3K2NpAeK90ZCqtgcrjkP9aUCXp0moetDFEeRXnYCKXhm+uTW0CkBFu4JlxzZkFlbASz4CQGQVBFeEwZm8geyiMuRVntzsL3oXV+YMkvjRsydC1U+lhwZsWXgHb+oWVAEzIwvzyVlk5igsi7DymmHlHsFQR50rjl+981Jy1Fw6Gu0ObTtnU+cgs28AKgDiy+Awpj5OACBAhZ/qh2HOo6i+NeA73jUAML4/qWux8mt6NjW1w599CS9xb0mSEqQBEDAtwqALUmBaG5FV3oYPnTHMjAwetlWksyByaukxQg2wQ9FlccaK/OXA3/uAEUDp3rNIDQ1ctSk6kHh1/jRFoaL4M4snEMeD73gQx4M4PsT1IZ5AfYH68tZY7zv/ApRMY9mnuVMvAAAAAElFTkSuQmCC);
+    background-repeat: no-repeat;
+    background-position-x: 5px;
+    background-position-y: 1px;
+    padding-left: 14px;
+}
+
 /* /Menubar stuff                                                   */
 /********************************************************************/
+
+/********************************************************************/
+.eiseIntraForm  fieldset{
+    margin-top: 2em;
+    margin-left: 5px;
+    padding: 5px;
+    position: relative;
+    z-index: 0;
+}
+
+.eiseIntraForm legend{
+    position: absolute;
+    height: 1.4em;
+    line-height: 1.4em;
+    position: absolute;
+    top: -1.5em;
+    left: 0.5em;
+    z-index: 0;
+}
+
+.eiseIntraForm  fieldset > div {
+    line-height: 1.5em;
+
+}
+.eiseIntraForm  fieldset label,.eiseIntraForm  fieldset .eiseValue {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.eiseIntraForm  label{
+    width: 24%;
+    float: left;
+    clear: left;
+    text-align: right;
+    padding-right: 5px !important;
+    cursor: default !important;
+}
+
+.eiseIntraForm .eiseValue{
+    width: 74%;
+    clear: right;
+}
+
+
+.eiseIntraLogData {
+    overflow: hidden;
+}
+
+/********************************************************************/
+

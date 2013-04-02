@@ -64,7 +64,7 @@ while ($rw = $oSQL->fetch_array($rs)){
     echo "<li".($rw["pagParentID"]==1
              ? " class='open'"
              : "")." id='".$rw["pagID"]."'>".
-      ($rw["pagFile"] && !$flagIsEntity
+      ($rw["pagFile"] && !$flagIsEntity && !($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent")
         ? "<a target='pane' href='".$rw["pagFile"].$hrefSuffix."'>"
         : "")
       ."<span>".$rw["pagTitle{$intra->local}"]."</span>".
@@ -72,7 +72,7 @@ while ($rw = $oSQL->fetch_array($rs)){
         ? "</a>"
         : ""
         )
-        .($rw["nChildren"]==0 ? "</li>" : "")."\r\n";
+        .($rw["nChildren"]==0 && !($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent") ? "</li>" : "")."\r\n";
    
    if ($hrefSuffix){
       $sqlSta = "SELECT * FROM stbl_status WHERE staEntityID='".$rw["pagEntityID"]."' AND staFlagDeleted=0";
@@ -83,7 +83,7 @@ while ($rw = $oSQL->fetch_array($rs)){
       }
    }
    
-   if ($rw["pagFile"]=="/entity_form.php" && $rw["pagEntityID"]=="ent"){
+   if ($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent"){
       echo "<ul>\r\n";
       $sqlEnt = "SELECT * FROM stbl_entity";
       $rsEnt = $oSQL->do_query($sqlEnt);
@@ -91,7 +91,7 @@ while ($rw = $oSQL->fetch_array($rs)){
          echo "<li id='".$rw["pagID"]."_".$rwEnt["entID"]."'><a target='pane' href='".
             $rw["pagFile"]."?entID=".$rwEnt["entID"]."'>".$rwEnt["entTitle{$intra->local}"]."</a>\r\n";
       }
-      echo "</ul>\r\n";
+      echo "</ul></li>\r\n";
    }
    
    if ($rw["pagFile"]=="/toc_form.php"){
@@ -101,7 +101,6 @@ while ($rw = $oSQL->fetch_array($rs)){
       echo "</ul>\r\n";
       */
    }
-   
    
    $rw_old = $rw;
 }

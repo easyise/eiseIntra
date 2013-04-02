@@ -316,18 +316,19 @@ function actionChecked(o){
 }
 
 function intializeComments(entID){
-    var divControl = document.getElementById("intra_comment_contols");
+    
+    var divControl = document.getElementById("eiseComment_contols");
     if (divControl==null)
         return false;
 
-    var divLastComment  = document.getElementById("intra_comment");
+    var divLastComment  = document.getElementById("eiseComment");
 
     /*
-    document.getElementById("intra_comment_attach").onclick=function(){
+    document.getElementById("eiseComment_attach").onclick=function(){
         commentAttachFile(entID);
     }
     */
-    document.getElementById("intra_comment_add").onclick=function(){
+    document.getElementById("eiseComment_add").onclick=function(){
         commentAdd(entID, this);
     }
 
@@ -353,7 +354,7 @@ function intializeComments(entID){
 }
 
 function commentAdd(entID, oControl){
-    var divLastComment  = document.getElementById("intra_comment");
+    var divLastComment  = document.getElementById("eiseComment");
     var entItemID = document.getElementById(entID+"ID").value;
 
     strURL = location.href;
@@ -381,7 +382,7 @@ function commentAdd(entID, oControl){
         var oDIVText = document.createElement("DIV");
         $(oDIVText).text($(divLastComment).text());
         var oDIVUser = document.createElement("DIV");
-        oDIVUser.className = "intra_comment_userstamp";
+        oDIVUser.className = "eiseComment_userstamp";
         var cd = new Date();
         $(oDIVUser).text(strUserName+" at "+cd.getDate()+"."+(cd.getMonth()+1)+"."+cd.getFullYear()+":");
         $(divLastComment).text("");
@@ -397,7 +398,7 @@ function commentAdd(entID, oControl){
 }
 
 function showCommentDelete(oDiv){
-    var divControl = document.getElementById("intra_comment_delete");
+    var divControl = document.getElementById("eiseComment_delete");
     
     $(divControl).offset({
             left: $(oDiv).width(true)+$(oDiv).offset().left

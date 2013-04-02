@@ -34,6 +34,8 @@ function __construct($oSQL, $intra, $entID, $entItemID, $flagArchive = false){
         $this->getEntityItemDataFromArchive();
     }
     
+    $this->staID = $this->rwEnt[$entID."StatusID"];
+    
 }
 
 function getEntityItemData(){
@@ -571,7 +573,7 @@ public function attachFile($fileNameOriginal, $fileContents, $fileMIME="Applicat
 
 
 
-function updateMasterTable($arrNewData = Array()){
+function updateMasterTable($arrNewData = Array(), $flagUpdateMultiple = false){
     
     if (count($arrNewData)>0)
         $this->arrNewData = $arrNewData;
@@ -599,7 +601,6 @@ function updateMasterTable($arrNewData = Array()){
     
     $atrToUpd = Array();
     $strFieldList = "";
-    $flagUpdateMultiple = $arrAction["flagUpdateMultiple"];
     
     while ($rwSAT = $oSQL->fetch_array($rsSAT)){
         
@@ -1500,13 +1501,10 @@ function getEntityItemAllData(){
     
 	//   - Master table is $this->rwEnt
 	// attributes and combobox values
-	$sqlAtr = "SELECT * 
-       FROM stbl_attribute 
-       LEFT OUTER JOIN stbl_status_attribute ON satStatusID='".$this->rwEnt["{$this->entID}StatusID"]."' AND satAttributeID=atrID AND satEntityID='{$this->entID}'
-       WHERE atrEntityID='{$this->entID}'
-       ORDER BY atrOrder ASC";
-    $rsAtr = $this->oSQL->do_query($sqlAtr);
-	while ($rwATR = $this->oSQL->f($rsAtr)){
+    $this->staID = (int)$this->rwEnt["{$this->entID}StatusID"];
+	$this->collectDataStatus();
+	$this->collectDataAttributes();
+	foreach($this->arrAtr as $rwATR){
 		$this->rwEnt["ATR"][$rwATR["atrID"]] = $rwATR;
 		if (in_array($rwATR["atrType"], Array("combobox", "ajax_dropdown")))
 				$this->rwEnt[$rwATR["atrID"]."_Text"] = ($this->rwEnt[$rwATR["atrID"]] != ""
@@ -1568,6 +1566,58 @@ function getEntityItemAllData(){
     
 	return $this->rwEnt;
 	
+}
+
+function upgrade_eiseIntra(){
+    
+    //*
+    
+    $sqlItems = "SELECT aclGUID as guid, 'stbl_action_log' as tbl, 'acl' as prfx, aclInsertDate as dt 
+            FROM stbl_action_log 
+            WHERE aclEntityItemID='{$this->entItemID}'
+        UNION
+        SELECT stlGUID as guid, 'stbl_status_log' as tbl, 'stl' as prfx , stlInsertDate as dt 
+            FROM stbl_status_log
+            WHERE stlEntityItemID='{$this->entItemID}'
+        ORDER BY dt, prfx";
+    $rs = $this->oSQL->q($sqlItems);
+    while($rw = $this->oSQL->f($rs)){
+        $this->oSQL->q("UPDATE {$rw["tbl"]} SET {$rw["prfx"]}ID=".$this->getLogID()." WHERE {$rw["prfx"]}GUID='{$rw["guid"]}'");
+    }
+    
+    return;
+    
+    //*/
+    
+    $this->getEntityItemAllData();
+    
+    $this->oSQL->q("UPDATE stbl_action_log SET aclID=".$this->getLogID()." WHERE aclActionID=1 AND aclEntityItemID='{$this->entItemID}'");
+    
+    if (!is_array($this->rwEnt["STL"]))
+        return;
+    
+    $revSTL = array_reverse($this->rwEnt["STL"]);
+    foreach($revSTL as $guid=>$rwSTL){
+        if ($rwSTL["stlArrivalAction"]["aclGUID"])
+            $this->oSQL->q("UPDATE stbl_action_log SET aclID=".$this->getLogID()." WHERE aclGUID='{$rwSTL["stlArrivalAction"]["aclGUID"]}'");
+        $this->oSQL->q("UPDATE stbl_status_log SET stlID=".$this->getLogID()." WHERE stlGUID='{$rwSTL["stlGUID"]}'");
+        
+        if (!is_array($rwSTL["ACL"]))
+            continue;
+        $arrACL = array_reverse($rwSTL["ACL"]);
+        foreach($arrACL as $guid=>$rwACL){
+             $this->oSQL->q("UPDATE stbl_action_log SET aclID=".$this->getLogID()." WHERE aclGUID='{$rwACL["aclGUID"]}'");
+        }
+    }
+    
+    if (!is_array($this->rwEnt["ACL"]))
+        return;
+    
+    $revACL = array_reverse($this->rwEnt["ACL"]);
+    foreach($revACL as $guid => $rwACL){
+        $this->oSQL->q("UPDATE stbl_action_log SET aclID=".$this->getLogID()." WHERE aclGUID='{$rwACL["aclGUID"]}'");
+    }
+    
 }
 
 }

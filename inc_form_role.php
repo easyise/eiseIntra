@@ -50,16 +50,7 @@ if ($_POST["DataAction"]=="update"){
     }
 }
 
-include '../common/eiseGrid/inc_eiseGrid.php';
-$arrJS[] = '../common/eiseGrid/eiseGrid.js';
-$arrCSS[] = '../common/eiseGrid/eiseGrid.css';
-
-$arrJS[] = "../common/jquery/jquery-autocomplete/lib/jquery.bgiframe.js";
-$arrJS[] = "../common/jquery/jquery-autocomplete/jquery.autocomplete.js";
-$arrJS[] = "../common/jquery/jquery-autocomplete/lib/jquery.ajaxQueue.js";
-$arrCSS[] = "../common/jquery/jquery-autocomplete/jquery.autocomplete.css";
-
-include "../common/inc-frame_top.php";
+include "inc-frame_top.php";
 
 
 ?>
@@ -72,11 +63,20 @@ $(document).ready(function(){
 
 <h1><?php echo $intra->arrUsrData["pagTitle{$intra->local}"]; ; ?></h1>
 
-<div class="panel">
-<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST">
+<style>
+.eiseGrid > * {
+    display: block !important;
+}
+
+fieldset {
+    display: inline !important;
+}
+</style>
+
+<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" class="eiseIntraForm">
 <input type="hidden" name="DataAction" value="update">
 <input type="hidden" name="prjID" value="<?php  echo $prjID ; ?>">
-<table border=0>
+<div>
 <?php
 
 $sqlRoles = "SELECT * FROM stbl_role";
@@ -85,10 +85,8 @@ $rsRol = $oSQL->do_query($sqlRoles);
 while ($rwRol = $oSQL->fetch_array($rsRol)) {
     if ($rwRol["rolFlagDefault"]==1) continue;
  ?>
-<tr>
-<td class="field_title"><?php  echo $rwRol["rolTitle{$intra->local}"] ; ?>:<br>
-</td>
-<td><?php 
+<fieldset><legend><?php  echo $rwRol["rolTitle{$intra->local}"] ; ?></legend>
+<?php 
 
 $grid = new easyGrid($oSQL
 					, "role_mems_".$rwRol["rolID"]
@@ -123,23 +121,23 @@ while ($rwRlu = $oSQL->fetch_array($rsRlu)){
 
 $grid->Execute();
  ?>
- <br>&nbsp;
- </td>
-</tr>
+</fieldset>
 <?php 
 }
  ?>
+</div>
+
 
 <?php 
 if ($intra->arrUsrData["FlagWrite"]){
 ?>
-<tr><td colspan=2 style="text-align: center;"><input type="submit" value="Save"></tr>
+<div style="text-align:center;"><input type="submit" value="Save" style="margin: 10px auto;width: 300px;"></div>
 <?php
 }
  ?>
-</table>
 </form>
 
+
 <?php
-include "../common/inc_bottom.php";
+include "inc-frame_bottom.php";
 ?>

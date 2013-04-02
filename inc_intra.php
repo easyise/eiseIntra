@@ -319,18 +319,44 @@ function readSettings(){
     return $arrSetup;
 }
 
+
+private $arrHTML5AllowedInputTypes = 
+    Array("color", "date", "datetime", "datetime-local", "email", "month", "number", "range", "search", "tel", "time", "url", "week");
+
+private function handleClass(&$arrConfig){
+    // get contents of 'class' attribute in strAttrib
+    $prgClass = "/\s+class=[\"\']([^\"\']+)[\"\']/i";
+    $arrClass = Array();
+    $attribs = $arrConfig["strAttrib"];
+    if (preg_match($prgClass, $attribs, $arrMatch)){
+        $arrClass = preg_split("/\s+/", $arrMatch[1]);
+        $arrConfig["strAttrib"] = preg_replace($prgClass, "", $arrConfig["strAttrib"]);
+    }
+    if (!is_array($arrConfig["class"])){
+        $arrClass[] = $arrConfig["class"];
+    } else {
+        $arrClass = array_merge($arrClass, $arrConfig["class"]) ;
+    }
+    $arrConfig["class"] = $arrClass;
+    return " class=\"".implode(" ", $arrClass)."\"";
+}
+    
 function showTextBox($strName, $strValue, $arrConfig=Array()) {
     
     $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
     
+    $strClass = $this->handleClass($arrConfig);
+    
     $strAttrib = $arrConfig["strAttrib"];
     if ($flagWrite){
-       $strRet = "<input type=\"text\" name=\"{$strName}\" id=\"{$strName}\"".
+        $type = (in_array($arrConfig['type'], $this->arrHTML5AllowedInputTypes) ? $arrConfig["type"] : 'text');
+       $strRet = "<input type=\"{$type}\" name=\"{$strName}\" id=\"{$strName}\"".
             ($strAttrib ? " ".$strAttrib : "").
+            ($strClass ? " ".$strClass : "").
        " value=\"".htmlspecialchars($strValue)."\" />\r\n";
     } else {
         $strRet = "<div id=\"span_{$strName}\"".
-        ($strAttrib ? " ".$strAttrib : "").">".
+        ($strAttrib ? " ".$strAttrib : "").$strClass.">".
         htmlspecialchars($strValue)."</div>\r\n".
         "<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\"".
         " value=\"".htmlspecialchars($strValue)."\" />\r\n";
@@ -344,17 +370,21 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
     
     $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
     
+    $strClass = $this->handleClass($arrConfig);
+    
     if ($flagWrite){
         $strRet .= "<textarea name=\"".$strName."\"";
         if($strAttrib) $strRet .= " ".$strAttrib;
-        $strRet .= ">";
+        $strRet .= $strClass.">";
         $strRet .= htmlspecialchars($strValue);
         $strRet .= "</textarea>";
     } else {
         $strRet = "<div id=\"span_{$strName}\"".
-        ($strAttrib ? " ".$strAttrib : "").">".htmlspecialchars($strValue)."</div>\r\n".
-        "<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\"".
-        " value=\"".htmlspecialchars($strValue)."\" />\r\n";
+            ($strAttrib ? " ".$strAttrib : "").
+            $strClass.">".
+            htmlspecialchars($strValue)."</div>\r\n".
+            "<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\"".
+            " value=\"".htmlspecialchars($strValue)."\" />\r\n";
     }
     return $strRet;        
     
@@ -366,9 +396,12 @@ function showCombo($strName, $strValue, $arrOptions, $arrConfig){
     
     $retVal = "";
     
+    $strClass = $this->handleClass($arrConfig);
+    
     $strAttrib = $arrConfig["strAttrib"];
     if ($flagWrite){
-        $retVal .= "<select id=\"".$strName."\" name=\"".$strName."\"".$strAttrib.">\r\n";
+        $retVal .= "<select id=\"".$strName."\" name=\"".$strName."\"".$strAttrib.
+            $strClass.">\r\n";
         if ($arrConfig["strZeroOptnText"]){
             $retVal .= "<option value=\"\">".htmlspecialchars($arrConfig["strZeroOptnText"])."</option>\r\n" ;
         }
@@ -387,7 +420,7 @@ function showCombo($strName, $strValue, $arrOptions, $arrConfig){
         }
         $valToShow=($valToShow!="" ? $valToShow : $arrConfig["strZeroOptnText"]);
         
-        $retVal = "<span id=\"span_{$strName}\">".htmlspecialchars($valToShow)."</span>\r\n".
+        $retVal = "<div id=\"span_{$strName}\"{$strClass}>".htmlspecialchars($valToShow)."</div>\r\n".
         "<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\"".
         " value=\"".htmlspecialchars($textToShow)."\" />\r\n";
         
@@ -399,6 +432,8 @@ function showCombo($strName, $strValue, $arrOptions, $arrConfig){
 function showCheckBox($strName, $strValue, $arrConfig=Array()){
     
     $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
+    
+    $strClass = $this->handleClass($arrConfig);
     
     $strAttrib = $arrConfig["strAttrib"];
     $retVal = "<input name=\"{$strName}\" id=\"{$strName}\" type=\"checkbox\"".
@@ -457,16 +492,16 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
     
     $strOut = "";
     $strOut .= "<input type=\"hidden\" name=\"$strFieldName\" id=\"$strFieldName\" value=\"".htmlspecialchars($strValue)."\">\r\n";
-   
+    
+    $strClass = $this->handleClass($arrConfig);
+    
     if ($flagWrite){
-        $addParams = $arrConfig["strAttrib"];
-        $addParams = (preg_match("/class\=/", $addParams) 
-            ? preg_replace("/class=([\"\'])/", "class=\\1intra_ajax_dropdown ", $addParams)
-            : " class=\"intra_ajax_dropdown\"".$addParams);
         $strOut .= $this->showTextBox($strFieldName."_text", $arrConfig["strText"]
-            , Array("FlagWrite"=>true, "strAttrib" => $addParams." src=\"{table:'{$arrConfig["strTable"]}', prefix:'{$arrConfig["strPrefix"]}'}\" autocomplete=\"off\""));
+            , Array("FlagWrite"=>true
+                , "strAttrib" => $arrConfig["strAttrib"]." src=\"{table:'{$arrConfig["strTable"]}', prefix:'{$arrConfig["strPrefix"]}'}\" autocomplete=\"off\""
+                , "class" => array_merge($arrConfig["class"], Array(""))));
     } else {
-        $strOut .= "<span id=\"span_{$strFieldName}\">".htmlspecialchars($arrConfig["strText"])."</span>\r\n";
+        $strOut .= "<div id=\"span_{$strFieldName}\"{$strClass}>".htmlspecialchars($arrConfig["strText"])."</div>\r\n";
     }
     
     return $strOut;

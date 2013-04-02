@@ -68,16 +68,7 @@ $intra->loadCSS();
 </head>
 <body>
 
-<h1>Welcome to <?php  echo $title ; ?></h1>
-
 <?php
-if ($_GET["error"]){
-?>
-<div class="error">ERROR: <?php  echo $_GET["error"] ; ?></div>
-<?php
-}
-
-
 $arrUsr = split("[\\]", $AUTH_USER);
 $usrID = strtoupper($arrUsr[count($arrUsr)-1]);
 
@@ -235,36 +226,50 @@ $(document).ready(function(){
 
 </script>
 
-<div class="panel">
-<form action="<?php echo $_SERVER["PHP_SELF"] ?>" name="loginform" method="POST" onsubmit="return LoginForm();">
+<div style="margin: 0 auto;width:50%">
+
+<h1 style="text-align: center;">Welcome to <?php  echo $title ; ?></h1>
+
+<?php 
+if ($_GET["error"]){
+?>
+<div class="eiseIntraError" style="text-align: center;width: 50%;margin: 0 auto;">ERROR: <?php  echo $_GET["error"] ; ?></div>
+<?php
+}
+ ?>
+<form action="<?php echo $_SERVER["PHP_SELF"] ?>" name="loginform" method="POST" onsubmit="return LoginForm();" class="eiseIntraForm">
 <input type="hidden" id="DataAction" name="DataAction" value="login">
 <input type="hidden" id="authstring" name="authstring" value="">
-<div class="intraForm">
+<fieldset class="eiseIntraMainForm">
+
 <?php 
 if ($flagShowHost) {?>
-<div class="intraField">
+<div>
    <label>Host:</label>
    <input type="text" id="host" name="host" value="">
 </div>
 <?php
 }
 ?>
-<div class="intraField">
+<div>
 	<label>Login:</label>
 	<input type="text" id="login" name="login" value="<?php echo $_COOKIE["last_succesfull_usrID"] ; ?>">
 </div>
 
-<div class="intraField">
+<div>
 	<label>Password:</label>
 	<input type="password" id="password" name="password" value="">
 </div>
 
-<div class="intraField">
+<div>
 	<label>&nbsp;</label>
 	<input type="submit" id="btnsubmit" name="btnsubmit" value="<?php  echo $intra->translate("Login") ; ?>">
 </div>
+
+<div><label>&nbsp;</label><div>Please enter your <strong><?php echo ($binding ? "Windows" : "database"); ?></strong> login/password.</div>
 </div>
-<div>Please enter your <strong><?php echo ($binding ? "Windows" : "database"); ?></strong> login/password.</div>
+
+</fieldset>
 </form>
 </div>
 </body>
