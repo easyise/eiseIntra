@@ -122,38 +122,34 @@ function checkFormWithRadios(){
     //checking if there are not entItemID
     var entItemID = document.getElementById(entID+"ID");
     var flagUpdateMultiple = false;
+    
     if(entItemID.value==""){
-        $("input[name='"+entID+"ID[]']").each(function(){
+        $("input[name='sel_"+entID+"[]']").each(function(){
         if ($(this).attr("checked")){
-          entItemID.value += "|"+$(this).attr("value");
+            entItemID.value += "|"+$(this).attr("value");
         }
         })
+        if(entItemID.value==""){
+            alert("Nothing selected");
+            return false;
+        }
         flagUpdateMultiple = true;
     }
-
-    /*
-    if (entItemID.value==""){
-        alert ("ID is not specified, action cannot proceed");
-        return false;
-    }
-    */
 
     var arrAct = getActionArray(entID);
 
     var actID = arrAct[1];
     var aclOldStatusID = arrAct[2];
     var aclNewStatusID = arrAct[3];
-    var FlagAutocomplete = arrAct[4];
+    var FlagAutocomplete = arrAct[4]==undefined ? true : arrAct[4];
     var allowSubmit = true;
 
     var strURL = "ajax_details.php?table=svw_action_attribute&aatActionID="+actID;
-    //alert (strURL);
+    console.log(strURL+'::'+actID+'::'+aclOldStatusID+'::'+aclNewStatusID+'::'+FlagAutocomplete);
     $.getJSON(strURL,
         function(data){
 
-
-
-            if (!flagUpdateMultiple && FlagAutocomplete!="false") {
+            if (FlagAutocomplete && !flagUpdateMultiple ) {
 
                 $.each(data, function(i, item){
                     var inp = $("#"+item.aatAttributeID);
@@ -176,15 +172,13 @@ function checkFormWithRadios(){
                         }
                     }
 
-
-
                 });
 
             }
 
-           try {
+            try {
                 allowSubmit = allowSubmit && checkForm();
-           } catch(x) {}
+            } catch(x) {}
 
             if (allowSubmit) {
                     document.getElementById("actID").value = actID;
@@ -460,3 +454,17 @@ function GetXmlHttpObject()
 function checkForm(){
     return true;
 };
+
+
+
+function showMultipleEditForm(strTitle){
+
+    var form = '.eiseIntraMultiple';
+    
+    $(form).attr('title', strTitle);
+    $(form).dialog({
+            modal: false
+            , width: $(window).width()*0.80
+        });
+        
+}

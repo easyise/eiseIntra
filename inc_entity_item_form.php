@@ -388,52 +388,6 @@ function showTimestampField($atrName, $flagEditable, $value, $suffix){
           , $suffix);
 }
 
-
-
-function showActionRadios(){
-   
-    $oSQL = $this->oSQL;
-    $strLocal = $this->local;
-    
-    if (!$this->intra->arrUsrData["FlagWrite"])
-        return;
-    
-    if(empty($this->arrAct))
-        $this->collectDataActions();
-
-            
-    foreach($this->arrAct as $rwAct){
-      
-        $arrRepeat = Array(($rwAct["actFlagAutocomplete"] ? "1" : "0") => (!$rwAct["actFlagAutocomplete"] ? $this->intra->translate("Plan") : ""));
-      
-        foreach($arrRepeat as $key => $value){
-            $title = ($rwAct["actID"] == 2 
-               ? " - ".$this->intra->translate("update")." - "
-               : $rwAct["actTitle{$this->intra->local}"].
-                  ($rwAct["atsOldStatusID"]!=$rwAct["atsNewStatusID"]
-                  ?  " (".$rwAct["staTitle{$this->intra->local}_Old"]." > ".$rwAct["staTitle{$this->intra->local}_New"].")"
-                  :  "")
-            );
-          
-            $strID = "rad_".$rwAct["actID"]."_".
-              $rwAct["atsOldStatusID"]."_".
-              $rwAct["atsNewStatusID"];
-
-            $strOut .= "<input type='radio' name='actRadio' id='$strID' value='".$rwAct["actID"]."' class='eiseIntraRadio' onclick='actionChecked(this)'".
-                ($rwAct["actID"] == 2 || ($key=="1" && count($arrRepeat)>1) ? " checked": "").
-                ($rwAct["actID"] != 2 && $arrConfig["flagFullEdit"] ? " disabled" : "")
-                 .(!$rwAct["actFlagAutocomplete"] ? " autocomplete=\"false\"" : "")." /><label for='$strID' class='eiseIntraRadio'>".($value!="" ? "$value \"" : "")
-                 .$title
-                 .($value!="" ? "\"" : "")."</label><br />\r\n";
-              
-          
-          
-      }
-   }
-   
-   return $strOut;
-}
-
 function showActivityLog_simple($oSQL, $strGUID, $arrConfig=Array()) {
 
 if (!$strGUID) 

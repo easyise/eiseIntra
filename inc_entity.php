@@ -473,10 +473,11 @@ function showAttributeValue($rwAtr, $suffix = ""){
 function getFormForList($staID){
 
 ?>
-<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" id="entForm" class="eiseIntraForm eiseIntraMultiple" style="display:none;">
+<form action="<?php  echo $this->rwEnt["entScriptPrefix"] ; ?>_form.php" method="POST" id="entForm" class="eiseIntraForm eiseIntraMultiple" style="display:none;">
 <input type="hidden" name="DataAction" id="DataAction" value="update">
 <input type="hidden" name="entID" id="entID" value="<?php  echo $this->entID ; ?>">
-<input type="hidden" name="<?php echo "{$this->entID}"; ?>ID" id="<?php echo "{$this->entID}"; ?>ID" value="<?php  echo $rwEnt["{$this->entID}ID"] ; ?>">
+<input type="hidden" name="<?php echo $this->entID; ?>ID" id="<?php echo "{$this->entID}"; ?>ID" value="">
+<input type="hidden" name="aclOldStatusID" id="aclOldStatusID" value="">
 <input type="hidden" name="aclNewStatusID" id="aclNewStatusID" value="">
 <input type="hidden" name="actID" id="actID" value="">
 <input type="hidden" name="aclToDo" id="aclToDo" value="">
@@ -485,15 +486,74 @@ function getFormForList($staID){
 <fieldset class="eiseIntraMainForm"><legend><?php echo $this->intra->translate("Set Data"); ?></legend>
 
 <?php 
-    
-
     echo $this->getFields(Array("flagShowOnlyEditable"=>true));
  ?>
 </fieldset>
 
+<fieldset class="eiseIntraSubForm"><legend><?php echo $this->intra->translate("Action"); ?></legend>
+<?php 
+    echo $this->showActionRadios();
+    echo "<div align=\"center\"><input id=\"btnsubmit\" type=\"submit\" value=\"".$this->intra->translate("Run")."\"></div>";
+ ?>
+</fieldset>
+
 </form>
+<script>
+$(document).ready(function(){
+    intraInitializeForm();
+    $('#entForm').submit(function(event){
+        return checkFormWithRadios();
+    });
+})
+
+</script>
 <?php
 }
+
+function showActionRadios(){
+   
+    $oSQL = $this->oSQL;
+    $strLocal = $this->local;
+    
+    if (!$this->intra->arrUsrData["FlagWrite"])
+        return;
+    
+    if(empty($this->arrAct))
+        $this->collectDataActions();
+
+            
+    foreach($this->arrAct as $rwAct){
+      
+        $arrRepeat = Array(($rwAct["actFlagAutocomplete"] ? "1" : "0") => (!$rwAct["actFlagAutocomplete"] ? $this->intra->translate("Plan") : ""));
+      
+        foreach($arrRepeat as $key => $value){
+            $title = ($rwAct["actID"] == 2 
+               ? " - ".$this->intra->translate("update")." - "
+               : $rwAct["actTitle{$this->intra->local}"].
+                  ($rwAct["atsOldStatusID"]!=$rwAct["atsNewStatusID"]
+                  ?  " (".$rwAct["staTitle{$this->intra->local}_Old"]." > ".$rwAct["staTitle{$this->intra->local}_New"].")"
+                  :  "")
+            );
+          
+            $strID = "rad_".$rwAct["actID"]."_".
+              $rwAct["atsOldStatusID"]."_".
+              $rwAct["atsNewStatusID"];
+
+            $strOut .= "<input type='radio' name='actRadio' id='$strID' value='".$rwAct["actID"]."' class='eiseIntraRadio' onclick='actionChecked(this)'".
+                ($rwAct["actID"] == 2 || ($key=="1" && count($arrRepeat)>1) ? " checked": "").
+                ($rwAct["actID"] != 2 && $arrConfig["flagFullEdit"] ? " disabled" : "")
+                 .(!$rwAct["actFlagAutocomplete"] ? " autocomplete=\"false\"" : "")." /><label for='$strID' class='eiseIntraRadio'>".($value!="" ? "$value \"" : "")
+                 .$title
+                 .($value!="" ? "\"" : "")."</label><br />\r\n";
+              
+          
+          
+      }
+   }
+   
+   return $strOut;
+}
+
 
 function newItemID($prefix, $datefmt="ym", $numlength=5){
     

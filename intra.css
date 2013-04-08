@@ -125,5 +125,20 @@ div.menubutton  {
     overflow: hidden;
 }
 
+.eiseIntraMultiple fieldset {
+    float: left;
+}
+.eiseIntraMultiple fieldset.eiseIntraMainForm {
+    width: 59%;
+}
+.eiseIntraMultiple fieldset.eiseIntraSubForm  {
+    width: 36.3%;
+}
+.eiseIntraMultiple input.eiseIntraRadio {
+    margin-left: 5%;
+}
+
+
+
 /********************************************************************/
 
