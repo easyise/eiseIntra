@@ -265,7 +265,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
             , 'type'=>"text"
             , 'field' => "actTitle{$strLocal}"
             , 'sql' => "CASE WHEN LAC.aclActionPhase=1 THEN CONCAT('Started \"', actTitle, '\"') ELSE actTitlePast END"
-            , 'filter' => "actTitlePast{$strLocal}"
+            , 'filter' => "actTitle{$strLocal}"
             , 'order_field' => "actTitlePast{$strLocal}"
             , 'nowrap' => true
             );
