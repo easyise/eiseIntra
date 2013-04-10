@@ -97,17 +97,16 @@ div.menubutton  {
     z-index: 0;
 }
 
-.eiseIntraForm  fieldset > div {
+.eiseIntraForm  div.eiseIntraField {
     line-height: 1.5em;
-
 }
-.eiseIntraForm  fieldset label,.eiseIntraForm  fieldset .eiseValue {
+
+.eiseIntraForm  fieldset label,.eiseIntraForm  fieldset .eiseIntraValue {
     display: inline-block;
     vertical-align: middle;
 }
 
 .eiseIntraForm  label{
-    width: 24%;
     float: left;
     clear: left;
     text-align: right;
@@ -115,8 +114,7 @@ div.menubutton  {
     cursor: default !important;
 }
 
-.eiseIntraForm .eiseValue{
-    width: 74%;
+.eiseIntraForm .eiseIntraValue{
     clear: right;
 }
 

@@ -1,0 +1,1 @@
+ALTER TABLE stbl_attribute ADD COLUMN atrUOMTypeID varchar(10) NULL  AFTER atrType;

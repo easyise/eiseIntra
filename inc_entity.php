@@ -375,7 +375,7 @@ public function getFields($arrConfig = Array(), $oEntItem = null){
         }
         
         $strFields .= ($strFields!="" ? "\r\n" : "");
-        $strFields .= "<div>";
+        $strFields .= "<div class=\"eiseIntraField\">";
         $strFields .= "<label id=\"title_{$rwAtr["atrID"]}\">".$rwAtr["atrTitle{$this->intra->local}"].":</label>";
         
         if ($oEntItem !== null){
@@ -403,7 +403,7 @@ function showAttributeValue($rwAtr, $suffix = ""){
     $intra = $this->intra;
     
     $inputName = $rwAtr["atrID"].$suffix;
-    $arrInpConfig = Array("class"=>"eiseValue", "FlagWrite"=>$this->intra->arrUsrData["FlagWrite"]);
+    $arrInpConfig = Array("class"=>"eiseIntraValue", "FlagWrite"=>$this->intra->arrUsrData["FlagWrite"]);
     if(!$rwAtr['satFlagEditable'])
         $arrInpConfig["FlagWrite"] = false;
     

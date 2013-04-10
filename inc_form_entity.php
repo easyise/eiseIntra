@@ -109,6 +109,12 @@ $gridATR->Columns[] = Array(
         , 'field' => "atrTitle{$strLocal}"
         , 'type' => "text"
         , 'width' => "30%"
+        , 'href' => "attribute_form.php?dbName=$dbName&atrID=[atrID]&atrEntityID=$entID"
+);
+$gridATR->Columns[] = Array(
+        'title' => "Short Title"
+        , 'field' => "atrShortTitle{$strLocal}"
+        , 'type' => "text"
 );
 $gridATR->Columns[] = Array(
         'title' => "Type"
@@ -118,7 +124,7 @@ $gridATR->Columns[] = Array(
         , "width" => "80px"
 );
 $gridATR->Columns[] = Array(
-        'title' => "UOM type"
+        'title' => "UOM"
         , 'field' => "atrUOMTypeID"
         , 'type' => "combobox"
         , 'defaultText' => "-"
@@ -132,10 +138,15 @@ $gridATR->Columns[] = Array(
         , 'field' => "atrDefault"
         , 'type' => "text"
 );
+$gridATR->Columns[] = Array(
+        'title' => "IfNull"
+        , 'field' => "atrTextIfNull"
+        , 'type' => "text"
+);
 if ($easyAdmin) {
 $gridATR->Columns[] = Array(
-        'title' => "Properties"
-        , 'field' => "atrProperties"
+        'title' => "Classes"
+        , 'field' => "atrClasses"
         , 'type' => "text"
 );
 $gridATR->Columns[] = Array(
@@ -153,6 +164,18 @@ $gridATR->Columns[] = Array(
         , 'field' => "atrDataSource"
         , 'type' => "text"
 );
+$gridATR->Columns[] = Array(
+        'title' => "NoList"
+        , 'field' => "atrFlagHideOnLists"
+        , 'type' => "checkbox"
+);
+$gridATR->Columns[] = Array(
+        'title' => "Del"
+        , 'field' => "atrFlagDeleted"
+        , 'type' => "checkbox"
+);
+
+
 }
 $grdMX = new eiseGrid($oSQL
 					, "act"

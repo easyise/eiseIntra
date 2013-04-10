@@ -1,3 +1,33 @@
+function eiseIntraInitializeForm(){
+
+    $('input.eiseIntraValue').each(function() {
+        switch ($(this).attr('type')){
+            case "datetime":
+            case "date":
+            case "datetime-local":
+                $(this).addClass('eiseIntra_'+$(this).attr('type'));
+                break;
+            case "number":
+                $(this).css('width', 'auto');
+                break;
+            default:
+                break;
+        }
+        
+    });
+    
+    $('eiseIntraForm input[type="submit"]').each(function(){
+        $(this).addClass('eiseIntraSubmit');
+    })
+    
+    $('select.eiseIntraValue').each(function() {
+        $(this).css('width', 'auto');
+    });
+    
+    intraInitializeForm();
+    
+}
+
 function intraInitializeForm(){
    
     $('input.eiseIntra_date, input.eiseIntra_datetime').each(function() {

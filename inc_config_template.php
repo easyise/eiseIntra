@@ -3,11 +3,12 @@
 error_reporting(7);
 $stpExtendedLog = false;
 
-define ("eiseIntraRelativePath", "/".str_replace(
+define ("eiseIntraRelativePath", "/".ltrim(str_replace(
     str_replace(DIRECTORY_SEPARATOR, "/", $_SERVER["DOCUMENT_ROOT"])
     , ""
     , str_replace(DIRECTORY_SEPARATOR, "/", dirname(__FILE__)))
     ."/"
+    , "/")
 );
 
 define ("eiseIntraAbsolutePath", dirname(__FILE__).DIRECTORY_SEPARATOR);
@@ -17,6 +18,7 @@ define ("commonStuffAbsolutePath", dirname(eiseIntraAbsolutePath).DIRECTORY_SEPA
 
 define ("jQueryRelativePath", commonStuffRelativePath."jquery/");
 define ("jQueryUIRelativePath", jQueryRelativePath."ui/");
+define ("jQueryUITheme","redmond");
 define ("imagesRelativePath", commonStuffRelativePath."images/");
 
 define ("eiseIntraCookiePath", "/");

@@ -20,6 +20,7 @@ function __construct($oSQL, $conf = Array()){
         , 'decimalSeparator' => "."
         , 'thousandsSeparator' => ","
         , 'logofftimeout' => 360 //6 hours
+        , 'addEiseIntraValueClass' => true
     );
     
     $this->conf = array_merge($this->conf, $conf);
@@ -324,19 +325,33 @@ private $arrHTML5AllowedInputTypes =
     Array("color", "date", "datetime", "datetime-local", "email", "month", "number", "range", "search", "tel", "time", "url", "week");
 
 private function handleClass(&$arrConfig){
+
+    $arrClass = Array();
+    if ($this->conf['addEiseIntraValueClass'])
+        $arrClass['eiseIntraValue'] = 'eiseIntraValue';
+    
     // get contents of 'class' attribute in strAttrib
     $prgClass = "/\s+class=[\"\']([^\"\']+)[\"\']/i";
-    $arrClass = Array();
     $attribs = $arrConfig["strAttrib"];
     if (preg_match($prgClass, $attribs, $arrMatch)){
-        $arrClass = preg_split("/\s+/", $arrMatch[1]);
+        $strClass = $arrMatch[1];
         $arrConfig["strAttrib"] = preg_replace($prgClass, "", $arrConfig["strAttrib"]);
     }
+    
+    // if we specify something in arrConfig, we add it to the string
     if (!is_array($arrConfig["class"])){
-        $arrClass[] = $arrConfig["class"];
+        $strClass = ($strClass!="" ? $strClass." " : "").$arrConfig["class"];
     } else {
-        $arrClass = array_merge($arrClass, $arrConfig["class"]) ;
+        $strClass = ($strClass!="" ? $strClass." " : "").implode(" ",$arrConfig["class"]);
     }
+    
+    // split class sting into array
+    $arrClassList = preg_split("/\s+/", $strClass); 
+    // remove duplicates using unique key
+    foreach($arrClassList as $class) 
+        if($class!="")
+            $arrClass[$class] =  $class;
+    
     $arrConfig["class"] = $arrClass;
     return " class=\"".implode(" ", $arrClass)."\"";
 }
@@ -579,13 +594,17 @@ function getTableInfo($dbName, $tblName){
            || preg_match("/time/i", $rwCol["Type"]))
             $rwCol["DataType"] = "datetime";
             
-        if (preg_match("/ID$/", $rwCol["Field"]) && $rwCol["Key"] != "PRI")
+        if (preg_match("/ID$/", $rwCol["Field"]) && $rwCol["Key"] != "PRI"){
+            $rwCol["FKDataType"] = $rwCol["DataType"];
             $rwCol["DataType"] = "FK";
+        }
         
         if ($rwCol["Key"] == "PRI" 
                 || preg_match("/^$strPrefix(GU){0,1}ID$/i",$rwCol["Field"])
-            )
+            ){
+            $rwCol["PKDataType"] = $rwCol["DataType"];
             $rwCol["DataType"] = "PK";
+        }
         
         if ($rwCol["Field"]==$strPrefix."InsertBy" 
           || $rwCol["Field"]==$strPrefix."InsertDate" 
@@ -594,7 +613,7 @@ function getTableInfo($dbName, $tblName){
             $rwCol["DataType"] = "activity_stamp"; 
             $arrTable['hasActivityStamp'] = true;
         }
-        $arrCols[] = $rwCol;
+        $arrCols[$rwCol["Field"]] = $rwCol;
         if ($rwCol["Key"] == "PRI"){
             $arrPK[] = $rwCol["Field"];
             if ($rwCol["Extra"]=="auto_increment")
@@ -639,6 +658,17 @@ function getTableInfo($dbName, $tblName){
     $arrColsIX = Array();
     foreach($arrCols as $ix => $col){ $arrColsIX[$col["Field"]] = $col["Field"]; }
     
+    $strPKVars = $strPKCond = $strPKURI = '';
+    foreach($arrPK as $pk){
+        $strPKVars .= "\${$pk}  = (isset(\$_POST['{$pk}']) ? \$_POST['{$pk}'] : \$_GET['{$pk}'] );\r\n";
+        $strPKCond .= ($strPKCond!="" ? " AND " : "")."`{$pk}` = \".".(
+                in_array($arrCols["DataType"], Array("integer", "boolean"))
+                ? "(int)(\${$pk})"
+                : "\$oSQL->e(\${$pk})"
+            ).".\"";
+        $strPKURI .= ($strPKURI!="" ? "&" : "")."{$pk}=\".urlencode(\${$pk}).\"";
+    }
+    
     $arrTable['columns'] = $arrCols;
     $arrTable['keys'] = $arrKeys;
     $arrTable['PK'] = $arrPK;
@@ -646,6 +676,11 @@ function getTableInfo($dbName, $tblName){
     $arrTable['prefix'] = $strPrefix;
     $arrTable['table'] = $tblName;
     $arrTable['columns_index'] = $arrColsIX;
+    
+    $arrTable["PKVars"] = $strPKVars;
+    $arrTable["PKCond"] = $strPKCond;
+    $arrTable["PKURI"] = $strPKURI;
+
     
     return $arrTable;
 }
