@@ -26,6 +26,7 @@ switch($DataAction){
        $sql[] = "UPDATE stbl_status SET
             staTitle = ".$oSQL->escape_string($_POST['staTitle'])."
             , staTitleLocal = ".$oSQL->escape_string($_POST['staTitleLocal'])."
+            , staTrackPrecision = ".$oSQL->escape_string($_POST['staTrackPrecision'])."
             , staFlagCanUpdate = '".($_POST['staFlagCanUpdate']=='on' ? 1 : 0)."'
             , staFlagCanDelete = '".($_POST['staFlagCanDelete']=='on' ? 1 : 0)."'
 			, staFlagDeleted = '".($_POST['staFlagDeleted']=='on' ? 1 : 0)."'
@@ -119,6 +120,10 @@ $(document).ready(function(){
 <td class="field_title">Title Local:</td>
 <td><?php  echo $intra->showTextBox("staTitleLocal", $rwSta["staTitleLocal"]) ; ?></td>
 </tr>
+<tr>
+<td class="field_title">Precision:</td>
+<td><?php  echo $intra->showCombo("staTrackPrecision", $rwSta["staTrackPrecision"], Array("date"=>"Date", "datetime"=>"Date+Time")) ; ?></td>
+</tr>
 
 <tr>
 <td class="field_title">Update Allowed?</td>
@@ -143,8 +148,9 @@ $(document).ready(function(){
 <li><b>Leading to "<?php  echo $rwSta["staTitle"] ; ?>":</b></li>
 <ul>
 <?php 
-$sqlAct = "SELECT DISTINCT actID, actTitle, actTitleLocal FROM stbl_action_status INNER JOIN stbl_action ON actID=atsActionID
-    WHERE atsNewStatusID='{$rwSta["staID"]}' AND actEntityID='{$entID}'";
+$sqlAct = "SELECT DISTINCT actID, actTitle, actTitleLocal, actFlagDeleted FROM stbl_action_status INNER JOIN stbl_action ON actID=atsActionID
+    WHERE atsNewStatusID='{$rwSta["staID"]}' AND actEntityID='{$entID}'
+    ORDER BY actFlagDeleted";
 $rsAct = $oSQL->do_query($sqlAct);
 while ($rwAct=$oSQL->fetch_array($rsAct)) {
 ?>
@@ -154,7 +160,7 @@ while ($rwAct=$oSQL->fetch_array($rsAct)) {
   echo $rwAct["actID"] ; 
   ?>&dbName=<?php 
   echo $dbName ; 
-  ?>"><?php  echo $rwAct["actTitle"] ; ?></a></li>
+  ?>"><?php  echo $rwAct["actTitle"].($rwAct['actFlagDeleted'] ? " (deleted)" : "") ; ?></a></li>
 <?php
 }
  ?>
@@ -162,8 +168,9 @@ while ($rwAct=$oSQL->fetch_array($rsAct)) {
 <li><b>Leading from "<?php  echo $rwSta["staTitle"] ; ?>":</b></li>
 <ul>
 <?php 
-$sqlAct = "SELECT DISTINCT actID, actTitle, actTitleLocal FROM stbl_action_status INNER JOIN stbl_action ON actID=atsActionID
-    WHERE atsOldStatusID='{$rwSta["staID"]}' AND actEntityID='{$entID}'";
+$sqlAct = "SELECT DISTINCT actID, actTitle, actTitleLocal, actFlagDeleted FROM stbl_action_status INNER JOIN stbl_action ON actID=atsActionID
+    WHERE atsOldStatusID='{$rwSta["staID"]}' AND actEntityID='{$entID}'
+    ORDER BY actFlagDeleted";
 $rsAct = $oSQL->do_query($sqlAct);
 while ($rwAct=$oSQL->fetch_array($rsAct)) {
 ?>
@@ -173,7 +180,7 @@ while ($rwAct=$oSQL->fetch_array($rsAct)) {
   echo $rwAct["actID"] ; 
   ?>&dbName=<?php 
   echo $dbName ; 
-  ?>"><?php  echo $rwAct["actTitle"] ; ?></a></li>
+  ?>"><?php  echo $rwAct["actTitle"].($rwAct['actFlagDeleted'] ? " (deleted)" : "") ; ?></a></li>
 <?php
 }
  ?>

@@ -450,72 +450,6 @@ private function collectActionData(){
     
 }
 
-
-private function getActionAttribute($actID){
-    
-    $oSQL = $this->oSQL;
-    
-    $arrToRet = Array();
-    
-    //getting AAT
-    $sqlAAT = "SELECT 
-    atrID
-	, aatAttributeID
-    , atrTitle
-    , atrTitleLocal
-    , atrDataSource
-	, atrDefault
-    , aatFlagMandatory
-    , aatFlagToChange
-    , aatFlagEmptyOnInsert
-    , aatFlagTimestamp
-    , atrType
-    FROM stbl_action_attribute 
-    INNER JOIN stbl_action ON aatActionID=actID
-    INNER JOIN stbl_attribute ON atrEntityID=actEntityID AND aatAttributeID=atrID
-    WHERE aatActionID='{$actID}'";
-    $rsAAT = $oSQL->do_query($sqlAAT);
-    while ($rwAAT = $oSQL->fetch_array($rsAAT)){
-        $arrToRet[$rwAAT["aatAttributeID"]]=$rwAAT;
-    }
-    $oSQL->free_result($rsAAT);
-    
-    return $arrToRet;
-}
-
-private function getStatusAttribute($staID){
-    
-    $oSQL = $this->oSQL;
-    
-    $arrToRet = Array();
-    
-    //getting AAT
-    $sqlSAT = "SELECT 
-    atrID
-	, satAttributeID
-    , atrTitle
-    , atrTitleLocal
-	, atrDataSource
-	, atrDefault
-	, satAttributeID
-	, satFlagEditable
-	, satFlagShowInForm
-	, satFlagShowInList
-	, satFlagTrackOnArrival
-    , atrType
-    FROM stbl_status_attribute 
-    INNER JOIN stbl_status ON satStatusID=staID AND staEntityID=satEntityID
-    INNER JOIN stbl_attribute ON atrEntityID=satEntityID AND satAttributeID=atrID
-    WHERE satStatusID='{$staID}' AND satEntityID='{$this->entID}'";
-    $rsSAT = $oSQL->do_query($sqlSAT);
-    while ($rwSAT = $oSQL->fetch_array($rsSAT)){
-        $arrToRet[$rwSAT["satAttributeID"]]=$rwSAT;
-    }
-    $oSQL->free_result($rsSAT);
-    
-    return $arrToRet;
-}
-
 private function checkCanStart(){
     if ($this->arrAction["actID"]<=4) 
         return true;
@@ -659,6 +593,7 @@ function updateActionLog($arrNewData = Array()){
     foreach($this->arrACL as $aclGUID => $arrACL){
         
         $strEntityLogFldToSet = "";
+        $tsfieldsToSet = "";
         foreach ($arrACL["AAT"] as $atrID => $arrAAT){
             
             $newValue = null;
@@ -670,17 +605,17 @@ function updateActionLog($arrNewData = Array()){
                 $toEval = "\"".str_replace("\$_POST", "\$this->arrNewData"
                     , $intra->getSQLValue(Array('Field'=>$strACLInputID, 'DataType'=>$arrAAT["atrType"])))."\"";
                 eval("\$newValue = ".$toEval.";");
-            } else {
+            }
                 
-                // if have in arrNewData timestamp fields: aclATA_aclGUID
-                if ($arrAAT["aatFlagTimestamp"]){
-                    if(isset($this->arrNewData[$strTimeStampInputID])){
-                        $toEval = "\"".str_replace("\$_POST", "\$this->arrNewData"
-                            , $intra->getSQLValue(Array('Field'=>$strTimeStampInputID, 'DataType'=>"datetime")))."\"";
-                        eval("\$newValue = ".$toEval.";");
-                    }
+            if ($arrAAT["aatFlagTimestamp"]){
+                // if attribute is a timestamp:
+                if(isset($this->arrNewData[$strTimeStampInputID])){ // if we timestamp in arrNewData, we update attribute field in log table
+                    $toEval = "\"".str_replace("\$_POST", "\$this->arrNewData"
+                        , $intra->getSQLValue(Array('Field'=>$strTimeStampInputID, 'DataType'=>"datetime")))."\"";
+                    eval("\$newValue = ".$toEval.";");
+                } else { // if there's no timestamp, we try to update ACL timestamp basing on 
+                    $tsfieldsToSet .= "\r\n, acl{$arrAAT["aatFlagTimestamp"]}={$newValue}";
                 }
-                
             }
             
             if ($newValue!=null){
@@ -695,7 +630,7 @@ function updateActionLog($arrNewData = Array()){
                 WHERE l{$entID}GUID='{$aclGUID}'";
         
         
-        $tsfieldsToSet = "";
+        
         foreach($arrTimestamp as $ts){
             //echo "acl".$ts."_".$aclGUID." ";
             if (isset($this->arrNewData["acl".$ts."_".$aclGUID])){
@@ -840,29 +775,29 @@ function startAction(){
 }
 
 
-function cancelAction($oSQL, $arrAction){
+function cancelAction(){
 
     $usrID = $this->intra->usrID;
 
-    $entID = $arrAction["rwEnt"]["entID"];
-    $entItemID = $arrAction["rwEnt"][$entID."ID"];
+    $entID = $this->entID;
+    $entItemID = $this->entItemID;
 
-    if (!isset($arrAction["aclGUID"])){
-        collectActionData($oSQL,$arrAction);
+    if (count($this->arrAction)==0){
+        $this->collectActionData();
     }
 
-    if ($arrAction["aclActionPhase"]>0){
+    if ($this->arrAction["aclActionPhase"]>0){
         //get last stl for action
-        $stlToDelete = $oSQL->get_data($oSQL->do_query("SELECT stlGUID FROM stbl_status_log WHERE stlEntityID='{$arrAction["entID"]}' 
-            AND stlEntityItemID='{$arrAction["entItemID"]}' 
-            AND stlArrivalActionID='{$arrAction["aclGUID"]}'"));
+        $stlToDelete = $oSQL->get_data($oSQL->do_query("SELECT stlGUID FROM stbl_status_log WHERE stlEntityID='{$this->entID}' 
+            AND stlEntityItemID='{$this->arrAction["entItemID"]}' 
+            AND stlArrivalActionID='{$this->arrAction["aclGUID"]}'"));
         //get full previous stl
-        $rwSTLLast = $oSQL->fetch_array($oSQL->do_query("SELECT * FROM stbl_status_log WHERE stlEntityID='{$arrAction["entID"]}' 
-            AND stlEntityItemID='{$arrAction["entItemID"]}' 
-            AND stlDepartureActionID='{$arrAction["aclGUID"]}'"));
+        $rwSTLLast = $oSQL->fetch_array($oSQL->do_query("SELECT * FROM stbl_status_log WHERE stlEntityID='{$this->entID}' 
+            AND stlEntityItemID='{$this->arrAction["entItemID"]}' 
+            AND stlDepartureActionID='{$this->arrAction["aclGUID"]}'"));
 
         //delete traced attributes for the STL
-        $sql[] = "DELETE FROM {$arrAction["rwEnt"]["entTable"]}_log WHERE l{$entID}GUID='{$stlToDelete}'";
+        $sql[] = "DELETE FROM {$this->rwEnt["entTable"]}_log WHERE l{$this->entID}GUID='{$stlToDelete}'";
 
         // delete status log entry, if any
         $sql[] = "DELETE FROM stbl_status_log WHERE stlGUID='{$stlToDelete}'";
@@ -870,43 +805,43 @@ function cancelAction($oSQL, $arrAction){
         // update departure action for previous status log entry
         $sql[] = "UPDATE stbl_status_log SET stlATD=NULL, stlDepartureActionID=NULL WHERE stlGUID='{$rwSTLLast["stlGUID"]}'";
 
-        if (empty($arrAction["arrNewData"]["isUndo"])) {
+        if (empty($this->arrAction["arrNewData"]["isUndo"])) {
             //cancel the action
             $sql[] = "UPDATE stbl_action_log SET aclActionPhase=3
                 , aclEditBy='{$this->intra->usrID}'
                 , aclEditDate = NOW()
-                WHERE aclGUID='{$arrAction["aclGUID"]}'";
+                WHERE aclGUID='{$this->arrAction["aclGUID"]}'";
         } else {
             //delete the action
-            $sql[] = "DELETE FROM {$arrAction["rwEnt"]["entTable"]}_log 
-                WHERE l{$entID}GUID='{$arrAction["aclGUID"]}'";
+            $sql[] = "DELETE FROM {$this->rwEnt["entTable"]}_log 
+                WHERE l{$this->entID}GUID='{$this->arrAction["aclGUID"]}'";
                 
             $sql[] = "DELETE FROM stbl_action_log
-                WHERE aclGUID='{$arrAction["aclGUID"]}'";
+                WHERE aclGUID='{$this->arrAction["aclGUID"]}'";
         }
 
         // update entity table
-        $sql[] = "UPDATE {$arrAction["rwEnt"]["entTable"]} SET
-            {$entID}ActionLogID=(SELECT aclGUID FROM stbl_action_log INNER JOIN stbl_action ON aclActionID=actID AND actEntityID='{$entID}' 
+        $sql[] = "UPDATE {$this->rwEnt["entTable"]} SET
+            {$this->entID}ActionLogID=(SELECT aclGUID FROM stbl_action_log INNER JOIN stbl_action ON aclActionID=actID AND actEntityID='{$this->entID}' 
                   WHERE aclEntityItemID='{$entItemID}' AND aclActionID<>2 AND aclActionPhase=2 
                   ORDER BY aclATA DESC LIMIT 0,1)
             ".($stlToDelete != ""
-                ? " , {$entID}StatusActionLogID = '{$rwSTLLast["stlGUID"]}'
-                    , {$entID}StatusID = '{$rwSTLLast["stlStatusID"]}'"
+                ? " , {$this->entID}StatusActionLogID = '{$rwSTLLast["stlGUID"]}'
+                    , {$this->entID}StatusID = '{$rwSTLLast["stlStatusID"]}'"
                 : ""
             )."
-            , {$entID}EditBy='{$this->intra->usrID}', {$entID}EditDate=NOW()
-            WHERE {$entID}ID='{$entItemID}'";
+            , {$this->entID}EditBy='{$this->intra->usrID}', {$this->entID}EditDate=NOW()
+            WHERE {$this->entID}ID='{$entItemID}'";
 
     } else {
-        $sql[] = "DELETE FROM {$arrAction["rwEnt"]["entTable"]}_log 
-           WHERE l{$entID}GUID='{$arrAction["aclGUID"]}'";
+        $sql[] = "DELETE FROM {$this->rwEnt["entTable"]}_log 
+           WHERE l{$this->entID}GUID='{$this->arrAction["aclGUID"]}'";
         //we delete action itself
-        $sql[] = "DELETE FROM stbl_action_log WHERE aclGUID='{$arrAction["aclGUID"]}'";
+        $sql[] = "DELETE FROM stbl_action_log WHERE aclGUID='{$this->arrAction["aclGUID"]}'";
     }
 
     for ($i=0;$i<count($sql);$i++) {
-        $oSQL->do_query($sql[$i]);
+        $this->oSQL->do_query($sql[$i]);
     }
 
 }
@@ -945,10 +880,9 @@ $usrID = $intra->usrID;
 
 switch ($DataAction) {
     case "delete_comment":
-       $oSQL->do_query("DELETE FROM stbl_comments WHERE scmGUID='{$_POST["scmGUID"]}'");
-        header("Content-Type: text/xml; charset=UTF-8");
-        echo "<?xml version=\"1.0\"?>\r\n";
-        echo "<document><message>Comment is sucessfully deleted</message></document>";
+       $oSQL->do_query("DELETE FROM stbl_comments WHERE scmGUID='{$_GET["scmGUID"]}'");
+        header("Content-Type: application/json; charset=UTF-8");
+        echo json_encode(Array("Comment deleted"));
        die();
        break;
     case "add_comment":
@@ -971,7 +905,9 @@ switch ($DataAction) {
         
         $scmGUID = $oSQL->get_data($oSQL->do_query("SELECT @scmGUID as scmGUID"));
         
-        $arrData = Array("scmGUID"=>$scmGUID, "user"=>$intra->arrUsrData["usrName{$intra->local}"]);
+        $arrData = Array("scmGUID"=>$scmGUID
+            , "user"=>$intra->getUserData($intra->usrID).' '.$intra->translate('at').' '
+                .date("d.m.Y H:i"));
         
         echo json_encode($arrData);
        
@@ -1545,7 +1481,7 @@ function getEntityItemAllData(){
 	WHERE scmEntityItemID='{$this->entItemID}' ORDER BY scmInsertDate DESC";
 	$rsSCM = $this->oSQL->do_query($sqlSCM);
 	while ($rwSCM = $this->oSQL->f($rsSCM)){
-		$this->rwEnt["comments"]["scmGUID"] = $rwSCM;
+		$this->rwEnt["comments"][$rwSCM["scmGUID"]] = $rwSCM;
 	}
 	
 	//files
@@ -1554,7 +1490,7 @@ function getEntityItemAllData(){
 	ORDER BY filInsertDate DESC";
 	$rsFile = $this->oSQL->do_query($sqlFile);
 	while ($rwFIL = $this->oSQL->f($rsFile)){
-		$this->rwEnt["files"]["filGUID"] = $rwFIL;
+		$this->rwEnt["files"][$rwFIL["filGUID"]] = $rwFIL;
 	}
 	
 	//message

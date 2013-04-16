@@ -1,63 +1,362 @@
-function intraInitializeEntityForm(){
-    $(".intraActionButton").bind("click", function(){
-        actionButtonClick(this);
-    });
+(function( $ ){
+
+var actionRadioClick = function(oRadio, fnCallback){
     
-    $(".intraHistoryTable .unattach").click(function(){
+    var strURL = "ajax_details.php?actID="+oRadio.val();
     
-        var filGUID = $(this).attr("id").replace("fil_", "");
-        
-        if(confirm('Are you sure you\'d like to unattach?')){
-            location.href = location.href+'&DataAction=deleteFile&filGUID='+filGUID+'&referer='+encodeURIComponent(location.href);
-        }
-    });
+    var flagAutocomplete = oRadio.attr('autocomplete')==undefined ? true : false;
     
-    $('#entForm').submit(function(event){
-        
-        if(!checkFormWithRadios()){
-            event.preventDefault(true);
-            return false;
-        }
+    $.getJSON(strURL,
+        function(data){
             
-        if(!checkForm()){
-            event.preventDefault(true);
-            return false;
-        }
+            if (data.ERROR){
+                alert(data.ERROR);
+                return;
+            }
             
-        return true;
+            var strIDs = "";
+            $.each(data.aat, function(i, item){
+                    
+                if(item.aatFlagMandatory=="1"){
+                    strIDs += (strIDs=='' ? '' : ', ')+ ("#"+item.aatAttributeID);
+                }
+                    
+            });
+            
+            fnCallback({mandatory: strIDs
+                , flagAutocomplete: flagAutocomplete
+                , actID: oRadio.val()
+                , aclOldStatusID: oRadio.attr('orig')
+                , aclNewStatusID: oRadio.attr('dest')
+            });
     });
-    
 }
 
-function actionButtonClick(oBtn){
+
+var actionButtonClick = function (oBtn, fnCallback){
     
     var arrID = $(oBtn).attr("id").split("_");
 
     var aclToDo = arrID[0];
     var aclGUID = arrID[1];
 
-    if (aclToDo=="finish"){
-        var ata = document.getElementById("aclATA_"+aclGUID);
-        if (ata.value==""){
-            alert ("ATA for action '"+$("#aclTitle_"+aclGUID).text()+"' should be set");
-            ata.focus();
-            return false;
-        }
-        var atd = document.getElementById("aclATD_"+aclGUID);
-        if (atd.value==""){
-            alert ("ATD for action '"+$("#aclTitle_"+aclGUID).text()+"' should be set");
-            atd.focus();
-            return false;
-        }
+    var strURL = "ajax_details.php?aclGUID="+encodeURIComponent(aclGUID);
+    
+    $.getJSON(strURL,
+        function(data){
+            
+            if (data.ERROR){
+                alert(data.ERROR);
+                return;
+            }
+            
+            var strIDs = "#aclATA_"+aclGUID+", #aclATD_"+aclGUID;
+            $.each(data.aat, function(i, item){
+                    
+                if(item.aatFlagMandatory=="1"){
+                    strIDs += (strIDs=='' ? '' : ', ')+ (
+                        item.aatFlagToTrack 
+                        ? "#"+item.aatAttributeID+'_'+aclGUID
+                        : "#"+item.aatAttributeID
+                        );
+                }
+                    
+            });
+            
+            fnCallback({mandatory: strIDs
+                , actID: data.act.actID
+                , aclGUID: aclGUID
+                , aclOldStatusID: data.act.aclOldStatusID
+                , aclNewStatusID: data.act.aclNewStatusID
+                , aclToDo: aclToDo
+            });
+    });
+    
+}
+
+function showCommentControls($controls, $parent, options){
+
+    $controls
+        .css("display", "block")
+        .offset({
+            left: $parent.outerWidth()+$parent.offset().left
+            , top: $parent.offset().top
+        });
+    
+    $controls.find('input').css('display', 'none');
+    
+    if (options.add!=undefined) {
+        $controls.find('.eiseIntraComment_add')
+            .css("display", "block")[0].onclick = null;
+            
+        $controls.find('.eiseIntraComment_add')[0].onclick = 
+            function(){options.add()};
+    }
+     
+    if (options.remove!=undefined){
+        $controls.find('.eiseIntraComment_remove')
+            .css("display", "block")[0].onclick = null;
+            
+        $controls.find('.eiseIntraComment_remove')[0].onclick =  
+            function(){
+                var scmID = $parent[0].id.replace("scm_", "");
+                if (!confirm("Are you sure you'd like to delete this comment?")){
+                    return false;
+                }
+                window.setTimeout(function(){$controls.slideUp()}, 3000);
+                options.remove(scmID);
+            };
     }
 
-    document.getElementById("aclGUID").value = aclGUID;
-    document.getElementById("aclToDo").value = aclToDo;
-
-    window.setTimeout("document.getElementById(\"btnsubmit\").disabled = true;", 1);
-    $('#entForm').submit();
-
 }
+
+var methods = {
+
+init: function( options ) {
+
+    return this.each(function(){
+         
+        var $this = $(this),
+            data = $this.data('eiseIntraForm');
+        
+        var entID = $this.find('#entID').val();
+        var entItemID = $this.find('#'+entID+'ID').val();
+        var conf = $.parseJSON($('#eiseIntraConf').val());
+        
+        if ( ! data ) {
+            
+            $(this).data('eiseIntraForm', {
+                form : $this,
+                conf: $.extend( conf, options),
+                entID: entID,
+                entItemID: entItemID
+            });
+            
+        } else {
+            $this.data('eiseIntraForm').conf = $.extend( conf, options);
+            $this.data('eiseIntraForm').entID = entID;
+            $this.data('eiseIntraForm').entItemID = entItemID;
+        }
+        
+        $this.find('fieldset.eiseIntraActions input.eiseIntraRadio').click(function(){
+            actionRadioClick($(this), function(obj){
+                $this.eiseIntraForm("makeMandatory", {
+                    strIDs: obj.mandatory
+                    , flagDontSetRequired : (data.conf.flagUpdateMultiple || !obj.flagAutocomplete)});
+            });
+        })
+    
+        $this.find(".eiseIntraActionButton").bind("click", function(){
+            actionButtonClick(this, function(o){
+                $this.eiseIntraForm("makeMandatory", {
+                    strIDs: o.mandatory
+                    , flagDontSetRequired: (o.aclToDo!='finish')});
+                $this.find("#aclGUID").val(o.aclGUID);
+                $this.find("#aclToDo").val(o.aclToDo);
+                $this.submit();
+            });
+        });
+        
+        //comments
+        var $controls = $this.find('.eiseIntraComment_contols');
+        var $inpComment = $this.find("textarea.eiseIntraComment")
+            .focus(function(){
+                $textarea = $(this);
+                showCommentControls($controls, $textarea, {
+                    add: function(){
+                        $this.eiseIntraEntityItemForm("commentAdd", {
+                            entItemID: entItemID
+                            , text: $inpComment.val()
+                            , success : function(data){
+                                var scmGUID = data.scmGUID;
+                                var strUserStamp = data.user;
+                    
+                                var newCommentHTML = '<div id="scm_'+scmGUID+'" class="eiseIntraComment">'+
+                                    '<div class="eiseIntraComment_userstamp">'+data.user+'</div>'+
+                                    '<div>'+data.text+'</div>'+
+                                    '</div>';
+                                
+                                $newComment = $inpComment.after(newCommentHTML).next();
+                                
+                                $newComment.click(function(){
+                                    showCommentControls($controls, $newComment, {remove: function(scmID){
+                                        $this.eiseIntraEntityItemForm("commentRemove", {scmID: scmID, success: function(){
+                                            $newComment.slideUp().remove();$controls.slideUp();
+                                        }})
+                                    }});
+                                });
+                                
+                                $inpComment.val('');
+                            }
+                        })
+                    }
+                });
+                })
+            .blur(function(){
+                window.setTimeout(function(){$controls.slideUp()}, 3000);
+            });
+        $this.find('div.eiseIntraComment_removable').click(function(){
+            var $divComment = $(this);
+            showCommentControls($controls, $divComment
+            , {remove:function(scmID){
+                $this.eiseIntraEntityItemForm("commentRemove", {scmID: scmID, success:function(){
+                    window.setTimeout(function(){$divComment.slideUp().remove();$controls.slideUp();}, 2000);
+                }})
+            }});
+        });
+        
+        //files
+        $this.find(".intraHistoryTable .unattach").click(function(){
+    
+            var filGUID = $(this).attr("id").replace("fil_", "");
+            
+            if(confirm('Are you sure you\'d like to unattach?')){
+                location.href = location.href+'&DataAction=deleteFile&filGUID='+filGUID+'&referer='+encodeURIComponent(location.href);
+            }
+        });
+        
+    });
+},
+
+checkAction: function(callback){
+    
+    return this.each(function(){
+    
+    var conf = $(this).data('eiseIntraForm').conf;
+    var flagUpdateMultiple = conf.flagUpdateMultiple;
+    var entID = $(this).data('eiseIntraForm').entID;
+    var entItemIDInput = $(this).find('#'+entID+'ID');
+    var $this = $(this);
+    
+    // 1. determine what action is called
+    // if old action 
+    if (!flagUpdateMultiple && $this.find('#aclGUID').val()!=''){
+        callback();
+    } else { // if new action - check mandatory fields
+        
+        if (flagUpdateMultiple){
+        
+            var entIDs = '';
+            
+            $("input[name='sel_"+entID+"[]']").each(function(){
+                if ($(this)[0].checked){
+                    entIDs += "|"+$(this).attr("value");
+                }
+                })
+                
+            if(entIDs==""){
+                alert("Nothing selected");
+                return false;
+            }
+            entItemIDInput.val(entIDs);
+        }
+        
+        $this.find('fieldset.eiseIntraActions input.eiseIntraRadio').each(function(){
+            if (this.checked){
+                oRadio = $(this);
+                actionRadioClick($(this), function(obj){
+                    $this.find('#actID').val(oRadio.val());
+                    $this.find('#aclOldStatusID').val(oRadio.attr('orig'));
+                    $this.find('#aclNewStatusID').val(oRadio.attr('dest'));
+                    
+                    if (!obj.flagAutocomplete){
+                        $this.find('#aclToDo').val('start');
+                    } else {
+                        $this.eiseIntraForm("makeMandatory", {
+                            strIDs: obj.mandatory
+                            , flagDontSetRequired : (flagUpdateMultiple || !obj.flagAutocomplete)
+                            });
+                    }
+                    callback();
+                });
+                return false; // break
+            }
+        })
+            
+    }
+    
+    });
+    
+},
+
+reset: function(  ) {  
+    return this.each(function(){
+        $(this).find('#actID').val('');
+        $(this).find('#aclOldStatusID').val('');
+        $(this).find('#aclNewStatusID').val('');
+        $(this).find('#aclToDo').val('');
+    })
+},
+
+commentAdd: function(options){
+    
+    
+    var strURL = location.href;
+    var strPost = "DataAction=add_comment&scmEntityItemID="+encodeURIComponent(options.entItemID)+
+       "&scmContent="+encodeURIComponent(options.text);
+    
+    var $form = $(this);
+    
+    $.getJSON(strURL, strPost, function(data){
+        if (data.length==0){
+            return;
+        }
+        
+        if (data.ERROR ){
+            alert(data.ERROR);
+            return;
+        }
+        
+        data.text = options.text;
+        
+        options.success(data);
+        
+    });
+
+},
+
+commentRemove: function(options){
+    var scmID = options.scmID;
+
+    strURL = location.href;
+    strPost = "DataAction=delete_comment&scmGUID="+encodeURIComponent(scmID);
+
+     $.getJSON(strURL, strPost, function(data){
+        
+        if (data.length==0){
+            return;
+        }
+        
+        if (data.ERROR ){
+            alert(data.ERROR);
+            return;
+        }
+        
+        options.success(data);
+        
+    });
+}
+
+};
+
+
+$.fn.eiseIntraEntityItemForm = function( method ) {  
+
+
+    if ( methods[method] ) {
+        return methods[method].apply( this, Array.prototype.slice.call( arguments, 1 ));
+    } else if ( typeof method === 'object' || ! method ) {
+        return methods.init.apply( this, arguments );
+    } else {
+        $.error( 'Method ' +  method + ' not exists for jQuery.eiseIntraForm' );
+    } 
+
+};
+
+})( jQuery );
+
+
+
 
 function checkForComment(actID){
     for(var i=0;i<arrActAtr.length;i++)
@@ -98,364 +397,6 @@ function checkForComment(actID){
 
     return false;
 }
-
-function checkFormAccuracy(){
-   for (var i=0;i<arrAtr.length;i++){
-      var inp = document.getElementById("atr_"+arrAtr[i][0]);
-      eval("var regexp = "+arrAtr[i][1]+";");
-      if (inp.value!="") {
-         var val = inp.value;
-         if (!val.match(regexp)){
-            alert ("Incorrect data for "+arrAtr[i][0]+".");
-            inp.focus();
-            return false;
-         }
-      }
-   }
-   return true;
-}
-
-function checkFormWithRadios(){
-    
-    var entID = $('#entID').val();
-    
-    //checking if there are not entItemID
-    var entItemID = document.getElementById(entID+"ID");
-    var flagUpdateMultiple = false;
-    
-    if(entItemID.value==""){
-        $("input[name='sel_"+entID+"[]']").each(function(){
-        if ($(this).attr("checked")){
-            entItemID.value += "|"+$(this).attr("value");
-        }
-        })
-        if(entItemID.value==""){
-            alert("Nothing selected");
-            return false;
-        }
-        flagUpdateMultiple = true;
-    }
-
-    var arrAct = getActionArray(entID);
-
-    var actID = arrAct[1];
-    var aclOldStatusID = arrAct[2];
-    var aclNewStatusID = arrAct[3];
-    var FlagAutocomplete = arrAct[4]==undefined ? true : arrAct[4];
-    var allowSubmit = true;
-
-    var strURL = "ajax_details.php?table=svw_action_attribute&aatActionID="+actID;
-    console.log(strURL+'::'+actID+'::'+aclOldStatusID+'::'+aclNewStatusID+'::'+FlagAutocomplete);
-    $.getJSON(strURL,
-        function(data){
-
-            if (FlagAutocomplete && !flagUpdateMultiple ) {
-
-                $.each(data, function(i, item){
-                    var inp = $("#"+item.aatAttributeID);
-
-                    if (inp==null) return;
-
-                    var title = $("#title_"+item.aatAttributeID).text().replace(/((\*){0,1}\:)$/, "");
-                    if(item.aatFlagMandatory=="1"){
-                        if (inp.val()==""){
-                             alert ("Field '"+title+"' is mandatory. Please fill-in.");
-                             inp.focus();
-                             allowSubmit=false;
-                        }
-                    }
-                    if(item.aatFlagToChange=="1"){
-                        if (inp.val()==inp.attr("old_val")){
-                             alert ("Field '"+title+"' should be other than '"+inp.attr("old_val")+"'. Please change.");
-                             inp.focus();
-                             allowSubmit=false;
-                        }
-                    }
-
-                });
-
-            }
-
-            try {
-                allowSubmit = allowSubmit && checkForm();
-            } catch(x) {}
-
-            if (allowSubmit) {
-                    document.getElementById("actID").value = actID;
-                if (aclOldStatusID!="") {
-                    document.getElementById("aclOldStatusID").value = aclOldStatusID;
-                }
-                document.getElementById("aclNewStatusID").value = aclNewStatusID;
-                window.setTimeout("document.getElementById(\"btnsubmit\").disabled = true;", 1);
-                document.forms.entForm.submit();
-            }
-
-        });
-
-    return false;
-
-}
-
-function getActionArray(entID){
-    var RadioInputID = "";
-
-    $("input[id^='rad_']").each(function(){
-        if ($(this).attr("checked")){
-            RadioInputID = ($(this).attr("id"));
-            FlagAutocomplete = ($(this).attr("autocomplete"));
-        }
-    })
-
-    if (RadioInputID!=""){
-        var arrAct = RadioInputID.split("_");
-    } else {
-        var arrAct = ["", "2", "", ""];
-    }
-
-    arrAct.push(FlagAutocomplete);
-
-    return arrAct;
-}
-
-function promptSuperaction(actID, entID, ID){
-    if (actID!="4") { return true; }
-
-    if(document.getElementById("actComments").value!="" &&
-       document.getElementById(entID+"StatusID").value!=""
-      )
-        return true;
-
-    var strURL = "ajax_details.php?table=stbl_status&staEntityID="+entID+"&staFlagDeleted=0";
-    $.getJSON(strURL,
-        function(data){
-
-            html = '<span>You are executing SuperAction</span><br><br>';
-            html += 'Select new status:<br>\r\n<select id="newStatusID">';
-
-            $.each(data, function(i, item){
-                html += '<option value="'+item.staID+'">'+item.staTitle+"</option>";
-            });
-
-            html += "</select>\r\n<br><br>";
-
-            html += 'Please make a comment:<br><textarea id="comment" rows="4"></textarea>';
-
-            $.prompt(html,{
-                buttons: { Ok: true, Cancel: false } ,
-                callback: function(v, m, f) {
-                    if (v==true) {
-                        document.getElementById("actComments").value = inpComment.val();
-                        document.getElementById(entID+"StatusID").value=inpNewStatus.val();
-                        document.getElementById("aclToDo").value  = "finish";
-                        document.getElementById("btnsubmit").click();
-                    }
-
-                },
-                submit: function(v, m, f) {
-                    if (v==true){
-                        inpNewStatus = m.children('#newStatusID');
-                        inpComment = m.children('#comment');
-                        if(inpComment.val() == ""){
-                            alert ("Add comment or click cancel");
-                            inpComment.css("border","solid #ff0000 1px");
-                            inpComment.focus();
-                            return false;
-                        } else
-                        return true;
-
-                    } else
-                        return true;
-                },
-                prefix: 'cleanblue'
-                });
-
-
-        });
-
-    return;
-
-
-}
-
-function actionChecked(o){
-
-   var arrActSelected = o.id.split("_");
-   var actID = arrActSelected[1];
-
-   // remove asterix * from previously selected field titles
-   $("div [id^='title']").each(function(){
-       $(this).text($(this).text().replace(/\*\:$/, ":"));
-   });
-
-   var strURL = "ajax_details.php?table=stbl_action_attribute&aatActionID="+actID;
-    $.getJSON(strURL,
-        function(data){
-
-            $.each(data, function(i, item){
-                var divTitle = $("#title_"+item.aatAttributeID);
-                var strTitleText = divTitle.html();
-                if (strTitleText==null) return;
-
-                //mark mandatory fields with asterixes *
-                if(item.aatFlagMandatory=="1"){
-                    strTitleText = strTitleText.replace(/\:$/, "*:");
-                }
-                $("#title_"+item.aatAttributeID).html(strTitleText);
-            });
-
-        });
-
-    return;
-
-}
-
-function intializeComments(entID){
-    
-    var divControl = document.getElementById("eiseComment_contols");
-    if (divControl==null)
-        return false;
-
-    var divLastComment  = document.getElementById("eiseComment");
-
-    /*
-    document.getElementById("eiseComment_attach").onclick=function(){
-        commentAttachFile(entID);
-    }
-    */
-    document.getElementById("eiseComment_add").onclick=function(){
-        commentAdd(entID, this);
-    }
-
-    divLastComment.onfocus = function(){
-        
-        $(divControl).offset({
-            left: $(this).width(true)+$(this).offset().left
-            , top: $(this).offset().top
-            });
-        divControl.style.visibility = "visible";
-        /*
-        var arrXY = getNodeXY(this);
-        divControl.style.left = divLastComment.offsetWidth+arrXY[0]+"px";
-        divControl.style.top = arrXY[1]+"px";
-        
-        */
-    }
-    divLastComment.onblur = function(){
-        //divControl.style.visibility = "hidden";
-        return false;
-    }
-
-}
-
-function commentAdd(entID, oControl){
-    var divLastComment  = document.getElementById("eiseComment");
-    var entItemID = document.getElementById(entID+"ID").value;
-
-    strURL = location.href;
-    strPost = "DataAction=add_comment&scmEntityItemID="+encodeURIComponent(entItemID)+
-       "&scmContent="+encodeURIComponent($(divLastComment).text());
-    
-    $.getJSON(strURL, strPost, function(data){
-        if (data.length==0){
-            return;
-        }
-        var scmGUID = data.scmGUID;
-        var strUserName = data.user;
-
-        var newDiv = divLastComment.cloneNode(true);
-        $(newDiv).text("");
-        divLastComment.parentNode.insertBefore(newDiv, divLastComment);
-        newDiv.style.display = "block";
-        newDiv.onfocus = divLastComment.onfocus;
-        newDiv.onblur = divLastComment.onblur;
-
-        divLastComment.id = "scm_"+scmGUID;
-        divLastComment.contentEditable = false;
-
-
-        var oDIVText = document.createElement("DIV");
-        $(oDIVText).text($(divLastComment).text());
-        var oDIVUser = document.createElement("DIV");
-        oDIVUser.className = "eiseComment_userstamp";
-        var cd = new Date();
-        $(oDIVUser).text(strUserName+" at "+cd.getDate()+"."+(cd.getMonth()+1)+"."+cd.getFullYear()+":");
-        $(divLastComment).text("");
-        divLastComment.appendChild(oDIVUser);
-        divLastComment.appendChild(oDIVText);
-        divLastComment.onfocus = null;
-        divLastComment.onclick = function(){ showCommentDelete(this) };
-
-        oControl.parentNode.style.visibility = "hidden";
-        
-    });
-
-}
-
-function showCommentDelete(oDiv){
-    var divControl = document.getElementById("eiseComment_delete");
-    
-    $(divControl).offset({
-            left: $(oDiv).width(true)+$(oDiv).offset().left
-            , top: $(oDiv).offset().top
-            });
-    divControl.style.visibility = "visible";
-    
-    divControl.onclick = function(){
-       commentDelete(oDiv, this);
-    }
-
-}
-
-function commentDelete(oDivToDelete, oDivControl){
-    var scmID = oDivToDelete.id.replace("scm_", "");
-    if (!confirm("Are you sure you'd like to delete this comment?")){
-        return false;
-    }
-
-    strURL = location.href;
-    strPost = "DataAction=delete_comment&scmGUID="+encodeURIComponent(scmID);
-
-    oHttp = GetXmlHttpObject();
-    oHttp.open("POST", strURL , true);
-    oHttp.setRequestHeader("Content-Type",  "application/x-www-form-urlencoded");
-    oHttp.send(strPost);
-    oHttp.onreadystatechange = function () {
-     if (oHttp.readyState == 4) {
-            strPost = "";
-            oDivControl.style.visibility = "hidden";
-            $(oDivToDelete).remove();
-     }
-    }
-}
-
-function GetXmlHttpObject()
-{
-  var xmlHttp=null;
-  try
-    {
-    // Firefox, Opera 8.0+, Safari
-    xmlHttp=new XMLHttpRequest();
-    }
-  catch (e)
-    {
-    // Internet Explorer
-    try
-      {
-      xmlHttp=new ActiveXObject("Msxml2.XMLHTTP");
-      }
-    catch (e)
-      {
-      xmlHttp=new ActiveXObject("Microsoft.XMLHTTP");
-      }
-    }
-  return xmlHttp;
-}
-
-function checkForm(){
-    return true;
-};
-
-
 
 function showMultipleEditForm(strTitle){
 

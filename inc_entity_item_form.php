@@ -79,9 +79,23 @@ if ($arrConfig["extraFieldset"]!=""){
 
 <script>
 $(document).ready(function(){ 
-    intraInitializeForm();
-    intraInitializeEntityForm();
-    intializeComments('<?php  echo $entID ; ?>');
+    $('.eiseIntraForm').
+        eiseIntraForm().
+        eiseIntraEntityItemForm({flagUpdateMultiple: false}).
+        submit(function(event) {
+            var $form = $(this);
+            $form.eiseIntraEntityItemForm("checkAction", function(){
+                if ($form.eiseIntraForm("validate")){
+                    window.setTimeout(function(){$form.find('input[type="submit"], input[type="button"]').each(function(){this.disabled = true;})}, 1);
+                    $form[0].submit();
+                } else {
+                    $form.eiseIntraEntityItemForm("reset");
+                }
+            })
+        
+            return false;
+        
+        });
 });
 </script>
 <?php
@@ -95,41 +109,41 @@ $(document).ready(function(){
 function showActions($actionCallBack=""){
     $oSQL = $this->oSQL;
     $rwEnt = $this->rwEnt;
-    ?>
-    <fieldset class="eiseIntraSubForm"><legend><?php  echo $this->intra->translate("Actions") ; ?></legend>
-    <?php 
     
+    if(empty($this->arrAct))
+            $this->collectDataActions();
+            
+    if (!$this->intra->arrUsrData["FlagWrite"]
+        || (count($this->arrAct)==0 && count($this->rwEnt["ACL"])==0)
+        ) return;
+    
+    ?>
+    <fieldset class="eiseIntraActions eiseIntraSubForm"><legend><?php  echo $this->intra->translate("Actions") ; ?></legend>
+    <?php 
     $entID = $rwEnt["entID"];
     $entItemID = $rwEnt[$rwEnt["entID"]."ID"];
     
     $staID = $rwEnt[$entID."StatusID"];
     
-    if ($entItemID) {
-        $ii = 0;
-        foreach ($this->rwEnt["ACL"] as $ix=>$rwACL){
+    $ii = 0;
+    foreach ($this->rwEnt["ACL"] as $ix=>$rwACL){
             
-            if ($rwACL["aclActionPhase"] > 2) continue; //skip cancelled
+        if ($rwACL["aclActionPhase"] > 2) continue; //skip cancelled
             
-            $this->showActionInfo($rwACL, $actionCallBack);
-            $staID = ($ii==0 ? $rwACL["aclNewStatusID"] : $staID);
-            $ii++;
+        $this->showActionInfo($rwACL, $actionCallBack);
+        $staID = ($ii==0 ? $rwACL["aclNewStatusID"] : $staID);
+        $ii++;
                 
-        }
     }
     
-    if (!$flagDontShowOtherActions && !$this->flagArchive){
+    if (!$this->flagArchive){
+        
         echo $this->showActionRadios();
-        /*
-        echo $this->showActionRadios($rwEnt["entID"], $staID, Array(
-            "staFlagCanUpdate"=>$this->intra->arrUsrData["FlagWrite"] && $rwEnt["staFlagCanUpdate"]  && !$this->flagArchive
-            , "staFlagCanDelete"=>$rwEnt["staFlagCanDelete"]
-            )
-        );
-        */
+        
     }
     if ($this->intra->arrUsrData["FlagWrite"] && !$this->flagArchive){
             
-        echo "<div align=\"center\"><input id=\"btnsubmit\" type=\"submit\" value=\"".$this->intra->translate("Run")."\"></div>";
+        echo "<div align=\"center\"><input class=\"eiseIntraSubmit\" id=\"btnsubmit\" type=\"submit\" value=\"".$this->intra->translate("Run")."\"></div>";
         
     }
     ?>
@@ -159,22 +173,15 @@ function showEntityItemFields($arrConfig){
     if ($rwEnt[$entID."ID"]){
         if ($arrConfig["showComments"]){
             // Comments
-            echo "<div>";
-            echo "<label>".$this->intra->translate("Comments").":</label>";
-            echo "<div class=\"eiseValue\">";
-            
             $this->showCommentsField();
-            
-            echo "&nbsp;</div>";
-            echo "</div>\r\n\r\n";
         }
         
         if ($arrConfig["showFiles"]){
             // Files
             $i++;
             echo "<div class=\"intraFormRow tr".( $i % 2 )."\">\r\n";
-            echo "<div class=\"intraFieldTitle\">Files:</div>";
-            echo "<div class=\"intraFieldValue\">";
+            echo "<div class=\"eiseIntraFieldTitle\">Files:</div>";
+            echo "<div class=\"eiseIntraFieldValue\">";
             $sqlFiles = "SELECT * FROM stbl_file WHERE filEntityItemID = '{$rwEnt["shpID"]}'";
             $rsFiles = $oSQL->do_query($sqlFiles);
             while ($rwFiles = $oSQL->fetch_array($rsFiles)){
@@ -210,14 +217,15 @@ function showActivityLog(){
 foreach($this->rwEnt["STL"] as $stlGUID => $rwSTL){
     ?>
     <div class="eiseIntraLogStatus">
-    <div class="eiseIntraLogTitle"><?php echo ($rwSTL["stlTitle".$this->intra->local]!="" 
-        ? "{$rwSTL["stlTitle".$this->intra->local]}"
-        : "{$rwSTL["staTitle".$this->intra->local]}"); ?></div>
-    <div class="eiseIntraLogData">
-    
-    <div>
-    <label>ATD:</label><div><?php echo $intra->DateSQL2PHP($rwSTL["stlATD"]); ?>&nbsp;</div>
+    <div class="eiseIntraLogTitle"><span class="eiseIntra_stlTitle"><?php echo ($rwSTL["stlTitle".$this->intra->local]!="" 
+        ? $rwSTL["stlTitle".$this->intra->local]
+        : $rwSTL["staTitle"]); ?></span>
+        
+        <span class="eiseIntra_stlATA"><?php echo $intra->dateSQL2PHP($rwSTL["stlATA"]); ?></span>
+        <span class="eiseIntra_stlATD"><?php echo ( $rwSTL["stlATD"] ? $intra->DateSQL2PHP($rwSTL["stlATD"]) : $intra->translate("current time")); ?></span>
+            
     </div>
+    <div class="eiseIntraLogData">
     <?php
     if (isset($rwSTL["ACL"]))
     foreach ($rwSTL["ACL"] as $rwNAct){
@@ -229,19 +237,14 @@ foreach($this->rwEnt["STL"] as $stlGUID => $rwSTL){
     foreach($rwSTL["SAT"] as $atrID => $rwATV){
         $rwATV["satFlagEditable"] = false;
         ?>
-        <div><label><?php  echo $rwATV["atrTitle{$this->intra->local}"] ; ?>:</label>
+        <div class="eiseIntraField"><label><?php  echo $rwATV["atrTitle{$this->intra->local}"] ; ?>:</label>
         <?php 
            echo $this->showAttributeValue($rwATV, "_".$rwSTL["stlGUID"]); ?>&nbsp;
         </div>
         <?php
     }
     
-    ?>
-    
-    <div class="intraField">
-    <label>ATA:</label><span><?php echo $intra->dateSQL2PHP($rwSTL["stlATA"]); ?></span>
-    </div>
-    
+    ?>    
     </div>
     </div>
     
@@ -290,11 +293,14 @@ function showActionInfo($rwACT, $actionCallBack=""){
     <div class="eiseIntraLogAction">
     <div class="eiseIntraLogTitle" id="aclTitle_<?php  echo $rwACT["aclGUID"] ; ?>" title="Last edited: <?php  echo htmlspecialchars($rwACT["aclEditBy"]."@".Date("d.m.Y H:i", strtotime($rwACT["aclEditDate"]))).
             "\r\n / ".$rwACT["aclEntityItemID"]."|".$rwACT["aclGUID"]; ?>"><?php 
-    echo $rwACT["actTitlePast{$strLocal}"].
-       ($rwACT["staID_Old"]!=$rwACT["staID_New"] 
+    echo 
+        ($rwACT["aclActionPhase"]==2 // if action is complete, show past tense
+            ? $rwACT["actTitlePast{$strLocal}"]
+            : $rwACT["actTitle{$strLocal}"]).
+        ($rwACT["staID_Old"]!=$rwACT["staID_New"] 
          ? " (".$rwACT["staTitle{$strLocal}_Old"]." &gt; ".$rwACT["staTitle{$strLocal}_New"].")"
          : ""
-    );
+        );
     echo ($this->flagArchive 
         ? ($rwACT["aclActionPhase"]==3
             ? " (".$this->intra->translate("cancelled").")"
@@ -305,40 +311,36 @@ function showActionInfo($rwACT, $actionCallBack=""){
         : ""
     );?></div>
     <div class="eiseIntraLogData">
-    
-    <div class="intraField">
-    <label>ATA<?php echo ($flagEditable ? "*" : ""); ?>:</label><?php 
-        echo $this->showTimestampField("aclATA", $flagEditable, $rwACT["aclATA"], "_".$rwACT["aclGUID"]); ?>&nbsp;
+<?php 
+    // timestamps
+    $arrTS = $this->getActonTimestamps($rwACT);
+    foreach($arrTS as $ts=>$data){
+        if (is_array($data))
+            continue;
+        ?>
+<div class="eiseIntraField">
+    <label><?php echo $ts.($flagEditable ? "*" : ""); ?>:</label><?php 
+        echo $this->showAttributeValue(Array("atrID"=>"acl{$ts}"
+            , "value" => $rwACT["acl{$ts}"]
+            , "atrType"=>$rwACT["actTrackPrecision"]
+            , "satFlagEditable"=>$flagEditable
+            , "aatFlagMandatory"=>true
+            ), "_".$rwACT["aclGUID"]);
+          //$this->showTimestampField("aclATA", $flagEditable, $rwACT["aclATA"], "_".$rwACT["aclGUID"]); ?>&nbsp;
     </div>
-    <?php 
-    if ($flagAlwaysShow || !($rwACT["aclATD"]=="" || $rwACT["aclATD"]==$rwACT["aclATA"])){
-    ?>
-    <div class="intraField"><label>ATD<?php echo ($flagEditable ? "*" : ""); ?>:</label><?php 
-        echo $this->showTimestampField("aclATD", $flagEditable, $rwACT["aclATD"], "_".$rwACT["aclGUID"]);
-         ?>
-    </div>
-    <?php
-    }
-    
-    //ETA && ETD
-    
-    if ($rwACT["actFlagHasEstimates"] && $rwACT["actID"] > 3){
-    ?>
-    <div class="intraField intraEstimates"><label>ETA<?php echo ($flagEditable ? "*" : ""); ?>:</label><?php 
-       echo $this->showTimestampField("aclETA", $flagEditable, $rwACT["aclETA"], "_".$rwACT["aclGUID"]); ?>
-    </div>
-    <div class="intraField intraEstimates"><label>ETD<?php echo ($flagEditable ? "*" : ""); ?>:</label><?php 
-       echo $this->showTimestampField("aclETD", $flagEditable, $rwACT["aclETD"], "_".$rwACT["aclGUID"]); ?>
-    </div>
-    <?php
+        <?php
     }
     ///*
     // linked attributes
     if (isset($rwACT["AAT"]))
     foreach($rwACT["AAT"] as $ix => $rwATV){
         $rwATV["satFlagEditable"] = $flagEditable;
+        if (!$rwATV["aatFlagToTrack"])
+            continue;
+        //if ($rwATV["aatFlagTimestamp"]!="")
+        //    continue;   
         ?>
-        <div class="intraField"><label><?php  
+        <div class="eiseIntraField"><label><?php  
             echo $rwATV["atrTitle{$this->intra->local}"].($rwATV["aatFlagMandatory"] && $rwATV["satFlagEditable"] ? "*" : "") ; 
             ?>:</label><?php 
             echo $this->showAttributeValue($rwATV, "_".$rwACT["aclGUID"]); ?>
@@ -358,16 +360,16 @@ function showActionInfo($rwACT, $actionCallBack=""){
         ?><div align="center"><?php
         
         if ($rwACT["aclActionPhase"]=="0"){
-            ?><input name="start_<?php  echo $aclGUID ; ?>" id="start_<?php  echo $aclGUID ; ?>" 
+            ?><input name="start_<?php  echo $aclGUID ; ?>" id="start_<?php  echo $rwACT["aclGUID"] ; ?>" 
             type="button" value="Start" class="eiseIntraActionButton">
             <?php
         }
         if ($rwACT["aclActionPhase"]=="1"){
-            ?><input name="finish_<?php  echo $aclGUID ; ?>" id="finish_<?php  echo $aclGUID ; ?>" 
+            ?><input name="finish_<?php  echo $aclGUID ; ?>" id="finish_<?php  echo $rwACT["aclGUID"] ; ?>" 
             type="button" value="Finish" class="eiseIntraActionButton">
             <?php
         }
-        ?><input name="cancel_<?php  echo $aclGUID ; ?>" id="cancel_<?php  echo $aclGUID ; ?>" 
+        ?><input name="cancel_<?php  echo $aclGUID ; ?>" id="cancel_<?php  echo $rwACT["aclGUID"] ; ?>" 
         type="button" value="Cancel" class="eiseIntraActionButton"></div>
         <?php
     }
@@ -384,6 +386,7 @@ function showTimestampField($atrName, $flagEditable, $value, $suffix){
    return $this->showAttributeValue(Array("atrID"=>$atrName
             , "atrType"=>"datetime"
             , "satFlagEditable"=>$flagEditable
+            , "aatFlagMandatory"=>true
             , "value" => $value)
           , $suffix);
 }
@@ -445,28 +448,36 @@ return $strRes;
 function showCommentsField(){
     $oSQL = $this->oSQL;
     $rwEntity = $this->rwEnt;
-    $intra = $this->intra;
-    $usrID = $intra->usrID;
-?>
-<div id="eiseComment" class="eiseComment" contentEditable="true"></div>
+    $intra = $this->intra;   
+    ?>
+<div class="eiseIntraField">
+<label><?php echo $this->intra->translate("Comments"); ?>:</label>
+<div class="eiseIntraValue">
 <?php 
-foreach ($this->rwEnt["comments"] as $ix => $rwSCM){
+    if ($this->intra->arrUsrData["FlagWrite"] && !$this->flagArchive){?>
+<textarea class="eiseIntraComment"></textarea>
+<?php
+    }
+    foreach ($this->rwEnt["comments"] as $ix => $rwSCM){
 ?>
-<div id="scm_<?php  echo $rwSCM["scmGUID"] ; ?>" class="eiseComment"<?php 
-echo ($usrID==$rwSCM["scmInsertBy"] ? " onclick=\"showCommentDelete(this)\"" : "")
- ?>>
-<div class="eiseComment_userstamp"><?php  echo ($intra->getUserData($rwSCM["scmInsertBy"]) ); ?> at <?php 
-echo $intra->dateSQL2PHP($rwSCM["scmInsertDate"], "d.m.Y H:i");
+<div id="scm_<?php  echo $rwSCM["scmGUID"] ; ?>" class="eiseIntraComment<?php echo ($intra->usrID==$rwSCM["scmInsertBy"] ? " eiseIntraComment_removable" : "") ?>">
+<div class="eiseIntraComment_userstamp"><?php  echo $intra->getUserData($rwSCM["scmInsertBy"]).' '.$intra->translate('at').' '.$intra->dateSQL2PHP($rwSCM["scmInsertDate"], "d.m.Y H:i");
  ?></div>
-<div><?php  echo str_replace("\n", "<br>", $rwSCM["scmContent"] ); ?></div>
+<div><?php  echo str_replace("\n", "<br>", htmlspecialchars($rwSCM["scmContent"] )); ?></div>
 </div>
 <?php
-}
- ?>
-<span id="eiseComment_contols">
-<input type="button" class="ss_sprite ss_add" id="eiseComment_add">
-</span>
-<input type="button" class="ss_sprite ss_delete" id="eiseComment_delete">
+    }
+?>
+</div>
+<?php
+?>
+
+<div class="eiseIntraComment_contols">
+<input type="button" class="eiseIntraComment_add ss_sprite ss_add">
+<input type="button" class="eiseIntraComment_remove ss_sprite ss_delete">
+</div>
+
+</div>
 <?php
 }
 

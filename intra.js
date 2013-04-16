@@ -1,93 +1,13 @@
-function eiseIntraInitializeForm(){
+(function( $ ){
 
-    $('input.eiseIntraValue').each(function() {
-        switch ($(this).attr('type')){
-            case "datetime":
-            case "date":
-            case "datetime-local":
-                $(this).addClass('eiseIntra_'+$(this).attr('type'));
-                break;
-            case "number":
-                $(this).css('width', 'auto');
-                break;
-            default:
-                break;
-        }
-        
-    });
-    
-    $('eiseIntraForm input[type="submit"]').each(function(){
-        $(this).addClass('eiseIntraSubmit');
-    })
-    
-    $('select.eiseIntraValue').each(function() {
-        $(this).css('width', 'auto');
-    });
-    
-    intraInitializeForm();
-    
+var isDateInputSupported = function(){
+    var elem = document.createElement('input');
+    elem.setAttribute('type','date');
+    elem.value = 'foo';
+    return (elem.type == 'date' && elem.value != 'foo');
 }
 
-function intraInitializeForm(){
-   
-    $('input.eiseIntra_date, input.eiseIntra_datetime').each(function() {
-        $(this).datepicker({
-			changeMonth: true,
-			changeYear: true,
-            dateFormat: 'dd.mm.yy',
-            constrainInput: false,
-            firstDay: 1
-            , yearRange: 'c-7:c+7'
-        })
-        $(this).bind("dblclick", function(){
-            eiseIntra_setCurrentDate(this);
-        })
-    });
-    
-    $('input.eiseIntra_ajax_dropdown').each(function(){
-        
-        var data = $(this).attr('src');
-		eval ("var arrData="+data+";");
-		var table = arrData.table;
-		var prefix = arrData.prefix;
-		var url = 'ajax_dropdownlist.php?table='+table+"&prefix="+prefix;
-        
-        var inp = this;
-        
-		$(this).autocomplete({
-            source: function(request,response) {
-                
-                url = url+"&q="+encodeURIComponent(request.term);
-                
-                $.getJSON(url, function(response_json){
-                    
-                    response($.map(response_json.data, function(item) {
-                            return {  label: item.optText, value: item.optValue  }
-                        }));
-                    });
-                    
-                },
-            minLength: 3,
-            focus: function(event,ui) {
-                event.preventDefault();
-                if (ui.item){
-                    $(inp).val(ui.item.label);
-                } 
-            },
-            select: function(event,ui) {
-                event.preventDefault();
-                if (ui.item){
-                    $(inp).val(ui.item.label);
-                    $(inp).prev("input").val(ui.item.value);
-                } else 
-                    $(inp).prev("input").val("");
-            }
-		});
-    });
-
-}
-
-function eiseIntra_setCurrentDate(oInp){
+var setCurrentDate = function(oInp){
     
     var today = new Date();
     var dd = today.getDate();
@@ -106,6 +26,259 @@ function eiseIntra_setCurrentDate(oInp){
     } else {
         $(oInp).val(date);
     }
+}
+
+var getFieldLabel = function(oInp){
+    return oInp.prev('label');
+}
+var getFieldLabelText = function(oInp){
+    return getFieldLabel(oInp).text().replace(/[\:\*]+$/, '');
+}
+
+var methods = {
+
+init: function( options ) {
+
+    return this.each(function(){
+         
+        var $this = $(this),
+            data = $this.data('eiseIntraForm');
+        
+        // Если плагин ещё не проинициализирован
+        if ( ! data ) {
+
+            var conf = $.parseJSON($('#eiseIntraConf').val());
+            
+            $(this).data('eiseIntraForm', {
+                form : $this,
+                conf: $.extend( conf, options)
+            });
+        }
+        
+        $this.find('input.eiseIntraValue').each(function() {
+            switch ($(this).attr('type')){ 
+                case "datetime":
+                case "date":
+                case "datetime-local":
+                    if (isDateInputSupported()){
+                        $(this).css('width', 'auto');
+                    } else {
+                        $(this).addClass('eiseIntra_'+$(this).attr('type'));
+                    }
+                    $(this).attr('autocomplete', 'off');
+                    break;
+                case "number":
+                    $(this).css('width', 'auto');
+                    $(this).attr('autocomplete', 'off');
+                    break;
+                default:
+                    break;
+            }
+            
+        });
+    
+        $this.find('input[type="submit"]').each(function(){
+            $(this).addClass('eiseIntraSubmit');
+        });
+    
+        $this.find('select.eiseIntraValue').each(function() {
+            $(this).css('width', 'auto');
+        });
+    
+        $this.find('input.eiseIntra_date, input.eiseIntra_datetime').each(function() {
+            $(this).datepicker({
+                    changeMonth: true,
+                    changeYear: true,
+                    dateFormat: conf.dateFormat.replace('d', 'dd').replace('m', 'mm').replace('Y', 'yy'),
+                    constrainInput: false,
+                    firstDay: 1
+                    , yearRange: 'c-7:c+7'
+                });
+            
+            $(this).bind("dblclick", function(){
+                setCurrentDate(this);
+            })
+        });
+    
+        $this.find('input.eiseIntra_ajax_dropdown').each(function(){
+            
+            var data = $(this).attr('src');
+    		eval ("var arrData="+data+";");
+    		var table = arrData.table;
+    		var prefix = arrData.prefix;
+    		var url = 'ajax_dropdownlist.php?table='+table+"&prefix="+prefix+(arrData.showDeleted!=undefined ? '&d=1' : '');
+            
+            var inp = this;
+            
+    		$(this).autocomplete({
+                source: function(request,response) {
+                
+                    var extra = $(inp).attr('extra');
+                    var urlFull = url+"&q="+encodeURIComponent(request.term)+(extra!=undefined ? '&e='+encodeURIComponent(extra) : '');
+                    
+                    $.getJSON(urlFull, function(response_json){
+                        
+                        response($.map(response_json.data, function(item) {
+                                return {  label: item.optText, value: item.optValue  }
+                            }));
+                        });
+                        
+                    },
+                minLength: 3,
+                focus: function(event,ui) {
+                    event.preventDefault();
+                    if (ui.item){
+                        $(inp).val(ui.item.label);
+                    } 
+                },
+                select: function(event,ui) {
+                    event.preventDefault();
+                    if (ui.item){
+                        $(inp).val(ui.item.label);
+                        $(inp).prev("input").val(ui.item.value);
+                    } else 
+                        $(inp).prev("input").val("");
+                }
+    		});
+        });
+        
+        
+    });
+},
+
+validate: function( ) {
+    
+    var canSubmit = true;
+    
+    var conf = $(this).data('eiseIntraForm').conf;
+    
+    var strRegExDate = conf.dateFormat
+        .replace(new RegExp('\\.', "g"), "\\.")
+        .replace(new RegExp("\\/", "g"), "\\/")
+        .replace("d", "[0-9]{1,2}")
+        .replace("m", "[0-9]{1,2}")
+        .replace("Y", "[0-9]{4}")
+        .replace("y", "[0-9]{1,2}");
+    var strRegExTime = conf.timeFormat
+        .replace(new RegExp("\\.", "g"), "\\.")
+        .replace(new RegExp("\\:", "g"), "\\:")
+        .replace(new RegExp("\\/", "g"), "\\/")
+        .replace("h", "[0-9]{1,2}")
+        .replace("H", "[0-9]{1,2}")
+        .replace("i", "[0-9]{1,2}")
+        .replace("s", "[0-9]{1,2}");
+    
+    $(this).find('input.eiseIntraValue').each(function() {
+        
+        var strValue = $(this).val();
+        var strType = $(this).attr('type');
+        
+        if ($(this).attr('required')==='required' && $(this).val()===""){
+            alert(getFieldLabelText($(this))+" is mandatory");
+            $(this).focus();
+            canSubmit = false;
+            return false; //break;
+        }
+        
+        switch (strType){
+            case "number":
+                strValue = parseFloat(strValue
+                    .replace(new RegExp("\\"+conf.decimalSeparator, "g"), '.')
+                    .replace(new RegExp("\\"+conf.thousandsSeparator, "g"), ''));
+                if (strValue!="" && isNaN(strValue)){
+                    alert(getFieldLabelText($(this))+" should be numeric");
+                    $(this).focus();
+                    canSubmit = false;
+                    return false;
+                }
+                break;
+            case 'date':
+                if (isDateInputSupported()){
+                    strRegExDate = "[0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2}";
+                }
+            case 'time':
+            case 'datetime':
+                 
+                var strRegEx = "^"+(strType.match(/date/) ? strRegExDate : "")+
+                    (strType=="datetime" ? " " : "")+
+                    (strType.match(/time/) ? strRegExTime : "")+"$";
+                
+                if (strValue!="" && strValue.match(new RegExp(strRegEx))==null){
+                    alert ("Field '"+getFieldLabelText($(this))+"' should contain "+(strType)+" value formatted as "+conf.dateFormat+
+                    (strType.match(/time/) ? ' '+conf.timeFormat.replace('i', 'm') : "")+
+                    ".");
+                    $(this).focus();
+                    canSubmit = false;
+                    return false;
+                }
+                break;
+                
+            default:
+                 break;
+        }
+    });
+    
+    
+    
+    return canSubmit;
+
+},
+
+makeMandatory: function( obj ) {  
+    
+    return this.each(function(){
+    
+    $(this).find('input.eiseIntraValue').each(function(){
+        if ($(this).attr('type')=='hidden')
+            return true; // continue
+        
+        var label = getFieldLabel($(this));
+        label.text(label.text().replace(/\*\:$/, ":"));
+        $(this).removeAttr('required');
+    });
+    
+    if ( obj.strIDs==='')
+        return;
+    
+    $(this).find( obj.strIDs ).each(function(){
+        
+       var label = getFieldLabel($(this));
+       label.text(label.text().replace(/\:$/, "*:"));
+       if (!obj.flagDontSetRequired){
+            $(this).attr('required', 'required');
+       }
+    });
+    
+    })
+    
+}
+
+};
+
+
+$.fn.eiseIntraForm = function( method ) {  
+
+
+    if ( methods[method] ) {
+        return methods[method].apply( this, Array.prototype.slice.call( arguments, 1 ));
+    } else if ( typeof method === 'object' || ! method ) {
+        return methods.init.apply( this, arguments );
+    } else {
+        $.error( 'Method ' +  method + ' not exists for jQuery.eiseIntraForm' );
+    } 
+
+};
+
+
+})( jQuery );
+
+
+function eiseIntraInitializeForm(){
+    
+    $('.eiseIntraForm').eiseIntraForm().submit(function(){
+        return $(this).eiseIntraForm("validate");
+    });
+
 }
 
 function eiseIntraAdjustPane(){
@@ -361,3 +534,4 @@ eiseIntraLayout.prototype.adjustPane = function(){
     oPane.css("min-height", paneHeight+"px");
 
 }
+

@@ -175,6 +175,97 @@ protected function collectDataActions($arrConfig = Array(), $staID = null){
     
 }
 
+protected function getActionAttribute($actID){
+    
+    $oSQL = $this->oSQL;
+    
+    $arrToRet = Array();
+    
+    //getting AAT
+    $sqlAAT = "SELECT 
+    atrID
+	, aatAttributeID
+    , atrTitle
+    , atrTitleLocal
+    , atrDataSource
+	, atrDefault
+    , aatFlagMandatory
+    , aatFlagToChange
+    , aatFlagToTrack
+    , aatFlagEmptyOnInsert
+    , aatFlagTimestamp
+    , atrType
+    FROM stbl_action_attribute 
+    INNER JOIN stbl_action ON aatActionID=actID
+    INNER JOIN stbl_attribute ON atrEntityID=actEntityID AND aatAttributeID=atrID
+    WHERE (aatFlagMandatory =1 OR aatFlagToChange=1 OR aatFlagToTrack=1 OR aatFlagEmptyOnInsert=1 OR aatFlagTimestamp=1) AND aatActionID='{$actID}'";
+    $rsAAT = $oSQL->do_query($sqlAAT);
+    while ($rwAAT = $oSQL->fetch_array($rsAAT)){
+        $arrToRet[$rwAAT["aatAttributeID"]]=$rwAAT;
+    }
+    $oSQL->free_result($rsAAT);
+    
+    return $arrToRet;
+}
+
+protected function getActonTimestamps($rwACT){
+    
+    $arrTimestamps = Array(
+        'ATA'=>'aclATA'
+        , 'ATD'=>'aclATD'
+        , 'ETA'=>'aclETA'
+        , 'ETD'=>'aclETD'
+        );
+    
+    // determine do we need to show estimates
+    if (!$rwACT["actFlagHasEstimates"]) {unset($arrTimestamps["ETA"]);unset($arrTimestamps["ETD"]);}
+    
+    // determine do we need to show departure
+    if ($rwACT["actFlagDepartureEqArrival"]) {unset($arrTimestamps["ATD"]);unset($arrTimestamps["ETD"]);}
+        
+    if (isset($rwACT["AAT"]))
+        foreach($rwACT["AAT"] as $atrID=>$rwAAT){
+            if (isset($arrTimestamps[$rwAAT["aatFlagTimestamp"]]))
+                $arrTimestamps[$rwAAT["aatFlagTimestamp"]] = $rwAAT;
+        }
+    
+    return $arrTimestamps;
+}
+
+protected function getStatusAttribute($staID){
+    
+    $oSQL = $this->oSQL;
+    
+    $arrToRet = Array();
+    
+    //getting AAT
+    $sqlSAT = "SELECT 
+    atrID
+	, satAttributeID
+    , atrTitle
+    , atrTitleLocal
+	, atrDataSource
+	, atrDefault
+	, satAttributeID
+	, satFlagEditable
+	, satFlagShowInForm
+	, satFlagShowInList
+	, satFlagTrackOnArrival
+    , atrType
+    FROM stbl_status_attribute 
+    INNER JOIN stbl_status ON satStatusID=staID AND staEntityID=satEntityID
+    INNER JOIN stbl_attribute ON atrEntityID=satEntityID AND satAttributeID=atrID
+    WHERE satStatusID='{$staID}' AND satEntityID='{$this->entID}'";
+    $rsSAT = $oSQL->do_query($sqlSAT);
+    while ($rwSAT = $oSQL->fetch_array($rsSAT)){
+        $arrToRet[$rwSAT["satAttributeID"]]=$rwSAT;
+    }
+    $oSQL->free_result($rsSAT);
+    
+    return $arrToRet;
+}
+
+
 protected function getLogID(){
     $this->oSQL->q("INSERT INTO stbl_log_id (lidInsertDate) VALUES (NOW())");
     $ret = $this->oSQL->i();
@@ -403,7 +494,9 @@ function showAttributeValue($rwAtr, $suffix = ""){
     $intra = $this->intra;
     
     $inputName = $rwAtr["atrID"].$suffix;
-    $arrInpConfig = Array("class"=>"eiseIntraValue", "FlagWrite"=>$this->intra->arrUsrData["FlagWrite"]);
+    $arrInpConfig = Array("FlagWrite"=>$this->intra->arrUsrData["FlagWrite"]
+        /*, "required" => (bool)($rwAtr["aatFlagMandatory"] && $rwAtr["satFlagEditable"])*/
+        );
     if(!$rwAtr['satFlagEditable'])
         $arrInpConfig["FlagWrite"] = false;
     
@@ -414,7 +507,8 @@ function showAttributeValue($rwAtr, $suffix = ""){
          $dtVal = $dtVal ? $dtVal : $intra->dateSQL2PHP($value);
          $strRet = $intra->showTextBox($inputName, $dtVal, 
             array_merge($arrInpConfig, Array("strAttrib" => " old_val=\"".htmlspecialchars($dtVal)."\""
-                , "class"=>array_merge(Array("eiseIntra_{$rwAtr['atrType']}", $arrInpConfig["class"] ))
+                , "class"=>array_merge(Array("{$rwAtr['atrClasses']}", $arrInpConfig["class"] ))
+                , "type"=>($rwAtr['atrType'] ? $rwAtr["atrType"] : "text")
                 ))); 
          break;
        case "combobox":
@@ -490,20 +584,33 @@ function getFormForList($staID){
  ?>
 </fieldset>
 
-<fieldset class="eiseIntraSubForm"><legend><?php echo $this->intra->translate("Action"); ?></legend>
+<fieldset class="eiseIntraActions"><legend><?php echo $this->intra->translate("Action"); ?></legend>
 <?php 
     echo $this->showActionRadios();
-    echo "<div align=\"center\"><input id=\"btnsubmit\" type=\"submit\" value=\"".$this->intra->translate("Run")."\"></div>";
+    echo "<div align=\"center\"><input class=\"eiseIntraSubmit\" id=\"btnsubmit\" type=\"submit\" value=\"".$this->intra->translate("Run")."\"></div>";
  ?>
 </fieldset>
 
 </form>
 <script>
 $(document).ready(function(){
-    intraInitializeForm();
-    $('#entForm').submit(function(event){
-        return checkFormWithRadios();
-    });
+    $('#entForm').
+        eiseIntraForm().
+        eiseIntraEntityItemForm({flagUpdateMultiple: true}).
+        submit(function(event) {
+            var $form = $(this);
+            $form.eiseIntraEntityItemForm("checkAction", function(){
+                if ($form.eiseIntraForm("validate")){
+                    window.setTimeout(function(){$form.find('input[type="submit"], input[type="button"]').each(function(){this.disabled = true;})}, 1);
+                    $form[0].submit();
+                } else {
+                    form.eiseIntraEntityItemForm("reset");
+                }
+            })
+        
+            return false;
+        
+        });
 })
 
 </script>
@@ -539,9 +646,9 @@ function showActionRadios(){
               $rwAct["atsOldStatusID"]."_".
               $rwAct["atsNewStatusID"];
 
-            $strOut .= "<input type='radio' name='actRadio' id='$strID' value='".$rwAct["actID"]."' class='eiseIntraRadio' onclick='actionChecked(this)'".
-                ($rwAct["actID"] == 2 || ($key=="1" && count($arrRepeat)>1) ? " checked": "").
-                ($rwAct["actID"] != 2 && $arrConfig["flagFullEdit"] ? " disabled" : "")
+            $strOut .= "<input type='radio' name='actRadio' id='$strID' value='".$rwAct["actID"]."' class='eiseIntraRadio'".
+                " orig=\"{$rwAct["atsOldStatusID"]}\" dest=\"{$rwAct["atsNewStatusID"]}\"".
+                ($rwAct["actID"] == 2 || ($key=="1" && count($arrRepeat)>1) ? " checked": "")
                  .(!$rwAct["actFlagAutocomplete"] ? " autocomplete=\"false\"" : "")." /><label for='$strID' class='eiseIntraRadio'>".($value!="" ? "$value \"" : "")
                  .$title
                  .($value!="" ? "\"" : "")."</label><br />\r\n";
