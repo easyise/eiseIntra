@@ -368,6 +368,7 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
        $strRet = "<input type=\"{$type}\" name=\"{$strName}\" id=\"{$strName}\"".
             ($strAttrib ? " ".$strAttrib : "").
             ($strClass ? " ".$strClass : "").
+            ($arrConfig["required"] ? " required=\"required\"" : "").
        " value=\"".htmlspecialchars($strValue)."\" />\r\n";
     } else {
         $strRet = "<div id=\"span_{$strName}\"".
@@ -390,7 +391,8 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
     if ($flagWrite){
         $strRet .= "<textarea name=\"".$strName."\"";
         if($strAttrib) $strRet .= " ".$strAttrib;
-        $strRet .= $strClass.">";
+        $strRet .= ($strClass ? " ".$strClass : "").
+            ($arrConfig["required"] ? " required=\"required\"" : "").">";
         $strRet .= htmlspecialchars($strValue);
         $strRet .= "</textarea>";
     } else {
@@ -405,7 +407,7 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
     
 }
 
-function showCombo($strName, $strValue, $arrOptions, $arrConfig){
+function showCombo($strName, $strValue, $arrOptions, $arrConfig=Array()){
     
     $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
     
@@ -416,7 +418,8 @@ function showCombo($strName, $strValue, $arrOptions, $arrConfig){
     $strAttrib = $arrConfig["strAttrib"];
     if ($flagWrite){
         $retVal .= "<select id=\"".$strName."\" name=\"".$strName."\"".$strAttrib.
-            $strClass.">\r\n";
+            ($strClass ? " ".$strClass : "").
+            ($arrConfig["required"] ? " required=\"required\"" : "").">\r\n";
         if ($arrConfig["strZeroOptnText"]){
             $retVal .= "<option value=\"\">".htmlspecialchars($arrConfig["strZeroOptnText"])."</option>\r\n" ;
         }
@@ -514,7 +517,7 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
         $strOut .= $this->showTextBox($strFieldName."_text", $arrConfig["strText"]
             , Array("FlagWrite"=>true
                 , "strAttrib" => $arrConfig["strAttrib"]." src=\"{table:'{$arrConfig["strTable"]}', prefix:'{$arrConfig["strPrefix"]}'}\" autocomplete=\"off\""
-                , "class" => array_merge($arrConfig["class"], Array(""))));
+                , "class" => array_merge($arrConfig["class"], Array("eiseIntra_ajax_dropdown"))));
     } else {
         $strOut .= "<div id=\"span_{$strFieldName}\"{$strClass}>".htmlspecialchars($arrConfig["strText"])."</div>\r\n";
     }
@@ -751,8 +754,8 @@ function getMultiPKCondition($arrPK, $strValue){
 }
 
 
-function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $flagShowDeleted=false){
-
+function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $flagShowDeleted=false, $extra=''){
+    
     $oSQL = $this->oSQL;
 
     if ($strPrefix!=""){
@@ -777,15 +780,20 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
     if ($strValue!=""){ // key-based search
         $sql .= "\r\nWHERE `{$arrFields["idField"]}`=".$oSQL->escape_string($strValue);
     } else { //value-based search
+        $strExtra = '';
+        if ($extra!=''){
+            $arrExtra = explode("|", $extra);
+            foreach($arrExtra as $ix=>$ex){ $strExtra = ' AND extra'.($ix==0 ? '' : $ix).' = '.$oSQL->e($ex); }
+        }
         $sql .= "\r\nWHERE 
         (`{$arrFields["textField"]}` LIKE ".$oSQL->escape_string($strText, "for_search")." COLLATE 'utf8_general_ci'
             OR `{$arrFields["textFieldLocal"]}` LIKE ".$oSQL->escape_string($strText, "for_search")." COLLATE 'utf8_general_ci'";
 
         $sql .=	")
-		".($flagShowDeleted==false ? " AND IFNULL(`{$arrFields["delField"]}`, 0)=0" : "");
+		".($flagShowDeleted==false ? " AND IFNULL(`{$arrFields["delField"]}`, 0)=0" : "")
+        .$strExtra;
     }
     $sql .= "\r\nLIMIT 0, 30";
-    
     $rs = $oSQL->do_query($sql);
     
     return $rs;
@@ -841,10 +849,11 @@ function getUserData($usrID){
     $oSQL = $this->oSQL;
     $rs = $this->getDataFromCommonViews($usrID, "", "svw_user", "");
     $rw = $oSQL->fetch_array($rs);
+    
     return ($rw["optValue"]!="" 
         ? ($rw["optText{$this->local}"]==""
             ? $rw["optText"]
-            : $usrID)
+            : $rw["optText{$this->local}"])
          : $usrID);
 }
 

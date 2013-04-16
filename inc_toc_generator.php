@@ -59,7 +59,7 @@ while ($rw = $oSQL->fetch_array($rs)){
        $hrefSuffix = "?".$rw["pagEntityID"]."_staID=";
     }
     
-    $flagIsEntity = ($rw["pagFile"]=="/entity_form.php" && $rw["pagEntityID"]=="ent" ? true : false);
+    $flagIsEntity = ($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent" ? true : false);
     
     echo "<li".($rw["pagParentID"]==1
              ? " class='open'"

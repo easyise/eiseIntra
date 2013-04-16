@@ -29,7 +29,7 @@ echo "\t".$strHead."\r\n";
 ?>
 
 </head>
-<body><?php 
+<body><input type="hidden" id="eiseIntraConf" value="<?php  echo htmlspecialchars(json_encode($intra->conf)) ; ?>"><?php 
 if (isset($_COOKIE["UserMessage"])) {
    $strUserMessage = $_COOKIE["UserMessage"];
    SetCookie("UserMessage", "");

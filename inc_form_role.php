@@ -70,6 +70,7 @@ $(document).ready(function(){
 
 fieldset {
     display: inline !important;
+    vertical-align: top;
 }
 </style>
 
