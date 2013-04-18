@@ -173,8 +173,10 @@ validate: function( ) {
         var strValue = $(this).val();
         var strType = $(this).attr('type');
         
-        if ($(this).attr('required')==='required' && $(this).val()===""){
-            alert(getFieldLabelText($(this))+" is mandatory");
+        var $inpToCheck = $(this).hasClass("eiseIntra_ajax_dropdown") ? $(this).prev("input") : $(this);
+        
+        if ($inpToCheck.attr('required')==='required' && $inpToCheck.val()===""){
+            alert(getFieldLabelText($inpToCheck)+" is mandatory");
             $(this).focus();
             canSubmit = false;
             return false; //break;
@@ -204,9 +206,9 @@ validate: function( ) {
                     (strType.match(/time/) ? strRegExTime : "")+"$";
                 
                 if (strValue!="" && strValue.match(new RegExp(strRegEx))==null){
-                    alert ("Field '"+getFieldLabelText($(this))+"' should contain "+(strType)+" value formatted as "+conf.dateFormat+
+                    alert ("Field '"+getFieldLabelText($(this))+"' should contain "+(strType)+" value formatted as \""+conf.dateFormat+
                     (strType.match(/time/) ? ' '+conf.timeFormat.replace('i', 'm') : "")+
-                    ".");
+                    "\".");
                     $(this).focus();
                     canSubmit = false;
                     return false;
