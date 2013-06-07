@@ -153,6 +153,8 @@ init: function( options ) {
                     , flagDontSetRequired: (o.aclToDo!='finish')});
                 $this.find("#aclGUID").val(o.aclGUID);
                 $this.find("#aclToDo").val(o.aclToDo);
+                $this.find("#aclOldStatusID").val(o.aclOldStatusID);
+                $this.find("#aclNewStatusID").val(o.aclNewStatusID);
                 $this.submit();
             });
         });
@@ -240,7 +242,7 @@ checkAction: function(callback){
             
             $("input[name='sel_"+entID+"[]']").each(function(){
                 if ($(this)[0].checked){
-                    entIDs += "|"+$(this).attr("value");
+                    entIDs += (entIDs!='' ? "|" : '')+$(this).attr("value");
                 }
                 })
                 

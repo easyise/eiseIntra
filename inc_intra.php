@@ -358,6 +358,10 @@ private function handleClass(&$arrConfig){
     
 function showTextBox($strName, $strValue, $arrConfig=Array()) {
     
+    if(!is_array($arrConfig)){
+        $arrConfig = Array("strAttrib"=>$arrConfig);
+    }
+    
     $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
     
     $strClass = $this->handleClass($arrConfig);
@@ -382,6 +386,11 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
 }
 
 function showTextArea($strName, $strValue, $arrConfig=Array()){
+    
+    if(!is_array($arrConfig)){
+        $arrConfig = Array("strAttrib"=>$arrConfig);
+    }
+
     $strAttrib = $arrConfig["strAttrib"];
     
     $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
@@ -408,6 +417,10 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
 }
 
 function showCombo($strName, $strValue, $arrOptions, $arrConfig=Array()){
+    
+    if(!is_array($arrConfig)){
+        $arrConfig = Array("strAttrib"=>$arrConfig);
+    }
     
     $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
     
@@ -448,7 +461,11 @@ function showCombo($strName, $strValue, $arrOptions, $arrConfig=Array()){
 }
 
 function showCheckBox($strName, $strValue, $arrConfig=Array()){
-    
+
+    if(!is_array($arrConfig)){
+        $arrConfig = Array("strAttrib"=>$arrConfig);
+    }
+
     $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
     
     $strClass = $this->handleClass($arrConfig);
@@ -497,6 +514,10 @@ function showRadio($strRadioName, $strValue, $arrConfig){
 
 
 function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
+    
+    if(!is_array($arrConfig)){
+        $arrConfig = Array("strAttrib"=>$arrConfig);
+    }
     
     $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
     
@@ -813,18 +834,26 @@ function datePHP2SQL($dtVar, $valueIfEmpty="NULL"){
     $result =  (
         preg_match("/^".$this->conf["prgDate"]."$/", $dtVar) 
         ? "'".preg_replace("/".$this->conf["prgDate"]."/", $this->conf["prgDateReplaceTo"], $dtVar)."'" 
-        : $valueIfEmpty 
+        : (
+            preg_match('/^[12][0-9]{3}\-[0-9]{2}-[0-9]{2}$/', $dtVar)
+            ? "'".$dtVar."'"
+            : $valueIfEmpty 
+        )
         );
     return $result;
 }
 function datetimePHP2SQL($dtVar, $valueIfEmpty="NULL"){
     $prg = "/^".$this->conf["prgDate"]."( ".$this->conf["prgTime"]."){0,1}$/";
-    echo $prg."\r\n";
-    echo "/".$this->conf["prgDate"]."/", $this->conf["prgDateReplaceTo"]."\r\n";
+    //echo $prg."\r\n";
+    //echo "/".$this->conf["prgDate"]."/", $this->conf["prgDateReplaceTo"]."\r\n";
     $result =  (
         preg_match($prg, $dtVar) 
         ? "'".preg_replace("/".$this->conf["prgDate"]."/", $this->conf["prgDateReplaceTo"], $dtVar)."'" 
-        : $valueIfEmpty 
+        : (
+            preg_match('/^[12][0-9]{3}\-[0-9]{2}-[0-9]{2}( [0-9]{1,2}\:[0-9]{2}\:([0-9]{2}){0,1}){0,1}$/', $dtVar)
+            ? "'".$dtVar."'"
+            : $valueIfEmpty 
+        )
         );
     return $result;
 }

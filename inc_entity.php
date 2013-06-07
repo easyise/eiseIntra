@@ -70,7 +70,7 @@ protected function collectDataAttributes(){
         ".($this->staID!=="" 
             ? "LEFT OUTER JOIN stbl_status_attribute ON satStatusID=".$this->oSQL->e($this->staID)." AND satAttributeID=atrID AND satEntityID=atrEntityID" 
             : "")."
-        WHERE atrEntityID=".$this->oSQL->e($this->entID)." 
+        WHERE atrEntityID=".$this->oSQL->e($this->entID)." AND atrFlagDeleted=0
         ORDER BY atrOrder ASC";
     $rsAtr = $this->oSQL->q($sqlAtr);
     while ($rwAtr = $this->oSQL->f($rsAtr)){
@@ -329,7 +329,6 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
             , 'sql' => $entID."ID"
             , 'filter' => $entID."ID"
             , 'order_field' => $entID."Number"
-            , 'width' => "100%"
             , 'href'=> $rwEnt["entScriptPrefix"]."_form.php?".$entID."ID=[".$entID."ID]"
             );
     if (!in_array("staTitle", $arrExcludeCols))
@@ -368,7 +367,11 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
         if ($rwAtr["atrID"]==$entID."ID")
             continue;
         
-        if (empty($this->staID) || $rwAtr["satFlagShowInList"]) {
+        if (
+            (
+                (empty($this->staID) && !$rwAtr["atrFlagHideOnLists"]) || $rwAtr["satFlagShowInList"]
+            ) && !$rwAtr["atrFlagDeleted"]
+            ){
            
            if ($rwAtr['atrFlagNoField']){
                 $sqlForAtr = "SELECT atvValue FROM stbl_attribute_value WHERE atvAttributeID='".$rwAtr['atrID']."' AND atvEntityItemID=".$entID."ID ORDER BY atvEditDate DESC LIMIT 0,1";
