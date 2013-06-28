@@ -165,6 +165,19 @@ init: function( options ) {
     		});
         });
         
+        $this.find('.eiseIntra_unattach').click(function(){
+            
+            var filName = $($(this).parents('tr')[0]).find('a').text();
+            var filGUID = $(this).attr('id').replace('fil_','');
+        
+            if (confirm('Are you sure you\'d like to unattach file ' + filName + '?')) {
+                    location.href = 
+                        location.href
+                        + '&DataAction=deleteFile&filGUID=' + filGUID
+                        + '&referer=' + encodeURIComponent(location.href);
+            }
+
+        })
         
     });
 },
@@ -297,6 +310,8 @@ $.fn.eiseIntraForm = function( method ) {
 
 })( jQuery );
 
+
+function intraInitializeForm(){eiseIntraInitializeForm()}
 
 function eiseIntraInitializeForm(){
     
@@ -438,6 +453,12 @@ function replaceCyrillicLetters(str){
 
 function getNodeXY(oNode){
     return [$(oNode).offset().left, $(oNode).offset().top];
+}
+
+function span2href(span, key, href){
+    if (span==null) return;
+    var oHiddenInput = document.getElementById(span.id.replace(/^span_/, ""));
+    span.innerHTML = '<a href="'+href+'?'+key+'='+encodeURIComponent(oHiddenInput.value)+'">'+$(span).text()+'</a>';
 }
 /* /backward compatibilty stuff */
 

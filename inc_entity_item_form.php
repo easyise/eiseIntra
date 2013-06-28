@@ -152,7 +152,7 @@ function showActions($actionCallBack=""){
 }
 
 
-function showEntityItemFields($arrConfig){
+function showEntityItemFields($arrConfig = Array()){
     
     $strLocal = $this->intra->local;
     
@@ -391,38 +391,36 @@ function showTimestampField($atrName, $flagEditable, $value, $suffix){
           , $suffix);
 }
 
-function showActivityLog_simple($oSQL, $strGUID, $arrConfig=Array()) {
+function showActivityLog_simple($arrConfig=Array()) {
 
-if (!$strGUID) 
-    return;
+$strLoc = $this->intra->local;
 
 $sql = "SELECT *
   FROM stbl_action_log
   INNER JOIN stbl_action ON actID= aclActionID
-  LEFT OUTER JOIN stbl_user ON usrID=aclInsertBy
-  WHERE aclEntityItemID='".$strGUID."'".
+  WHERE aclEntityItemID='".$this->entItemID."'".
   ($arrConfig['flagNoUpdate'] ? " AND aclActionID<>2" : "")
   ."
   ORDER BY aclInsertDate DESC, actNewStatusID DESC";
-$rs = $oSQL->do_query($sql);
-while ($rw = $oSQL->fetch_array($rs)) 
+$rs = $this->oSQL->do_query($sql);
+while ($rw = $this->oSQL->fetch_array($rs)) 
     $arrStatus[] = $rw;
     
-$oSQL->free_result($rs);
+$this->oSQL->free_result($rs);
 
 $strRes = "<fieldset><legend>Status".($arrConfig['staTitle'] ? ": ".$arrConfig['staTitle'] : "")."</legend>";
-$strRes .= "<div style=\"height:100px; overflow-y: auto;\">\r\n";
+$strRes .= "<div style=\"max-height:100px; overflow-y: auto;\">\r\n";
 $strRes .= "<table width='100%' class='intraHistoryTable'>\r\n";
 
 for ($i=0;$i<count($arrStatus);$i++){
     $strRes .= "<tr class='tr".($i % 2)."' valign='top'>\r\n";
-    if (!$arrStatus[$i]["aclFlagIncomplete"]) {
+    if ($arrStatus[$i]["aclActionPhase"]==2) {
         $strRes .= "<td nowrap><b>".$arrStatus[$i]["actTitlePast$strLoc"]."</b></td>\r\n";
     } else {
         $strRes .= "<td nowrap>Started &quot;<b>".$arrStatus[$i]["actTitle$strLoc"]."</b>&quot;</td>\r\n";
     }
-    $strRes .= "<td nowrap>by ".($arrStatus[$i]["usrName"] ? $arrStatus[$i]["usrName"] : $arrStatus[$i]["aclInsertBy"])."</td>";
-    $strRes .= "<td nowrap>at ".date("d.m.Y H:i", strtotime($arrStatus[$i]["aclInsertDate"]))."</td>";
+    $strRes .= "<td nowrap>".($arrStatus[$i]["aclEditBy"] ? "by ".$this->intra->getUserData($arrStatus[$i]["aclEditBy"]) : '')."</td>";
+    $strRes .= "<td nowrap>at ".date("d.m.Y H:i", strtotime($arrStatus[$i]["aclEditDate"]))."</td>";
     $strRes .= "</tr>";
     
     if ($arrStatus[$i]["aclComments"]) {
@@ -489,7 +487,7 @@ function showFileAttachDiv(){
     $entID = $this->entID;
     $entItemID = $this->entItemID;
 ?>
-<div id="divAttach" style="position:absolute;visibility:hidden;">
+<div id="divAttach" style="display:none;">
 <form action="<?php echo $_SERVER["PHP_SELF"]; ?>" method="POST" enctype="multipart/form-data" onsubmit="
    if (document.getElementById('attachment').value==''){
       alert ('File is not specified.');
@@ -507,7 +505,8 @@ function showFileAttachDiv(){
 <input type="hidden" name="entItemID_Attach" id="entItemID_Attach" value="<?php  echo $entItemID ; ?>" />
 <span class="field_title_top">Choose file</span>:<br />
 <input type="file" id="attachment" name="attachment" ><br />
-<input type="submit" value="Upload" id="btnUpload" style="width: 200px; font-weight:bold;" /><input type="button" value="Cancel" onclick="document.getElementById('mwClose').click();" style="width:100px;" />
+<input type="submit" value="Upload" id="btnUpload" style="width: 180px; font-weight:bold;" /><input 
+    type="button" value="Cancel" onclick="$('#divAttach').dialog('close');" style="width:80px;" />
 </form>
 </div>
 
@@ -546,7 +545,7 @@ while($rwFile = $oSQL->fetch_array($rsFile)){
 <td width="100%"><a href="popup_file.php?filGUID=<?php  echo $rwFile["filGUID"] ; ?>" target="_blank"><?php  echo $rwFile["filName"] ; ?></a></td>
 <td><?php  echo $intra->getUserData($rwFile["filEditBy"]) ; ?></td>
 <td><?php  echo $intra->datetimeSQL2PHP($rwFile["filEditDate"]) ; ?></td>
-<td class="unattach" id="fil_<?php  echo $rwFile["filGUID"] ; ?>" title="Delete">&nbsp;X&nbsp;</td>
+<td class="eiseIntra_unattach" id="fil_<?php  echo $rwFile["filGUID"] ; ?>" title="Delete">&nbsp;X&nbsp;</td>
 </tr>    
     <?php
     $i++;

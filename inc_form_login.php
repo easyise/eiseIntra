@@ -59,7 +59,7 @@ session_destroy();
 <html>
 <head>
 
-<title><?php echo $intra->arrUsrData["pagTitle{$intra->local}"]; ?></title>
+<title><?php  echo $title ; ?></title>
 
 <?php
 $intra->loadJS();
@@ -189,7 +189,7 @@ function LoginForm(){
     
     var authstr = login+":"+password;
 
-    if (login.match(/^[a-z0-9_\\\/\@\.\-]{1,24}$/i)==null){
+    if (login.match(/^[a-z0-9_\\\/\@\.\-]{1,50}$/i)==null){
       alert("You should specify your login name");
       frm.login.focus();
       return (false);

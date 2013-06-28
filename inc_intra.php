@@ -254,6 +254,8 @@ function checkLanguage(){
 
 function translate($key){
     
+    $key = addslashes($key);
+    
     if (!isset($this->lang[$key]) && $this->conf['collect_keys'] && $this->local){
         $this->addTranslationKey($key);
     }
@@ -281,7 +283,7 @@ function readSettings(){
     
     $arrSetup = Array();
     
-    $sqlSetup = "SELECT * FROM tbl_setup";
+    $sqlSetup = "SELECT * FROM stbl_setup";
 
     $rsSetup = $oSQL->do_query($sqlSetup);
 
@@ -407,10 +409,12 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
     } else {
         $strRet = "<div id=\"span_{$strName}\"".
             ($strAttrib ? " ".$strAttrib : "").
-            $strClass.">".
-            htmlspecialchars($strValue)."</div>\r\n".
-            "<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\"".
-            " value=\"".htmlspecialchars($strValue)."\" />\r\n";
+            $strClass.">"
+                .($arrConfig['href'] ? "<a href=\"{$arrConfig['href']}\"".($arrConfig["target"] ? " target=\"{$arrConfig["target"]}\"" : '').">" : '')
+                .htmlspecialchars($strValue)."</div>\r\n"
+                .($arrConfig['href'] ? '</a>' : '')
+            ."<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\""
+            ." value=\"".htmlspecialchars($strValue)."\" />\r\n";
     }
     return $strRet;        
     
@@ -451,7 +455,11 @@ function showCombo($strName, $strValue, $arrOptions, $arrConfig=Array()){
         }
         $valToShow=($valToShow!="" ? $valToShow : $arrConfig["strZeroOptnText"]);
         
-        $retVal = "<div id=\"span_{$strName}\"{$strClass}>".htmlspecialchars($valToShow)."</div>\r\n".
+        $retVal = "<div id=\"span_{$strName}\"{$strClass}>"
+            .($arrConfig['href'] ? "<a href=\"{$arrConfig['href']}\"".($arrConfig["target"] ? " target=\"{$arrConfig["target"]}\"" : '').">" : '')
+            .htmlspecialchars($valToShow)
+            .($arrConfig['href'] ? '</a>' : '')
+            ."</div>\r\n".
         "<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\"".
         " value=\"".htmlspecialchars($textToShow)."\" />\r\n";
         
@@ -540,7 +548,11 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
                 , "strAttrib" => $arrConfig["strAttrib"]." src=\"{table:'{$arrConfig["strTable"]}', prefix:'{$arrConfig["strPrefix"]}'}\" autocomplete=\"off\""
                 , "class" => array_merge($arrConfig["class"], Array("eiseIntra_ajax_dropdown"))));
     } else {
-        $strOut .= "<div id=\"span_{$strFieldName}\"{$strClass}>".htmlspecialchars($arrConfig["strText"])."</div>\r\n";
+        $strOut .= "<div id=\"span_{$strFieldName}\"{$strClass}>"
+            .($arrConfig['href'] ? "<a href=\"{$arrConfig['href']}\"".($arrConfig["target"] ? " target=\"{$arrConfig["target"]}\"" : '').">" : '')
+            .htmlspecialchars($arrConfig["strText"])
+            .($arrConfig['href'] ? "</a>" : '')
+            ."</div>\r\n";
     }
     
     return $strOut;
@@ -770,7 +782,7 @@ function getMultiPKCondition($arrPK, $strValue){
     $arrValue = explode("##", $strValue);
     $sql_ = "";
     for($jj = 0; $jj < count($arrPK);$jj++)
-        $sql_ .= ($sql_!="" ? " AND " : "").$arrPK[$jj]."='".$arrValue[$jj]."'";
+        $sql_ .= ($sql_!="" ? " AND " : "").$arrPK[$jj]."=".$this->oSQL->e($arrValue[$jj])."";
     return $sql_;
 }
 

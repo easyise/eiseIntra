@@ -27,7 +27,7 @@ function ShowCombo($strName, $strValue, $arrOptions, $strParams="", $strZeroOptn
 function ShowAjaxDropdown($oSQL, $strFieldName, $strValue, $strText, $strTable, $strPrefix, $addParams="") {
     GLOBAL $intra;
     $arrOptions = Array("strText"=>$strText, "strTable"=>$strTable, "strPrefix"=>$strPrefix, "strAttrib"=>$addParams);
-    return $intra->showAjaxDropdown($strName, $strValue, $arrOptions);
+    return $intra->showAjaxDropdown($strFieldName, $strValue, $arrOptions);
 }
 function ShowSQLCombo($oSQL, $strName, $strValue, $sqlOptions, $strParams="", $strZeroOptnText=""){
     GLOBAL $intra;

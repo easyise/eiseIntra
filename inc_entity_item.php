@@ -990,12 +990,17 @@ function updateFiles($DataAction){
     
     $usrID = $intra->usrID;
     $arrSetup = $intra->conf;
-
-switch ($DataAction) {
+    
+    $da = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
+    
+switch ($da) {
     case "deleteFile":
+        $oSQL->q("START TRANSACTION");
         $rwFile = $oSQL->fetch_array($oSQL->do_query("SELECT * FROM stbl_file WHERE filGUID='{$_GET["filGUID"]}}'"));
         unlink($arrSetup["stpFilesPath"].$rwFile["filNamePhysical"]);
         $oSQL->do_query("DELETE FROM stbl_file WHERE filGUID='{$_GET["filGUID"]}'");
+        $oSQL->q("COMMIT");
+        
         SetCookie("UserMessage", "File deleted");
         header("Location: ".$_GET["referer"]);
         die();
@@ -1004,14 +1009,16 @@ switch ($DataAction) {
         
         $entID = $_POST["entID_Attach"];
         
-        $sqlGUID = "SELECT UUID() as GUID";     
-        $fileGUID = $oSQL->get_data($oSQL->do_query($sqlGUID));
-        $filename = Date("Y/m/").$fileGUID.".att";
+        $oSQL->q("START TRANSACTION");
         
+        $fileGUID = $oSQL->d("SELECT UUID() as GUID");
+        $filename = Date("Y/m/").$fileGUID.".att";
+                            
         //saving the file
         if(!file_exists($arrSetup["stpFilesPath"].Date("Y/m")))
             mkdir($arrSetup["stpFilesPath"].Date("Y/m"), "0777", true);
-        //echo $arrSetup["stpFilesPath"].$filename;
+        echo $arrSetup["stpFilesPath"].$filename;
+        
         copy($_FILES["attachment"]["tmp_name"], $arrSetup["stpFilesPath"].$filename);
         
         //making the record in the database
@@ -1036,19 +1043,10 @@ switch ($DataAction) {
             , '{$intra->usrID}', NOW(), '{$intra->usrID}', NOW());
         ";
         
-        /*
-        echo "<pre>";
-        print_r($_POST);
-        print_r($_FILES);
-        echo $sqlFileInsert;
-        echo "</pre>";
-        die();
-        //*/
+        $oSQL->q($sqlFileInsert);
         
-        //$oSQL->do_query($sqlFileInsert);
+        $oSQL->q("COMMIT");
         
-        //echo "Okay";
-        $oSQL->do_query($sqlFileInsert);
         SetCookie("UserMessage", $intra->translate("File uploaded"));
         header("Location: ".$_SERVER["PHP_SELF"]."?{$entID}ID=".urlencode($_POST["entItemID_Attach"]));
         die();
@@ -1413,10 +1411,13 @@ function getActionData($aclGUID){
 	    $rwLOG = $oSQL->fetch_array($rsLOG);
 	    
 		foreach($this->arrAAT[$rwACT["actID"]] as $atrID => $arrATR){
+        
+            if (!$arrATR["aatFlagToTrack"]) continue;
+        
 			$arrVal = Array("value" => $rwLOG["l".$arrATR["atrID"]]);
 			if (in_array($arrATR["atrType"], Array("combobox", "ajax_dropdown")))
 				$arrVal["text"] = ($rwLOG["l".$arrATR["atrID"]] != ""
-					? $oSQL->d($this->intra->getDataFromCommonViews($rwLOG["l".$arrATR["atrID"]], null, $arrATR["atrDataSource"], null, true))
+					? $oSQL->d($this->intra->getDataFromCommonViews($rwLOG["l".$arrATR["atrID"]], null, $arrATR["atrDataSource"], $arrATR["atrProgrammerReserved"], true))
 					: $arrATR["atrDefault"]
 				);
 			$arrRet["AAT"][$atrID] = array_merge($arrATR, $arrVal);
@@ -1478,7 +1479,7 @@ function getStatusData($stlGUID){
 			$arrVal = Array("value" => $rwLOG["l".$arrATR["atrID"]]);
 			if (in_array($arrATR["atrType"], Array("combobox", "ajax_dropdown")))
 				$arrVal["text"] = ($rwLOG["l".$arrATR["atrID"]] != ""
-					? $oSQL->d($this->intra->getDataFromCommonViews($rwLOG["l".$arrATR["atrID"]], null, $arrATR["atrDataSource"], null, true))
+					? $oSQL->d($this->intra->getDataFromCommonViews($rwLOG["l".$arrATR["atrID"]], null, $arrATR["atrDataSource"], $arrATR["atrProgrammerReserved"], true))
 					: $arrATR["atrDefault"]
 				);
 			$arrRet["SAT"][$atrID] = array_merge($arrATR, $arrVal);
@@ -1508,7 +1509,7 @@ function getEntityItemAllData(){
 		$this->rwEnt["ATR"][$rwATR["atrID"]] = $rwATR;
 		if (in_array($rwATR["atrType"], Array("combobox", "ajax_dropdown")))
 				$this->rwEnt[$rwATR["atrID"]."_Text"] = ($this->rwEnt[$rwATR["atrID"]] != ""
-					? $this->oSQL->d($this->intra->getDataFromCommonViews($this->rwEnt[$rwATR["atrID"]], null, $rwATR["atrDataSource"], null, true))
+					? $this->oSQL->d($this->intra->getDataFromCommonViews($this->rwEnt[$rwATR["atrID"]], null, $rwATR["atrDataSource"], $rwATR["atrProgrammerReserved"], true))
 					: $rwATR["atrDefault"]
 				);
 	}

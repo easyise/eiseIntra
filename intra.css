@@ -117,9 +117,20 @@ div.menubutton  {
 
 .eiseIntraForm .eiseIntraValue{
     clear: right;
-    width: 74%;
+    width: 73%;
+}
+.eiseIntraForm .eiseIntra_hasUOM{
+    clear: none !important;
+    width: auto !important;
+}
+.eiseIntraForm .eiseIntra_UOM{
+    margin-left: 1% !important;
+    width: auto !important;
 }
 
+.eiseIntraForm .eiseIntraValue_next {
+    margin-left: 25%;
+}
 
 .eiseIntraLogData {
     overflow: hidden;
@@ -210,4 +221,6 @@ div.eiseIntraComment {
    width: auto;
 }
 
-
+.eiseIntra_unattach {
+    cursor: pointer !important;
+}

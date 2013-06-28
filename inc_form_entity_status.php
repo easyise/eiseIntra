@@ -92,6 +92,32 @@ include eiseIntraAbsolutePath."inc-frame_top.php";
 <script>
 $(document).ready(function(){  
 	easyGridInitialize();
+    
+    $("th.sat_satFlagShowInForm, th.sat_satFlagEditable, th.sat_satFlagShowInList").css("cursor", "pointer");
+    
+    $("th.sat_satFlagShowInForm").click(function(){
+        
+        eiseGrid_find('sat').tbody.find("tr:not(.eg_template)").each(function(){
+            $(this).find('input[name^=satFlagShowInForm_chk]').change().click();
+        });
+        
+    })
+    $("th.sat_satFlagEditable").click(function(){
+        
+        eiseGrid_find('sat').tbody.find("tr:not(.eg_template)").each(function(){
+            $(this).find('input[name^=satFlagEditable_chk]').change().click();
+        });
+        
+    })
+    $("th.sat_satFlagShowInList").click(function(){
+        
+        eiseGrid_find('sat').tbody.find("tr:not(.eg_template)").each(function(){
+            //$(this).find('input[name="satFlagShowInList[]"]').val(1);
+            $(this).find('input[name^=satFlagShowInList_chk]').change().click();
+        });
+        
+    })
+    
 });
 </script>
 
@@ -199,7 +225,7 @@ while ($rwAct=$oSQL->fetch_array($rsAct)) {
 <?php
 
 $gridSAT = new easyGrid($oSQL
-        ,'aat'
+        ,'sat'
         , Array(
                 'rowNum' =>40
                 , 'arrPermissions' => Array('FlagWrite'=>true)

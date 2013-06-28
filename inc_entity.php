@@ -188,6 +188,7 @@ protected function getActionAttribute($actID){
     , atrTitle
     , atrTitleLocal
     , atrDataSource
+    , atrProgrammerReserved
 	, atrDefault
     , aatFlagMandatory
     , aatFlagToChange
@@ -245,6 +246,7 @@ protected function getStatusAttribute($staID){
     , atrTitle
     , atrTitleLocal
 	, atrDataSource
+    , atrProgrammerReserved
 	, atrDefault
 	, satAttributeID
 	, satFlagEditable
@@ -500,9 +502,15 @@ function showAttributeValue($rwAtr, $suffix = ""){
     $arrInpConfig = Array("FlagWrite"=>$this->intra->arrUsrData["FlagWrite"]
         /*, "required" => (bool)($rwAtr["aatFlagMandatory"] && $rwAtr["satFlagEditable"])*/
         );
+    if ($rwAtr['atrClasses']){
+        $arrInpConfig['class'] = $rwAtr['classes'];
+    }
+    if ($rwAtr['atrUOMTypeID']){
+        $arrInpConfig['class'] = ($arrInpConfig['class'] ? ' ' : '').'eiseIntra_hasUOM';
+    }
+    
     if(!$rwAtr['satFlagEditable'])
         $arrInpConfig["FlagWrite"] = false;
-    
     switch ($rwAtr['atrType']){
        case "datetime":
          $dtVal = $intra->datetimeSQL2PHP($value);
@@ -510,7 +518,6 @@ function showAttributeValue($rwAtr, $suffix = ""){
          $dtVal = $dtVal ? $dtVal : $intra->dateSQL2PHP($value);
          $strRet = $intra->showTextBox($inputName, $dtVal, 
             array_merge($arrInpConfig, Array("strAttrib" => " old_val=\"".htmlspecialchars($dtVal)."\""
-                , "class"=>array_merge(Array("{$rwAtr['atrClasses']}", $arrInpConfig["class"] ))
                 , "type"=>($rwAtr['atrType'] ? $rwAtr["atrType"] : "text")
                 ))); 
          break;
@@ -560,7 +567,8 @@ function showAttributeValue($rwAtr, $suffix = ""){
         $rsUOM = $oSQL->q($sqlUOM);
         while($rwUOM = $oSQL->f($rsUOM)) $arrOptions[$rwUOM["optValue"]]=$rwUOM["optText"];
         $strRet .= $intra->showCombo($rwAtr["atrID"]."_uomID", $this->rwEnt[$rwAtr["atrID"]."_uomID"], $arrOptions
-                , array_merge($arrInpConfig, Array("strAttrib" => " class=\"intra_uom\" old_val=\"".$this->rwEnt[$rwAtr["atrID"]."_uomID"]."\"")));
+                , array_merge($arrInpConfig, Array("strAttrib" => " old_val=\"".$this->rwEnt[$rwAtr["atrID"]."_uomID"]."\""
+                    , 'class'=>"eiseIntra_UOM")));
     }
     return $strRet;
     
