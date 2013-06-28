@@ -14,7 +14,8 @@ $arrCSS[] = commonStuffRelativePath."screen.css";
  ?><!DOCTYPE html>
 <html>
 <head>
-	<title><?php  echo $title ; ?></title>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <title><?php  echo $title ; ?></title>
 <?php 
 $intra->loadCSS();
 $intra->loadJS();
