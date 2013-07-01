@@ -217,8 +217,8 @@ function showActivityLog(){
 foreach($this->rwEnt["STL"] as $stlGUID => $rwSTL){
     ?>
     <div class="eiseIntraLogStatus">
-    <div class="eiseIntraLogTitle"><span class="eiseIntra_stlTitle"><?php echo ($rwSTL["stlTitle".$this->intra->local]!="" 
-        ? $rwSTL["stlTitle".$this->intra->local]
+    <div class="eiseIntraLogTitle"><span class="eiseIntra_stlTitle"><?php echo ($rwSTL["stlTitle{$this->intra->local}"]!="" 
+        ? $rwSTL["stlTitle{$this->intra->local}"]
         : $rwSTL["staTitle"]); ?></span>
         
         <span class="eiseIntra_stlATA"><?php echo $intra->dateSQL2PHP($rwSTL["stlATA"]); ?></span>
@@ -288,7 +288,7 @@ function showActionInfo($rwACT, $actionCallBack=""){
     $strLocal = $this->intra->local;
     
     $flagAlwaysShow = ($rwACT["aclActionPhase"]<2 ? true : false);
-    $flagEditable = ($rwACT["aclActionPhase"]<2 && $this->intra->arrUsrData["FlagWrite"]==true && !$this->flagArchive);
+    $flagEditable = $rwACT['aclFlagEditable'] || ($rwACT["aclActionPhase"]<2 && $this->intra->arrUsrData["FlagWrite"]==true && !$this->flagArchive);
     ?>
     <div class="eiseIntraLogAction">
     <div class="eiseIntraLogTitle" id="aclTitle_<?php  echo $rwACT["aclGUID"] ; ?>" title="Last edited: <?php  echo htmlspecialchars($rwACT["aclEditBy"]."@".Date("d.m.Y H:i", strtotime($rwACT["aclEditDate"]))).

@@ -117,7 +117,7 @@ function delete(){
 public function doSimpleAction($arrNewData){
 
     $this->arrNewData = $arrNewData;
-    $this->collectActionData();
+    $this->prepareActions();
     $this->addAction();
     $this->finishAction();
     
@@ -137,7 +137,7 @@ public function doFullAction($arrNewData = Array()){
     }
     
     if (count($this->arrAction)==0){
-        $this->collectActionData();
+        $this->prepareActions();
     }
     
     // proceed the action
@@ -442,11 +442,15 @@ function finishAction(){
     }
 }
 
-public function collectActionData(){
+public function prepareActions(){
     
     $oSQL = $this->oSQL;
     $this->arrAction = Array();
     $this->arrACL = Array();
+    
+    if (empty($this->arrNewData["aclGUID"]) &&  empty($this->arrNewData["actID"])){
+        throw new Exception('Neither Action ID nor Action Log GUID specified');
+    }
     
     // collect all incomplete actions
     $sqlACL = "SELECT * FROM stbl_action_log 
@@ -476,7 +480,7 @@ public function collectActionData(){
     //collect coming action
     if ($this->arrNewData["aclGUID"]){
         $sqlACT = "SELECT * FROM stbl_action_log 
-            INNER JOIN stbl_action ON aclActionID=actID
+            LEFT OUTER JOIN stbl_action ON aclActionID=actID
             WHERE aclGUID='{$this->arrNewData["aclGUID"]}'";
     } else {
         $sqlACT = "SELECT *,
@@ -567,7 +571,7 @@ public function attachFile($fileNameOriginal, $fileContents, $fileMIME="Applicat
 
 
 
-function updateMasterTable($arrNewData = Array(), $flagUpdateMultiple = false){
+function updateMasterTable($arrNewData = Array(), $flagUpdateMultiple = false, $flagFullEditMode = false){
     
     if (count($arrNewData)>0)
         $this->arrNewData = $arrNewData;
@@ -598,7 +602,7 @@ function updateMasterTable($arrNewData = Array(), $flagUpdateMultiple = false){
     
     while ($rwSAT = $oSQL->fetch_array($rsSAT)){
         
-        if (!$rwSAT["satFlagEditable"]                                                      // not editable
+        if ((!$rwSAT["satFlagEditable"] && !$flagFullEditMode)                                                      // not editable
             || ($arrNewData[$rwSAT["atrID"]]=="" && $flagUpdateMultiple)       // empty on multiple updates
             || !isset($arrNewData[$rwSAT["atrID"]]))                           // not set
         continue;
@@ -625,8 +629,6 @@ function updateMasterTable($arrNewData = Array(), $flagUpdateMultiple = false){
 
 function updateActionLog($arrNewData = Array()){
     
-    $oSQL = $this->oSQL;
-    
     if (count($arrNewData)>0)
         $this->arrNewData = $arrNewData;
     
@@ -634,88 +636,88 @@ function updateActionLog($arrNewData = Array()){
         throw new Exception($intra->translate("New data set is empty for {$this->entID}/{$this->entItemID}"));
     }
     
-    $usrID = $this->intra->usrID;
-    $arrTimestamp = $this->arrTimestamp;
-    
     if (count($this->arrAction)==0){
-        $this->collectActionData();
-    } else {
-        $arrAction = $this->arrAction;
+        $this->prepareActions();
     }
     
-    $arrAction = $this->arrAction;
-    $entID = $this->entID;
+    foreach($this->arrACL as $aclGUID => $arrACL){
+        $this->updateActionLogItem($aclGUID, $arrACL);
+    }
+
+}
+
+function updateActionLogItem($aclGUID, $arrACL = null){
     
+    $oSQL = $this->oSQL;
     $intra = $this->intra;
     
-    $sqlToTrack = Array();
+    $strEntityLogFldToSet = "";
+    $tsfieldsToSet = "";
     
-    foreach($this->arrACL as $aclGUID => $arrACL){
+    if ($arrACL===null){
+        $arrACL = $this->getActionData($aclGUID);
+    }
+    
+    $arrACL["AAT"] = $this->getActionAttribute($arrACL["aclActionID"]); //doesn't matter what's beyond AAT element, we re-read it
+    
+    foreach ($arrACL["AAT"] as $atrID => $arrAAT){
         
-        $strEntityLogFldToSet = "";
-        $tsfieldsToSet = "";
-        foreach ($arrACL["AAT"] as $atrID => $arrAAT){
+        $newValue = null;
+        $strACLInputID = $atrID."_".$aclGUID;
+        $strTimeStampInputID = "acl".$arrAAT["aatFlagTimestamp"]."_".$aclGUID;
+        
+        // if we have it in arrNewData: atrID_aclGUID
+        if (isset($this->arrNewData[$strACLInputID])   ) {
+            $toEval = "\"".str_replace("\$_POST", "\$this->arrNewData"
+                , $this->intra->getSQLValue(Array('Field'=>$strACLInputID, 'DataType'=>$arrAAT["atrType"])))."\"";
+            eval("\$newValue = ".$toEval.";");
+        }
             
-            $newValue = null;
-            $strACLInputID = $atrID."_".$aclGUID;
-            $strTimeStampInputID = "acl".$arrAAT["aatFlagTimestamp"]."_".$aclGUID;
-            
-            // if we have it in arrNewData: atrID_aclGUID
-            if (isset($this->arrNewData[$strACLInputID])   ) {
+        if ($arrAAT["aatFlagTimestamp"]){
+            // if attribute is a timestamp:
+            if(isset($this->arrNewData[$strTimeStampInputID])){ // if we timestamp in arrNewData, we update attribute field in log table
                 $toEval = "\"".str_replace("\$_POST", "\$this->arrNewData"
-                    , $intra->getSQLValue(Array('Field'=>$strACLInputID, 'DataType'=>$arrAAT["atrType"])))."\"";
+                    , $this->intra->getSQLValue(Array('Field'=>$strTimeStampInputID, 'DataType'=>"datetime")))."\"";
                 eval("\$newValue = ".$toEval.";");
-            }
-                
-            if ($arrAAT["aatFlagTimestamp"]){
-                // if attribute is a timestamp:
-                if(isset($this->arrNewData[$strTimeStampInputID])){ // if we timestamp in arrNewData, we update attribute field in log table
-                    $toEval = "\"".str_replace("\$_POST", "\$this->arrNewData"
-                        , $intra->getSQLValue(Array('Field'=>$strTimeStampInputID, 'DataType'=>"datetime")))."\"";
-                    eval("\$newValue = ".$toEval.";");
-                } else { // if there's no timestamp, we try to update ACL timestamp basing on 
-                    if ($newValue!==null){
-                        $tsfieldsToSet .= "\r\n, acl{$arrAAT["aatFlagTimestamp"]}={$newValue}";
-                        if($arrACL["actFlagDepartureEqArrival"] && $arrAAT["aatFlagTimestamp"]=="ATA"){
-                            $tsfieldsToSet .= "\r\n, aclATD={$newValue}";
-                        }
+            } else { // if there's no timestamp, we try to update ACL timestamp basing on 
+                if ($newValue!==null){
+                    $tsfieldsToSet .= "\r\n, acl{$arrAAT["aatFlagTimestamp"]}={$newValue}";
+                    if($arrACL["actFlagDepartureEqArrival"] && $arrAAT["aatFlagTimestamp"]=="ATA"){
+                        $tsfieldsToSet .= "\r\n, aclATD={$newValue}";
                     }
                 }
             }
-            
-            if ($newValue!==null){
-                $strEntityLogFldToSet .= ", l{$atrID} = {$newValue}";
-            }
-            
-            
-        }
-        $sqlToTrack[] = "UPDATE {$this->rwEnt["entTable"]}_log SET 
-                    l{$entID}EditBy='{$this->intra->usrID}', l{$entID}EditDate=NOW()
-                    {$strEntityLogFldToSet}
-                WHERE l{$entID}GUID='{$aclGUID}'";
-        
-        
-        
-        foreach($arrTimestamp as $ts){
-            //echo "acl".$ts."_".$aclGUID." ";
-            if (isset($this->arrNewData["acl".$ts."_".$aclGUID])){
-                $toEval = "\"".str_replace("\$_POST", "\$this->arrNewData"
-                            , $intra->getSQLValue(Array('Field'=>"acl".$ts."_".$aclGUID, 'DataType'=>"datetime")))."\"";
-                        eval("\$newValue = ".$toEval.";");
-                $tsfieldsToSet .= "\r\n, acl{$ts}={$newValue}";
-            }
         }
         
-        $sqlToTrack[] = "UPDATE stbl_action_log SET aclEditBy='{$this->intra->usrID}'
-           , aclEditDate=NOW()
-           {$tsfieldsToSet}
-           WHERE aclGUID='{$aclGUID}'";
+        if ($newValue!==null){
+            $strEntityLogFldToSet .= ", l{$atrID} = {$newValue}";
+        }
+        
+        
+    }
+    $sqlToTrack = "UPDATE {$this->rwEnt["entTable"]}_log SET 
+                l{$this->entID}EditBy='{$this->intra->usrID}', l{$this->entID}EditDate=NOW()
+                {$strEntityLogFldToSet}
+            WHERE l{$this->entID}GUID='{$aclGUID}'";
+    $this->oSQL->q($sqlToTrack);    
+        
+        
+    foreach($this->arrTimestamp as $ts){
+        //echo "acl".$ts."_".$aclGUID." ";
+        if (isset($this->arrNewData["acl".$ts."_".$aclGUID])){
+            $toEval = "\"".str_replace("\$_POST", "\$this->arrNewData"
+                        , $this->intra->getSQLValue(Array('Field'=>"acl".$ts."_".$aclGUID, 'DataType'=>"datetime")))."\"";
+                    eval("\$newValue = ".$toEval.";");
+            $tsfieldsToSet .= "\r\n, acl{$ts}={$newValue}";
+        }
     }
     
-    for($i=0;$i<count($sqlToTrack);$i++){
-        $oSQL->do_query($sqlToTrack[$i]);
-    }
-
+    $sqlToTrack = "UPDATE stbl_action_log SET aclEditBy='{$this->intra->usrID}'
+       , aclEditDate=NOW()
+       {$tsfieldsToSet}
+       WHERE aclGUID='{$aclGUID}'";
+    $this->oSQL->q($sqlToTrack);
+    
 }
 
 function checkMandatoryFields(){
@@ -847,17 +849,17 @@ function cancelAction(){
     $entItemID = $this->entItemID;
 
     if (count($this->arrAction)==0){
-        $this->collectActionData();
+        $this->prepareActions();
     }
-
+    
     if ($this->arrAction["aclActionPhase"]>0){
         //get last stl for action
-        $stlToDelete = $oSQL->get_data($oSQL->do_query("SELECT stlGUID FROM stbl_status_log WHERE stlEntityID='{$this->entID}' 
-            AND stlEntityItemID='{$this->arrAction["entItemID"]}' 
+        $stlToDelete = $this->oSQL->get_data($this->oSQL->do_query("SELECT stlGUID FROM stbl_status_log WHERE stlEntityID='{$this->entID}' 
+            AND stlEntityItemID='{$this->entItemID}' 
             AND stlArrivalActionID='{$this->arrAction["aclGUID"]}'"));
         //get full previous stl
-        $rwSTLLast = $oSQL->fetch_array($oSQL->do_query("SELECT * FROM stbl_status_log WHERE stlEntityID='{$this->entID}' 
-            AND stlEntityItemID='{$this->arrAction["entItemID"]}' 
+        $rwSTLLast = $this->oSQL->fetch_array($this->oSQL->do_query("SELECT * FROM stbl_status_log WHERE stlEntityID='{$this->entID}' 
+            AND stlEntityItemID='{$this->entItemID}' 
             AND stlDepartureActionID='{$this->arrAction["aclGUID"]}'"));
 
         //delete traced attributes for the STL
@@ -869,7 +871,7 @@ function cancelAction(){
         // update departure action for previous status log entry
         $sql[] = "UPDATE stbl_status_log SET stlATD=NULL, stlDepartureActionID=NULL WHERE stlGUID='{$rwSTLLast["stlGUID"]}'";
 
-        if (empty($this->arrAction["arrNewData"]["isUndo"])) {
+        if (empty($this->arrNewData["isUndo"])) {
             //cancel the action
             $sql[] = "UPDATE stbl_action_log SET aclActionPhase=3
                 , aclEditBy='{$this->intra->usrID}'
@@ -1392,7 +1394,7 @@ function getActionData($aclGUID){
        , STA_NEW.staTitle as staTitle_New
        , STA_NEW.staTitleLocal as staTitleLocal_New
        FROM stbl_action_log ACL
-       INNER JOIN stbl_action ACT ON aclActionID=actID
+       LEFT OUTER JOIN stbl_action ACT ON aclActionID=actID
        LEFT OUTER JOIN stbl_status STA_OLD ON aclOldStatusID=STA_OLD.staID AND STA_OLD.staEntityID=actEntityID
        LEFT OUTER JOIN stbl_status STA_NEW ON aclNewStatusID=STA_NEW.staID AND STA_NEW.staEntityID=actEntityID
        WHERE aclGUID='{$aclGUID}'";
@@ -1402,15 +1404,14 @@ function getActionData($aclGUID){
 	$arrRet = $rwACT;
 	
 	// linked attributes
-	if (!isset($this->arrAAT[$rwACT["actID"]]))
-		$this->arrAAT[$rwACT["actID"]] = $this->getActionAttribute($rwACT["actID"]);
+	$arrAAT = $this->getActionAttribute($rwACT["actID"]);
 	
     $sqlLOG = "SELECT * FROM {$this->rwEnt["entTable"]}_log WHERE l{$entID}GUID='{$rwACT["aclGUID"]}'";
     $rsLOG = $oSQL->do_query($sqlLOG);
 	if ($oSQL->n($rsLOG) > 0){
 	    $rwLOG = $oSQL->fetch_array($rsLOG);
 	    
-		foreach($this->arrAAT[$rwACT["actID"]] as $atrID => $arrATR){
+		foreach($arrAAT as $atrID => $arrATR){
         
             if (!$arrATR["aatFlagToTrack"]) continue;
         

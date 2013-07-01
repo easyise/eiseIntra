@@ -180,6 +180,7 @@ div.menubutton  {
     overflow: visible;
     font-weight: normal;
     white-space: nowrap;
+    display: inline;
 }
 
 .eiseIntra_stlATA:after {
