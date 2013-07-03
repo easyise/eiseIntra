@@ -161,6 +161,14 @@ init: function( options ) {
                         $(inp).prev("input").val(ui.item.value);
                     } else 
                         $(inp).prev("input").val("");
+                },
+                change: function(event, ui){
+                    if (ui.item){
+                        $(inp).val(ui.item.label);
+                        $(inp).prev("input").val(ui.item.value);
+                    } else {
+                        $(inp).prev("input").val("");
+                    }
                 }
     		});
         });
