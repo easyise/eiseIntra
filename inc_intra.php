@@ -597,9 +597,15 @@ function getTableInfo($dbName, $tblName){
     
     $oSQL = $this->oSQL;
     
+    $arrPK = Array();
+    
     $sqlCols = "SHOW FULL COLUMNS FROM `".$tblName."`";
     $rsCols  = $oSQL->do_query($sqlCols);
+    $ii = 0;
     while ($rwCol = $oSQL->fetch_array($rsCols)){
+        
+        if ($ii==0)
+            $firstCol = $rwCol["Field"];
         
         $strPrefix = (isset($strPrefix) && $strPrefix==substr($rwCol["Field"], 0, 3) 
             ? substr($rwCol["Field"], 0, 3)
@@ -660,7 +666,11 @@ function getTableInfo($dbName, $tblName){
                 else 
                     $pkType = "user_defined";
         }
+        $ii++;
     }
+    
+    if (count($arrPK)==0)
+        $arrPK[] = $arrCols[$firstCol]['Field'];
     
     $sqlKeys = "SHOW KEYS FROM `".$tblName."`";
     $rsKeys  = $oSQL->do_query($sqlKeys);
@@ -856,18 +866,31 @@ function datePHP2SQL($dtVar, $valueIfEmpty="NULL"){
 }
 function datetimePHP2SQL($dtVar, $valueIfEmpty="NULL"){
     $prg = "/^".$this->conf["prgDate"]."( ".$this->conf["prgTime"]."){0,1}$/";
-    //echo $prg."\r\n";
-    //echo "/".$this->conf["prgDate"]."/", $this->conf["prgDateReplaceTo"]."\r\n";
     $result =  (
         preg_match($prg, $dtVar) 
         ? "'".preg_replace("/".$this->conf["prgDate"]."/", $this->conf["prgDateReplaceTo"], $dtVar)."'" 
         : (
-            preg_match('/^[12][0-9]{3}\-[0-9]{2}-[0-9]{2}( [0-9]{1,2}\:[0-9]{2}\:([0-9]{2}){0,1}){0,1}$/', $dtVar)
+            preg_match('/^[12][0-9]{3}\-[0-9]{2}-[0-9]{2}( [0-9]{1,2}\:[0-9]{2}(\:[0-9]{2}){0,1}){0,1}$/', $dtVar)
             ? "'".$dtVar."'"
             : $valueIfEmpty 
         )
         );
     return $result;
+}
+
+function getDateTimeByOperationTime($operationDate, $time){
+
+    $stpOperationDayStart = isset($this->conf['stpOperationDayStart']) ? $this->conf['stpOperationDayStart'] : '00:00'; 
+    $stpOperationDayEnd = isset($this->conf['stpOperationDayEnd']) ? $this->conf['stpOperationDayEnd'] : '23:59:59'; 
+    $tempDate = Date('Y-m-d');
+    if (strtotime($tempDate.' '.$stpOperationDayEnd) < strtotime($tempDate.' '.$stpOperationDayStart)
+    // e.g. 1:30 < 7:30, this means that operation date prolongs to next day till $stpOperationDayEnd
+        && strtotime($tempDate.' '.$time) < strtotime($tempDate.' '.$stpOperationDayEnd)
+         // and current time less than $stpOperationDayEnd
+        ){
+            return (Date('Y-m-d',strtotime($operationDate)+60*60*24).' '.$time);
+    } else 
+        return $operationDate.' '.$time;
 }
 
 function showDatesPeriod($trnStartDate, $trnEndDate){
