@@ -65,6 +65,8 @@ protected function collectDataStatus($staID = null){
 /* reads data from stbl_attribute table */
 protected function collectDataAttributes(){
     
+    $this->arrAtr = Array();
+    
     $sqlAtr = "SELECT * 
         FROM stbl_attribute 
         ".($this->staID!=="" 
@@ -305,11 +307,13 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
         , "cookieExpire" => time()+60*60*24*30
             , 'defaultOrderBy'=>"{$this->entID}EditDate"
             , 'defaultSortOrder'=>"DESC"
-            , 'sqlFrom' => "{$rwEnt["entTable"]} INNER JOIN stbl_status ON {$entID}StatusID=staID AND staEntityID='{$entID}'
-                    LEFT OUTER JOIN stbl_action_log LAC
+            , 'sqlFrom' => "{$rwEnt["entTable"]} LEFT OUTER JOIN stbl_status ON {$entID}StatusID=staID AND staEntityID='{$entID}'".
+                ((!in_array("actTitle", $arrExcludeCols) && !in_array("staTitle", $arrExcludeCols))
+                    ? "LEFT OUTER JOIN stbl_action_log LAC
                     INNER JOIN stbl_action ON LAC.aclActionID=actID 
                     ON {$entID}ActionLogID=LAC.aclGUID
                     LEFT OUTER JOIN stbl_action_log SAC ON {$entID}StatusActionLogID=SAC.aclGUID"
+                    : "")
         ));
 
     $lst->Columns[] = array('title' => ""
@@ -536,7 +540,6 @@ function showAttributeValue($rwAtr, $suffix = ""){
             if (!$arrInpConfig["FlagWrite"]){ // if read-only && text is set
                 $arrOptions[$value]=$text;
             } else {
-                $src = $rwAtr["atrProgrammerReserved"];
                 if (preg_match("/^(vw|tbl)_/", $rwAtr["atrDataSource"])){
                     $rsCMB = $intra->getDataFromCommonViews(null, null, $rwAtr["atrDataSource"]
                         , (strlen($rwAtr["atrProgrammerReserved"])<=3 ? $rwAtr["atrProgrammerReserved"] : ""));
@@ -544,8 +547,8 @@ function showAttributeValue($rwAtr, $suffix = ""){
                     while($rwCMB = $oSQL->fetch_array($rsCMB))
                         $arrOptions[$rwCMB["optValue"]]=$rwCMB["optText"];
                 }
-                if (preg_match("/^Array/i", $src)){
-                    eval ("\$arrOptions=$src;");
+                if (preg_match("/^Array/i", $rwAtr["atrProgrammerReserved"])){
+                    eval ("\$arrOptions={$rwAtr["atrProgrammerReserved"]};");
                 }
             }
             $strRet = $intra->showCombo($inputName, $value, $arrOptions,

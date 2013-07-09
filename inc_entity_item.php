@@ -46,8 +46,8 @@ function getEntityItemData(){
     
     $sqlEnt = "SELECT * 
             FROM {$this->rwEnt['entTable']}
-            LEFT OUTER JOIN stbl_status ON staID={$entID}StatusID AND staEntityID='$entID'
-            LEFT OUTER JOIN stbl_action_log ON {$entID}ActionLogID=aclGUID
+            LEFT OUTER JOIN stbl_status STA ON STA.staID={$entID}StatusID AND staEntityID='$entID'
+            LEFT OUTER JOIN stbl_action_log ACL ON {$entID}ActionLogID=ACL.aclGUID
             WHERE {$entID}ID='{$entItemID}'";
     $rsEnt = $oSQL->q($sqlEnt);
     if ($oSQL->n($rsEnt)==0)
@@ -1508,11 +1508,17 @@ function getEntityItemAllData(){
 	$this->collectDataAttributes();
 	foreach($this->arrAtr as $rwATR){
 		$this->rwEnt["ATR"][$rwATR["atrID"]] = $rwATR;
-		if (in_array($rwATR["atrType"], Array("combobox", "ajax_dropdown")))
+		if (in_array($rwATR["atrType"], Array("combobox", "ajax_dropdown"))){
+            if ($rwATR["atrType"] == "combobox" && $rwATR["atrDataSource"]=='' && preg_match('/^Array\(/i', $rwATR["atrProgrammerReserved"])){
+                eval( '$arrOptions = '.$rwATR["atrProgrammerReserved"].';' );
+                $this->rwEnt[$rwATR["atrID"]."_Text"] = $arrOptions[$this->rwEnt[$rwATR["atrID"]]];
+            } else {
 				$this->rwEnt[$rwATR["atrID"]."_Text"] = ($this->rwEnt[$rwATR["atrID"]] != ""
 					? $this->oSQL->d($this->intra->getDataFromCommonViews($this->rwEnt[$rwATR["atrID"]], null, $rwATR["atrDataSource"], $rwATR["atrProgrammerReserved"], true))
 					: $rwATR["atrDefault"]
 				);
+            }
+        }
 	}
 	
 	// collect incomplete/cancelled actions
