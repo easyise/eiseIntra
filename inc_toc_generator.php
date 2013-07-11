@@ -61,7 +61,7 @@ while ($rw = $oSQL->fetch_array($rs)){
     
     $flagIsEntity = ($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent" ? true : false);
     
-    echo "<li".($rw["pagParentID"]==1
+    echo "<li".($rw["pagParentID"]==1 && $rw["FlagWrite"]
              ? " class='open'"
              : "")." id='".$rw["pagID"]."'>".
       ($rw["pagFile"] && !$flagIsEntity && !($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent")
