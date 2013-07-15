@@ -31,7 +31,7 @@ if (!$this->flagArchive){
 <input type="hidden" name="actID" id="actID" value="">
 <input type="hidden" name="aclGUID" id="aclGUID" value="">
 <input type="hidden" name="aclToDo" id="aclToDo" value="">
-<input type="hidden" name="actComments" id="actComments" value="">
+<input type="hidden" name="aclComments" id="aclComments" value="">
 <?php 
 }
  ?>

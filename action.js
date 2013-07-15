@@ -25,6 +25,7 @@ var actionRadioClick = function(oRadio, fnCallback){
             
             fnCallback({mandatory: strIDs
                 , flagAutocomplete: flagAutocomplete
+                , actFlagComment: data.act.actFlagComment
                 , actID: oRadio.val()
                 , aclOldStatusID: oRadio.attr('orig')
                 , aclNewStatusID: oRadio.attr('dest')
@@ -257,6 +258,14 @@ checkAction: function(callback){
             if (this.checked){
                 oRadio = $(this);
                 actionRadioClick($(this), function(obj){
+                    
+                    if (obj.actFlagComment=='1'){
+                        var aclComments = prompt('Please comment', '');
+                        if (aclComments==null)
+                            return;
+                        $this.find('#aclComments').val(aclComments);
+                    }
+                    
                     $this.find('#actID').val(oRadio.val());
                     $this.find('#aclOldStatusID').val(oRadio.attr('orig'));
                     $this.find('#aclNewStatusID').val(oRadio.attr('dest'));

@@ -177,7 +177,7 @@ protected function collectDataActions($arrConfig = Array(), $staID = null){
     
 }
 
-protected function getActionAttribute($actID, $forceRead = false){
+function getActionAttribute($actID, $forceRead = false){
     
     if (isset($this->arrAAT[$actID]) && $forceRead===false)
 		return $this->arrAAT[$actID];
@@ -600,7 +600,7 @@ function getFormForList($staID){
 <input type="hidden" name="aclNewStatusID" id="aclNewStatusID" value="">
 <input type="hidden" name="actID" id="actID" value="">
 <input type="hidden" name="aclToDo" id="aclToDo" value="">
-<input type="hidden" name="actComments" id="actComments" value="">
+<input type="hidden" name="aclComments" id="aclComments" value="">
 
 <fieldset class="eiseIntraMainForm"><legend><?php echo $this->intra->translate("Set Data"); ?></legend>
 
