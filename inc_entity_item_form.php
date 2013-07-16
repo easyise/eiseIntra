@@ -529,6 +529,7 @@ $rsFile = $oSQL->do_query($sqlFile);
 if ($oSQL->num_rows($rsFile) > 0) {
 ?>
 <fieldset><legend><?php  echo $this->intra->translate("Files") ; ?></legend>
+<div style="max-height:100px; overflow-y: auto;">
 <table width="100%" class="eiseIntraHistoryTable">
 <thead>
 <tr>
@@ -555,6 +556,7 @@ while($rwFile = $oSQL->fetch_array($rsFile)){
  ?>
  </tbody>
 </table>
+</div>
 </fieldset>
 <?php
 
