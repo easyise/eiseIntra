@@ -790,6 +790,7 @@ function getSQLValue($col, $flagForArray=false){
         break;
       case "FK":
       case "combobox":
+      case "ajax_dropdown":
        $strValue = "\".($strPost!=\"\" ? \"'\".$strPost.\"'\" : \"NULL\").\"";
         break;
       case "PK":
