@@ -48,4 +48,5 @@ function ShowFieldTitle($arg){GLOBAL $intra; return $intra->translate($arg);}
 function GetFieldTitle($arg){GLOBAL $intra; return $intra->translate($arg);}
 function loadJS(){GLOBAL $intra; return $intra->loadJS();}
 function getDataFromCommonViews($oSQL, $val, $text, $table, $prefix){GLOBAL $intra; return $intra->getDataFromCommonViews($val, $text, $table, $prefix);}
+function GetRoleUsers($oSQL, $rolID){GLOBAL $intra; return $intra->getRoleUsers($rolID);}
 ?>

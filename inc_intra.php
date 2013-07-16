@@ -221,6 +221,18 @@ function checkPermissions(){
      
 }
 
+function getRoleUsers($strRoleName) {
+   $sqlRoleUsers = "SELECT rluUserID
+       FROM stbl_role ROL
+       INNER JOIN stbl_role_user RLU ON RLU.rluRoleID=ROL.rolID
+       WHERE rolID='$strRoleName'	AND DATEDIFF(NOW(), rluInsertDate)>=0";
+   $rsRole = $this->oSQL->do_query($sqlRoleUsers);
+   while ($rwRole = $this->oSQL->fetch_array($rsRole))
+      $arrRoleUsers[] = $rwRole["rluUserID"];
+
+   return $arrRoleUsers;
+}
+
 function checkLanguage(){
     
     if(isset($_GET["local"])){
