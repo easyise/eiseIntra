@@ -50,7 +50,7 @@ function __construct($oSQL, $conf = Array()){
     $this->conf["prgTime"] = str_replace($arrFind, $arrReplace, $this->conf["timeFormat"]);
     
     $this->oSQL = $oSQL;
-    
+
 }
 
 /**********************************
@@ -575,10 +575,12 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
 // Page-formatting routines
 function loadJS(){
     GLOBAL $js_path, $arrJS;
- 
+        
+        $cachePreventor = preg_replace('/\D/', '', $this->conf['version']);
+        
         //-----------прицепляем содержимое массива  $arrJS
         for ($i=0;$i<count($arrJS);$i++){
-           echo "<script type=\"text/javascript\" src=\"".$arrJS[$i]."\"></script>\r\n";
+           echo "<script type=\"text/javascript\" src=\"{$arrJS[$i]}?{$cachePreventor}\"></script>\r\n";
         }
         unset ($i);
         
@@ -594,8 +596,10 @@ function loadJS(){
 function loadCSS(){
     GLOBAL $arrCSS;
     
+    $cachePreventor = preg_replace('/\D/', '', $this->conf['version']);
+    
     for($i=0; $i<count($arrCSS); $i++ ){
-        echo "<link rel=\"STYLESHEET\" type=\"text/css\" href=\"{$arrCSS[$i]}\" media=\"screen\">\r\n";
+        echo "<link rel=\"STYLESHEET\" type=\"text/css\" href=\"{$arrCSS[$i]}?{$cachePreventor}\" media=\"screen\">\r\n";
     }
 
 }
