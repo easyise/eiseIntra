@@ -59,6 +59,8 @@ session_destroy();
 <html>
 <head>
 
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+
 <title><?php  echo $title ; ?></title>
 
 <?php

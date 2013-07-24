@@ -373,6 +373,16 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
             
     
     $strFrom = "";
+    
+    $iStartAddCol = 0;
+    
+    for ($ii=$iStartAddCol;$ii<count($arrAdditionalCols);$ii++){
+        if($arrAdditionalCols[$iStartAddCol]['columnAfter']!='')
+            break;
+        $lst->Columns[] = $arrAdditionalCols[$iStartAddCol];
+        $iStartAddCol=$ii;
+    }
+    
     foreach($this->arrAtr as $rwAtr){
         
         if ($rwAtr["atrID"]==$entID."ID")
@@ -416,7 +426,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
            $lst->Columns[] = $arr;
            
             // check column-after
-            for ($ii=0;$ii<count($arrAdditionalCols);$ii++){
+            for ($ii=$iStartAddCol;$ii<count($arrAdditionalCols);$ii++){
                 if ($arrAdditionalCols[$ii]['columnAfter']==$rwAtr['atrID']){
                     $lst->Columns[] = $arrAdditionalCols[$ii];
                     

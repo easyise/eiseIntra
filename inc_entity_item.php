@@ -615,7 +615,10 @@ function updateMasterTable($arrNewData = Array(), $flagUpdateMultiple = false, $
         }
         
         if ($rwSAT["atrUOMTypeID"]){
-            $strFieldList .= ", {$rwSAT["atrID"]}_uomID=".$oSQL->e($this->arrNewData["{$rwSAT["atrID"]}_uomID"]);
+            $strFieldList .= ", {$rwSAT["atrID"]}_uomID=".($this->arrNewData["{$rwSAT["atrID"]}_uomID"]
+                ? $oSQL->e($this->arrNewData["{$rwSAT["atrID"]}_uomID"])
+                : $oSQL->e($oSQL->d("SELECT uomID FROM stbl_uom WHERE uomType='{$rwSAT['atrUOMTypeID']}' AND uomRateToDefault=1.0 LIMIT 0,1"))
+                );
         }
     }
     
