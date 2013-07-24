@@ -236,3 +236,10 @@ div.eiseIntraComment {
 .eiseIntra_unattach {
     cursor: pointer !important;
 }
+
+.spinner {
+	background-image: url('../../common/images/spinner.gif');
+	background-position: 0 0;
+	background-repeat: no-repeat;
+	padding-left: 20px;
+}
