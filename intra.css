@@ -236,10 +236,12 @@ div.eiseIntraComment {
 .eiseIntra_unattach {
     cursor: pointer !important;
 }
-
+/*
+moved to screen.css as decorative - IE
 .spinner {
 	background-image: url('../../common/images/spinner.gif');
 	background-position: 0 0;
 	background-repeat: no-repeat;
 	padding-left: 20px;
 }
+*/
