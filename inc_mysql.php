@@ -186,6 +186,8 @@ class sql{
     function not_right($error="MySQL error") {
       $this->errordesc = mysql_error();
       $this->errornum  = mysql_errno();  
+      if ($this->flagProfiling)
+        $this->showProfileInfo();
       throw new Exception($error." - {$this->errornum}: {$this->errordesc}\r\n");
     }
     

@@ -46,7 +46,7 @@ if (!$this->flagArchive){
 <?php  echo ($this->flagArchive ? " (".$this->intra->translate("Archive").")" : "") ; ?></h1>
 
 <?php 
-$this->showEntityItemFields( Array('showComments'=>true));
+$this->showEntityItemFields( array_merge($arrConfig, Array('showComments'=>true)));
 
 $this->showFiles();
 ?>

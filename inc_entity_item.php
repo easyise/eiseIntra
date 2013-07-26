@@ -114,33 +114,33 @@ function delete(){
     
 }
 
-public function doSimpleAction($arrNewData){
-
-    $this->arrNewData = $arrNewData;
-    $this->prepareActions();
-    $this->addAction();
-    $this->finishAction();
+// updates master table & action log
+// doesn't re-read entity item data from the database
+public function update($arrNewData, $flagUpdateMultiple = false, $flagFullEdit = false){
     
-    unset($this->arrAction);
-    unset($this->arrNewData);
-    $this->getEntityItemData();
+    $this->updateMasterTable($arrNewData, $flagUpdateMultiple, $flagFullEdit);
+    $this->updateActionLog();
+    
+    if (!isset($this->arrNewData["actID"])){
+        $this->arrNewData['actID'] = 2;
+        $this->doAction(); // record update operation to the log
+    }
     
 }
 
-// updates Master Table, Action Log, and add/start/finish/cancel action mentioned in arrNewData[aclToDo]
-// returns aclGUID of performed action
-public function doFullAction($arrNewData = Array()){
+// executes action over entity item
+public function doAction($arrNewData = null){
     
-    if (count($arrNewData)>0){
-        $this->updateMasterTable($arrNewData);
-        $this->updateActionLog();
+    if ($arrNewData!==null){
+        $this->refresh();
+        $this->arrNewData = $arrNewData;
     }
     
     if (count($this->arrAction)==0){
         $this->prepareActions();
     }
     
-    // proceed the action
+    // proceed with the action
     if ($this->arrAction["actFlagAutocomplete"] && $this->arrAction["aclGUID"]==""){
         
         $this->checkMandatoryFields();
@@ -173,9 +173,39 @@ public function doFullAction($arrNewData = Array()){
     
     $aclGUID = $this->arrAction["aclGUID"];
     
+    return $aclGUID;
+}
+
+// re-reads entity item data from database, resets arrAction and arrNewData
+public function refresh(){
+    
     unset($this->arrAction);
     unset($this->arrNewData);
     $this->getEntityItemData();
+    
+}
+
+// backward-compatibility 
+public function doSimpleAction($arrNewData){
+    
+    $aclGUID = $this->doAction($arrNewData);
+    
+    $this->refresh();
+    
+    return $aclGUID;
+    
+}
+
+// updates Master Table, Action Log, and add/start/finish/cancel action mentioned in arrNewData[aclToDo]
+// returns aclGUID of performed action
+public function doFullAction($arrNewData = Array()){
+    
+    if (count($arrNewData)>0)
+        $this->update($arrNewData);
+    
+    $aclGUID = $this->doAction();
+    
+    $this->refresh();
     
     return $aclGUID;
     
@@ -449,7 +479,8 @@ public function prepareActions(){
     $this->arrACL = Array();
     
     if (empty($this->arrNewData["aclGUID"]) &&  empty($this->arrNewData["actID"])){
-        throw new Exception('Neither Action ID nor Action Log GUID specified');
+        //throw new Exception('Neither Action ID nor Action Log GUID specified');
+        $this->arrNewData["actID"] = 2;
     }
     
     // collect all incomplete actions
@@ -738,6 +769,8 @@ function checkMandatoryFields(){
     foreach($this->arrAction["AAT"] as $atrID => $rwATR)
     if ($rwATR["aatFlagMandatory"] || $rwATR["aatFlagToChange"]){
         
+        $oldValue = $this->rwEnt[$atrID];
+        
         if ($this->arrAction["aclGUID"]==""){
             $sqlCheckMandatory = "SELECT 
                 CASE WHEN IFNULL({$atrID}, '')='' THEN 0 ELSE 1 END as mandatoryOK 
@@ -752,7 +785,6 @@ function checkMandatoryFields(){
                 FROM {$entTable}_log 
                 WHERE l{$entID}GUID='{$aclGUID}'";
             //$oldValue = $this->arrAction["ACL"][$aclGUID]["ATV"][$atrID];
-            $oldValue = $rwEnt[$atrID];
             $sqlCheckChanges = "SELECT 
                 CASE WHEN IFNULL(l{$atrID}, '')=".$oSQL->escape_string($oldValue)." THEN 0 ELSE 1 END as changedOK 
                 FROM {$entTable}_log

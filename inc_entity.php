@@ -509,6 +509,18 @@ public function getFields($arrConfig = Array(), $oEntItem = null){
             
     }
     
+    if (isset($arrConfig['extraFields']))
+    foreach($arrConfig['extraFields'] as $field){
+        
+        $strFields .= ($strFields!="" ? "\r\n" : "");
+        $strFields .= "<div class=\"eiseIntraField\">";
+        $strFields .= "<label".($field['id'] ? " id=\"title_".$field['id']."\"" : '').">".$field['title'].":</label>";
+        
+        $strFields .=  '<div class="eiseIntraValue">'.$field['html'].'</div>';
+        
+        $strFields .= "</div>\r\n\r\n";
+    }
+    
     return $strFields;
     
 }
