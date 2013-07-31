@@ -188,7 +188,7 @@ class sql{
       $this->errornum  = mysql_errno();  
       if ($this->flagProfiling)
         $this->showProfileInfo();
-      throw new Exception($error." - {$this->errornum}: {$this->errordesc}\r\n");
+      throw new Exception("{$this->errornum}: {$this->errordesc},\r\n{$error}\r\n");
     }
     
     function sql ($dbhost, $dbuser, $dbpass, $dbname, $flagPersistent=false) {
