@@ -187,10 +187,22 @@ init: function( options ) {
 
         })
         
+        $this.find('input.eiseIntraDelete').each(function() {
+            $(this).click(function(ev){
+                if (confirm("Are you sure you'd like to delete?")){
+                    $this.find('#DataAction').val('delete');
+                    $this.submit();
+                } 
+            });
+        });
+        
     });
 },
 
 validate: function( ) {
+    
+    if ($(this).find('#DataAction')=='delete')
+        return true;
     
     var canSubmit = true;
     
@@ -323,7 +335,7 @@ function intraInitializeForm(){eiseIntraInitializeForm()}
 
 function eiseIntraInitializeForm(){
     
-    $('.eiseIntraForm').eiseIntraForm().submit(function(){
+    $('.eiseIntraForm').eiseIntraForm().submit(function(ev){
         return $(this).eiseIntraForm("validate");
     });
 
