@@ -65,7 +65,7 @@ function Authenticate($login, $password, &$strError, $method="LDAP"){
         GLOBAL $ldap_server;
         GLOBAL $ldap_domain;
         GLOBAL $ldap_dn;
-        GLOBAL $ldap_conn;
+        GLOBAL $ldap_conn, $ldap_anonymous_login, $ldap_anonymous_pass;
         if (preg_match("/^([a-z0-9]+)[\/\\\]([a-z0-9]+)$/i", $login, $arrMatch)){
             $login = $arrMatch[2];
             $ldap_domain = strtolower($arrMatch[1].".abyrvalg.com");
