@@ -937,7 +937,29 @@ function getUserData($usrID){
             : $rw["optText{$this->local}"])
          : $usrID);
 }
-
+function getUserData_All($usrID, $strWhatData='all'){
+    
+    $rsUser = $this->oSQL->q("SELECT * FROM stbl_user WHERE usrID='$usrID'");
+    $rwUser = $this->oSQL->f($rsUser);
+    
+    $key = strtolower($strWhatData);
+    
+    switch ($key) {
+        case "all":
+            return $rwUser;
+        case "name":
+        case "fn_sn":
+        case "sn_fn":
+            return $rwUser["usrName"];
+        case "namelocal":
+            return $rwUser["usrNameLocal"];
+        case "email":
+        case "e-mail":
+            return $rwUser["usrEMail"];
+        default:
+            return $rwUser[$strWhatData];
+   }
+}
 
 /******************************************************************************/
 /* ARCHIVE/RESTORE ROUTINES                                                   */
