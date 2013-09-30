@@ -272,7 +272,7 @@ function translate($key){
         $this->addTranslationKey($key);
     }
     
-    return isset($this->lang[$key]) ? $this->lang[$key] : $key;
+    return stripslashes(isset($this->lang[$key]) ? $this->lang[$key] : $key);
 }
 
 function addTranslationKey($key){
