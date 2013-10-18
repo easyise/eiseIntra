@@ -14,13 +14,16 @@ function __construct($oSQL, $intra, $entID, $entItemID, $flagArchive = false){
 
 function form($arrConfig=Array()){
 
-$entItemID = $rwEnt[$entID."ID"];
+    $arrDefaultConf = array('flagHideDraftStatusStay'=>true);
+    $arrConfig = array_merge($arrDefaultConf, $arrConfig);
 
-$oSQL = $this->oSQL;
-$entID = $this->entID;
-$rwEnt = $this->rwEnt;
+    $entItemID = $rwEnt[$entID."ID"];
 
-if (!$this->flagArchive){
+    $oSQL = $this->oSQL;
+    $entID = $this->entID;
+    $rwEnt = $this->rwEnt;
+
+    if (!$this->flagArchive){
 ?>
 <form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" id="entForm" class="eiseIntraForm">
 <input type="hidden" name="DataAction" id="DataAction" value="update">
@@ -33,7 +36,7 @@ if (!$this->flagArchive){
 <input type="hidden" name="aclToDo" id="aclToDo" value="">
 <input type="hidden" name="aclComments" id="aclComments" value="">
 <?php 
-}
+    }
  ?>
 
 
@@ -58,7 +61,7 @@ echo $this->showActions($arrConfig["actionCallBack"]);
 
 
 <?php 
-$this->showActivityLog($arrConfig["actionCallBack"])
+$this->showActivityLog($arrConfig)
  ?>
 
 
@@ -202,7 +205,8 @@ function showEntityItemFields($arrConfig = Array()){
 }
 
 
-function showActivityLog(){
+function showActivityLog($arrConfig=array()){
+
     $strLocal = $this->intra->local;
     $oSQL = $this->oSQL;
     $entID = $this->entID;
@@ -212,11 +216,13 @@ function showActivityLog(){
 ?>
 <fieldset><legend><?php  echo $this->intra->translate("Activity Log") ; ?></legend>
 <?php 
-// ïîêàçûâàåì ñòàòóñû âìåñòå ñ stlArrivalAction
-// ïîòîì âíóòðè ñòàòóñà ïîêàçûâàåì äåéñòâèÿ, âûïîëíåííûå âî âðåìÿ ñòîÿíèÿ â ñòàòóñå
+// Ð¿Ð¾ÐºÐ°Ð·Ñ‹Ð²Ð°ÐµÐ¼ ÑÑ‚Ð°Ñ‚ÑƒÑÑ‹ Ð²Ð¼ÐµÑÑ‚Ðµ Ñ stlArrivalAction
+// Ð¿Ð¾Ñ‚Ð¾Ð¼ Ð²Ð½ÑƒÑ‚Ñ€Ð¸ ÑÑ‚Ð°Ñ‚ÑƒÑÐ° Ð¿Ð¾ÐºÐ°Ð·Ñ‹Ð²Ð°ÐµÐ¼ Ð´ÐµÐ¹ÑÑ‚Ð²Ð¸Ñ, Ð²Ñ‹Ð¿Ð¾Ð»Ð½ÐµÐ½Ð½Ñ‹Ðµ Ð²Ð¾ Ð²Ñ€ÐµÐ¼Ñ ÑÑ‚Ð¾ÑÐ½Ð¸Ñ Ð² ÑÑ‚Ð°Ñ‚ÑƒÑÐµ
 
 
 foreach($this->rwEnt["STL"] as $stlGUID => $rwSTL){
+    if ($arrConfig['flagHideDraftStatusStay'] && $rwSTL['stlStatusID']==='0')
+        continue;
     ?>
     <div class="eiseIntraLogStatus">
     <div class="eiseIntraLogTitle"><span class="eiseIntra_stlTitle"><?php echo ($rwSTL["stlTitle{$this->intra->local}"]!="" 
@@ -352,6 +358,16 @@ function showActionInfo($rwACT, $actionCallBack=""){
     //*/
     
     
+    if ($rwACT['aclComments']){
+        ?>
+        <div class="eiseIntraField"><label><?php  
+            echo $this->intra->translate('Comments');
+            ?>:</label><div class="eiseIntraValue"><i><?php echo $rwACT['aclComments'] ?></i></div>
+        </div>
+        <?php
+    }
+
+
     eval($actionCallBack.";");
     
     ?>

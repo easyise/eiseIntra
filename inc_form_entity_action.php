@@ -7,6 +7,7 @@ $DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['Data
 
 $oSQL->dbname=(isset($_POST["dbName"]) ? $_POST["dbName"] : $_GET["dbName"]);
 $dbName = $oSQL->dbname;
+$oSQL->select_db($oSQL->dbname);
 
 
 $actID = (isset($_POST["actID"]) ? $_POST["actID"] : $_GET["actID"]);
@@ -39,7 +40,7 @@ $gridATS->Columns[] = Array(
         , 'default' => $actID
         , 'type' => "text"
 );
-        
+//echo "SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='".$rwAct["actEntityID"]."'";
 $gridATS->Columns[] = Array(
         'title' => "Old Status"
         , 'field' => "atsOldStatusID"

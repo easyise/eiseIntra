@@ -175,6 +175,14 @@ class sql{
 		return mysql_affected_rows();
 	}
 	
+	function select_db($dbName){
+		if (!mysql_select_db($dbName)){
+			return false;
+		}
+		$this->dbname = $dbName;
+		return true;
+	}
+	
 	function get_new_guid(){
 		mysql_select_db($this->dbname, $this->dbh);
         $this->sth = mysql_query("SELECT UUID();", $this->dbh); 

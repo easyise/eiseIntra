@@ -5,42 +5,51 @@ $arrCSS[] = commonStuffRelativePath."screen.css";
 
 $DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
 
-if (!isset($oSQL))
-    $oSQL = new sql($DBHOST, $DBUSER, $DBPASS, $DBNAME, false, CP_UTF8);
-if($authmethod!="mysql") $oSQL->connect();
 $intra = new eiseIntra($oSQL);
-
 
 switch ($DataAction){
     case "login":
-       $auth_str = base64_decode($_POST["authstring"]);
-
-       preg_match("/^([^\:]+)\:([\S ]+)$/i", $auth_str, $arrMatches);
-       $arrLoginPassword = Array($arrMatches[1], $arrMatches[2]);
+        $auth_str = base64_decode($_POST["authstring"]);
+        
+        preg_match("/^([^\:]+)\:([\S ]+)$/i", $auth_str, $arrMatches);
+        $arrLoginPassword = Array($arrMatches[1], $arrMatches[2]);
        
         $login = $arrMatches[1];
         $password = $arrMatches[2];
         $strError = "";
-       
+        
+        if($authmethod!="mysql"){
+            try {
+                if (!isset($oSQL))
+                    $oSQL = new eiseSQL($DBHOST, $DBUSER, $DBPASS, $DBNAME, false, CP_UTF8);
+                $oSQL->connect();
+                $intra->oSQL = $oSQL;
+            }catch (Exception $e){
+                header("Location: {$_SERVER["PHP_SELF"]}?error=".urlencode($e->getMessage()));
+            }
+        }
+        
         if ($intra->Authenticate($login, $password, $strError, (isset($authmethod) ? $authmethod : "LDAP"))){
+            
             $intra->session_initialize();
             
             $_SESSION["last_login_time"] = Date("Y-m-d H:i:s");
             if($authmethod=="mysql"){
                 $_SESSION["usrID"] = $login;
-                $_SESSION["DBHOST"] = $oSQL->dbhost;
-                $_SESSION["DBPASS"] = $oSQL->dbpass;
-                $_SESSION["DBNAME"] = $oSQL->dbname;
+                $_SESSION["DBHOST"] = $intra->oSQL->dbhost;
+                $_SESSION["DBPASS"] = $intra->oSQL->dbpass;
+                $_SESSION["DBNAME"] = $intra->oSQL->dbname;
             } else {
                 $_SESSION["usrID"] = strtoupper($login);
             }
             SetCookie("last_succesfull_usrID", $login, eiseIntraCookieExpire, eiseIntraCookiePath);
             header ("Location: ".(isset($_COOKIE["PageNoAuth"]) ? $_COOKIE["PageNoAuth"] : "index.php"));
+            die();
         } else {
             SetCookie("last_succesfull_usrID", "", eiseIntraCookieExpire, eiseIntraCookiePath);
             header ("Location: login.php?error=".$strError);
+            die();
         }
-        die();
         break;
    case "logout":
       session_start();

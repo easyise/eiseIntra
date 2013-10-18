@@ -1,0 +1,1 @@
+RENAME TABLE `tbl_setup` TO `stbl_setup`;

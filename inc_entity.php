@@ -396,7 +396,18 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
            
            if ($rwAtr['atrFlagNoField']){
                 $sqlForAtr = "SELECT atvValue FROM stbl_attribute_value WHERE atvAttributeID='".$rwAtr['atrID']."' AND atvEntityItemID=".$entID."ID ORDER BY atvEditDate DESC LIMIT 0,1";
-                $arr = array('title' => ($rwAtr["atrTitle{$strLocal}"]!="" ? $rwAtr["atrTitle{$strLocal}"] : $rwAtr['atrTitle'])
+                $arr = array(
+                    'title' => (
+                            $rwAtr["atrShortTitle{$strLocal}"]!="" 
+                                ? $rwAtr["atrShortTitle{$strLocal}"] 
+                                : ($rwAtr["atrTitle{$strLocal}"]!=""
+                                    ? $rwAtr["atrTitle{$strLocal}"]
+                                    : ($rwAtr['atrShortTitle']!=''
+                                        ? $rwAtr['atrShortTitle']
+                                        : $rwAtr['atrTitle']
+                                        )
+                                    )
+                                )
                     , 'type'=>($rwAtr['atrType']!="" ? $rwAtr['atrType'] : "text")
                     , 'field' => "atr_".$rwAtr['atrID']
                     , 'sql' => $sqlForAtr
@@ -405,7 +416,17 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
                     );   
              
            } else {
-            $arr = array('title' => ($rwAtr["atrTitle{$strLocal}"]!="" ? $rwAtr["atrTitle{$strLocal}"] : $rwAtr['atrTitle'])
+            $arr = array('title' => 
+                    ($rwAtr["atrShortTitle{$strLocal}"]!="" 
+                                ? $rwAtr["atrShortTitle{$strLocal}"] 
+                                : ($rwAtr["atrTitle{$strLocal}"]!=""
+                                    ? $rwAtr["atrTitle{$strLocal}"]
+                                    : ($rwAtr['atrShortTitle']!=''
+                                        ? $rwAtr['atrShortTitle']
+                                        : $rwAtr['atrTitle']
+                                        )
+                                    )
+                                )
                 , 'type'=>($rwAtr['atrType']!="" ? $rwAtr['atrType'] : "text")
                 , 'field' => $rwAtr['atrID']
                 , 'filter' => $rwAtr['atrID']
@@ -682,7 +703,7 @@ function showActionRadios(){
       
         foreach($arrRepeat as $key => $value){
             $title = ($rwAct["actID"] == 2 
-               ? " - ".$this->intra->translate("update")." - "
+               ? " - ".$rwAct["actTitle{$this->intra->local}"]." - "
                : $rwAct["actTitle{$this->intra->local}"].
                   ($rwAct["atsOldStatusID"]!=$rwAct["atsNewStatusID"]
                   ?  " (".$rwAct["staTitle{$this->intra->local}_Old"]." > ".$rwAct["staTitle{$this->intra->local}_New"].")"

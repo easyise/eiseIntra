@@ -7,11 +7,11 @@ eiseIntra core class
 
 
 include "inc_config.php";
-include "inc_mysql.php";
+include "inc_mysqli.php";
 
 class eiseIntra {
 
-function __construct($oSQL, $conf = Array()){
+function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory anymore
 
     $this->conf = Array(                    //defaults for intra
         'dateFormat' => "d.m.Y" // 
@@ -95,12 +95,8 @@ function Authenticate($login, $password, &$strError, $method="LDAP"){
                 return true;
         }
     case "mysql":
-        $oSQL->dbhost = $_POST["host"];
-        $oSQL->dbuser = $login;
-        $oSQL->dbpass = $password;
-        $oSQL->dbname = (!$_POST["database"] ? 'mysql' : $_POST["database"]) ;
         try {
-            $oSQL->connect();
+            $this->oSQL = new eiseSQL ($_POST["host"], $login, $password, (!$_POST["database"] ? 'mysql' : $_POST["database"]));
         } catch(Exception $e){
             $strError = $e->getMessage();
             return false;
@@ -125,10 +121,10 @@ function Authenticate($login, $password, &$strError, $method="LDAP"){
     
 }
 
-
 function session_initialize(){
    session_set_cookie_params(0, eiseIntraCookiePath);
    session_start();
+   $this->usrID = $_SESSION["usrID"];
 } 
 
 function checkPermissions(){

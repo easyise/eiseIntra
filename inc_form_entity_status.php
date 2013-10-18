@@ -5,8 +5,8 @@ $arrCSS[] = commonStuffRelativePath.'eiseGrid/eiseGrid.css';
 
 $DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['DataAction'] );
 
-$oSQL->dbname=(isset($_POST["dbName"]) ? $_POST["dbName"] : $_GET["dbName"]);
-$dbName = $oSQL->dbname;
+$dbName =(isset($_POST["dbName"]) ? $_POST["dbName"] : $_GET["dbName"]);
+$oSQL->select_db($dbName);
 
 
 $staID = (isset($_POST["staID"]) ? $_POST["staID"] : $_GET["staID"]);
