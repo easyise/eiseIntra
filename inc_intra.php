@@ -94,14 +94,6 @@ function Authenticate($login, $password, &$strError, $method="LDAP"){
            } else
                 return true;
         }
-    case "mysql":
-        try {
-            $this->oSQL = new eiseSQL ($_POST["host"], $login, $password, (!$_POST["database"] ? 'mysql' : $_POST["database"]));
-        } catch(Exception $e){
-            $strError = $e->getMessage();
-            return false;
-        }
-        return true;
     case "database":
     case "DB":
         if(!$oSQL->connect()){
@@ -117,7 +109,16 @@ function Authenticate($login, $password, &$strError, $method="LDAP"){
             return false;
         }
         break;
+    case "mysql":
+        try {
+            $this->oSQL = new eiseSQL ($_POST["host"], $login, $password, (!$_POST["database"] ? 'mysql' : $_POST["database"]));
+        } catch(Exception $e){
+            $strError = $e->getMessage();
+            return false;
+        }
+        return true;
     }
+
     
 }
 

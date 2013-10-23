@@ -206,5 +206,16 @@ class eiseSQL extends mysqli{
        echo "</pre>";
     }
 
+    function getProfileInfo(){
+      $arrRet = array();
+      for($ii=0;$ii<count($this->arrQueries);$ii++){
+          $arrRet[] = array('query'=>$this->arrQueries[$ii]
+            , 'affected'=>$this->arrResults[$ii]['affected']
+            , 'returned'=>$this->arrResults[$ii]['returned']
+            , 'time'=>$this->arrMicroseconds[$ii]);
+      }
+      return $arrRet;
+    }
+
 }
 ?>
