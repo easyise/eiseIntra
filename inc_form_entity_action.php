@@ -7,7 +7,7 @@ $DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['Data
 
 $oSQL->dbname=(isset($_POST["dbName"]) ? $_POST["dbName"] : $_GET["dbName"]);
 $dbName = $oSQL->dbname;
-$oSQL->select_db($oSQL->dbname);
+$oSQL->select_db($dbName);
 
 
 $actID = (isset($_POST["actID"]) ? $_POST["actID"] : $_GET["actID"]);
@@ -22,10 +22,11 @@ $gridATS = new easyGrid($oSQL
         ,'ats'
         , Array(
                 'rowNum' =>40
-                , 'arrPermissions' => Array('FlagWrite'=>true)
+                , 'arrPermissions' => Array('FlagWrite'=>$intra->arrUsrData["FlagWrite"])
                 , 'strTable' => 'stbl_action_status'
                 , 'strPrefix' => 'ats'
                 , 'flagStandAlone' => true
+                , 'controlBarButtons' => 'add'
                 )
         );
 
@@ -40,7 +41,7 @@ $gridATS->Columns[] = Array(
         , 'default' => $actID
         , 'type' => "text"
 );
-//echo "SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='".$rwAct["actEntityID"]."'";
+        
 $gridATS->Columns[] = Array(
         'title' => "Old Status"
         , 'field' => "atsOldStatusID"
@@ -63,7 +64,7 @@ $gridAAT = new easyGrid($oSQL
         ,'aat'
         , Array(
                 'rowNum' =>40
-                , 'arrPermissions' => Array('FlagWrite'=>true)
+                , 'arrPermissions' => Array('FlagWrite'=>$intra->arrUsrData["FlagWrite"])
                 , 'strTable' => 'stbl_action_attribute'
                 , 'strPrefix' => 'aat'
                 , 'flagStandAlone' => true
@@ -88,7 +89,7 @@ $gridAAT->Columns[] = Array(
 );
 
 $gridAAT->Columns[] = Array(
-        'title' => "Attribute"
+        'title' => $intra->translate("Attribute")
         , 'field' => "atrTitle"
         , 'type' => "text"
         , 'disabled' => true
@@ -96,32 +97,32 @@ $gridAAT->Columns[] = Array(
 );
 
 $gridAAT->Columns[] = Array(
-        'title' => "Track?"
+        'title' => $intra->translate("Track?")
         , 'field' => "aatFlagToTrack"
         , 'type' => "checkbox"
 );
 
 $gridAAT->Columns[] = Array(
-        'title' => "Mandatory?"
+        'title' => $intra->translate("Mandatory?")
         , 'field' => "aatFlagMandatory"
         , 'type' => "checkbox"
 );
 
 
 $gridAAT->Columns[] = Array(
-        'title' => "ToChange?"
+        'title' => $intra->translate("ToChange?")
         , 'field' => "aatFlagToChange"
         , 'type' => "checkbox"
 );
 
 $gridAAT->Columns[] = Array(
-        'title' => "EmptyOnInsert"
+        'title' => $intra->translate("EmptyOnInsert")
         , 'field' => "aatFlagEmptyOnInsert"
         , 'type' => "checkbox"
 );
 
 $gridAAT->Columns[] = Array(
-        'title' => "Timestamp?"
+        'title' => $intra->translate("Timestamp?")
         , 'field' => "aatFlagTimestamp"
         , 'type' => "combobox"
         , "defaultText" => "-"
@@ -155,13 +156,14 @@ switch($DataAction){
             , actTitlePastLocal
             , actDescription
             , actDescriptionLocal
+            , actTrackPrecision
             , actFlagDeleted
             , actPriority
             , actFlagComment
             , actShowConditions
             , actFlagHasEstimates
-            , actFlagDatetime
             , actFlagAutocomplete
+            , actFlagDepartureEqArrival
             , actDepartureDescr
             , actArrivalDescr
             , actFlagInterruptStatusStay
@@ -176,13 +178,14 @@ switch($DataAction){
             , CONCAT(actTitlePastLocal, ".$oSQL->e(" - copy {$nCopy}").")
             , actDescription
             , actDescriptionLocal
+            , actTrackPrecision
             , actFlagDeleted
             , actPriority+1
             , actFlagComment
             , actShowConditions
             , actFlagHasEstimates
-            , actFlagDatetime
             , actFlagAutocomplete
+            , actFlagDepartureEqArrival
             , actDepartureDescr
             , actArrivalDescr
             , actFlagInterruptStatusStay
@@ -211,6 +214,7 @@ switch($DataAction){
             , aatAttributeID
             , aatFlagMandatory
             , aatFlagToChange
+            , aatFlagToTrack
             , aatFlagToAdd
             , aatFlagToPush
             , aatFlagEmptyOnInsert
@@ -221,6 +225,7 @@ switch($DataAction){
             , aatAttributeID
             , aatFlagMandatory
             , aatFlagToChange
+            , aatFlagToTrack
             , aatFlagToAdd
             , aatFlagToPush
             , aatFlagEmptyOnInsert
@@ -248,6 +253,8 @@ switch($DataAction){
     
     case "update":
         
+        $oSQL->q("START TRANSACTION");
+        
         $sql[] = "UPDATE stbl_action SET
             actTitle = ".$oSQL->escape_string($_POST['actTitle'])."
             , actTitleLocal = ".$oSQL->escape_string($_POST['actTitleLocal'])."
@@ -258,9 +265,12 @@ switch($DataAction){
             , actFlagDeleted = '".(integer)$_POST['actFlagDeleted']."'
             , actFlagComment = '".($_POST['actFlagComment']=='on' ? 1 : 0)."'
             , actShowConditions = ".$oSQL->escape_string($_POST['actShowConditions'])."
+            , actTrackPrecision = ".$oSQL->escape_string($_POST['actTrackPrecision'])."
             , actFlagHasEstimates = '".($_POST['actFlagHasEstimates']=='on' ? 1 : 0)."'
             , actFlagAutocomplete = '".($_POST['actFlagAutocomplete']=='on' ? 1 : 0)."'
+            , actFlagDepartureEqArrival = '".($_POST['actFlagDepartureEqArrival']=='on' ? 1 : 0)."'
             , actFlagInterruptStatusStay = '".($_POST['actFlagInterruptStatusStay']=='on' ? 1 : 0)."'
+            , actFlagDeleted = '".($_POST['actFlagDeleted']=='on' ? 1 : 0)."'
             , actEditBy = '$usrID', actEditDate = NOW()
             WHERE actID = '".$_POST['actID']."'";
        
@@ -268,11 +278,12 @@ switch($DataAction){
        
        $sql[] = "DELETE FROM stbl_action_attribute WHERE aatActionID='$actID'";
        
-       for ($i=0; $i< count($_POST["atrID"]); $i++)
-          if ($_POST["aatFlagToTrack"][$i]){
+        for ($i=0; $i< count($_POST["atrID"]); $i++)
+            if ($_POST["atrID"][$i]) {
              $sql[] = "INSERT INTO stbl_action_attribute (
                  aatActionID
                 , aatAttributeID
+                , aatFlagToTrack
                 , aatFlagMandatory
                 , aatFlagToChange
                 , aatFlagEmptyOnInsert
@@ -281,13 +292,14 @@ switch($DataAction){
                 ) VALUES (
                 '{$actID}'
                 , '".$_POST["atrID"][$i]."'
+                , '".(integer)$_POST["aatFlagToTrack"][$i]."'
                 , '".(integer)$_POST["aatFlagMandatory"][$i]."'
                 , '".(integer)$_POST["aatFlagToChange"][$i]."'
                 , '".(integer)$_POST["aatFlagEmptyOnInsert"][$i]."'
                 , ".$oSQL->escape_string($_POST["aatFlagTimestamp"][$i])."
                 , '$usrID', NOW(), '$usrID', NOW())";
                 
-          }
+        }
       
       $sql[] = "DELETE FROM stbl_role_action WHERE rlaActionID='".$_POST['actID']."'";
       
@@ -311,7 +323,9 @@ switch($DataAction){
      //*/
      for($i=0;$i<count($sql);$i++)
           $oSQL->do_query($sql[$i]);
-          
+        
+        $oSQL->q("COMMIT");
+        
        SetCookie("UserMessage", "Action ".$intra->translate("is updated"));
        header("Location: ".$_SERVER["PHP_SELF"]."?dbName=$dbName&actID=$actID");
        
@@ -323,51 +337,47 @@ switch($DataAction){
 
 
 $arrActions[]= Array ('title' => $rwAct["entTitle"]
-	   , 'action' => "entity_form.php?dbName=$dbName&entID=".$rwAct["entID"]
-	   , 'class'=> 'ss_arrow_left'
-	);
+       , 'action' => "entity_form.php?dbName=$dbName&entID=".$rwAct["entID"]
+       , 'class'=> 'ss_arrow_left'
+    );
 
 if ($easyAdmin){
     $arrActions[]= Array ("title" => "Clone"
-	   , "action" => "action_form.php?DataAction=clone&dbName={$dbName}&actID=".urlencode($actID)
-	   , "class"=> "ss_page_copy"
-	);
+       , "action" => "action_form.php?DataAction=clone&dbName={$dbName}&actID=".urlencode($actID)
+       , "class"=> "ss_page_copy"
+    );
 }
-include('../common/eiseIntra/inc-frame_top.php');
+include eiseIntraAbsolutePath."inc-frame_top.php";
 ?>
 <script>
 $(document).ready(function(){  
-	easyGridInitialize();
+    easyGridInitialize();
 });
 </script>
 
-<h1><?php  echo $rwAct["actTitle"] ; ?></h1>
-
-
-<div class="panel">
-<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST">
+<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" class="eiseIntraForm">
 <input type="hidden" name="DataAction" value="update">
 <input type="hidden" name="dbName" value="<?php  echo $dbName ; ?>">
 <input type="hidden" name="actID" value="<?php  echo $actID ; ?>">
+
+<fieldset><legend><?php  echo $rwAct["actTitle{$intra->local}"] ; ?></legend>
 
 <table width="100%">
 
 <tr>
 <td width="50%">
 
-<table width="100%">
-<tr>
-<td class="field_title">Title:</td>
-<td><?php  echo $intra->showTextBox("actTitle", $rwAct["actTitle"]) ; ?></td>
-</tr>
-<tr>
-<td class="field_title">Title Local:</td>
-<td><?php  echo $intra->showTextBox("actTitleLocal", $rwAct["actTitleLocal"]) ; ?></td>
-</tr>
-<tr>
-<td class="field_title">Status shift:<br>
-<a href="#" onclick="easyGridAddRow('ats');">Add &gt;&gt;</a></td>
-<td><?php  
+<div class="eiseIntraField"><label><?php echo $intra->translate("Title") ?>:</label>
+<?php  echo $intra->showTextBox("actTitle", $rwAct["actTitle"]) ; ?>
+</div>
+
+<div class="eiseIntraField"><label><?php echo $intra->translate("Title Local") ?>:</label>
+<?php  echo $intra->showTextBox("actTitleLocal", $rwAct["actTitleLocal"]) ; ?>
+</div>
+
+<div class="eiseIntraField"><label><?php echo $intra->translate("Status shift") ?>:</label>
+<div class="eiseIntraValue">
+<?php  
 $sqlATS = "SELECT * FROM stbl_action_status WHERE atsActionID='{$rwAct["actID"]}'";
 $rsATS = $oSQL->do_query($sqlATS);
 while ($rwATS = $oSQL->fetch_array($rsATS)){
@@ -375,28 +385,28 @@ while ($rwATS = $oSQL->fetch_array($rsATS)){
 }
 $gridATS->Execute();
 ?>
-</tr>
+</div>
+</div>
 
-<tr>
-<td class="field_title">Title Past Tense:</td>
-<td><?php  echo $intra->showTextBox("actTitlePast", $rwAct["actTitlePast"]) ; ?></td>
-</tr>
-<tr>
-<td class="field_title">Title Past Tense Local:</td>
-<td><?php  echo $intra->showTextBox("actTitlePastLocal", $rwAct["actTitlePastLocal"]) ; ?></td>
-</tr>
-<tr>
-<td class="field_title">Description:</td>
-<td><?php  echo $intra->showTextArea("actDescription", $rwAct["actDescription"]) ; ?></td>
-</tr>
-<tr>
-<td class="field_title">Description Local:</td>
-<td><?php  echo $intra->showTextArea("actDescriptionLocal", $rwAct["actDescriptionLocal"]) ; ?></td>
-</tr>
+<div class="eiseIntraField"><label><?php echo $intra->translate("Title Past Tense") ?>:</label>
+<?php  echo $intra->showTextBox("actTitlePast", $rwAct["actTitlePast"]) ; ?>
+</div>
 
-<tr>
-<td class="field_title">Can be run by:</td>
-<td><?php  
+<div class="eiseIntraField"><label><?php echo $intra->translate("Title Past Tense Local") ?>:</label>
+<?php  echo $intra->showTextBox("actTitlePastLocal", $rwAct["actTitlePastLocal"]) ; ?>
+</div>
+
+<div class="eiseIntraField"><label><?php echo $intra->translate("Description") ?>:</label>
+<?php  echo $intra->showTextArea("actDescription", $rwAct["actDescription"]) ; ?>
+</div>
+
+<div class="eiseIntraField"><label><?php echo $intra->translate("Description Local") ?>:</label>
+<?php  echo $intra->showTextArea("actDescriptionLocal", $rwAct["actDescriptionLocal"]) ; ?>
+</div>
+
+<div class="eiseIntraField"><label><?php echo $intra->translate("Can be run by") ?>:</label>
+<div class="eiseIntraValue">
+<?php  
 $sqlRol = "SELECT * FROM stbl_role LEFT OUTER JOIN stbl_role_action ON rlaActionID=$actID AND rolID=rlaRoleID";
 $rsRol = $oSQL->do_query($sqlRol);
 while ($rwRol = $oSQL->fetch_array($rsRol)){
@@ -404,43 +414,51 @@ while ($rwRol = $oSQL->fetch_array($rsRol)){
    <input type="checkbox" id="RLA_<?php  echo $rwRol["rolID"] ; ?>" 
    style="width:auto;"
    name="RLA_<?php  echo $rwRol["rolID"] ; ?>"<?php  echo ($rwRol["rlaID"] ? " checked" : "") ; ?>>
-   <label for="RLA_<?php  echo $rwRol["rolID"] ; ?>"><?php  echo $rwRol["rolID"] ; ?></label><br>
+   <label for="RLA_<?php  echo $rwRol["rolID"] ; ?>"><?php  echo $rwRol["rolTitle{$intra->local}"] ; ?></label><br>
    <?php
 } 
-?></td>
-</tr>
+?>
+</div>
+</div>
 
-<tr>
-<td class="field_title">Require Comment:</td>
-<td><?php  echo $intra->showCheckBox("actFlagComment", $rwAct["actFlagComment"]) ; ?></td>
-</tr>
-<tr><td colspan=2><hr></td></tr>
-<tr>
-<td class="field_title">Autocomplete?</td>
-<td><?php  echo $intra->showCheckBox("actFlagAutocomplete", $rwAct["actFlagAutocomplete"]) ; ?></td>
-</tr>
-<tr>
-<td class="field_title">Has Estimates?</td>
-<td><?php  echo $intra->showCheckBox("actFlagHasEstimates", $rwAct["actFlagHasEstimates"]) ; ?></td>
-</tr>
-<tr>
-<td class="field_title">Interrupt Status Stay?</td>
-<td><?php  echo $intra->showCheckBox("actFlagInterruptStatusStay", $rwAct["actFlagInterruptStatusStay"]) ; ?></td>
-</tr>
-<tr><td colspan=2><hr></td></tr>
-<tr>
-<td class="field_title">Deleted?</td>
-<td><?php  echo $intra->showCheckBox("actFlagDeleted", $rwAct["actFlagDeleted"]) ; ?></td>
-</tr>
+<div class="eiseIntraField"><label><?php echo $intra->translate("Require Comment") ?>:</label>
+<?php  echo $intra->showCheckBox("actFlagComment", $rwAct["actFlagComment"]) ; ?>
+</div>
 
-</table>
+<hr>
+
+<div class="eiseIntraField"><label><?php echo $intra->translate("Autocomplete?") ?>:</label>
+<?php  echo $intra->showCheckBox("actFlagAutocomplete", $rwAct["actFlagAutocomplete"]) ; ?>
+</div>
+
+<div class="eiseIntraField"><label>ATD=ATA?:</label>
+<?php  echo $intra->showCheckBox("actFlagDepartureEqArrival", $rwAct["actFlagDepartureEqArrival"]) ; ?>
+</div>
+
+<div class="eiseIntraField"><label>ETA/ETD?:</label>
+<?php  echo $intra->showCheckBox("actFlagHasEstimates", $rwAct["actFlagHasEstimates"]) ; ?>
+</div>
+
+<div class="eiseIntraField"><label><?php echo $intra->translate("Interrupt Status Stay?") ?>:</label>
+<?php  echo $intra->showCheckBox("actFlagInterruptStatusStay", $rwAct["actFlagInterruptStatusStay"]) ; ?>
+</div>
+
+<div class="eiseIntraField"><label><?php echo $intra->translate("Precision") ?>:</label>
+<?php  echo $intra->showCombo("actTrackPrecision", $rwAct["actTrackPrecision"], Array("date"=>$intra->translate("Date")
+    , "datetime"=>$intra->translate("Date+Time"))) ; ?>
+</div>
+
+<hr>
+
+<div class="eiseIntraField"><label><?php echo $intra->translate("Deleted?") ?>:</label>
+<?php  echo $intra->showCheckBox("actFlagDeleted", $rwAct["actFlagDeleted"]) ; ?>
+</div>
 
 </td>
 
 <td width="50%">
 <?php
 $sqlAAT = "SELECT *
-, CASE WHEN aatID IS NULL THEN 0 ELSE 1 END as aatFlagToTrack
 FROM stbl_attribute LEFT OUTER JOIN stbl_action_attribute ON atrID=aatAttributeID AND aatActionID='$actID'
 WHERE atrEntityID='".$rwAct["actEntityID"]."'
 ORDER BY atrOrder";
@@ -455,10 +473,11 @@ $gridAAT->Execute();
 </tr>
 <tr>
 <td colspan="2" align="center">
-<input type="submit" value="Save">
+<input type="submit" value="<?php echo $intra->translate('Save') ?>" class="eiseIntraSubmit">
 </td>
 </tr>
 </table>
+</fieldset>
 </form>
 
 

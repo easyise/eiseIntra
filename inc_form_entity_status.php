@@ -121,63 +121,59 @@ $(document).ready(function(){
 });
 </script>
 
-<h1>Status: <?php  echo $rwSta["staTitle"] ; ?></h1>
-
-
-<div class="panel">
-
-<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST">
+<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" class="eiseIntraForm">
 <input type="hidden" name="DataAction" value="update">
 <input type="hidden" name="dbName" value="<?php  echo $dbName ; ?>">
 <input type="hidden" name="staID" value="<?php  echo $staID ; ?>">
 <input type="hidden" name="entID" value="<?php  echo $rwSta["staEntityID"] ; ?>">
+
+<fieldset>
+<legend>Status: <?php  echo $rwSta["staTitle{$intra->local}"] ; ?></legend>
+
 
 <table width="100%">
 
 <tr>
 <td width="50%">
 
-<table width="100%">
-<tr>
-<td class="field_title">Title:</td>
-<td><?php  echo $intra->showTextBox("staTitle", $rwSta["staTitle"]) ; ?></td>
-</tr>
-<tr>
-<td class="field_title">Title Local:</td>
-<td><?php  echo $intra->showTextBox("staTitleLocal", $rwSta["staTitleLocal"]) ; ?></td>
-</tr>
-<tr>
-<td class="field_title">Precision:</td>
-<td><?php  echo $intra->showCombo("staTrackPrecision", $rwSta["staTrackPrecision"], Array("date"=>"Date", "datetime"=>"Date+Time")) ; ?></td>
-</tr>
+<div class="eiseIntraField"><label><?php echo $intra->translate("Title") ?>:</label>
+<?php  echo $intra->showTextBox("staTitle", $rwSta["staTitle"]) ; ?>
+</div>
 
-<tr>
-<td class="field_title">Update Allowed?</td>
-<td><?php  echo $intra->showCheckBox("staFlagCanUpdate", $rwSta["staFlagCanUpdate"]) ; ?></td>
-</tr>
+<div class="eiseIntraField"><label><?php echo $intra->translate("Title Local") ?>:</label>
+<?php  echo $intra->showTextBox("staTitleLocal", $rwSta["staTitleLocal"]) ; ?>
+</div>
 
-<tr>
-<td class="field_title">Delete allowed?</td>
-<td><?php  echo $intra->showCheckBox("staFlagCanDelete", $rwSta["staFlagCanDelete"]) ; ?></td>
-</tr>
+<div class="eiseIntraField"><label><?php echo $intra->translate("Precision") ?>:</label>
+<?php  echo $intra->showCombo("staTrackPrecision", $rwSta["staTrackPrecision"], Array("date"=>$intra->translate("Date")
+    , "datetime"=>$intra->translate("Date+Time"))) ; ?>
+</div>
 
-<tr><td colspan="2"><hr></td></tr>
+<div class="eiseIntraField"><label><?php echo $intra->translate("Update Allowed?") ?>:</label>
+<?php  echo $intra->showCheckBox("staFlagCanUpdate", $rwSta["staFlagCanUpdate"]) ; ?>
+</div>
 
-<tr>
-<td class="field_title">Deleted?</td>
-<td><?php  echo $intra->showCheckBox("staFlagDeleted", $rwSta["staFlagDeleted"]) ; ?></td>
-</tr>
+<div class="eiseIntraField"><label><?php echo $intra->translate("Delete allowed?") ?>:</label>
+<?php  echo $intra->showCheckBox("staFlagCanDelete", $rwSta["staFlagCanDelete"]) ; ?>
+</div>
 
-<tr>
-<td class="field_title">Actions:</td>
-<td>
-<li><b>Leading to "<?php  echo $rwSta["staTitle"] ; ?>":</b></li>
+<hr>
+
+<div class="eiseIntraField"><label><?php echo $intra->translate("Deleted?") ?>:</label>
+<?php  echo $intra->showCheckBox("staFlagDeleted", $rwSta["staFlagDeleted"]) ; ?>
+</div>
+
+<div class="eiseIntraField"><label><?php echo $intra->translate("Actions") ?>:</label>
+<div class="eiseIntraValue">
+<ul>
+<li><b><?php echo $intra->translate('Leading to') ?> "<?php  echo $rwSta["staTitle"] ; ?>":</b></li>
 <ul>
 <?php 
 $sqlAct = "SELECT DISTINCT actID, actTitle, actTitleLocal, actFlagDeleted FROM stbl_action_status INNER JOIN stbl_action ON actID=atsActionID
     WHERE atsNewStatusID='{$rwSta["staID"]}' AND actEntityID='{$entID}'
     ORDER BY actFlagDeleted";
 $rsAct = $oSQL->do_query($sqlAct);
+if ($oSQL->n($rsAct)==0){echo " - ".$intra->translate('Nothing found')." - ";}
 while ($rwAct=$oSQL->fetch_array($rsAct)) {
 ?>
 <li><a href="action_form.php?entID=<?php  
@@ -186,12 +182,12 @@ while ($rwAct=$oSQL->fetch_array($rsAct)) {
   echo $rwAct["actID"] ; 
   ?>&dbName=<?php 
   echo $dbName ; 
-  ?>"><?php  echo $rwAct["actTitle"].($rwAct['actFlagDeleted'] ? " (deleted)" : "") ; ?></a></li>
+  ?>"><?php  echo $rwAct["actTitle{$intra->local}"].($rwAct['actFlagDeleted'] ? " (deleted)" : "") ; ?></a></li>
 <?php
 }
  ?>
 </ul>
-<li><b>Leading from "<?php  echo $rwSta["staTitle"] ; ?>":</b></li>
+<li><b><?php echo $intra->translate('Leading from') ?> "<?php  echo $rwSta["staTitle"] ; ?>":</b></li>
 <ul>
 <?php 
 $sqlAct = "SELECT DISTINCT actID, actTitle, actTitleLocal, actFlagDeleted FROM stbl_action_status INNER JOIN stbl_action ON actID=atsActionID
@@ -206,18 +202,15 @@ while ($rwAct=$oSQL->fetch_array($rsAct)) {
   echo $rwAct["actID"] ; 
   ?>&dbName=<?php 
   echo $dbName ; 
-  ?>"><?php  echo $rwAct["actTitle"].($rwAct['actFlagDeleted'] ? " (deleted)" : "") ; ?></a></li>
+  ?>"><?php  echo $rwAct["actTitle{$intra->local}"].($rwAct['actFlagDeleted'] ? " (deleted)" : "") ; ?></a></li>
 <?php
 }
  ?>
 </ul>
+</ul>
 
-</td>
-</tr>
-
-
-
-</table>
+</div>
+</div>
 
 </td>
 
@@ -228,7 +221,7 @@ $gridSAT = new easyGrid($oSQL
         ,'sat'
         , Array(
                 'rowNum' =>40
-                , 'arrPermissions' => Array('FlagWrite'=>true)
+                , 'arrPermissions' => Array('FlagWrite'=>$intra->arrUsrData["FlagWrite"])
                 , 'strTable' => 'stbl_action_attribute'
                 , 'strPrefix' => 'aat'
                 , 'flagStandAlone' => true
@@ -261,7 +254,7 @@ $gridSAT->Columns[] = Array(
 );
 
 $gridSAT->Columns[] = Array(
-        'title' => "Attribute"
+        'title' => $intra->translate("Attribute")
         , 'field' => "atrTitle{$intra->local}"
         , 'type' => "text"
         , 'disabled' => true
@@ -269,23 +262,23 @@ $gridSAT->Columns[] = Array(
 );
 
 $gridSAT->Columns[] = Array(
-        'title' => "Track?"
+        'title' => $intra->translate("Track?")
         , 'field' => "satFlagTrackOnArrival"
         , 'type' => "checkbox"
 );
 
 $gridSAT->Columns[] = Array(
-        'title' => "In Form?"
+        'title' => $intra->translate("In Form?")
         , 'field' => "satFlagShowInForm"
         , 'type' => "checkbox"
 );
 $gridSAT->Columns[] = Array(
-        'title' => "Allowed"
+        'title' => $intra->translate("Allowed?")
         , 'field' => "satFlagEditable"
         , 'type' => "checkbox"
 );
 $gridSAT->Columns[] = Array(
-        'title' => "In List?"
+        'title' => $intra->translate("In List?")
         , 'field' => "satFlagShowInList"
         , 'type' => "checkbox"
 );
@@ -305,12 +298,18 @@ $gridSAT->Execute();
 ?>
 </td>
 </tr>
+<?php 
+if ($intra->arrUsrData["FlagWrite"]){ ?>
 <tr>
 <td colspan="2" align="center">
-<input type="submit" value="Save">
+<input type="submit" value="<?php echo $intra->translate('Save') ?>" class="eiseIntraSubmit">
 </td>
 </tr>
+<?php 
+} ?>
 </table>
+
+</fieldset>
 
 </form>
 

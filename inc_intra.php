@@ -11,6 +11,23 @@ include "inc_mysqli.php";
 
 class eiseIntra {
 
+public $arrDataTypes = array("integer", "real", "boolean", "text", "binary", "date", "time", "datetime","FK","PK");
+
+public $arrAttributeTypes = array(
+    "integer" => 'integer'
+    , "real" => 'real'
+    , "boolean" => 'checkbox'
+    , "text" => 'text'
+    , "textarea" => 'text'
+//    , "binary" => 'file' #not supported yet for docflow apps
+    , "date" => 'date'
+    , "datetime" => 'datetime'
+//    , "time" => 'time'
+    , "combobox" => 'FK'
+    , "ajax_dropdown" => 'FK'
+    );
+
+
 function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory anymore
 
     $this->conf = Array(                    //defaults for intra
@@ -165,11 +182,11 @@ function checkPermissions(){
    $sqlCheckUser = "SELECT
              pagID
            , PAG.pagTitle
-		   , PAG.pagTitleLocal
+           , PAG.pagTitleLocal
            , MAX(pgrFlagRead) as FlagRead
-		   , MAX(pgrFlagCreate) as FlagCreate
-		   , MAX(pgrFlagUpdate) as FlagUpdate
-		   , MAX(pgrFlagDelete) as FlagDelete
+           , MAX(pgrFlagCreate) as FlagCreate
+           , MAX(pgrFlagUpdate) as FlagUpdate
+           , MAX(pgrFlagDelete) as FlagDelete
            , MAX(pgrFlagWrite) as FlagWrite
            FROM stbl_page PAG
            INNER JOIN stbl_page_role PGR ON PAG.pagID=PGR.pgrPageID
@@ -177,7 +194,7 @@ function checkPermissions(){
            LEFT OUTER JOIN stbl_role_user RLU ON ROL.rolID=RLU.rluRoleID
            WHERE PAG.pagFile='$script_name'
                AND (
-               (RLU.rluUserID='".strtoupper($_SESSION["usrID"])."' 	AND DATEDIFF(NOW(), rluInsertDate)>=0)
+               (RLU.rluUserID='".strtoupper($_SESSION["usrID"])."'  AND DATEDIFF(NOW(), rluInsertDate)>=0)
                OR
                ROL.rolFlagDefault=1
                )
@@ -185,7 +202,7 @@ function checkPermissions(){
        //echo $sqlCheckUser;
     $rsChkPerms = $oSQL->do_query($sqlCheckUser);
     $rwPerms = $oSQL->fetch_array($rsChkPerms);
-		
+        
     if (!$rwPerms["FlagRead"]){
         header("HTTP/1.0 403 Access denied");
         $errortext = "".$_SERVER["PHP_SELF"].": ".$this->translate("access denied");
@@ -198,7 +215,7 @@ function checkPermissions(){
     $sqlRoles = "SELECT rolID, rolTitle$this->local
        FROM stbl_role ROL
        INNER JOIN stbl_role_user RLU ON RLU.rluRoleID=ROL.rolID
-       WHERE RLU.rluUserID = '{$_SESSION["usrID"]}'	AND DATEDIFF(NOW(), rluInsertDate)>=0";
+       WHERE RLU.rluUserID = '{$_SESSION["usrID"]}' AND DATEDIFF(NOW(), rluInsertDate)>=0";
     $rsRoles = $oSQL->do_query($sqlRoles);
     $arrRoles = Array();
     $arrRoleIDs = Array();
@@ -222,7 +239,7 @@ function getRoleUsers($strRoleName) {
    $sqlRoleUsers = "SELECT rluUserID
        FROM stbl_role ROL
        INNER JOIN stbl_role_user RLU ON RLU.rluRoleID=ROL.rolID
-       WHERE rolID='$strRoleName'	AND DATEDIFF(NOW(), rluInsertDate)>=0";
+       WHERE rolID='$strRoleName'   AND DATEDIFF(NOW(), rluInsertDate)>=0";
    $rsRole = $this->oSQL->do_query($sqlRoleUsers);
    while ($rwRole = $this->oSQL->fetch_array($rsRole))
       $arrRoleUsers[] = $rwRole["rluUserID"];
@@ -288,7 +305,7 @@ function readSettings(){
     
     $oSQL = $this->oSQL;
     
-    /* инициализируем переменные из tbl_setup в массив ============================ BEGIN */
+    /* ?????????????? ?????????? ?? tbl_setup ? ?????? ============================ BEGIN */
     
     $arrSetup = Array();
     
@@ -325,7 +342,7 @@ function readSettings(){
                 break;
         }
     }
-    /* инициализируем переменные из tbl_setup ============================ END */
+    /* ?????????????? ?????????? ?? tbl_setup ============================ END */
     $this->conf = array_merge($this->conf, $arrSetup);
     
     return $arrSetup;
@@ -575,18 +592,18 @@ function loadJS(){
         
         $cachePreventor = preg_replace('/\D/', '', $this->conf['version']);
         
-        //-----------прицепляем содержимое массива  $arrJS
+        //-----------?????????? ?????????? ???????  $arrJS
         for ($i=0;$i<count($arrJS);$i++){
            echo "<script type=\"text/javascript\" src=\"{$arrJS[$i]}?{$cachePreventor}\"></script>\r\n";
         }
         unset ($i);
         
-//------------Прицепляет скрипты для конкретной страницы из js/*.js
-		$arrScript = array_pop(explode("/",$_SERVER["PHP_SELF"]));
-		$arrScript = explode(".",$arrScript);
-		$strJS = (isset($js_path) ? $js_path : "js/").$arrScript[0].".js";
-		if (file_exists( $strJS)) 
-			echo "<script type=\"text/javascript\" src=\"{$strJS}\"></script>\r\n";
+//------------?????????? ??????? ??? ?????????? ???????? ?? js/*.js
+        $arrScript = array_pop(explode("/",$_SERVER["PHP_SELF"]));
+        $arrScript = explode(".",$arrScript);
+        $strJS = (isset($js_path) ? $js_path : "js/").$arrScript[0].".js";
+        if (file_exists( $strJS)) 
+            echo "<script type=\"text/javascript\" src=\"{$strJS}\"></script>\r\n";
         
 }
 
@@ -647,7 +664,7 @@ function getTableInfo($dbName, $tblName){
             
         if (preg_match("/date/i", $rwCol["Type"])
            || preg_match("/time/i", $rwCol["Type"]))
-            $rwCol["DataType"] = "datetime";
+            $rwCol["DataType"] = $rwCol["Type"];
             
         if (preg_match("/ID$/", $rwCol["Field"]) && $rwCol["Key"] != "PRI"){
             $rwCol["FKDataType"] = $rwCol["DataType"];
@@ -771,7 +788,7 @@ function getSQLValue($col, $flagForArray=false){
            $strValue = "'\".(integer)\$_POST['".$col["Field"]."'][\$i].\"'";
         break;
       case "text":
-	  case "varchar":
+      case "varchar":
         $strValue = "\".\$oSQL->escape_string($strPost).\"";
         break;
       case "binary":
@@ -846,8 +863,8 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
         (`{$arrFields["textField"]}` LIKE ".$oSQL->escape_string($strText, "for_search")." COLLATE 'utf8_general_ci'
             OR `{$arrFields["textFieldLocal"]}` LIKE ".$oSQL->escape_string($strText, "for_search")." COLLATE 'utf8_general_ci'";
 
-        $sql .=	")
-		".($flagShowDeleted==false ? " AND IFNULL(`{$arrFields["delField"]}`, 0)=0" : "")
+        $sql .= ")
+        ".($flagShowDeleted==false ? " AND IFNULL(`{$arrFields["delField"]}`, 0)=0" : "")
         .$strExtra;
     }
     $sql .= "\r\nLIMIT 0, 30";
@@ -963,32 +980,32 @@ function getUserData_All($usrID, $strWhatData='all'){
 /******************************************************************************/
 
 function getArchiveSQLObject(){
-	
-	if (!$this->conf["stpArchiveDB"])
+    
+    if (!$this->conf["stpArchiveDB"])
         throw new Exception("Archive database name is not set. Contact system administrator.");
-	
-	//same server, different DBs
-	$this->oSQL_arch = new sql($this->oSQL->dbhost, $this->oSQL->dbuser, $this->oSQL->dbpass, $this->conf["stpArchiveDB"], false, CP_UTF8);
+    
+    //same server, different DBs
+    $this->oSQL_arch = new sql($this->oSQL->dbhost, $this->oSQL->dbuser, $this->oSQL->dbpass, $this->conf["stpArchiveDB"], false, CP_UTF8);
     $this->oSQL_arch->connect();
-	
-	return $this->oSQL_arch;
-	
+    
+    return $this->oSQL_arch;
+    
 }
 
 
 function archiveTable($table, $criteria, $nodelete = false, $limit = ""){
-	
-	$oSQL = $this->oSQL;
-	
-	if (!isset($this->oSQL_arch))
-		$this->getArvhiceSQLObject();
-	
+    
+    $oSQL = $this->oSQL;
+    
+    if (!isset($this->oSQL_arch))
+        $this->getArvhiceSQLObject();
+    
     $oSQL_arch = $this->oSQL_arch;
     $intra_arch = new eiseIntra($oSQL_arch);
     
-	// 1. check table exists in archive DB
-	if(!$oSQL_arch->d("SHOW TABLES LIKE ".$oSQL->e($table))){
-		// if doesnt exists, we create it w/o indexes, on MyISAM engine
+    // 1. check table exists in archive DB
+    if(!$oSQL_arch->d("SHOW TABLES LIKE ".$oSQL->e($table))){
+        // if doesnt exists, we create it w/o indexes, on MyISAM engine
         $sqlGetCreate = "SHOW CREATE TABLE `{$table}`";
         $rsC = $oSQL->q($sqlGetCreate);
         $rwC = $oSQL->f($rsC);
@@ -1006,7 +1023,7 @@ function archiveTable($table, $criteria, $nodelete = false, $limit = ""){
         }
         $oSQL_arch->q($sqlCR);
         
-	}
+    }
     
     // if table exists, we check it for missing columns
     $arrTable = $this->getTableInfo($oSQL->dbname, $table);
@@ -1034,13 +1051,13 @@ function archiveTable($table, $criteria, $nodelete = false, $limit = ""){
         FROM `{$oSQL->dbname}`.`{$table}`
         WHERE {$criteria}".
         ($limit!="" ? " LIMIT {$limit}" : "");
-	$oSQL_arch->q($sqlIns);
+    $oSQL_arch->q($sqlIns);
     $nAffected = $oSQL->a();
     
     // 3. delete from the origin
     if (!$nodelete)
         $oSQL->q("DELETE FROM `{$table}` WHERE {$criteria}".($limit!="" ? " LIMIT {$limit}" : ""));
-	
+    
     return $nAffected;
 }
 

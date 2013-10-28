@@ -870,6 +870,31 @@ function getActionPhaseTitle($phase){
     
 }
 
+function getEntityTableALTER($atrID, $atrType, $action){
+
+    $sqlRet = array();
+
+    $strDBType = $this->oSQL->arrIntra2DBTypeMap[$atrType];
+    if (!$strDBType)
+        return false;
+
+    switch ($action){
+        case 'add':
+            $sqlRet[] = "ALTER TABLE `{$this->rwEnt['entTable']}` ADD COLUMN `{$atrID}` {$strDBType} NULL DEFAULT NULL";
+            $sqlRet[] = "ALTER TABLE `{$this->rwEnt['entTable']}_log` ADD COLUMN `l{$atrID}` {$strDBType} NULL DEFAULT NULL";
+            break;
+        case 'change':
+            $sqlRet[] = "ALTER TABLE `{$this->rwEnt['entTable']}` CHANGE COLUMN `{$atrID}` {$strDBType} NULL DEFAULT NULL";
+            $sqlRet[] = "ALTER TABLE `{$this->rwEnt['entTable']}_log` CHANGE COLUMN `l{$atrID}` {$strDBType} NULL DEFAULT NULL";
+            break;
+        default:
+            return false;
+    }
+
+    return $sqlRet;
+
+}
+
 
 }
 

@@ -23,7 +23,7 @@ $gridSTA = new eiseGrid($oSQL
                 , 'strPrefix' => 'sta'
                 , 'flagStandAlone' => true
                 , 'showControlBar' => true
-                , 'controlBarButtons' => 'insert'
+                , 'controlBarButtons' => 'add'
                 )
         );
 
@@ -32,7 +32,7 @@ $gridSTA->Columns[]  = Array(
             , 'field' => 'staID_id'
         );
 $gridSTA->Columns[] = Array(
-        'title' => "ID"
+        'title' => $intra->translate("ID")
         , 'field' => "staID"
         , 'mandatory' => true
         , 'type' => "text"
@@ -44,19 +44,19 @@ $gridSTA->Columns[] = Array(
         , 'type' => "text"
 );
 $gridSTA->Columns[] = Array(
-        'title' => "Title"
+        'title' => $intra->translate("Title")
         , 'field' => "staTitle{$strLocal}"
         , 'width' => "50%"
         , 'type' => "text"
         , 'href' => "status_form.php?dbName=$dbName&staID=[staID]&entID=$entID"
 );
 $gridSTA->Columns[] = Array(
-        'title' => "Upd"
+        'title' => $intra->translate("Upd")
         , 'field' => "staFlagCanUpdate"
         , 'type' => "checkbox"
 );
 $gridSTA->Columns[] = Array(
-        'title' => "Del"
+        'title' => $intra->translate("Del")
         , 'field' => "staFlagCanDelete"
         , 'type' => "checkbox"
 );
@@ -72,12 +72,12 @@ $gridSTA->Columns[] = Array(
 $gridATR = new eiseGrid($oSQL
         ,'atr'
         , Array(
-                'arrPermissions' => Array('FlagWrite'=>true)
+                'arrPermissions' => Array('FlagWrite'=>true, 'FlagDelete'=>(bool)$easyAdmin)
                 , 'strTable' => 'stbl_attribute'
                 , 'strPrefix' => 'atr'
                 , 'flagStandAlone' => true
                 , 'showControlBar' => true
-                , 'controlBarButtons' => 'insert|moveup|movedown'
+                , 'controlBarButtons' => 'add|moveup|movedown'
                 )
         );
 
@@ -86,45 +86,83 @@ $gridATR->Columns[]  = Array(
             , 'field' => 'atrID_id'
         );
 $gridATR->Columns[] = Array(
-        'title' => "Ord"
-        , 'field' => "atrOrder"
-        , 'type' => "order"
-);
-
-$gridATR->Columns[] = Array(
-        'title' => "Field"
-        , 'field' => "atrID"
-        , 'type' => "text"
-        , 'width' => "110px"
-        , 'mandatory' => true
-);
-$gridATR->Columns[] = Array(
         'title' => ""
         , 'field' => "atrEntityID"
         , 'default' => $entID
         , 'type' => "text"
 );
 $gridATR->Columns[] = Array(
-        'title' => "Title"
-        , 'field' => "atrTitle{$strLocal}"
-        , 'type' => "text"
-        , 'width' => "30%"
-        , 'href' => "attribute_form.php?dbName=$dbName&atrID=[atrID]&atrEntityID=$entID"
+        'title' => $intra->translate("Ord")
+        , 'field' => "atrOrder"
+        , 'type' => "order"
 );
 $gridATR->Columns[] = Array(
-        'title' => "Short Title"
+        'title' => $intra->translate("Field")
+        , 'field' => "atrID"
+        , 'type' => "text"
+        , 'width' => "110px"
+        , 'mandatory' => $easyAdmin
+        , 'disabled' => !$easyAdmin
+);
+
+if($easyAdmin){
+    $gridATR->Columns[] = Array(
+            'title' => $intra->translate("Title")
+            , 'field' => "atrTitle{$strLocal}"
+            , 'type' => "text"
+            , 'width' => "30%"
+            , 'href' => "attribute_form.php?dbName=$dbName&atrID=[atrID]&atrEntityID=$entID"
+    );
+$gridATR->Columns[] = Array(
+        'title' => $intra->translate("Short Title")
         , 'field' => "atrShortTitle{$strLocal}"
         , 'type' => "text"
 );
-$gridATR->Columns[] = Array(
-        'title' => "Type"
-        , 'field' => "atrType"
+} else {
+
+    $gridATR->Columns[] = Array(
+            'title' => $intra->translate("Title")
+            , 'field' => "atrTitle"
+            , 'type' => "text"
+            , 'width' => "15%"
+            , 'mandatory' => true
+    );
+    $gridATR->Columns[] = Array(
+            'title' => $intra->translate("Title (Loc)")
+            , 'field' => "atrTitleLocal"
+            , 'type' => "text"
+            , 'width' => "15%"
+    );
+    $gridATR->Columns[] = Array(
+        'title' => $intra->translate("Short Title")
+        , 'field' => "atrShortTitle"
         , 'type' => "text"
+    );
+    $gridATR->Columns[] = Array(
+        'title' => $intra->translate("Short Title (Loc)")
+        , 'field' => "atrShortTitleLocal"
+        , 'type' => "text"
+    );
+
+}
+
+$arrAvailableTypes = array();
+foreach ($intra->arrAttributeTypes as $type => $dataType) {
+    if (!$easyAdmin && $dataType=='FK')
+        continue;
+    $arrAvailableTypes[$type]=$intra->translate($type);
+}
+$gridATR->Columns[] = Array(
+        'title' => $intra->translate("Type")
+        , 'field' => "atrType"
+        , 'type' => "combobox"
+        , 'arrValues' => $arrAvailableTypes
+        , 'defaultText' => '-'
         , 'default' => "text"
-        , "width" => "80px"
+        , "width" => "40px"
 );
 $gridATR->Columns[] = Array(
-        'title' => "UOM"
+        'title' => $intra->translate("UOM")
         , 'field' => "atrUOMTypeID"
         , 'type' => "combobox"
         , 'defaultText' => "-"
@@ -134,56 +172,59 @@ $gridATR->Columns[] = Array(
             ORDER BY uomOrder"
 );
 $gridATR->Columns[] = Array(
-        'title' => "Def"
+        'title' => $intra->translate("Def")
         , 'field' => "atrDefault"
         , 'type' => "text"
 );
 $gridATR->Columns[] = Array(
-        'title' => "IfNull"
+        'title' => $intra->translate("IfNull")
         , 'field' => "atrTextIfNull"
         , 'type' => "text"
 );
+
 if ($easyAdmin) {
+    $gridATR->Columns[] = Array(
+            'title' => $intra->translate("Classes")
+            , 'field' => "atrClasses"
+            , 'type' => "text"
+    );
+    $gridATR->Columns[] = Array(
+            'title' => $intra->translate("Prg")
+            , 'field' => "atrProgrammerReserved"
+            , 'type' => "text"
+    );
+    $gridATR->Columns[] = Array(
+            'title' => $intra->translate("CheckMask")
+            , 'field' => "atrCheckMask"
+            , 'type' => "text"
+    );
+    $gridATR->Columns[] = Array(
+            'title' => $intra->translate("Data Source")
+            , 'field' => "atrDataSource"
+            , 'type' => "text"
+    );
+}
+
 $gridATR->Columns[] = Array(
-        'title' => "Classes"
-        , 'field' => "atrClasses"
-        , 'type' => "text"
-);
-$gridATR->Columns[] = Array(
-        'title' => "Prg"
-        , 'field' => "atrProgrammerReserved"
-        , 'type' => "text"
-);
-$gridATR->Columns[] = Array(
-        'title' => "CheckMask"
-        , 'field' => "atrCheckMask"
-        , 'type' => "text"
-);
-$gridATR->Columns[] = Array(
-        'title' => "Data Source"
-        , 'field' => "atrDataSource"
-        , 'type' => "text"
-);
-$gridATR->Columns[] = Array(
-        'title' => "NoList"
+        'title' => $intra->translate("NoList")
         , 'field' => "atrFlagHideOnLists"
         , 'type' => "checkbox"
 );
 $gridATR->Columns[] = Array(
-        'title' => "Del"
+        'title' => $intra->translate("Del")
         , 'field' => "atrFlagDeleted"
         , 'type' => "checkbox"
 );
 
 
-}
+
 $grdMX = new eiseGrid($oSQL
 					, "act"
                     , Array(
                             'arrPermissions' => Array('FlagWrite'=>true)
                             , 'strTable' => 'stbl_action'
                             , 'showControlBar' => true
-                            , 'controlBarButtons' => 'insert|moveup|movedown'
+                            , 'controlBarButtons' => 'add|moveup|movedown'
                             )
                     );
 /*
@@ -213,14 +254,14 @@ $grdMX->Columns[] = Array(
 $sqlStaCmb = "SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='$entID'";
 
 $grdMX->Columns[] = Array(
-   'title' => "Old status"
+   'title' => $intra->translate("Old status")
    , 'field' => 'actOldStatusIDs'
    , 'type' => "text"
    , 'disabled' => true
 );
 
 $grdMX->Columns[] = Array(
-   'title'=>"Title"
+   'title'=>$intra->translate("Title")
    , 'field' => "actTitle"
    , 'href' => "action_form.php?dbName=$dbName&actID=[actID]"
    , 'type' => "text"
@@ -245,13 +286,13 @@ $grdMX->Columns[] = Array(
 );
 
 $grdMX->Columns[] = Array(
-   'title' => "New status"
+   'title' => $intra->translate("New status")
    , 'field' => 'actNewStatusIDs'
    , 'type' => "text"
    , 'disabled' => true
 );
 $grdMX->Columns[] = Array(
-         'title'=>"Autocmplt?"
+         'title'=>$intra->translate("Autocmplt?")
          , 'field'=>'actFlagAutocomplete'
          , 'type'=>"checkbox"
       );
@@ -261,7 +302,12 @@ $grdMX->Columns[] = Array(
          , 'type'=>"checkbox"
       );
 $grdMX->Columns[] = Array(
-   'title'=>"Ord"
+         'title'=>"ATD=ATA?"
+         , 'field'=>'actFlagDepartureEqArrival'
+         , 'type'=>"checkbox"
+      );
+$grdMX->Columns[] = Array(
+   'title'=>$intra->translate("Ord")
    , 'field'=>"actPriority"
    , 'type'=>"text"
    , 'width'=>"30"
@@ -281,7 +327,7 @@ while ($rwRol = $oSQL->fetch_array($rsRol)){
 }
 
 $grdMX->Columns[] = Array(
-   'title'=>"Title Past tense"
+   'title'=>$intra->translate("Title Past tense")
    , 'field' => "actTitlePast"
    , 'type' => "text"
    , 'width' => "50%"
@@ -295,7 +341,7 @@ $grdMX->Columns[] = Array(
 );
 */
 $grdMX->Columns[] = Array(
-   'title'=>"Cmnt?"
+   'title'=>$intra->translate("Cmnt?")
    , 'field'=>"actFlagComment"
    , 'type'=>"checkbox"
    , 'width'=>"16"
@@ -314,6 +360,8 @@ switch ($DataAction){
     case "update":
         $sql = Array();
         
+        $oSQL->q("START TRANSACTION");
+
         $gridSTA->Update();
         $arrSTAToDelete = explode("|", $_POST["inp_sta_deleted"]);
         for($i=0;$i<count($arrSTAToDelete);$i++)
@@ -332,7 +380,67 @@ switch ($DataAction){
               $sql[] = "DELETE FROM stbl_status_attribute WHERE satStatusID='".$staID."' AND satEntityID='$entID'";
            }
         
-        $gridATR->Update();
+        if (!$easyAdmin){
+            
+            include_once eiseIntraAbsolutePath.'/inc_entity.php';
+            $ent = new eiseEntity($oSQL, $intra, $entID);
+
+            $atrTableName = $ent->rwEnt['entTable'];
+            $arrTableInfo = $intra->getTableInfo('', $atrTableName);
+
+            $arrSQLAlter = array();
+            $lastAddedColumn = '';
+
+            foreach ($_POST['inp_atr_updated'] as $ix => $value) {
+                if (!$value) //if not updated, skip it
+                    continue;
+                if ($_POST['atrID_id'][$ix]=='') { // if new one
+
+                    $atrID = $entID.preg_replace('/([^a-z0-9]+)/i', '', $_POST['atrTitle'][$ix]);
+                    $_POST['atrID'][$ix] = $atrID;
+                    $sqlA = $ent->getEntityTableALTER($atrID, $_POST['atrType'][$ix], 'add');
+                    if ($sqlA){
+                        $arrSQLAlter = array_merge($arrSQLAlter, $sqlA);
+                        $lastAddedColumn = $atrID;
+                    }
+
+                } else { // if old one change its type
+
+                    $newIntraDataType = $intra->arrAttributeTypes[$_POST['atrType'][$ix]];
+                    $oldIntraDataType = $arrTableInfo['columns'][$_POST['atrID'][$ix]]['DataType'];
+
+                    if ($newIntraFieldType!=$oldIntraDataType){
+                        $sqlA = $ent->getEntityTableALTER($_POST['atrID'][$ix], $_POST['atrType'][$ix], 'change');
+                        if ($sqlA)
+                            $arrSQLAlter = array_merge($arrSQLAlter, $sqlA);
+                    }
+
+                }
+            }
+
+            if ($lastAddedColumn!=''){
+                $strCodeMaster .= "CHANGE ".$entID."InsertBy ".$entID."InsertBy VARCHAR(255) NULL DEFAULT NULL  AFTER {$lastAddedColumn}";
+                $strCodeMaster .= "\r\n, CHANGE ".$entID."InsertDate ".$entID."InsertDate DATETIME NULL DEFAULT NULL AFTER ".$entID."InsertBy";
+                $strCodeMaster .= "\r\n, CHANGE ".$entID."EditBy ".$entID."EditBy VARCHAR(255) NULL DEFAULT NULL AFTER ".$entID."InsertDate";
+                $strCodeMaster .= "\r\n, CHANGE ".$entID."EditDate ".$entID."EditDate DATETIME NULL DEFAULT NULL AFTER ".$entID."EditBy";
+                
+                $strCodeLog .= "CHANGE l".$entID."InsertBy l".$entID."InsertBy VARCHAR(255) NULL DEFAULT NULL  AFTER l{$lastAddedColumn}";
+                $strCodeLog .= "\r\n, CHANGE l".$entID."InsertDate l".$entID."InsertDate DATETIME NULL DEFAULT NULL AFTER l".$entID."InsertBy";
+                $strCodeLog .= "\r\n, CHANGE l".$entID."EditBy l".$entID."EditBy VARCHAR(255) NULL DEFAULT NULL AFTER l".$entID."InsertDate ";
+                $strCodeLog .= "\r\n, CHANGE l".$entID."EditDate l".$entID."EditDate DATETIME NULL DEFAULT NULL AFTER l".$entID."EditBy ";
+                
+                $arrSQLAlter[] = "ALTER TABLE ".$rwEnt["entTable"]."\r\n".$strCodeMaster.";";
+                $arrSQLAlter[] = "ALTER TABLE ".$rwEnt["entTable"]."_log\r\n".$strCodeLog.";";
+            }
+
+        }
+
+        $gridATR->Update($_POST);
+        if(!$easyAdmin && count($arrSQLAlter)>0){
+            foreach ($arrSQLAlter as $sql_) {
+                $oSQL->q($sql_);
+            }
+        }
         
         //update action matrix
         $arrToDelete = explode("|", $_POST["inp_act_deleted"]);
@@ -362,6 +470,7 @@ switch ($DataAction){
                       `actPriority`,
                       `actFlagComment`,
                       actFlagHasEstimates,
+                      actFlagDepartureEqArrival,
                       `actInsertBy`,`actInsertDate`,`actEditBy`,`actEditDate`
                     ) VALUE (
                       '$entID',
@@ -373,6 +482,7 @@ switch ($DataAction){
                       ".(int)($_POST["actPriority"][$i]=="" ? "0" : $_POST["actPriority"][$i]).",
                       ".(int)($_POST["actFlagComment"][$i]).",
                       ".(int)($_POST["actFlagHasEstimates"][$i]).",
+                      ".(int)($_POST["actFlagDepartureEqArrival"][$i]).",
                       '$usrID', NOW(), '$usrID', NOW()
                     );";
                  $sql[] = "SET @actID=LAST_INSERT_ID()";
@@ -383,6 +493,8 @@ switch ($DataAction){
                       actFlagDeleted=".($_POST["actFlagDeleted"][$i]).",
                       actPriority=".($_POST["actPriority"][$i]=="" ? "0" : $_POST["actPriority"][$i]).",
                       actFlagComment=".($_POST["actFlagComment"][$i]).",
+                      actFlagHasEstimates=".($_POST["actFlagHasEstimates"][$i]).",
+                      actFlagDepartureEqArrival=".($_POST["actFlagDepartureEqArrival"][$i]).",
                       actEditBy='$usrID', actEditDate=NOW()
                      WHERE actID='".$_POST["actID"][$i]."'";
                  $sql[] = "SET @actID='".$_POST["actID"][$i]."'";
@@ -412,14 +524,13 @@ switch ($DataAction){
         
         for ($i=0; $i<count($sql); $i++)
              $rs = $oSQL->do_query($sql[$i]);
-          
+            
+        $oSQL->q("COMMIT");
+
        SetCookie("UserMessage", $entID."  updated");
        header("Location: ".$_SERVER["PHP_SELF"]."?dbName=$dbName&entID=".urlencode($entID));
     
         
-        die();
-        break;
-    case "delete":
         die();
         break;
     default:
@@ -449,7 +560,6 @@ if ($easyAdmin){
 
 include eiseIntraAbsolutePath."inc-frame_top.php";
 ?>
-<h1><?php  echo $rwEnt["entTitle"] ; ?></h1>
 
 <style>
 .field_title_top {
@@ -469,16 +579,17 @@ $(document).ready(function(){
 });
 </script>
 
-<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST">
+<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" class="eiseIntraForm">
 <input type="hidden" name="DataAction" value="update">
 <input type="hidden" name="dbName" value="<?php  echo $dbName ; ?>">
 <input type="hidden" name="entID" value="<?php  echo $entID ; ?>">
 
-<div class="panel">
+<fieldset>
+<legend><?php  echo $rwEnt["entTitle{$intra->local}"] ; ?></legend>
 <table width="100%">
 
 <tr>
-<td width="30%"><div class="field_title_top">Statuses:</div>
+<td width="30%"><div class="field_title_top"><?php echo $intra->translate("Statuses") ?>:</div>
 <?php 
 $sqlSta = "SELECT * FROM stbl_status WHERE staEntityID='".$entID."' ORDER BY staID";
 $rsSta = $oSQL->do_query($sqlSta);
@@ -493,7 +604,7 @@ $gridSTA->Execute();
 
 
 <td width="70%">
-<div class="field_title_top">Attributes:</div>
+<div class="field_title_top"><?php echo $intra->translate("Attributes") ?>:</div>
 <?php 
 $sqlATR = "SELECT * FROM stbl_attribute WHERE atrEntityID='$entID' ORDER BY atrOrder";
 $rsATR = $oSQL->do_query($sqlATR);
@@ -509,7 +620,7 @@ $gridATR->Execute();
 </tr>
 
 <tr>
-<td colspan="2"><div class="field_title_top">Action matrix:</div>
+<td colspan="2"><div class="field_title_top"><?php echo $intra->translate('Action matrix') ?>:</div>
 <?php 
 $sqlAct = "SELECT actID
     , actTitle{$strLocal} as actTitle
@@ -518,7 +629,8 @@ $sqlAct = "SELECT actID
     , actFlagComment
     , actFlagDeleted
 	, actFlagAutocomplete
-	, actFlagHasEstimates
+  , actFlagHasEstimates
+	, actFlagDepartureEqArrival
     ".$roleFields."
  , (SELECT GROUP_CONCAT(DISTINCT staTitle SEPARATOR ', ') FROM stbl_action_status INNER JOIN stbl_status ON staEntityID='$entID' AND staID=atsOldStatusID WHERE atsActionID=actID) as actOldStatusIDs
  , (SELECT GROUP_CONCAT(DISTINCT staTitle SEPARATOR ', ') FROM stbl_action_status INNER JOIN stbl_status ON staEntityID='$entID' AND staID=atsNewStatusID WHERE atsActionID=actID) as actNewStatusIDs
@@ -537,11 +649,11 @@ $grdMX->Execute();
 
 <tr>
 <td colspan="2" align="center">
-<input type="submit" value="Save" onclick="return checkForm();" style="margin:20px;">
+<input type="submit" class="eiseIntraSubmit" value="<?php echo $intra->translate('Save') ?>" onclick="return checkForm();" style="margin:20px;">
 </td>
 <tr>
 </table>
-</div>
+</fieldset>
 
 </form>
 

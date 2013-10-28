@@ -1,11 +1,20 @@
 <?php 
-
-
 // #########################################################################
 // Database class for mysql functions
 // #########################################################################
 class eiseSQL extends mysqli{
     
+    public $arrIntra2DBTypeMap = array(        
+        "integer"=>'int(11)',
+        "real"=>'decimal(16,4)',
+        "boolean"=>'tinyint(4)',
+        "text"=>'varchar(1024)',
+        "binary"=>'blob',
+        "date"=>'date',
+        "time"=>'time',
+        "datetime" => 'datetime'
+        );
+
     /* *** WARNING! method connect() only make some adjustments *** */
     function __construct ($dbhost, $dbuser, $dbpass, $dbname, $flagPersistent=false)  {
         
