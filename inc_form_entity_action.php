@@ -43,7 +43,7 @@ $gridATS->Columns[] = Array(
 );
         
 $gridATS->Columns[] = Array(
-        'title' => "Old Status"
+        'title' => $intra->translate("Old Status")
         , 'field' => "atsOldStatusID"
         , 'type' => "combobox"
         , 'sql' => "SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='".$rwAct["actEntityID"]."'"
@@ -52,7 +52,7 @@ $gridATS->Columns[] = Array(
 );
 
 $gridATS->Columns[] = Array(
-        'title' => "New Status"
+        'title' => $intra->translate("New Status")
         , 'field' => "atsNewStatusID"
         , 'type' => "combobox"
         , 'sql' => "SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='".$rwAct["actEntityID"]."'"

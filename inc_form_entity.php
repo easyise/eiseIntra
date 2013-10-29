@@ -171,18 +171,18 @@ $gridATR->Columns[] = Array(
             WHERE uomType=''
             ORDER BY uomOrder"
 );
-$gridATR->Columns[] = Array(
+
+if ($easyAdmin) {
+    $gridATR->Columns[] = Array(
         'title' => $intra->translate("Def")
         , 'field' => "atrDefault"
         , 'type' => "text"
-);
-$gridATR->Columns[] = Array(
-        'title' => $intra->translate("IfNull")
-        , 'field' => "atrTextIfNull"
-        , 'type' => "text"
-);
-
-if ($easyAdmin) {
+    );
+    $gridATR->Columns[] = Array(
+            'title' => $intra->translate("IfNull")
+            , 'field' => "atrTextIfNull"
+            , 'type' => "text"
+    );
     $gridATR->Columns[] = Array(
             'title' => $intra->translate("Classes")
             , 'field' => "atrClasses"
@@ -254,7 +254,7 @@ $grdMX->Columns[] = Array(
 $sqlStaCmb = "SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='$entID'";
 
 $grdMX->Columns[] = Array(
-   'title' => $intra->translate("Old status")
+   'title' => $intra->translate("Old Status")
    , 'field' => 'actOldStatusIDs'
    , 'type' => "text"
    , 'disabled' => true
@@ -286,7 +286,7 @@ $grdMX->Columns[] = Array(
 );
 
 $grdMX->Columns[] = Array(
-   'title' => $intra->translate("New status")
+   'title' => $intra->translate("New Status")
    , 'field' => 'actNewStatusIDs'
    , 'type' => "text"
    , 'disabled' => true
@@ -409,7 +409,7 @@ switch ($DataAction){
                     $newIntraDataType = $intra->arrAttributeTypes[$_POST['atrType'][$ix]];
                     $oldIntraDataType = $arrTableInfo['columns'][$_POST['atrID'][$ix]]['DataType'];
 
-                    if ($newIntraFieldType!=$oldIntraDataType){
+                    if ($newIntraDataType!=$oldIntraDataType){
                         $sqlA = $ent->getEntityTableALTER($_POST['atrID'][$ix], $_POST['atrType'][$ix], 'change');
                         if ($sqlA)
                             $arrSQLAlter = array_merge($arrSQLAlter, $sqlA);
@@ -440,6 +440,15 @@ switch ($DataAction){
             foreach ($arrSQLAlter as $sql_) {
                 $oSQL->q($sql_);
             }
+            $sqlVer = "INSERT INTO stbl_version (
+                    verNumber
+                    , `verDesc`
+                    , `verDate`
+                ) VALUES (
+                    ".$oSQL->d('SELECT MAX(verNumber)+1 FROM stbl_version')."
+                    , ".$oSQL->e(implode(";\r\n", $arrSQLAlter))."
+                    ,  NOW());";
+            $oSQL->q($sqlVer);
         }
         
         //update action matrix
@@ -586,7 +595,7 @@ $(document).ready(function(){
 
 <fieldset>
 <legend><?php  echo $rwEnt["entTitle{$intra->local}"] ; ?></legend>
-<table width="100%">
+<table width="100%" style="display:inline;">
 
 <tr>
 <td width="30%"><div class="field_title_top"><?php echo $intra->translate("Statuses") ?>:</div>
