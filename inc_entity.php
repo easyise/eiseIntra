@@ -884,8 +884,8 @@ function getEntityTableALTER($atrID, $atrType, $action){
             $sqlRet[] = "ALTER TABLE `{$this->rwEnt['entTable']}_log` ADD COLUMN `l{$atrID}` {$strDBType} NULL DEFAULT NULL";
             break;
         case 'change':
-            $sqlRet[] = "ALTER TABLE `{$this->rwEnt['entTable']}` CHANGE COLUMN `{$atrID}` {$strDBType} NULL DEFAULT NULL";
-            $sqlRet[] = "ALTER TABLE `{$this->rwEnt['entTable']}_log` CHANGE COLUMN `l{$atrID}` {$strDBType} NULL DEFAULT NULL";
+            $sqlRet[] = "ALTER TABLE `{$this->rwEnt['entTable']}` CHANGE COLUMN `{$atrID}` `{$atrID}` {$strDBType} NULL DEFAULT NULL";
+            $sqlRet[] = "ALTER TABLE `{$this->rwEnt['entTable']}_log` CHANGE COLUMN `l{$atrID}` `l{$atrID}` {$strDBType} NULL DEFAULT NULL";
             break;
         default:
             return false;

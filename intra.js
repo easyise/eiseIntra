@@ -63,7 +63,7 @@ init: function( options ) {
         var $this = $(this),
             data = $this.data('eiseIntraForm');
         
-        // Если плагин ещё не проинициализирован
+        // Р•СЃР»Рё РїР»Р°РіРёРЅ РµС‰С‘ РЅРµ РїСЂРѕРёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ
         if ( ! data ) {
 
             var conf = $.parseJSON($('#eiseIntraConf').val());
@@ -229,6 +229,8 @@ validate: function( ) {
         var strValue = $(this).val();
         var strType = $(this).attr('type');
         
+        var strRegExDateToUse = '';
+
         var $inpToCheck = $(this).hasClass("eiseIntra_ajax_dropdown") ? $(this).prev("input") : $(this);
         
         if ($inpToCheck.attr('required')==='required' && $inpToCheck.val()===""){
@@ -252,12 +254,16 @@ validate: function( ) {
                 break;
             case 'date':
                 if (isDateInputSupported()){
-                    strRegExDate = "[0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2}";
+                    strRegExDateToUse = "[0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2}";
+                } else {
+                    strRegExDateToUse = strRegExDate;
                 }
             case 'time':
             case 'datetime':
-                 
-                var strRegEx = "^"+(strType.match(/date/) ? strRegExDate : "")+
+                
+                strRegExDateToUse = (strRegExDateToUse!='' ? strRegExDateToUse : strRegExDate);
+
+                var strRegEx = "^"+(strType.match(/date/) ? strRegExDateToUse : "")+
                     (strType=="datetime" ? " " : "")+
                     (strType.match(/time/) ? strRegExTime : "")+"$";
                 
