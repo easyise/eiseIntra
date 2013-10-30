@@ -20,6 +20,17 @@ $(document).ready(function(){
     
     eiseIntraAdjustFrameContent();
     MsgShow();	
+
+    $('#menubar a.confirm').click(function(event){
+        
+        if (!confirm('<?php echo addslashes($intra->translate('Are you sure you want to execute')); ?> "'+$(this).text()+'"?')){
+            event.preventDefault();
+            return false;
+        } else {
+            return true;
+        }
+
+    });
     
 });
 </script>

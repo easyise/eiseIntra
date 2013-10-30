@@ -82,10 +82,13 @@ function Execute(){
     $sqlVer = "SELECT MAX(verNumber) as verNumber FROM stbl_version";
     $rsVer = $oSQL->do_query($sqlVer);
     if (!$rsVer) {
-        $oSQL->do_query("CREATE TABLE stbl_version (
-              verNumber int
-              , verDate datetime
-           )
+        $oSQL->do_query("CREATE TABLE `stbl_version` (
+              `verNumber` int(10) unsigned NOT NULL,
+              `verDesc` text,
+              `verFlagVersioned` tinyint(4) NOT NULL DEFAULT '0',
+              `verDate` datetime DEFAULT NULL,
+              PRIMARY KEY (`verNumber`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Version information for the system'
            ");
         $verNumber = 0;
     } else 
@@ -93,6 +96,22 @@ function Execute(){
        
     echo "Current DB version number is #".sprintf("%03d",$verNumber)."\r\n";
     
+    /* Detect verFlagVersioned flag and non-versioned scripts */
+    $hasFlagVersioned = (bool)$oSQL->n($oSQL->q("SHOW COLUMNS FROM stbl_version LIKE 'verFlagVersioned'"));
+    if($hasFlagVersioned){
+
+        // check non-versioned scripts
+        $nNonVersioned = $oSQL->d("SELECT COUNT(*) FROM stbl_version WHERE LENGTH(verDesc)>0 AND verFlagVersioned=0 AND verNumber>1");
+        if($nNonVersioned>0){
+
+            echo "ERROR: Current DBSV version has non-versioned files. Get DBSV delta first from Database menu using eiseAdmin.\r\n\r\n";
+            return;
+
+        }
+
+    }
+
+
     if (!file_exists($this->strDir)){
         echo "ERROR: Directory '{$this->strDir}' doesn't exist";
         return;
@@ -131,7 +150,7 @@ function Execute(){
         }
         $oSQL->do_query("START TRANSACTION");
         $this->parse_mysql_dump($arrFiles[$newVer]);
-        $oSQL->do_query("INSERT INTO stbl_version (verNumber, verDate, verDesc) VALUES ({$newVer}, NOW(), '')");
+        $oSQL->do_query("INSERT INTO stbl_version (verNumber, verDate, verFlagVersioned, verDesc) VALUES ({$newVer}, NOW(), 1, '')");
         $oSQL->do_query("COMMIT");
         $ver = $oSQL->d("SELECT MAX(verNumber) FROM stbl_version");
         echo "Version is now #".sprintf("%03d",$ver)."\r\n";

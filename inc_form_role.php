@@ -50,6 +50,18 @@ if ($_POST["DataAction"]=="update"){
     }
 }
 
+include_once(commonStuffAbsolutePath."eiseGrid/inc_eiseGrid.php");
+$arrJS[] = commonStuffRelativePath.'eiseGrid/eiseGrid.js';
+$arrCSS[] = commonStuffRelativePath.'eiseGrid/eiseGrid.css';
+
+#$arrJS[] = "../common/jquery/jquery-autocomplete/lib/jquery.bgiframe.js";
+#$arrJS[] = "../common/jquery/jquery-autocomplete/jquery.autocomplete.js";
+#$arrJS[] = "../common/jquery/jquery-autocomplete/lib/jquery.ajaxQueue.js";
+#$arrCSS[] = "../common/jquery/jquery-autocomplete/jquery.autocomplete.css";
+
+$arrJS[] = jQueryUIRelativePath."js/jquery-ui-1.8.16.custom.min.js";
+$arrCSS[] = jQueryUIRelativePath."css/redmond/jquery-ui-1.8.16.custom.css";
+
 include "inc-frame_top.php";
 
 
