@@ -24,6 +24,8 @@ define ("imagesRelativePath", commonStuffRelativePath."images/");
 define ("eiseIntraCookiePath", "/");
 define ("eiseIntraCookieExpire", time()+60*60*24*30); // 30 days
 
+define ('eiseIntraUserMessageCookieName', 'UserMessage');
+
 // replace values below for LDAP authentication
 $ldap_server = "2.12.85.06";
 $ldap_domain = "e-ise.com";

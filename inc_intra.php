@@ -38,6 +38,7 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
         , 'thousandsSeparator' => ","
         , 'logofftimeout' => 360 //6 hours
         , 'addEiseIntraValueClass' => true
+ //       , 'flagSetGlobalCookieOnRedirect' = false
     );
     
     $this->conf = array_merge($this->conf, $conf);
@@ -66,6 +67,8 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
     $arrFind[] = "s"; $arrReplace[]="([0-9]{1,2})";
     $this->conf["prgTime"] = str_replace($arrFind, $arrReplace, $this->conf["timeFormat"]);
     
+    $this->conf['UserMessageCookieName'] = eiseIntraUserMessageCookieName ? eiseIntraUserMessageCookieName: 'UserMessage';
+
     $this->oSQL = $oSQL;
 
 }
@@ -85,7 +88,7 @@ function Authenticate($login, $password, &$strError, $method="LDAP"){
         GLOBAL $ldap_conn, $ldap_anonymous_login, $ldap_anonymous_pass;
         if (preg_match("/^([a-z0-9]+)[\/\\\]([a-z0-9]+)$/i", $login, $arrMatch)){
             $login = $arrMatch[2];
-            $ldap_domain = strtolower($arrMatch[1].".abyrvalg.com");
+            $ldap_domain = strtolower($arrMatch[1].".e-ise.com");
         } else
             if (preg_match("/^([a-z0-9\_]+)[\@]([a-z0-9\.\-]+)$/i", $login, $arrMatch)){
                 $login = $arrMatch[1];
@@ -206,8 +209,8 @@ function checkPermissions(){
     if (!$rwPerms["FlagRead"]){
         header("HTTP/1.0 403 Access denied");
         $errortext = "".$_SERVER["PHP_SELF"].": ".$this->translate("access denied");
-        SetCookie ("UserMessage", "ERROR: ".$errortext);
-        header ("Location: ".(($_SERVER["HTTP_REFERER"]!="" && !strstr($_SERVER["HTTP_REFERER"], "login.php")) ? $_SERVER["HTTP_REFERER"] : "login.php?error=".urlencode($errortext)));
+        $this->redirect("ERROR: ".$errortext
+            , (($_SERVER["HTTP_REFERER"]!="" && !strstr($_SERVER["HTTP_REFERER"], "login.php")) ? $_SERVER["HTTP_REFERER"] : "login.php?error=".urlencode($errortext)));
         die();
     } 
     
@@ -234,6 +237,49 @@ function checkPermissions(){
     return $this->arrUsrData;
      
 }
+
+
+function redirect($strMessage, $strLocation, $arrConfig = array()){
+
+    $conf = array_merge($this->conf, $arrConfig);
+
+    $cookiePath = (!$intra->conf['flagSetGlobalCookieOnRedirect']
+        ? $strLocation
+        : eiseIntraCookiePath);
+
+    setcookie ( $this->conf['UserMessageCookieName'], $strMessage, 0, $cookiePath );
+    header("Location: {$strLocation}");
+    die();
+
+}
+
+function backref($urlIfNoReferer){
+    
+    if (strpos($_SERVER["HTTP_REFERER"], $_SERVER["REQUEST_URI"])===false){//if referer is not from itself
+        // record a cookie
+        SetCookie("referer", $_SERVER["HTTP_REFERER"], 0, $_SERVER["PHP_SELF"]);
+        $backref = $_SERVER["HTTP_REFERER"];
+    } else {
+        $backref = ($_COOKIE["referer"] ? $_COOKIE["referer"] : $urlIfNoReferer);
+    }
+    return $backref;
+
+}
+
+function hasUserMessage(){
+    if (isset($_COOKIE[$this->conf['UserMessageCookieName']])){
+        return true;
+    }
+    return false;
+}
+
+function getUserMessage(){
+    $strRet = $_COOKIE[$this->conf['UserMessageCookieName']];
+    setcookie($this->conf['UserMessageCookieName'], '', 0, $_SERVER['REQUEST_URI']);
+    setcookie($this->conf['UserMessageCookieName'], ''); // backward-compatibility
+    return $strRet;
+}
+
 
 function getRoleUsers($strRoleName) {
    $sqlRoleUsers = "SELECT rluUserID
@@ -460,16 +506,31 @@ function showCombo($strName, $strValue, $arrOptions, $arrConfig=Array()){
     
     $strAttrib = $arrConfig["strAttrib"];
     if ($flagWrite){
+
         $retVal .= "<select id=\"".$strName."\" name=\"".$strName."\"".$strAttrib.
             ($strClass ? " ".$strClass : "").
             ($arrConfig["required"] ? " required=\"required\"" : "").">\r\n";
         if ($arrConfig["strZeroOptnText"]){
             $retVal .= "<option value=\"\">".htmlspecialchars($arrConfig["strZeroOptnText"])."</option>\r\n" ;
         }
+        if (!isset($arrConfig['deletedOptions']))
+            $arrConfig['deletedOptions'] = array();
         foreach ($arrOptions as $key => $value){
-            $retVal .= "<option value='$key'".((string)$key==(string)$strValue ? " SELECTED " : "").">".str_repeat('&nbsp;',5*$arrConfig["indent"][$key])."{$value}</option>\r\n";
+            if (is_array($value)){ // if there's an optgoup
+                $retVal .= '<optgroup label="'.(isset($arrConfig['optgroups']) ? $arrConfig['optgroups'][$key] : $key).'">';
+                foreach($value as $optVal=>$optText){
+                    $retVal .= "<option value='$optVal'".((string)$optVal==(string)$strValue ? " SELECTED " : "").
+                        (in_array($optVal, $arrConfig['deletedOptions']) ? ' class="deleted"' : '').
+                        ">".str_repeat('&nbsp;',5*$arrConfig["indent"][$key]).htmlspecialchars($optText)."</option>\r\n";
+                }
+                $retVal .= '</optgroup>';
+            } else
+                $retVal .= "<option value='$key'".((string)$key==(string)$strValue ? " SELECTED " : "").
+                        (in_array($key, $arrConfig['deletedOptions']) ? ' class="deleted"' : '').
+                        ">".str_repeat('&nbsp;',5*$arrConfig["indent"][$key]).htmlspecialchars($value)."</option>\r\n";
         }
         $retVal .= "</select>";
+
     } else {
         
         foreach ($arrOptions as $key => $value){

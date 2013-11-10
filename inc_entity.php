@@ -738,7 +738,7 @@ function newItemID($prefix, $datefmt="ym", $numlength=5){
     $oSQL->q($sqlNumber);
     $number = $oSQL->i();
     
-    $oSQL->q("DELETE FROM {$this->rwEnt["entTable"]}_number");
+    $oSQL->q("DELETE FROM {$this->rwEnt["entTable"]}_number WHERE n{$this->entID}ID < {$number}");
     
     $strID = "{$prefix}".date($datefmt).substr(sprintf("%0{$numlength}d", $number), -1*$numlength);
     

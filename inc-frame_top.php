@@ -41,9 +41,8 @@ echo "\t".$strHead."\r\n";
 
 </head>
 <body><input type="hidden" id="eiseIntraConf" value="<?php  echo htmlspecialchars(json_encode($intra->conf)) ; ?>"><?php 
-if (isset($_COOKIE["UserMessage"])) {
-   $strUserMessage = $_COOKIE["UserMessage"];
-   SetCookie("UserMessage", "");
+if ($intra->hasUserMessage()) {
+   $strUserMessage = $intra->getUserMessage();
 }
  ?><div style="display:none;" id="sysmsg"<?php  
      echo (preg_match("/^ERROR/", $strUserMessage) ? " class='error'" : "") ; 
