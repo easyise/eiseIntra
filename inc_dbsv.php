@@ -20,6 +20,10 @@ class eiseDBSV {
 function __construct($oSQL, $strDir){
     $this->oSQL = $oSQL;
     $this->strDir = $strDir;
+    if (!file_exists($this->strDir)){
+        throw new Exception( "ERROR: DBSV - Directory '{$this->strDir}' doesn't exist" );
+        return;
+    }
 }
 
 function ExecuteDBSVFramework($dbName){
@@ -38,10 +42,38 @@ function ExecuteDBSVFramework($dbName){
     $verNumber = (!$verNumber ? $verNumber=59 : $verNumber);
     
     $oSQL->dbname = $dbName;
-    
-    echo "Current DB Framework Schema Version number is #".sprintf("%03d",$verNumber)."\r\n";
 
-    $dh  = opendir(eiseIntraAbsolutePath.".SQL");
+    $arrFiles = $this->getFilesArray();
+    
+    $newVerNo = $this->getNewVersion();
+
+    echo "Current DB Framework Schema Version number is now #".sprintf("%03d",$verNumber)." of ".sprintf("%03d",$newVerNo)."\r\n";
+
+    if ($newVerNo<=$verNumber) {
+       die("Nowhere to update. Currenct DB framework version is bigger than this update.\r\n\r\n");ob_flush();
+    } else {
+       echo "New version number is going to be #".sprintf("%03d",$newVerNo)."\r\n";ob_flush();
+    }
+
+    for ($i=($verNumber+1);$i<=$newVerNo;$i++){
+       if (!isset($arrFiles[$i]))
+           die("Cannot get SQL script for version #$i.");
+        $fileName = $this->strDir.DIRECTORY_SEPARATOR.$arrFiles[$i];
+        $fh = fopen($fileName, "r");
+        ///*
+        $this->parse_mysql_dump($fileName);
+        $oSQL->q("INSERT INTO stbl_framework_version (fvrNumber, fvrDate, fvrDesc) VALUES ($i, NOW(),".
+                $oSQL->e(fread($fh, filesize($fileName))).")");
+       //*/
+        echo "Version is now #".sprintf("%03d",$i)."\r\n";ob_flush();
+        fclose($fh);
+    }
+    
+}
+
+private function getFilesArray(){
+
+    $dh  = opendir($this->strDir);
         
     $arrFiles = Array();
         
@@ -50,27 +82,25 @@ function ExecuteDBSVFramework($dbName){
           $arrFiles[(integer)$arrMatch[1]] = $filename;
        }
     }
+    closedir($dh);
 
-    ksort($arrFiles);
-    end($arrFiles);
-    $newVerNo = key($arrFiles);
-    echo "New version number is going to be #".sprintf("%03d",$newVerNo)."\r\n";ob_flush();
-    if ($newVerNo<=$verNumber) 
-       die("Nowhere to update. Currenct DB framework version is bigger than this update.\r\n\r\n");ob_flush();
-    
-    for ($i=($verNumber+1);$i<=$newVerNo;$i++){
-       if (!isset($arrFiles[$i]))
-           die("Cannot get SQL script for version #$i.");
-        $fileName = eiseIntraAbsolutePath.".SQL".DIRECTORY_SEPARATOR.$arrFiles[$i];
-        $fh = fopen($fileName, "r");
-        $this->parse_mysql_dump($fileName);
-        $oSQL->q("INSERT INTO stbl_framework_version (fvrNumber, fvrDate, fvrDesc) VALUES ($i, NOW(),".
-                $oSQL->e(fread($fh, filesize($fileName))).")");
-       
-       echo "Version is now #".sprintf("%03d",$i)."\r\n";
-       fclose($fh);
+    $this->arrFiles = $arrFiles;
+
+    return $arrFiles;
+}
+
+public function getNewVersion(){
+
+    if(empty($this->arrFiles)){
+        $this->getFilesArray();
     }
-    
+
+    ksort($this->arrFiles);
+    end($this->arrFiles);
+
+    $newVerNo = key($this->arrFiles);
+
+    return $newVerNo;
 }
 
 function Execute(){
@@ -94,7 +124,7 @@ function Execute(){
     } else 
        $verNumber = $oSQL->get_data($rsVer, 0, "verNumber");
        
-    echo "Current DB version number is #".sprintf("%03d",$verNumber)."\r\n";
+    echo "Current DB version number is #".sprintf("%03d",$verNumber)."\r\n";ob_flush();flush();
     
     /* Detect verFlagVersioned flag and non-versioned scripts */
     $hasFlagVersioned = (bool)$oSQL->n($oSQL->q("SHOW COLUMNS FROM stbl_version LIKE 'verFlagVersioned'"));
@@ -112,29 +142,17 @@ function Execute(){
     }
 
 
-    if (!file_exists($this->strDir)){
-        echo "ERROR: Directory '{$this->strDir}' doesn't exist";
-        return;
-    }
-    
-    $dh  = opendir($this->strDir);
-        
-    $arrFiles = Array();
-        
-    while (false !== ($filename = readdir($dh))) {
-        if (preg_match("/^([0-9]{3})[\-\_ ].+(\.sql)/",$filename, $arrMatch)){
-            $arrFiles[(integer)$arrMatch[1]] = $filename;
-        }
-    }
 
-    ksort($arrFiles);
-    end($arrFiles);
-    $newVerNo = key($arrFiles);
+    $arrFiles = $this->getFilesArray();
+    
+    $newVerNo = $this->getNewVersion();
+    
     echo "New version number is going to be #".sprintf("%03d",$newVerNo)."\r\n";
     if ($newVerNo<=$verNumber) {
         echo "ERROR: Nowhere to update. Currenct DB version is bigger than this update.\r\n\r\n";
         return;
     }
+
 
     chdir($this->strDir);
     $newVer = $verNumber+1;
@@ -145,7 +163,7 @@ function Execute(){
         if (!isset($arrFiles[$newVer])){
             echo "ERROR: Cannot get SQL script for version #{$newVer}. ";
             $ver = $oSQL->d("SELECT MAX(verNumber) FROM stbl_version");
-            echo "Current version is {$ver}.\r\n";
+            echo "Current version is {$ver}.\r\n";ob_flush();flush();
             return;
         }
         $oSQL->do_query("START TRANSACTION");
@@ -153,7 +171,7 @@ function Execute(){
         $oSQL->do_query("INSERT INTO stbl_version (verNumber, verDate, verFlagVersioned, verDesc) VALUES ({$newVer}, NOW(), 1, '')");
         $oSQL->do_query("COMMIT");
         $ver = $oSQL->d("SELECT MAX(verNumber) FROM stbl_version");
-        echo "Version is now #".sprintf("%03d",$ver)."\r\n";
+        echo "Version is now #".sprintf("%03d",$ver)."\r\n";ob_flush();flush();
         $newVer = $ver+1;
     }
 
