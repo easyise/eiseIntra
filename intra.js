@@ -242,10 +242,10 @@ validate: function( ) {
         
         switch (strType){
             case "number":
-                strValue = parseFloat(strValue
+                nValue = parseFloat(strValue
                     .replace(new RegExp("\\"+conf.decimalSeparator, "g"), '.')
                     .replace(new RegExp("\\"+conf.thousandsSeparator, "g"), ''));
-                if (strValue!="" && isNaN(strValue)){
+                if (strValue!="" && isNaN(nValue)){
                     alert(getFieldLabelText($(this))+" should be numeric");
                     $(this).focus();
                     canSubmit = false;
