@@ -121,7 +121,8 @@ public function update($arrNewData, $flagUpdateMultiple = false, $flagFullEdit =
     $this->updateMasterTable($arrNewData, $flagUpdateMultiple, $flagFullEdit);
     $this->updateActionLog();
     
-    if (!isset($this->arrNewData["actID"])){
+    // if no action set with arrNewData we record an update
+    if (!isset($this->arrNewData["actID"]) && !isset($this->arrNewData["aclGUID"])){
         $this->arrNewData['actID'] = 2;
         $this->doAction(); // record update operation to the log
     }
