@@ -1,6 +1,8 @@
 <?php
 include_once "inc_entity.php";
 
+const MAX_STL_LENGTH = 256;
+
 class eiseEntityItem extends eiseEntity {
 
 public $oSQL;
@@ -140,7 +142,7 @@ public function doAction($arrNewData = null){
     if (count($this->arrAction)==0){
         $this->prepareActions();
     }
-    
+
     // proceed with the action
     if ($this->arrAction["actFlagAutocomplete"] && $this->arrAction["aclGUID"]==""){
         
@@ -305,7 +307,7 @@ public function addAction($arrAction = null){
     
 }
 
-public function findAction($aclOldStatusID, $aclNewStatusID, $aclActionID, $aclActionPhase = null){
+public function findAction($aclOldStatusID, $aclNewStatusID, $aclActionID, $aclActionPhase = null, $date=null){
     
     $arrACL = Array();
     
@@ -332,12 +334,16 @@ public function findAction($aclOldStatusID, $aclNewStatusID, $aclActionID, $aclA
             ? " AND aclActionPhase".(is_array($aclActionPhase) 
                 ?  " IN (".implode(", ", $aclActionPhase).")"
                 : "=".(int)$aclActionPhase)
+            : "").
+        ($date!==null 
+            ? " AND IFNULL(aclATD, aclATA) BETWEEN '".$this->intra->getDateTimeByOperationTime($date, (isset($this->intra->conf['stpOperationDayStart']) ? $this->intra->conf['stpOperationDayStart'] : '00:00'))."'".
+                " AND '".$this->intra->getDateTimeByOperationTime($date, (isset($this->intra->conf['stpOperationDayEnd']) ? $this->intra->conf['stpOperationDayEnd'] : '23:59:59'))."'"
             : "")."
         ORDER BY aclInsertDate DESC
         ";
-        
+       
     $rsACL = $this->oSQL->q($sqlACL);
-    
+
     while($rwACL = $this->oSQL->f($rsACL)){
         $arrACL[] = $rwACL;
     }
@@ -523,6 +529,9 @@ public function prepareActions(){
             WHERE actID='{$this->arrNewData["actID"]}'";
     }
     $rsACT = $oSQL->do_query($sqlACT);
+    if ($oSQL->n($rsACT)==0){
+        throw new Exception("Action not found for ID/GUID {$this->arrNewData["actID"]}/{$this->arrNewData["aclGUID"]}");
+    }
     $rwACT = $oSQL->fetch_array($rsACT);
     
     $this->arrAction["AAT"] = $this->getActionAttribute($rwACT["actID"]);
@@ -728,7 +737,6 @@ function updateActionLogItem($aclGUID, $arrACL = null){
             $strEntityLogFldToSet .= ", l{$atrID} = {$newValue}";
         }
         
-        
     }
     $sqlToTrack = "UPDATE {$this->rwEnt["entTable"]}_log SET 
                 l{$this->entID}EditBy='{$this->intra->usrID}', l{$this->entID}EditDate=NOW()
@@ -752,6 +760,59 @@ function updateActionLogItem($aclGUID, $arrACL = null){
        {$tsfieldsToSet}
        WHERE aclGUID='{$aclGUID}'";
     $this->oSQL->q($sqlToTrack);
+    
+}
+
+function updateStatusLogItem($stlGUID, $arrSTL = null){
+    
+    $oSQL = $this->oSQL;
+    $intra = $this->intra;
+    
+    if($arrSTL===null){
+        foreach($entItem->rwEnt["STL"] as $stlGUID_ => $rwSTL){
+            if ($stlGUID_==$stlGUID){
+                $arrSTL = $rwSTL;
+                break;
+            }
+        }
+    }
+
+    $newATA = $intra->datetimePHP2SQL($this->arrNewData['stlATA_'.$stlGUID]); 
+    $newATD = $intra->datetimePHP2SQL($this->arrNewData['stlATD_'.$stlGUID]); 
+    if ($intra->unq($newATA)!==$arrSTL['stlATA'] || $intra->unq($newATD)!==$arrSTL['stlATD']){
+
+        $sqlSTL = "UPDATE stbl_status_log SET
+                stlATA =  {$newATA}
+                , stlATD =  {$newATD}
+                , stlEditBy =  '{$this->intra->usrID}', stlEditDate = NOW()
+            WHERE `stlGUID` = ".$oSQL->e($stlGUID);
+        $this->oSQL->q($sqlSTL);
+
+    }
+
+    $strFieldsToUpdate = '';
+    if(isset($arrSTL['SAT']))
+    foreach($arrSTL['SAT'] as $atrID=>$rwSAT){
+        $newValue = null;
+        $inputName = $atrID.'_'.$stlGUID;
+        if (isset($this->arrNewData[$inputName])){
+            $toEval = "\"".str_replace("\$_POST", "\$this->arrNewData"
+                    , $this->intra->getSQLValue(Array('Field'=>$inputName, 'DataType'=>$rwSAT['atrType'])))."\"";
+            eval("\$newValue = ".$toEval.";");
+            if($intra->unq($newValue)==$rwSAT['value']) $newValue = null;
+        }
+        if ($newValue!==null){
+            $strFieldsToUpdate .= ", l{$atrID} = {$newValue}";
+        }
+    }
+
+    if($strFieldsToUpdate){
+        $sqlLog = "UPDATE {$this->rwEnt['entTable']}_log SET 
+            l{$this->entID}EditBy='{$this->intra->usrID}', l{$this->entID}EditDate=NOW()
+                {$strFieldsToUpdate}
+            WHERE l{$this->entID}GUID='{$stlGUID}'";
+        $this->oSQL->q($sqlLog);
+    }
     
 }
 
@@ -908,6 +969,9 @@ function cancelAction(){
         $sql[] = "UPDATE stbl_status_log SET stlATD=NULL, stlDepartureActionID=NULL WHERE stlGUID='{$rwSTLLast["stlGUID"]}'";
 
         if (empty($this->arrNewData["isUndo"])) {
+            if ($this->arrAction["aclActionPhase"]>=2){ // if action is already finish and it's not UNDO, it's cancel
+                throw new Exception('Action cannot be cancelled, it is already complete');
+            }
             //cancel the action
             $sql[] = "UPDATE stbl_action_log SET aclActionPhase=3
                 , aclEditBy='{$this->intra->usrID}'
@@ -1464,20 +1528,28 @@ function getActionData($aclGUID){
     
 }
 
-function getStatusData($stlGUID){
+function getStatusData($stlDepartureActionID){
 	
+    static $nIterations;
+
+    $nIterations = ($stlDepartureActionID===null ? 0 : $nIterations);
+
 	$oSQL = $this->oSQL;
     $entID = $this->entID;
 	
 	$arrRet = Array();
 	
-    if (!$stlGUID) return Array();
-	
-	$sqlSTL = "
-		SELECT STL.* , STA.*
-		FROM stbl_status_log STL
-		INNER JOIN stbl_status STA ON staEntityID=stlEntityID AND staID=stlStatusID
-		WHERE stlGUID=".$oSQL->e($stlGUID);
+	$sqlSTL = "SELECT STL.* , STA.*
+            , STL_PREVS.stlDepartureActionID AS stlDepartureActionID_prevs
+        FROM stbl_status_log STL
+        INNER JOIN stbl_status STA ON staEntityID=stlEntityID AND staID=stlStatusID
+        LEFT OUTER JOIN stbl_status_log STL_PREVS 
+            ON STL.stlEntityItemID=STL_PREVS.stlEntityItemID 
+                AND STL.stlEntityID=STL_PREVS.stlEntityID 
+                AND STL.stlArrivalActionID=STL_PREVS.stlDepartureActionID
+		WHERE STL.stlEntityItemID=".$oSQL->e($this->entItemID)." AND STL.stlEntityID=".$oSQL->e($this->entID)."
+            AND IFNULL(STL.stlArrivalActionID, '')<>IFNULL(STL.stlDepartureActionID,'')
+            AND STL.stlDepartureActionID ".($stlDepartureActionID===null ? "IS NULL" : "='{$stlDepartureActionID}'");
 	$rsSTL = $oSQL->do_query($sqlSTL);
 	if ($oSQL->n($rsSTL) == 0) return Array();
 	
@@ -1525,7 +1597,13 @@ function getStatusData($stlGUID){
 	
 	$arrRet["stlArrivalAction"] = $this->getActionData($rwSTL["stlArrivalActionID"]);
 		
-	return $arrRet;
+	$this->rwEnt["STL"][$rwSTL["stlGUID"]] = $arrRet;
+
+    $nIterations++;
+
+    if ($arrRet['stlDepartureActionID_prevs'] && $nIterations<MAX_STL_LENGTH){
+        $this->getStatusData($arrRet['stlDepartureActionID_prevs']);
+    }
 	
 }
 
@@ -1562,7 +1640,7 @@ function getEntityItemAllData(){
 	$sqlACL = "SELECT * FROM stbl_action_log 
             WHERE aclEntityItemID='{$this->entItemID}'
             AND aclActionPhase <> 2 
-            ORDER BY aclInsertDate DESC";
+            ORDER BY aclInsertDate DESC, aclOldStatusID DESC";
 	$rsACL = $this->oSQL->do_query($sqlACL);
 	while($rwACL = $this->oSQL->fetch_array($rsACL)){
 		$this->rwEnt["ACL"][$rwACL["aclGUID"]] = $this->getActionData($rwACL["aclGUID"]);
@@ -1570,17 +1648,7 @@ function getEntityItemAllData(){
 	
     // collect status log and nested actions
     $this->rwEnt["STL"] = Array();
-	$sqlSTL = "SELECT stlGUID
-		FROM stbl_status_log 
-		WHERE stlEntityItemID='{$this->entItemID}' AND stlEntityID='{$this->entID}'
-		ORDER BY DATE(stlATA) DESC
-			, stlInsertDate DESC
-			, stlArrivalActionID DESC
-		";
-	$rsSTL = $this->oSQL->q($sqlSTL);
-	while ($rwSTL = $this->oSQL->fetch_array($rsSTL)){
-		$this->rwEnt["STL"][$rwSTL["stlGUID"]] = $this->getStatusData($rwSTL["stlGUID"]);
-	}
+    $this->getStatusData(null);
 	
 	//comments
 	$this->rwEnt["comments"] = Array();

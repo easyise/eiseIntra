@@ -38,14 +38,14 @@ switch ($DataAction){
         
         $entItem->updateMasterTable($_POST, false, true);
         
-        
-        
         foreach($entItem->rwEnt["ACL"] as $aclGUID=>$arrACL){
             $entItem->updateActionLogItem($aclGUID, $arrACL);
         }
         
         foreach($entItem->rwEnt["STL"] as $stlGUID => $rwSTL){
             
+            $entItem->updateStatusLogItem($stlGUID, $rwSTL);
+
             if (isset($rwSTL["ACL"]))
             foreach ($rwSTL["ACL"] as $aclGUID=>$rwNAct){
                $entItem->updateActionLogItem($aclGUID, $rwNAct);
@@ -54,11 +54,10 @@ switch ($DataAction){
             $entItem->updateActionLogItem($rwSTL["stlArrivalAction"]["aclGUID"], $rwSTL["stlArrivalAction"]);
             
         }
-        
+
         $entItem->prepareActions();
         $entItem->addAction();
         $entItem->finishAction();
-        
         
         $oSQL->do_query("COMMIT");
         
@@ -198,8 +197,12 @@ foreach($entItem->rwEnt["STL"] as $stlGUID => $rwSTL){
         ? $rwSTL["stlTitle{$intra->local}"]
         : $rwSTL["staTitle"]); ?></span>
 <?php 
-    echo $intra->showTextBox("stlATA_{$rwSTL['stlGUID']}", $intra->dateSQL2PHP($rwSTL["stlATA"]), Array('class'=>'eiseIntra_stlATA', 'type'=>$rwSTL['stlPrecision']));
-    echo $intra->showTextBox("stlATD_{$rwSTL['stlGUID']}", $intra->dateSQL2PHP($rwSTL["stlATD"]), Array('class'=>'eiseIntra_stlATD', 'type'=>$rwSTL['stlPrecision']));
+    echo $intra->showTextBox("stlATA_{$rwSTL['stlGUID']}"
+        , $rwSTL['stlPrecision']=='date' ? $intra->dateSQL2PHP($rwSTL["stlATA"]) : $intra->datetimeSQL2PHP($rwSTL["stlATA"])
+        , Array('class'=>'eiseIntra_stlATA', 'type'=>$rwSTL['stlPrecision']));
+    echo $intra->showTextBox("stlATD_{$rwSTL['stlGUID']}"
+        , $rwSTL['stlPrecision']=='date' ? $intra->dateSQL2PHP($rwSTL["stlATD"]) : $intra->datetimeSQL2PHP($rwSTL["stlATD"])
+        , Array('class'=>'eiseIntra_stlATD', 'type'=>$rwSTL['stlPrecision']));
 ?>
             
     </div>

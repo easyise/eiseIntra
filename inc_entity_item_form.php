@@ -229,8 +229,8 @@ foreach($this->rwEnt["STL"] as $stlGUID => $rwSTL){
         ? $rwSTL["stlTitle{$this->intra->local}"]
         : $rwSTL["staTitle"]); ?></span>
         
-        <span class="eiseIntra_stlATA"><?php echo $intra->dateSQL2PHP($rwSTL["stlATA"]); ?></span>
-        <span class="eiseIntra_stlATD"><?php echo ( $rwSTL["stlATD"] ? $intra->DateSQL2PHP($rwSTL["stlATD"]) : $intra->translate("current time")); ?></span>
+        <span class="eiseIntra_stlATA"><?php echo $intra->dateSQL2PHP($rwSTL["stlATA"], $rwSTL["staTrackPrecision"]); ?></span>
+        <span class="eiseIntra_stlATD"><?php echo ( $rwSTL["stlATD"] ? $intra->DateSQL2PHP($rwSTL["stlATD"], $rwSTL["staTrackPrecision"]) : $intra->translate("current time")); ?></span>
             
     </div>
     <div class="eiseIntraLogData">

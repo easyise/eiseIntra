@@ -255,8 +255,10 @@ function redirect($strMessage, $strLocation, $arrConfig = array()){
 
 function backref($urlIfNoReferer){
     
-    if (strpos($_SERVER["HTTP_REFERER"], $_SERVER["REQUEST_URI"])===false){//if referer is not from itself
-        // record a cookie
+    if (strpos($_SERVER["HTTP_REFERER"], $_SERVER["REQUEST_URI"])===false //if referer is not from itself
+        &&
+        strpos($_SERVER["HTTP_REFERER"], 'index.php?pane=')===false ) //and not from fullEdit
+    {
         SetCookie("referer", $_SERVER["HTTP_REFERER"], 0, $_SERVER["PHP_SELF"]);
         $backref = $_SERVER["HTTP_REFERER"];
     } else {
@@ -841,7 +843,7 @@ function getSQLValue($col, $flagForArray=false){
         break;
       case "real":
       case "numeric":
-        $strValue = "'\".(double)str_replace(',', '', $strPost).\"'";
+        $strValue = "'\".(double)\$intra->decPHP2SQL($strPost).\"'";
         break;
       case "boolean":
         if (!$flagForArray)
@@ -935,8 +937,31 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
     return $rs;
 }
 
-function dateSQL2PHP($dtVar){
-$result =  $dtVar ? date($this->conf["dateFormat"], strtotime($dtVar)) : "";
+function unq($sqlReadyValue){
+    return (strtoupper($sqlReadyValue)=='NULL' ? null : (string)preg_replace("/^(')(.*)(')$/", '\2', $sqlReadyValue));
+}
+
+function decPHP2SQL($val){
+    return ($val!=='' 
+        ? (double)str_replace($this->conf['decimalSeparator'], '.', str_replace($this->conf['thousandsSeparator'], '', $val))
+        : 'NULL'
+        );
+}
+
+function decSQL2PHP($val, $decimalPlaces=null){
+    $decPlaces = ((is_int($var) && $decimalPlaces===null) 
+        ? 0 
+        : ($decimalPlaces!==null 
+            ? $decimalPlaces
+            : $intra->conf['decimalPlaces'])
+        );
+    return (!is_null($val) 
+            ? number_format((double)$val, $decimalPlaces, $intra->conf['decimalSeparator'], $intra->conf['thousandsSeparator'])
+            : '');
+}
+
+function dateSQL2PHP($dtVar, $precision='date'){
+$result =  $dtVar ? date($this->conf["dateFormat"].($precision!='date' ? " ".$this->conf["timeFormat"] : ''), strtotime($dtVar)) : "";
 return $result ;
 }
 
@@ -961,14 +986,15 @@ function datetimePHP2SQL($dtVar, $valueIfEmpty="NULL"){
     $prg = "/^".$this->conf["prgDate"]."( ".$this->conf["prgTime"]."){0,1}$/";
     $result =  (
         preg_match($prg, $dtVar) 
-        ? "'".preg_replace("/".$this->conf["prgDate"]."/", $this->conf["prgDateReplaceTo"], $dtVar)."'" 
+        ? preg_replace("/".$this->conf["prgDate"]."/", $this->conf["prgDateReplaceTo"], $dtVar) 
         : (
             preg_match('/^[12][0-9]{3}\-[0-9]{2}-[0-9]{2}( [0-9]{1,2}\:[0-9]{2}(\:[0-9]{2}){0,1}){0,1}$/', $dtVar)
-            ? "'".$dtVar."'"
-            : $valueIfEmpty 
+            ? $dtVar
+            : null 
         )
         );
-    return $result;
+
+    return ($result!==null ? "'".date('Y-m-d H:i:s', strtotime($result))."'" : $valueIfEmpty);
 }
 
 function getDateTimeByOperationTime($operationDate, $time){
@@ -976,9 +1002,9 @@ function getDateTimeByOperationTime($operationDate, $time){
     $stpOperationDayStart = isset($this->conf['stpOperationDayStart']) ? $this->conf['stpOperationDayStart'] : '00:00'; 
     $stpOperationDayEnd = isset($this->conf['stpOperationDayEnd']) ? $this->conf['stpOperationDayEnd'] : '23:59:59'; 
     $tempDate = Date('Y-m-d');
-    if (strtotime($tempDate.' '.$stpOperationDayEnd) < strtotime($tempDate.' '.$stpOperationDayStart)
+    if (strtotime($tempDate.' '.$stpOperationDayEnd) <= strtotime($tempDate.' '.$stpOperationDayStart)
     // e.g. 1:30 < 7:30, this means that operation date prolongs to next day till $stpOperationDayEnd
-        && strtotime($tempDate.' '.$time) < strtotime($tempDate.' '.$stpOperationDayEnd)
+        && strtotime($tempDate.' '.$time) <= strtotime($tempDate.' '.$stpOperationDayEnd)
          // and current time less than $stpOperationDayEnd
         ){
             return (Date('Y-m-d',strtotime($operationDate)+60*60*24).' '.$time);
