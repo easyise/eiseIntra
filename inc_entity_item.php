@@ -1,7 +1,7 @@
 <?php
 include_once "inc_entity.php";
 
-const MAX_STL_LENGTH = 256;
+define("MAX_STL_LENGTH", 256);
 
 class eiseEntityItem extends eiseEntity {
 
