@@ -729,6 +729,46 @@ function showActionRadios(){
    return $strOut;
 }
 
+function showActionButtons(){
+   
+    $oSQL = $this->oSQL;
+    $strLocal = $this->local;
+    
+    if (!$this->intra->arrUsrData["FlagWrite"])
+        return;
+    
+    if(empty($this->arrAct))
+        $this->collectDataActions();
+
+    $arrAct = array();
+    $actDel = array();
+    foreach($this->arrAct as $a){
+        if($a['actID']==3){
+            $actDel[] = $a;
+            continue;
+        }
+        $arrAct[] = $a;
+    }
+    $arrAct = array_merge($arrAct, $actDel);
+
+    foreach($arrAct as $rwAct){
+      
+        $title = $rwAct["actTitle{$this->intra->local}"];
+          
+        $strID = "btn_".$rwAct["actID"]."_".
+              $rwAct["atsOldStatusID"]."_".
+              $rwAct["atsNewStatusID"];
+
+        $strOut .= "<input type='".($rwAct['actID']==3 ? 'button' : 'submit')."' class='eiseIntraActionSubmit".($rwAct['actID']==3 ? ' eiseIntraDelete' : '')."' name='actButton' id='$strID' value='"
+                .htmlspecialchars($title)."'".
+                " act_id=\"{$rwAct["actID"]}\" orig=\"{$rwAct["atsOldStatusID"]}\" dest=\"{$rwAct["atsNewStatusID"]}\">";
+          
+    }
+
+   
+   return $strOut;
+}
+
 
 function newItemID($prefix, $datefmt="ym", $numlength=5){
     

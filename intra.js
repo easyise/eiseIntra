@@ -74,7 +74,7 @@ init: function( options ) {
             });
         }
         
-        $this.find('input.eiseIntraValue').each(function() {
+        $this.find('input[type!=hidden],select').each(function() {
             switch ($(this).attr('type')){ 
                 case "date":
                     if (isDateInputSupported()){
@@ -97,6 +97,9 @@ init: function( options ) {
                 default:
                     break;
             }
+            $(this).change(function(){
+                $(this).addClass('eif_changed');
+            })
             
         });
     
@@ -105,7 +108,7 @@ init: function( options ) {
         });
     
         $this.find('select.eiseIntraValue').each(function() {
-            $(this).css('width', 'auto');
+            //$(this).css('width', 'auto');
         });
     
         $this.find('input.eiseIntra_date, input.eiseIntra_datetime').each(function() {
@@ -282,8 +285,6 @@ validate: function( ) {
         }
     });
     
-    
-    
     return canSubmit;
 
 },
@@ -315,6 +316,149 @@ makeMandatory: function( obj ) {
     
     })
     
+},
+
+value: function(strFieldName, strType, val, decimalPlaces){
+
+    var conf = this.data('eiseIntraForm').conf;
+
+    if (val==undefined){
+        var strValue = this.find('#'+strFieldName).val();
+        switch(strType){
+            case "integer":
+            case "int":
+            case "numeric":
+            case "real":
+            case "double":
+            case "money":
+               strValue = strValue
+                .replace(new RegExp("\\"+conf.decimalSeparator, "g"), '.')
+                .replace(new RegExp("\\"+conf.thousandsSeparator, "g"), '');
+                nVal = parseFloat(strValue);
+                return isNaN(nVal) ? 0 : nVal;
+            default:
+                return strValue;
+        }
+    } else {
+        var strValue = val;
+        switch(strType){
+            case "integer":
+            case "int": 
+                strValue = number_format(strValue, 0, conf.decimalSeparator, conf.thousandsSeparator);
+                break;
+            case "numeric":
+            case "real":
+            case "double":
+            case "money":
+                if(typeof(strValue)=='number'){
+                    strValue = number_format(strValue, 
+                        decimalPlaces!=undefined ? decimalPlaces : conf.decimalPlaces
+                        , conf.decimalSeparator, conf.thousandsSeparator
+                    )
+                }
+                break;
+            default:
+                break;
+        }
+        oInp = this.find('#'+strFieldName+'').first();
+        oInp.val(strValue);
+        return this;
+    }
+},
+
+fill: function(data){
+    
+    return this.each(function(){
+    
+        var $form = $(this);
+
+        $.each(data, function(field, fData){
+            var $inp = $form.find('#'+field);
+            if (!$inp[0])
+                return true; // continue
+
+            switch($inp[0].nodeName){
+                case 'INPUT':
+                case 'SELECT':
+                    $inp.val(fData.v);
+                    if(fData.rw=='r'){
+                        if($inp.attr('type')!='hidden')
+                            $inp.attr('disabled', 'disabled');
+                    }
+                    break;
+                default:
+                    var html = '';
+                    if(fData.h && fData.v!=''){
+                        html = '<a href="'+fData.h+'">'+fData.v+'</a>';
+                    } else
+                        html = fData.v;
+                    $inp.html(html);
+                    break;
+            }
+            $inp.addClass('eif_filled');
+            
+        })
+    
+    })
+
+
+},
+
+reset: function(obj){
+    
+    return this.each(function(){
+    
+        var $form = $(this);
+
+        $form.find('.eif_filled, .eif_changed').each(function(){
+            switch(this.nodeName){
+                case 'INPUT':
+                case 'SELECT':
+                    switch($(this).attr('type')){
+                        case 'button':
+                        case 'submit':
+                            break;
+                        default:
+                            $(this).val('');
+                            break;
+                    }
+                    $(this).removeAttr('disabled').removeAttr('checked');
+                    break;
+                default:
+                    $(this).html('');
+                    break;
+            }
+            $(this).removeClass('eif_filled').removeClass('eif_changed');
+        })
+    
+    })
+
+},
+
+change: function(strInputIDs, callback){
+    return this.each(function(){
+        
+        var $form = $(this);
+        var fields = strInputIDs.split(/[^a-z0-9\_]+/i);
+
+        var strSelector = ""; $.each(fields, function (ix, val){ strSelector+=(ix==0 ? "" : ", ")+"#"+val});
+
+        $form.find(strSelector).bind('change', function(){
+            callback($(this));
+        })
+    })
+},
+
+conf: function(varName, value){
+    
+    if (value==undefined){
+        return $(this[0]).data('eiseIntraForm').conf[varName];
+    } else {
+        $(this).each(function(){
+            $(this).data('eiseIntraForm').conf[varName] = value;
+        })
+        return $(this);
+    }
 }
 
 };
@@ -379,13 +523,6 @@ function eiseIntraAdjustFrameContent(){
     
     if (oMenubarHeight!=null) {
         $("#frameContent").css ("padding-top", oMenubarHeight+"px");
-        var mrg = $("#frameContent").outerHeight(true) - $("#frameContent").height();
-        var height = $(window).height() - mrg;
-        
-        //alert ($(window).height()+' - '+mrg);
-        //$("#frameContent").css("height", height+"px");
-        //$("#frameContent").css("min-height", height+"px");
-        
     }   
 }
 

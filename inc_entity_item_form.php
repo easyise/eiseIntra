@@ -413,18 +413,8 @@ function showActivityLog_simple($arrConfig=Array()) {
 
 $strLoc = $this->intra->local;
 
-$sql = "SELECT *
-  FROM stbl_action_log
-  INNER JOIN stbl_action ON actID= aclActionID
-  WHERE aclEntityItemID='".$this->entItemID."'".
-  ($arrConfig['flagNoUpdate'] ? " AND aclActionID<>2" : "")
-  ."
-  ORDER BY aclInsertDate DESC, actNewStatusID DESC";
-$rs = $this->oSQL->do_query($sql);
-while ($rw = $this->oSQL->fetch_array($rs)) 
-    $arrStatus[] = $rw;
-    
-$this->oSQL->free_result($rs);
+$arrStatus = $this->getActionLog($arrConfig);
+
 
 $strRes = "<fieldset><legend>Status".($arrConfig['staTitle'] ? ": ".$arrConfig['staTitle'] : "")."</legend>";
 $strRes .= "<div style=\"max-height:100px; overflow-y: auto;\">\r\n";
@@ -455,6 +445,81 @@ for ($i=0;$i<count($arrStatus);$i++){
 
 return $strRes;
     
+}
+
+function getActionLog($arrConfig = array()){
+    
+    $arrACL = array();
+
+    $sql = "SELECT stbl_action_log.*
+        , stbl_action.*
+        , stbl_user.*
+        , STA_OLD.staTitle{$this->intra->local} as staTitle_old
+        , STA_NEW.staTitle{$this->intra->local} as staTitle_new
+      FROM stbl_action_log
+        INNER JOIN stbl_action ON actID= aclActionID
+        LEFT OUTER JOIN stbl_status STA_OLD ON STA_OLD.staID=aclOldStatusID AND STA_OLD.staEntityID=actEntityID
+        LEFT OUTER JOIN stbl_status STA_NEW ON STA_NEW.staID=aclOldStatusID AND STA_NEW.staEntityID=actEntityID
+        LEFT OUTER JOIN stbl_user ON usrID=aclInsertBy
+      WHERE aclEntityItemID='".$this->entItemID."'".
+      (!$arrConfig['flagIncludeUpdate'] ? " AND aclActionID<>2" : "")
+      ."
+      ORDER BY aclInsertDate DESC, actNewStatusID DESC";
+    $rs = $this->oSQL->do_query($sql);
+    while ($rw = $this->oSQL->fetch_array($rs)) {
+        if(!$rw['usrID']) $rw['usrName'] = $rw['aclInsertBy'];
+        $acl = array(
+            'alGUID' => $rw['aclGUID']
+            , 'actID' => $rw['actID']
+            , 'aclOldStatusID' => $rw['aclOldStatusID']
+            , 'aclNewStatusID' => $rw['aclNewStatusID']
+            , 'actTitle' => $rw['actTitle'.$this->intra->local]
+            , 'actTitlePast' => $rw['actTitlePast'.$this->intra->local]
+            , 'aclComments' => $rw['aclComments']
+            , 'aclEditBy' => $this->intra->translate('by ').($this->intra->local ? ($rw['usrNameLocal'] ? $rw['usrNameLocal'] : $rw['usrName']) : $rw['usrName'])
+            , 'aclEditDate' => date("{$this->intra->conf['dateFormat']} {$this->intra->conf['timeFormat']}"
+                , strtotime($rw["aclEditDate"]))
+            );
+        $arrACL[] = $acl;  
+    }
+        
+    $this->oSQL->free_result($rs);
+
+    return $arrACL;
+
+}
+
+function showActionLog_skeleton(){
+
+    $strRes = "<div id=\"eiseIntraActionLog\" title=\"".$this->intra->translate('Action Log')."\">\r\n";
+    $strRes .= "<table width='100%' class='eiseIntraActionLogTable'>\r\n";
+    $strRes .= "<tbody class=\"eif_ActionLog\">";
+    
+    $strRes .= "<tr class=\"eif_template eif_evenodd\">\r\n";
+    $strRes .= "<td class=\"eif_actTitlePast\"></td>\r\n";
+    $strRes .= "<td class=\"eif_aclEditBy\"></td>";
+    $strRes .= "<td class=\"eif_aclEditDate\"></td>";
+    $strRes .= "</tr>";
+    
+    $strRes .= "<tr class=\"eif_template eif_evenodd eif_invisible\">";
+    $strRes .= "<td class=\"eif_commentsTitle\">".$this->intra->translate("Comments").":</td>\r\n";
+    $strRes .= "<td colspan='2' class=\"eif_aclComments\"></td>";
+    $strRes .= "</tr>";
+
+    $strRes .= "<tr class=\"eif_notfound\">";
+    $strRes .= "<td colspan='3'>No Events Found</td>";
+    $strRes .= "</tr>";
+
+    $strRes .= "<tr class=\"eif_spinner\">";
+    $strRes .= "<td colspan='3'>SPINNER</td>";
+    $strRes .= "</tr>";
+        
+    $strRes .= "</tbody>";
+    $strRes .= "</table>\r\n";
+    $strRes .= "</div>\r\n";
+
+    return $strRes;
+
 }
 
 

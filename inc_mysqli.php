@@ -15,6 +15,36 @@ class eiseSQL extends mysqli{
         "datetime" => 'datetime'
         );
 
+    public $arrDBTypeMap = array(        
+        "integer"=>array(MYSQLI_TYPE_SHORT
+          , MYSQLI_TYPE_LONG
+          , MYSQLI_TYPE_LONGLONG
+          , MYSQLI_TYPE_INT24
+          , MYSQLI_TYPE_YEAR),
+        "real"=>array(MYSQLI_TYPE_DECIMAL
+          , MYSQLI_TYPE_NEWDECIMAL
+          , MYSQLI_TYPE_FLOAT
+          , MYSQLI_TYPE_DOUBLE),
+        "boolean"=>array(MYSQLI_TYPE_BIT
+          , MYSQLI_TYPE_TINY
+          , MYSQLI_TYPE_CHAR),
+        "text"=>array(MYSQLI_TYPE_ENUM
+          , MYSQLI_TYPE_SET
+          , MYSQLI_TYPE_VAR_STRING
+          , MYSQLI_TYPE_STRING
+          , MYSQLI_TYPE_GEOMETRY),
+        "binary"=>array(MYSQLI_TYPE_TINY_BLOB
+          , MYSQLI_TYPE_MEDIUM_BLOB
+          , MYSQLI_TYPE_LONG_BLOB
+          , MYSQLI_TYPE_BLOB),
+        "date"=>array(MYSQLI_TYPE_DATE
+          , MYSQLI_TYPE_NEWDATE),
+        "time"=>array(MYSQLI_TYPE_TIME
+          , MYSQLI_TYPE_INTERVAL),
+        "datetime" => array(MYSQLI_TYPE_DATETIME),
+        "timestamp" => array(MYSQLI_TYPE_TIMESTAMP)
+        );
+
     /* *** WARNING! method connect() only make some adjustments *** */
     function __construct ($dbhost, $dbuser, $dbpass, $dbname, $flagPersistent=false)  {
         
@@ -97,6 +127,9 @@ class eiseSQL extends mysqli{
     function fa($mysqli_result){ //fetch_ix_array
         return $mysqli_result->fetch_array();
     }
+    function ff($mysqli_result){ //fetch_ix_array
+        return $this->fetch_fields($mysqli_result);
+    }
     function i(){ //insert_id
         return $this->insert_id;
     }
@@ -117,7 +150,24 @@ class eiseSQL extends mysqli{
             throw new Exception('Wront variable type passed to eiseSQL::get_data() function: '.gettype($variant));
     }
     
-    
+    function fetch_fields($mysqli_result){
+        $arrRet = array();
+        $arrFields = $mysqli_result->fetch_fields();
+        foreach($arrFields as $field){
+            $fname = $field->name;
+            foreach($this->arrDBTypeMap as $type=>$arrConst){
+                if (in_array($field->type, $arrConst)){
+                    $arrRet[$fname]['type'] = $type;
+                }
+            }
+            if (!$arrRet[$fname]['type'])
+                $arrRet[$fname]['type'] = 'text';
+            if($arrRet[$fname]['type']=='real'){
+                $arrRet[$fname]['decimalPlaces'] = $field->decimals;
+            }
+        }
+        return $arrRet;
+    }
         
     function escape_string($str, $usage="for_ins_upd"){
         return self::e($str, $usage);

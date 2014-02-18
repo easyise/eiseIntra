@@ -1,10 +1,4 @@
-<?php 
-$arrCSS[] = imagesRelativePath."sprites/sprite.css";
-$arrJS[] = eiseIntraRelativePath."intra.js";
-$arrCSS[] = eiseIntraRelativePath."intra.css";
-$arrCSS[] = commonStuffRelativePath."screen.css";
-
- ?><!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
 
@@ -15,25 +9,6 @@ $intra->loadJS();
 $intra->loadCSS();
 ?>
 
-<script>
-$(document).ready(function(){  
-    
-    eiseIntraAdjustFrameContent();
-    MsgShow();	
-
-    $('#menubar a.confirm').click(function(event){
-        
-        if (!confirm('<?php echo addslashes($intra->translate('Are you sure you want to execute')); ?> "'+$(this).text()+'"?')){
-            event.preventDefault();
-            return false;
-        } else {
-            return true;
-        }
-
-    });
-    
-});
-</script>
 
 <?php
 echo "\t".$strHead."\r\n";
