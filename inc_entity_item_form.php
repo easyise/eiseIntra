@@ -423,12 +423,12 @@ $strRes .= "<table width='100%' class='eiseIntraHistoryTable'>\r\n";
 for ($i=0;$i<count($arrStatus);$i++){
     $strRes .= "<tr class='tr".($i % 2)."' valign='top'>\r\n";
     if ($arrStatus[$i]["aclActionPhase"]==2) {
-        $strRes .= "<td nowrap><b>".$arrStatus[$i]["actTitlePast$strLoc"]."</b></td>\r\n";
+        $strRes .= "<td nowrap><b>".$arrStatus[$i]["actTitlePast"]."</b></td>\r\n";
     } else {
-        $strRes .= "<td nowrap>Started &quot;<b>".$arrStatus[$i]["actTitle$strLoc"]."</b>&quot;</td>\r\n";
+        $strRes .= "<td nowrap>Started &quot;<b>".$arrStatus[$i]["actTitle"]."</b>&quot;</td>\r\n";
     }
-    $strRes .= "<td nowrap>".($arrStatus[$i]["aclEditBy"] ? "by ".$this->intra->getUserData($arrStatus[$i]["aclEditBy"]) : '')."</td>";
-    $strRes .= "<td nowrap>at ".date("d.m.Y H:i", strtotime($arrStatus[$i]["aclEditDate"]))."</td>";
+    $strRes .= "<td nowrap>".($arrStatus[$i]["aclEditBy"] ? $this->intra->getUserData($arrStatus[$i]["aclEditBy"]) : '')."</td>";
+    $strRes .= "<td nowrap>".date("d.m.Y H:i", strtotime($arrStatus[$i]["aclEditDate"]))."</td>";
     $strRes .= "</tr>";
     
     if ($arrStatus[$i]["aclComments"]) {
@@ -471,6 +471,7 @@ function getActionLog($arrConfig = array()){
         $acl = array(
             'alGUID' => $rw['aclGUID']
             , 'actID' => $rw['actID']
+            , 'aclActionPhase' => $rw['aclActionPhase']
             , 'aclOldStatusID' => $rw['aclOldStatusID']
             , 'aclNewStatusID' => $rw['aclNewStatusID']
             , 'actTitle' => $rw['actTitle'.$this->intra->local]
