@@ -845,7 +845,7 @@ function getSQLValue($col, $flagForArray=false){
     
     switch($col["DataType"]){
       case "integer":
-        $strValue = "'\".(integer)$strPost.\"'";
+        $strValue = "'\".(integer)\$intra->decPHP2SQL($strPost).\"'";
         break;
       case "nOrder":
         $strValue = "'\".($strPost=='' ? \$i : $strPost).\"'";
@@ -863,10 +863,10 @@ function getSQLValue($col, $flagForArray=false){
         break;
       case "text":
       case "varchar":
-        $strValue = "\".\$oSQL->escape_string($strPost).\"";
+        $strValue = "\".\$oSQL->e($strPost).\"";
         break;
       case "binary":
-        $strValue = "\".mysql_real_escape_string(\$".$col["Field"].").\"";
+        $strValue = "\".\$oSQL->e(\$".$col["Field"].").\"";
         break;
       case "datetime":
         $strValue = "\".\$intra->datetimePHP2SQL($strPost).\"";
@@ -883,7 +883,7 @@ function getSQLValue($col, $flagForArray=false){
       case "FK":
       case "combobox":
       case "ajax_dropdown":
-       $strValue = "\".($strPost!=\"\" ? \"'\".$strPost.\"'\" : \"NULL\").\"";
+        $strValue = "\".($strPost!=\"\" ? \$oSQL->e($strPost) : \"NULL\").\"";
         break;
       case "PK":
       default:
