@@ -1030,10 +1030,10 @@ function unq($sqlReadyValue){
     return (strtoupper($sqlReadyValue)=='NULL' ? null : (string)preg_replace("/^(')(.*)(')$/", '\2', $sqlReadyValue));
 }
 
-function decPHP2SQL($val){
+function decPHP2SQL($val, $valueIfNull=null){
     return ($val!=='' 
         ? (double)str_replace($this->conf['decimalSeparator'], '.', str_replace($this->conf['thousandsSeparator'], '', $val))
-        : 'NULL'
+        : ($valueIfNull===null ? 'NULL' : $valueIfNull)
         );
 }
 
