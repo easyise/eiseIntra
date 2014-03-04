@@ -250,6 +250,14 @@ init: function( options ) {
                         , flagDontSetRequired : (data.conf.flagUpdateMultiple || !o.flagAutocomplete)});
                                     $this.find("#aclGUID").val(o.aclGUID);
 
+                    if (o.actFlagComment=='1'){
+                        var aclComments = prompt('Please comment', '');
+                        if (aclComments==null)
+                            return;
+                        $this.find('#aclComments').val(aclComments);
+                    }
+
+
                     $this.find("#actID").val(o.actID);
                     $this.find("#aclToDo").val(o.aclToDo);
                     $this.find("#aclOldStatusID").val(o.aclOldStatusID);
