@@ -303,6 +303,8 @@ public function addAction($arrAction = null){
         $oSQL->do_query($sqlInsATV);
     }
     
+    $this->onActionPlan($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
+
     return $this->arrAction["aclGUID"];
     
 }
@@ -408,7 +410,7 @@ function finishAction(){
         , stlDepartureActionID='{$this->arrAction["aclGUID"]}'
         , stlEditBy='{$this->intra->usrID}', stlEditDate=NOW()
         WHERE stlEntityItemID='{$this->entItemID}' AND stlATD IS NULL";
-        
+
         $sql[] = "INSERT INTO stbl_status_log (
             stlGUID
             , stlEntityID
@@ -475,8 +477,13 @@ function finishAction(){
         for($i=0;$i<count($sql);$i++){
             $oSQL->do_query($sql[$i]);
         }
+
+        $this->onStatusDeparture($this->arrAction['aclOldStatusID']);
+        $this->onStatusArrival($this->arrAction['aclNewStatusID']);
         
     }
+
+    $this->onActionFinish($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
 }
 
 public function prepareActions(){
@@ -934,6 +941,8 @@ function startAction(){
             , {$entID}EditBy='{$this->intra->usrID}', {$entID}EditDate=NOW()
             WHERE {$entID}ID='{$entItemID}'";
     $oSQL->do_query($sqlUpdEntTable);
+
+    $this->onActionFinish($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
     
 }
 
@@ -960,34 +969,39 @@ function cancelAction(){
             AND stlDepartureActionID='{$this->arrAction["aclGUID"]}'"));
 
         //delete traced attributes for the STL
-        $sql[] = "DELETE FROM {$this->rwEnt["entTable"]}_log WHERE l{$this->entID}GUID='{$stlToDelete}'";
+        $oSQL->q("DELETE FROM {$this->rwEnt["entTable"]}_log WHERE l{$this->entID}GUID='{$stlToDelete}'");
 
         // delete status log entry, if any
-        $sql[] = "DELETE FROM stbl_status_log WHERE stlGUID='{$stlToDelete}'";
+        $oSQL->q("DELETE FROM stbl_status_log WHERE stlGUID='{$stlToDelete}'");
 
         // update departure action for previous status log entry
-        $sql[] = "UPDATE stbl_status_log SET stlATD=NULL, stlDepartureActionID=NULL WHERE stlGUID='{$rwSTLLast["stlGUID"]}'";
+        $oSQL->q("UPDATE stbl_status_log SET stlATD=NULL, stlDepartureActionID=NULL WHERE stlGUID='{$rwSTLLast["stlGUID"]}'");
 
         if (empty($this->arrNewData["isUndo"])) {
             if ($this->arrAction["aclActionPhase"]>=2){ // if action is already finish and it's not UNDO, it's cancel
                 throw new Exception('Action cannot be cancelled, it is already complete');
             }
             //cancel the action
-            $sql[] = "UPDATE stbl_action_log SET aclActionPhase=3
+            $oSQL->q("UPDATE stbl_action_log SET aclActionPhase=3
                 , aclEditBy='{$this->intra->usrID}'
                 , aclEditDate = NOW()
-                WHERE aclGUID='{$this->arrAction["aclGUID"]}'";
+                WHERE aclGUID='{$this->arrAction["aclGUID"]}'");
+            
+            $this->onActionCancel($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
+
         } else {
             //delete the action
-            $sql[] = "DELETE FROM {$this->rwEnt["entTable"]}_log 
-                WHERE l{$this->entID}GUID='{$this->arrAction["aclGUID"]}'";
+            $oSQL->q("DELETE FROM {$this->rwEnt["entTable"]}_log 
+                WHERE l{$this->entID}GUID='{$this->arrAction["aclGUID"]}'");
                 
-            $sql[] = "DELETE FROM stbl_action_log
-                WHERE aclGUID='{$this->arrAction["aclGUID"]}'";
+            $oSQL->q("DELETE FROM stbl_action_log
+                WHERE aclGUID='{$this->arrAction["aclGUID"]}'");
+
+            $this->onActionUndo($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
         }
 
         // update entity table
-        $sql[] = "UPDATE {$this->rwEnt["entTable"]} SET
+        $oSQL->q("UPDATE {$this->rwEnt["entTable"]} SET
             {$this->entID}ActionLogID=(SELECT aclGUID FROM stbl_action_log INNER JOIN stbl_action ON aclActionID=actID AND actEntityID='{$this->entID}' 
                   WHERE aclEntityItemID='{$entItemID}' AND aclActionID<>2 AND aclActionPhase=2 
                   ORDER BY aclATA DESC LIMIT 0,1)
@@ -997,19 +1011,16 @@ function cancelAction(){
                 : ""
             )."
             , {$this->entID}EditBy='{$this->intra->usrID}', {$this->entID}EditDate=NOW()
-            WHERE {$this->entID}ID='{$entItemID}'";
+            WHERE {$this->entID}ID='{$entItemID}'");
 
     } else {
-        $sql[] = "DELETE FROM {$this->rwEnt["entTable"]}_log 
-           WHERE l{$this->entID}GUID='{$this->arrAction["aclGUID"]}'";
+        $oSQL->q("DELETE FROM {$this->rwEnt["entTable"]}_log 
+           WHERE l{$this->entID}GUID='{$this->arrAction["aclGUID"]}'");
         //we delete action itself
-        $sql[] = "DELETE FROM stbl_action_log WHERE aclGUID='{$this->arrAction["aclGUID"]}'";
+        $oSQL->q("DELETE FROM stbl_action_log WHERE aclGUID='{$this->arrAction["aclGUID"]}'");
     }
 
-    for ($i=0;$i<count($sql);$i++) {
-        $this->oSQL->do_query($sql[$i]);
-    }
-
+    
 }
 
 
@@ -1680,56 +1691,31 @@ function getEntityItemAllData(){
 	
 }
 
-function upgrade_eiseIntra(){
-    
-    //*
-    
-    $sqlItems = "SELECT aclGUID as guid, 'stbl_action_log' as tbl, 'acl' as prfx, aclInsertDate as dt 
-            FROM stbl_action_log 
-            WHERE aclEntityItemID='{$this->entItemID}'
-        UNION
-        SELECT stlGUID as guid, 'stbl_status_log' as tbl, 'stl' as prfx , stlInsertDate as dt 
-            FROM stbl_status_log
-            WHERE stlEntityItemID='{$this->entItemID}'
-        ORDER BY dt, prfx";
-    $rs = $this->oSQL->q($sqlItems);
-    while($rw = $this->oSQL->f($rs)){
-        $this->oSQL->q("UPDATE {$rw["tbl"]} SET {$rw["prfx"]}ID=".$this->getLogID()." WHERE {$rw["prfx"]}GUID='{$rw["guid"]}'");
-    }
-    
-    return;
-    
-    //*/
-    
-    $this->getEntityItemAllData();
-    
-    $this->oSQL->q("UPDATE stbl_action_log SET aclID=".$this->getLogID()." WHERE aclActionID=1 AND aclEntityItemID='{$this->entItemID}'");
-    
-    if (!is_array($this->rwEnt["STL"]))
-        return;
-    
-    $revSTL = array_reverse($this->rwEnt["STL"]);
-    foreach($revSTL as $guid=>$rwSTL){
-        if ($rwSTL["stlArrivalAction"]["aclGUID"])
-            $this->oSQL->q("UPDATE stbl_action_log SET aclID=".$this->getLogID()." WHERE aclGUID='{$rwSTL["stlArrivalAction"]["aclGUID"]}'");
-        $this->oSQL->q("UPDATE stbl_status_log SET stlID=".$this->getLogID()." WHERE stlGUID='{$rwSTL["stlGUID"]}'");
-        
-        if (!is_array($rwSTL["ACL"]))
-            continue;
-        $arrACL = array_reverse($rwSTL["ACL"]);
-        foreach($arrACL as $guid=>$rwACL){
-             $this->oSQL->q("UPDATE stbl_action_log SET aclID=".$this->getLogID()." WHERE aclGUID='{$rwACL["aclGUID"]}'");
-        }
-    }
-    
-    if (!is_array($this->rwEnt["ACL"]))
-        return;
-    
-    $revACL = array_reverse($this->rwEnt["ACL"]);
-    foreach($revACL as $guid => $rwACL){
-        $this->oSQL->q("UPDATE stbl_action_log SET aclID=".$this->getLogID()." WHERE aclGUID='{$rwACL["aclGUID"]}'");
-    }
-    
+/***************************************************************/
+// event handling prototypes
+/***************************************************************/
+function onActionPlan($actID, $oldStatusID, $newStatusID){
+    //parent::onActionPlan($actID, $oldStatusID, $newStatusID);
+}
+function onActionStart($actID, $oldStatusID, $newStatusID){
+    //parent::onActionStart($actID, $oldStatusID, $newStatusID);
+}
+function onActionFinish($actID, $oldStatusID, $newStatusID){
+    //parent::onActionFinish($actID, $oldStatusID, $newStatusID);
+}
+function onActionCancel($actID, $oldStatusID, $newStatusID){
+    //parent::onActionFinish($actID, $oldStatusID, $newStatusID);
+}
+function onActionUndo($actID, $oldStatusID, $newStatusID){
+    //parent::onActionFinish($actID, $oldStatusID, $newStatusID);
+}
+
+
+function onStatusArrival($staID){
+    //parent::onStatusArrival($staID);
+}
+function onStatusDeparture($staID){
+    //parent::onStatusDeparture($staID);
 }
 
 }
