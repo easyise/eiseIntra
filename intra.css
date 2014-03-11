@@ -161,6 +161,16 @@ div.menubutton  {
     padding-left: 1%;
 }
 
+.eif_actionButtons input {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.eif_actionButtons {
+    text-align:center;
+    line-height:1.5em;
+}
+
 .eiseIntraLogTitle {
     overflow: hidden;
 }
@@ -236,12 +246,135 @@ div.eiseIntraComment {
 .eiseIntra_unattach {
     cursor: pointer !important;
 }
-/*
-moved to screen.css as decorative - IE
-.spinner {
-	background-image: url('../../common/images/spinner.gif');
-	background-position: 0 0;
-	background-repeat: no-repeat;
-	padding-left: 20px;
+
+/*****************************************************/
+/* status button for modal status screen  */
+/*****************************************************/
+.statusTitle {
+    margin-bottom: 15px;
+    margin-left: 50%;
+    margin-top: -28px;
+    text-align: right;
 }
-*/
+.eif_curStatusTitle {
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.eif_curStatusTitle {
+    border: 1px solid transparent;
+}
+
+.eif_curStatusTitle u {
+    text-decoration: none;
+    border-bottom: 1px dotted black;
+}
+
+.eif_curStatusTitle:hover {
+    border: 1px dotted black;
+}
+
+.eif_curStatusTitle:after { 
+    content: " \25bc  ";
+}
+/*****************************************************/
+/* /status modal screen  */
+/*****************************************************/
+
+/*****************************************************/
+/* ajax-filled forms/lists  */
+/*****************************************************/
+.eif_template {
+    display: none;
+}
+
+.eif_invisible {
+    display: none;
+}
+
+.eif_spinner, .eif_notfound {
+    min-height:150px;
+    max-height:150px;
+    height:150px;
+    text-align: center;
+    vertical-align: middle;
+}
+.eif_spinner td, .eif_notfound td{
+    vertical-align: middle;
+}
+.eif_spinner {
+    background: url("/common/images/spinner_large.gif") no-repeat scroll center center transparent;
+}
+
+
+/*****************************************************/
+/* eiseIntraActionLog */
+/*****************************************************/
+#eiseIntraActionLog {
+    display: none;
+}
+
+.eiseIntraActionLogTable {
+    font-size: 8pt;
+    border-bottom: 1px solid gray;
+}
+.eiseIntraActionLogTable td {
+    padding: 2pt;
+}
+.eiseIntraActionLogTable .eif_actTitlePast {
+    font-weight: bold;
+}
+.eiseIntraActionLogTable .eif_startblock td {
+    border-top: 1px solid gray;
+}
+.eiseIntraActionLogTable .eif_commentsTitle {
+    text-align: right;
+}
+
+/*****************************************************/
+/* /eiseIntraActionLog */
+/*****************************************************/
+
+
+/*****************************************************/
+/* eiseIntraFileList */
+/*****************************************************/
+#eiseIntraFileList {
+    display: none;
+}
+
+.eiseIntraFileListTable {
+    font-size: 8pt;
+    border-bottom: 1px solid gray;
+}
+.eiseIntraFileListTable td {
+    padding: 2pt;
+}
+.eiseIntraFileListTable .eif_actTitlePast {
+    font-weight: bold;
+}
+.eiseIntraFileListTable .eif_startblock td {
+    border-top: 1px solid gray;
+}
+.eiseIntraFileListTable th {
+    border-bottom: 1px solid gray;
+}
+
+#eif_frmAttach {
+    width: 90%;
+    margin: 0 auto;
+    padding: 10px;
+    text-align:center;
+}
+
+#eif_frmAttach input {
+    width: 40%;
+}
+
+.eif_filUnattach {
+    cursor: pointer;
+}
+/*****************************************************/
+/* /eiseIntraFileList */
+/*****************************************************/

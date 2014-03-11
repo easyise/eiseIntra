@@ -204,6 +204,50 @@ function showEntityItemFields($arrConfig = Array()){
     
 }
 
+function showFieldset($title, $id, $arrAtr, $strExtraField=''){
+    $oSQL = $this->intra->oSQL;
+    $intra = $this->intra;
+?>
+<fieldset id="<?php echo $id ?>"><legend><?php echo $title; ?></legend>
+<?php 
+echo $strExtraField;
+
+foreach($arrAtr as $atr){
+
+    if ($atr=='__comments'){
+        $strFields .= $this->showComments();
+        continue;
+    }
+
+    $sqlAtr = "SELECT * 
+        FROM stbl_attribute 
+         LEFT OUTER JOIN stbl_status_attribute ON satStatusID=".$oSQL->e($this->staID)." AND satAttributeID=atrID AND satEntityID=atrEntityID
+        WHERE atrEntityID=".$oSQL->e($this->entID)." AND atrFlagDeleted=0 AND atrID=".$oSQL->e($atr)."
+        ORDER BY atrOrder ASC";
+    $rsAtr = $oSQL->q($sqlAtr);
+    $rwAtr = $oSQL->f($rsAtr);
+
+    if (!$intra->arrUsrData["FlagWrite"]) $rwAtr['satFlagEditable'] = false;
+    
+    $strFields .= ($strFields!="" ? "\r\n" : "");
+    $strFields .= "<div class=\"eiseIntraField\">";
+    $strFields .= "<label id=\"title_{$rwAtr["atrID"]}\">".$rwAtr["atrTitle{$intra->local}"].":</label>";
+    
+    $rwAtr["value"] = $this->rwEnt[$rwAtr["atrID"]];
+    $rwAtr["text"] = $this->rwEnt[$rwAtr["atrID"]."_Text"];
+    
+    $strFields .=  $this->showAttributeValue($rwAtr, "");
+    $strFields .= "</div>\r\n\r\n";
+
+}
+
+echo $strFields;
+
+ ?>
+</fieldset>
+<?php
+
+}
 
 function showActivityLog($arrConfig=array()){
 
@@ -490,6 +534,8 @@ function getActionLog($arrConfig = array()){
 
 }
 
+
+
 function showActionLog_skeleton(){
 
     $strRes = "<div id=\"eiseIntraActionLog\" title=\"".$this->intra->translate('Action Log')."\">\r\n";
@@ -508,11 +554,11 @@ function showActionLog_skeleton(){
     $strRes .= "</tr>";
 
     $strRes .= "<tr class=\"eif_notfound\">";
-    $strRes .= "<td colspan='3'>No Events Found</td>";
+    $strRes .= "<td colspan='3'>".$this->intra->translate("No Events Found")."</td>";
     $strRes .= "</tr>";
 
     $strRes .= "<tr class=\"eif_spinner\">";
-    $strRes .= "<td colspan='3'>SPINNER</td>";
+    $strRes .= "<td colspan='3'></td>";
     $strRes .= "</tr>";
         
     $strRes .= "</tbody>";
@@ -523,10 +569,48 @@ function showActionLog_skeleton(){
 
 }
 
-
 /***********************************************************************************/
 /* Comments Routines                                                               */
 /***********************************************************************************/
+function showComments(){
+    $oSQL = $this->oSQL;
+    $rwEntity = $this->rwEnt;
+    $intra = $this->intra;   
+
+    $strComments = '';
+
+    $strComments .= '<div class="eiseIntraField">'."\r\n";
+
+    $strComments .= '<label>'.$this->intra->translate("Comments").':</label>'."\r\n";
+    $strComments .= '<div class="eiseIntraValue">'."\r\n";
+
+    if ($this->intra->arrUsrData["FlagWrite"] && !$this->flagArchive){
+        $strComments .= '<textarea class="eiseIntraComment"></textarea>'."\r\n";
+    }
+    foreach ($this->rwEnt["comments"] as $ix => $rwSCM){
+        $strComments .= '<div id="scm_'.$rwSCM["scmGUID"].'" class="eiseIntraComment'.($intra->usrID==$rwSCM["scmInsertBy"] ? " eiseIntraComment_removable" : "").'">'."\r\n";
+        $strComments .= '<div class="eiseIntraComment_userstamp">'.$intra->getUserData($rwSCM["scmInsertBy"]).' '.$intra->translate('at').' '.$intra->dateSQL2PHP($rwSCM["scmInsertDate"], "d.m.Y H:i")."\r\n";
+        $strComments .= '</div>'."\r\n";
+        $strComments .= '<div>'.str_replace("\n", "<br>", htmlspecialchars($rwSCM["scmContent"] )).'</div>'."\r\n";
+        $strComments .= '</div>'."\r\n";
+        
+    }
+    $strComments .= '</div>'."\r\n";
+
+
+    $strComments .= '<div class="eiseIntraComment_contols">'."\r\n";
+    $strComments .= '<input type="button" class="eiseIntraComment_add ss_sprite ss_add">'."\r\n";
+    $strComments .= '<input type="button" class="eiseIntraComment_remove ss_sprite ss_delete">'."\r\n";
+    $strComments .= '</div>'."\r\n";
+
+    $strComments .= '</div>'."\r\n";
+
+
+    return $strComments;
+}
+
+
+// old version
 function showCommentsField(){
     $oSQL = $this->oSQL;
     $rwEntity = $this->rwEnt;
@@ -570,6 +654,7 @@ function showCommentsField(){
 function showFileAttachDiv(){
     $entID = $this->entID;
     $entItemID = $this->entItemID;
+
 ?>
 <div id="divAttach" style="display:none;">
 <form action="<?php echo $_SERVER["PHP_SELF"]; ?>" method="POST" enctype="multipart/form-data" onsubmit="
@@ -599,16 +684,13 @@ function showFileAttachDiv(){
 
 function showFiles(){
 
-$oSQL = $this->oSQL;
 $entID = $this->entID;
 $entItemID = $this->entItemID;
 $intra = $this->intra;
 
-$sqlFile = "SELECT * FROM stbl_file WHERE filEntityID='$entID' AND filEntityItemID='{$entItemID}'
-ORDER BY filInsertDate DESC";
-$rsFile = $oSQL->do_query($sqlFile);
+$arrFil = $this->getFiles();
 
-if ($oSQL->num_rows($rsFile) > 0) {
+if (count($arrFil) > 0) {
 ?>
 <fieldset><legend><?php  echo $this->intra->translate("Files") ; ?></legend>
 <div style="max-height:100px; overflow-y: auto;">
@@ -624,12 +706,12 @@ if ($oSQL->num_rows($rsFile) > 0) {
 <?php 
 
 $i =0;
-while($rwFile = $oSQL->fetch_array($rsFile)){
+foreach($arrFil as $ix=>$rwFile){
     ?>
 <tr class="tr<?php  echo $i%2 ; ?>">
-<td width="100%"><a href="popup_file.php?filGUID=<?php  echo $rwFile["filGUID"] ; ?>" target="_blank"><?php  echo $rwFile["filName"] ; ?></a></td>
-<td><?php  echo $intra->getUserData($rwFile["filEditBy"]) ; ?></td>
-<td><?php  echo $intra->datetimeSQL2PHP($rwFile["filEditDate"]) ; ?></td>
+<td width="100%"><a href="<?php  echo $rwFile["filName"]['h'] ; ?>" target="_blank"><?php  echo $rwFile["filName"]['v'] ; ?></a></td>
+<td><?php  echo $rwFile["filEditBy"] ; ?></td>
+<td><?php  echo $rwFile["filEditDate"] ; ?></td>
 <td class="eiseIntra_unattach" id="fil_<?php  echo $rwFile["filGUID"] ; ?>" title="Delete">&nbsp;X&nbsp;</td>
 </tr>    
     <?php
@@ -646,51 +728,115 @@ while($rwFile = $oSQL->fetch_array($rsFile)){
 
 }
 
-}
+public function getFiles(){
 
-/*
-class eiseEntity {
+    $oSQL = $this->oSQL;
+    $entID = $this->entID;
+    $entItemID = $this->entItemID;
+    $intra = $this->intra;
 
-function showFormForList($oSQL, $entID, $staID){
-	
-	$rwEntity = $oSQL->fetch_array($oSQL->do_query("SELECT * FROM stbl_entity WHERE entID='$entID'"));
-	$rwEntity["entScriptPrefix"] = str_replace("tbl_", "", $rwEntity["entTable"]);
-?>
-<div id="div_form" class="panel">
+    $sqlFile = "SELECT * FROM stbl_file WHERE filEntityID='$entID' AND filEntityItemID='{$entItemID}'
+    ORDER BY filInsertDate DESC";
+    $rsFile = $oSQL->do_query($sqlFile);
 
-<h2>Assign attributes to selected:</h2>
-<form id="form_actions" action="<?php  echo $rwEntity["entScriptPrefix"] ; ?>_form.php" method="POST" id="entForm" name="entForm">
-<input type="hidden" name="DataAction" id="DataAction" value="update">
-<input type="hidden" id="<?php  echo $entID ; ?>ID" name="<?php  echo $entID ; ?>ID" value="">
-<input type="hidden" id="aclOldStatusID" name="aclOldStatusID" value="<?php  echo $staID ; ?>">
-<input type="hidden" id="aclNewStatusID" name="aclNewStatusID" value="">
-<input type="hidden" id="actID" name="actID" value="2">
-<input type="hidden" id="aclToDo" name="aclToDo" value="">
-<input type="hidden" id="actComments" name="actComments" value="">
+    $arrFIL = array();
 
-<table width="100%">
-<tr><td width="70%">
-<?php 
-$rwEnt = Array("entID" => $entID
-, $entID."StatusID" => $staID);
-showEntityItemFields($oSQL, $rwEnt, Array('flagShowOnlyEditable'=>true));
- ?>
-</td>
-<td width="30%"><?php 
-   echo showActions($oSQL, array_merge($rwEnt, Array(
-      "staFlagCanUpdate"=>$this->intra->arrUsrData["FlagWrite"]
-      , "staFlagCanDelete"=>false
-      , "flag_aatFlagToAdd"=>true)));
-      
- ?>
-</td>
-</tr>
-</table>
-</form>
-</div>
-<?php 
-}
+    $rs = $this->oSQL->do_query($sqlFile);
+    while ($rw = $this->oSQL->fetch_array($rs)) {
+        if(!$rw['usrID']) $rw['usrName'] = $rw['filInsertBy'];
+        $fil = array(
+            'filGUID' => $rw['filGUID']
+            , 'filName' => array(
+                    'h'=>"popup_file.php?filGUID=".urlencode($rw["filGUID"])
+                    , 'v'=>$rw['filName']
+                    )
+            , 'filContentType' => $rw['filContentType']
+            , 'filLength' => $rw['filLength']
+            , 'filEditBy' => $this->intra->translate('by ').$this->intra->getUserData($rw['filInsertBy'])
+            , 'filEditDate' => date("{$this->intra->conf['dateFormat']} {$this->intra->conf['timeFormat']}"
+                , strtotime($rw["filInsertDate"]))
+            );
+        $arrFIL[] = $fil;  
+    }
+        
+    $this->oSQL->free_result($rs);
+
+    return $arrFIL;
 
 }
-*/
+
+function showFileAttachForm(){
+    $entID = $this->entID;
+    $entItemID = $this->entItemID;
+
+    $strDiv = '';
+    $strDiv .= '<form id="eif_frmAttach" action="'.$_SERVER["PHP_SELF"].'" method="POST" enctype="multipart/form-data" onsubmit="
+       if (document.getElementById(\'eif_attachment\').value==\'\'){
+          alert (\'File is not specified.\');
+          document.getElementById(\'eif_attachment\').focus();
+          return false;
+       }
+       var btnUpl = document.getElementById(\'eif_btnUpload\');
+       btnUpl.value = \'Loading...\';
+       btnUpl.disabled = true;
+       return true;
+
+    ">'."\r\n";
+    $strDiv .= '<input type="hidden" name="DataAction" id="DataAction_attach" value="attachFile">'."\r\n";
+    $strDiv .= '<input type="hidden" name="entID_Attach" id="entItemID_Attach" value="'.$this->entID.'">'."\r\n";
+    $strDiv .= '<input type="hidden" name="entItemID_Attach" id="entItemID_Attach" value="'.$entItemID.'">'."\r\n";
+    //$strDiv .= '<label>'.$this->intra->translate('Choose file').': </label>'."\r\n";
+    $strDiv .= '<input type="file" id="eif_attachment" name="attachment" title="'.$this->intra->translate('Choose file').'">'."\r\n";
+    $strDiv .= '<input type="submit" value="Upload" id="eif_btnUpload">'."\r\n";
+    $strDiv .= '</form>'."\r\n";
+
+    return $strDiv;
+}
+
+function showFileList_skeleton(){
+
+    $strRes = "<div id=\"eiseIntraFileList\" title=\"".$this->intra->translate('Files')."\">\r\n";
+    
+    if ($this->intra->arrUsrData['FlagWrite']){
+        $strRes .= $this->showFileAttachForm();
+    }
+
+    $strRes .= "<table width='100%' class='eiseIntraFileListTable'>\r\n";
+    $strRes .= "<thead>\r\n";
+    $strRes .= "<tr>\r\n";
+    $strRes .= "<th>".$this->intra->translate('File')."</th>\r\n";
+    $strRes .= "<th colspan=\"2\">".$this->intra->translate('Uploaded')."</th>\r\n";
+    $strRes .= "<th class=\"eif_filUnattach\">&nbsp;</th>\r\n";
+    $strRes .= "</th>\r\n";
+    $strRes .= "</thead>\r\n";
+
+
+    $strRes .= "<tbody class=\"eif_FileList\">";
+
+    $strRes .= "<tr class=\"eif_template eif_evenodd\">\r\n";
+    $strRes .= "<td><a href=\"\" class=\"eif_filName\" target=_blank></a></td>\r\n";
+    $strRes .= "<td class=\"eif_filEditBy\"></td>";
+    $strRes .= "<td class=\"eif_filEditDate\"></td>";
+    $strRes .= "<td class=\"eif_filUnattach\"><input type=\"hidden\" class=\"eif_filGUID\"> X </td>";
+    $strRes .= "</tr>";
+
+    $strRes .= "<tr class=\"eif_notfound\">";
+    $strRes .= "<td colspan='3'>".$this->intra->translate("No Files Attached")."</td>";
+    $strRes .= "</tr>";
+
+    $strRes .= "<tr class=\"eif_spinner\">";
+    $strRes .= "<td colspan='4'></td>";
+    $strRes .= "</tr>";
+        
+    $strRes .= "</tbody>";
+    $strRes .= "</table>\r\n";
+    $strRes .= "</div>\r\n";
+
+    return $strRes;
+
+}
+
+
+
+}
 ?>

@@ -969,20 +969,20 @@ function cancelAction(){
             AND stlDepartureActionID='{$this->arrAction["aclGUID"]}'"));
 
         //delete traced attributes for the STL
-        $oSQL->q("DELETE FROM {$this->rwEnt["entTable"]}_log WHERE l{$this->entID}GUID='{$stlToDelete}'");
+        $this->oSQL->q("DELETE FROM {$this->rwEnt["entTable"]}_log WHERE l{$this->entID}GUID='{$stlToDelete}'");
 
         // delete status log entry, if any
-        $oSQL->q("DELETE FROM stbl_status_log WHERE stlGUID='{$stlToDelete}'");
+        $this->oSQL->q("DELETE FROM stbl_status_log WHERE stlGUID='{$stlToDelete}'");
 
         // update departure action for previous status log entry
-        $oSQL->q("UPDATE stbl_status_log SET stlATD=NULL, stlDepartureActionID=NULL WHERE stlGUID='{$rwSTLLast["stlGUID"]}'");
+        $this->oSQL->q("UPDATE stbl_status_log SET stlATD=NULL, stlDepartureActionID=NULL WHERE stlGUID='{$rwSTLLast["stlGUID"]}'");
 
         if (empty($this->arrNewData["isUndo"])) {
             if ($this->arrAction["aclActionPhase"]>=2){ // if action is already finish and it's not UNDO, it's cancel
                 throw new Exception('Action cannot be cancelled, it is already complete');
             }
             //cancel the action
-            $oSQL->q("UPDATE stbl_action_log SET aclActionPhase=3
+            $this->oSQL->q("UPDATE stbl_action_log SET aclActionPhase=3
                 , aclEditBy='{$this->intra->usrID}'
                 , aclEditDate = NOW()
                 WHERE aclGUID='{$this->arrAction["aclGUID"]}'");
@@ -991,17 +991,17 @@ function cancelAction(){
 
         } else {
             //delete the action
-            $oSQL->q("DELETE FROM {$this->rwEnt["entTable"]}_log 
+            $this->oSQL->q("DELETE FROM {$this->rwEnt["entTable"]}_log 
                 WHERE l{$this->entID}GUID='{$this->arrAction["aclGUID"]}'");
                 
-            $oSQL->q("DELETE FROM stbl_action_log
+            $this->oSQL->q("DELETE FROM stbl_action_log
                 WHERE aclGUID='{$this->arrAction["aclGUID"]}'");
 
             $this->onActionUndo($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
         }
 
         // update entity table
-        $oSQL->q("UPDATE {$this->rwEnt["entTable"]} SET
+        $this->oSQL->q("UPDATE {$this->rwEnt["entTable"]} SET
             {$this->entID}ActionLogID=(SELECT aclGUID FROM stbl_action_log INNER JOIN stbl_action ON aclActionID=actID AND actEntityID='{$this->entID}' 
                   WHERE aclEntityItemID='{$entItemID}' AND aclActionID<>2 AND aclActionPhase=2 
                   ORDER BY aclATA DESC LIMIT 0,1)
@@ -1014,10 +1014,10 @@ function cancelAction(){
             WHERE {$this->entID}ID='{$entItemID}'");
 
     } else {
-        $oSQL->q("DELETE FROM {$this->rwEnt["entTable"]}_log 
+        $this->oSQL->q("DELETE FROM {$this->rwEnt["entTable"]}_log 
            WHERE l{$this->entID}GUID='{$this->arrAction["aclGUID"]}'");
         //we delete action itself
-        $oSQL->q("DELETE FROM stbl_action_log WHERE aclGUID='{$this->arrAction["aclGUID"]}'");
+        $this->oSQL->q("DELETE FROM stbl_action_log WHERE aclGUID='{$this->arrAction["aclGUID"]}'");
     }
 
     

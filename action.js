@@ -80,6 +80,23 @@ var actionButtonClick = function (oBtn, fnCallback){
 
 var fillActionLogAJAX = function($form){
     
+    var entID = $form.data('eiseIntraForm').entID;
+    var entItemID = $form.data('eiseIntraForm').entItemID;
+
+    var strURL = ajaxActionURL+"?DataAction=getActionLog&entItemID="+encodeURIComponent(entItemID)+
+        "&entID="+encodeURIComponent(entID);
+
+    $('#eiseIntraActionLog').dialog({
+                modal: true
+                , width: '40%'
+            })
+    .find('.eif_ActionLog')
+    .eiseIntraAJAX('fillTable', strURL);
+
+}
+
+var fillActionLogAJAX__ = function($form){
+    
     var $divHistory = $('#eiseIntraActionLog')
     var $tbody = $divHistory.find('.eif_ActionLog');
     var $historyItemTemplate = $tbody.find('.eif_template');
@@ -342,6 +359,16 @@ init: function( options ) {
             
             if(confirm('Are you sure you\'d like to unattach?')){
                 location.href = location.href+'&DataAction=deleteFile&filGUID='+filGUID+'&referer='+encodeURIComponent(location.href);
+            }
+        });
+        //new files
+        $(".eif_filUnattach").click(function(){
+    
+            var filGUID = $(this).find('.eif_filGUID').val();
+            
+            if(confirm('Are you sure you\'d like to unattach?')){
+                var href = location.href.replace(/\#[a-z0-9\%]+$/, '');
+                location.href = href+'&DataAction=deleteFile&filGUID='+filGUID+'&referer='+encodeURIComponent(href);
             }
         });
         

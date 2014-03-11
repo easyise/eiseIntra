@@ -129,6 +129,486 @@ init: function( options ) {
         $this.find('input.eiseIntra_ajax_dropdown').each(function(){
             
             var data = $(this).attr('src');
+            eval ("var arrData="+data+";");
+            var table = arrData.table;
+            var prefix = arrData.prefix;
+            var url = 'ajax_dropdownlist.php?table='+table+"&prefix="+prefix+(arrData.showDeleted!=undefined ? '&d=1' : '');
+            
+            var inp = this;
+            
+            $(this).autocomplete({
+                source: function(request,response) {
+                
+                    var extra = $(inp).attr('extra');
+                    var urlFull = url+"&q="+encodeURIComponent(request.term)+(extra!=undefined ? '&e='+encodeURIComponent(extra) : '');
+                    
+                    $.getJSON(urlFull, function(response_json){
+                        
+                        response($.map(response_json.data, function(item) {
+                                return {  label: item.optText, value: item.optValue  }
+                            }));
+                        });
+                        
+                    },
+                minLength: 3,
+                focus: function(event,ui) {
+                    event.preventDefault();
+                    if (ui.item){
+                        $(inp).val(ui.item.label);
+                    } 
+                },
+                select: function(event,ui) {
+                    event.preventDefault();
+                    if (ui.item){
+                        $(inp).val(ui.item.label);
+                        $(inp).prev("input").val(ui.item.value);
+                    } else 
+                        $(inp).prev("input").val("");
+                },
+                change: function(event, ui){
+                    if (ui.item){
+                        $(inp).val(ui.item.label);
+                        $(inp).prev("input").val(ui.item.value);
+                    } else {
+                        $(inp).prev("input").val("");
+                    }
+                }
+            });
+        });
+        
+        $this.find('.eiseIntra_unattach').click(function(){
+            
+            var filName = $($(this).parents('tr')[0]).find('a').text();
+            var filGUID = $(this).attr('id').replace('fil_','');
+        
+            if (confirm('Are you sure you\'d like to unattach file ' + filName + '?')) {
+                    location.href = 
+                        location.href
+                        + '&DataAction=deleteFile&filGUID=' + filGUID
+                        + '&referer=' + encodeURIComponent(location.href);
+            }
+
+        })
+        
+        $this.find('input.eiseIntraDelete').each(function() {
+            $(this).click(function(ev){
+                if (confirm("Are you sure you'd like to delete?")){
+                    $this.find('#DataAction').val('delete');
+                    $this.submit();
+                } 
+            });
+        });
+        
+    });
+},
+
+validate: function( ) {
+    
+    if ($(this).find('#DataAction')=='delete')
+        return true;
+    
+    var canSubmit = true;
+    
+    var conf = $(this).data('eiseIntraForm').conf;
+    
+    var strRegExDate = conf.dateFormat
+        .replace(new RegExp('\\.', "g"), "\\.")
+        .replace(new RegExp("\\/", "g"), "\\/")
+        .replace("d", "[0-9]{1,2}")
+        .replace("m", "[0-9]{1,2}")
+        .replace("Y", "[0-9]{4}")
+        .replace("y", "[0-9]{1,2}");
+    var strRegExTime = conf.timeFormat
+        .replace(new RegExp("\\.", "g"), "\\.")
+        .replace(new RegExp("\\:", "g"), "\\:")
+        .replace(new RegExp("\\/", "g"), "\\/")
+        .replace("h", "[0-9]{1,2}")
+        .replace("H", "[0-9]{1,2}")
+        .replace("i", "[0-9]{1,2}")
+        .replace("s", "[0-9]{1,2}");
+    
+    $(this).find('input.eiseIntraValue').each(function() {
+        
+        var strValue = $(this).val();
+        var strType = $(this).attr('type');
+        
+        var strRegExDateToUse = '';
+
+        var $inpToCheck = $(this).hasClass("eiseIntra_ajax_dropdown") ? $(this).prev("input") : $(this);
+        
+        if ($inpToCheck.attr('required')==='required' && $inpToCheck.val()===""){
+            alert(getFieldLabelText($inpToCheck)+" is mandatory");
+            $(this).focus();
+            canSubmit = false;
+            return false; //break;
+        }
+        
+        switch (strType){
+            case "number":
+                nValue = parseFloat(strValue
+                    .replace(new RegExp("\\"+conf.decimalSeparator, "g"), '.')
+                    .replace(new RegExp("\\"+conf.thousandsSeparator, "g"), ''));
+                if (strValue!="" && isNaN(nValue)){
+                    alert(getFieldLabelText($(this))+" should be numeric");
+                    $(this).focus();
+                    canSubmit = false;
+                    return false;
+                }
+                break;
+            case 'date':
+                if (isDateInputSupported()){
+                    strRegExDateToUse = "[0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2}";
+                } else {
+                    strRegExDateToUse = strRegExDate;
+                }
+            case 'time':
+            case 'datetime':
+                
+                strRegExDateToUse = (strRegExDateToUse!='' ? strRegExDateToUse : strRegExDate);
+
+                var strRegEx = "^"+(strType.match(/date/) ? strRegExDateToUse : "")+
+                    (strType=="datetime" ? " " : "")+
+                    (strType.match(/time/) ? strRegExTime : "")+"$";
+                
+                if (strValue!="" && strValue.match(new RegExp(strRegEx))==null){
+                    alert ("Field '"+getFieldLabelText($(this))+"' should contain "+(strType)+" value formatted as \""+conf.dateFormat+
+                    (strType.match(/time/) ? ' '+conf.timeFormat.replace('i', 'm') : "")+
+                    "\".");
+                    $(this).focus();
+                    canSubmit = false;
+                    return false;
+                }
+                break;
+                
+            default:
+                 break;
+        }
+    });
+    
+    return canSubmit;
+
+},
+
+makeMandatory: function( obj ) {  
+    
+    return this.each(function(){
+    
+    $(this).find('input.eiseIntraValue').each(function(){
+        if ($(this).attr('type')=='hidden')
+            return true; // continue
+        
+        var label = getFieldLabel($(this));
+        label.text(label.text().replace(/\*\:$/, ":"));
+        $(this).removeAttr('required');
+    });
+    
+    if ( obj.strIDs==='')
+        return;
+    
+    $(this).find( obj.strIDs ).each(function(){
+        
+       var label = getFieldLabel($(this));
+       label.text(label.text().replace(/\:$/, "*:"));
+       if (!obj.flagDontSetRequired){
+            $(this).attr('required', 'required');
+       }
+    });
+    
+    })
+    
+},
+
+value: function(strFieldName, strType, val, decimalPlaces){
+
+    var conf = this.data('eiseIntraForm').conf;
+
+    if (val==undefined){
+        var strValue = this.find('#'+strFieldName).val();
+        switch(strType){
+            case "integer":
+            case "int":
+            case "numeric":
+            case "real":
+            case "double":
+            case "money":
+               strValue = strValue
+                .replace(new RegExp("\\"+conf.decimalSeparator, "g"), '.')
+                .replace(new RegExp("\\"+conf.thousandsSeparator, "g"), '');
+                nVal = parseFloat(strValue);
+                return isNaN(nVal) ? 0 : nVal;
+            default:
+                return strValue;
+        }
+    } else {
+        var strValue = val;
+        switch(strType){
+            case "integer":
+            case "int": 
+                strValue = number_format(strValue, 0, conf.decimalSeparator, conf.thousandsSeparator);
+                break;
+            case "numeric":
+            case "real":
+            case "double":
+            case "money":
+                if(typeof(strValue)=='number'){
+                    strValue = number_format(strValue, 
+                        decimalPlaces!=undefined ? decimalPlaces : conf.decimalPlaces
+                        , conf.decimalSeparator, conf.thousandsSeparator
+                    )
+                }
+                break;
+            default:
+                break;
+        }
+        oInp = this.find('#'+strFieldName+'').first();
+        oInp.val(strValue);
+        return this;
+    }
+},
+
+fill: function(data){
+    
+    return this.each(function(){
+    
+        var $form = $(this);
+
+        $.each(data, function(field, fData){
+            var $inp = $form.find('#'+field);
+            if (!$inp[0])
+                return true; // continue
+
+            switch($inp[0].nodeName){
+                case 'INPUT':
+                case 'SELECT':
+                    $inp.val(fData.v);
+                    if(fData.rw=='r'){
+                        if($inp.attr('type')!='hidden')
+                            $inp.attr('disabled', 'disabled');
+                    }
+                    break;
+                default:
+                    var html = '';
+                    if(fData.h && fData.v!=''){
+                        html = '<a href="'+fData.h+'">'+fData.v+'</a>';
+                    } else
+                        html = fData.v;
+                    $inp.html(html);
+                    break;
+            }
+            $inp.addClass('eif_filled');
+            
+        })
+    
+    })
+
+
+},
+
+reset: function(obj){
+    
+    return this.each(function(){
+    
+        var $form = $(this);
+
+        $form.find('.eif_filled, .eif_changed').each(function(){
+            switch(this.nodeName){
+                case 'INPUT':
+                case 'SELECT':
+                    switch($(this).attr('type')){
+                        case 'button':
+                        case 'submit':
+                            break;
+                        default:
+                            $(this).val('');
+                            break;
+                    }
+                    $(this).removeAttr('disabled').removeAttr('checked');
+                    break;
+                default:
+                    $(this).html('');
+                    break;
+            }
+            $(this).removeClass('eif_filled').removeClass('eif_changed');
+        })
+    
+    })
+
+},
+
+change: function(strInputIDs, callback){
+    return this.each(function(){
+        
+        var $form = $(this);
+        var fields = strInputIDs.split(/[^a-z0-9\_]+/i);
+
+        var strSelector = ""; $.each(fields, function (ix, val){ strSelector+=(ix==0 ? "" : ", ")+"#"+val});
+
+        $form.find(strSelector).bind('change', function(){
+            callback($(this));
+        })
+    })
+},
+
+conf: function(varName, value){
+    
+    if (value==undefined){
+        return $(this[0]).data('eiseIntraForm').conf[varName];
+    } else {
+        $(this).each(function(){
+            $(this).data('eiseIntraForm').conf[varName] = value;
+        })
+        return $(this);
+    }
+}
+
+};
+
+
+$.fn.eiseIntraForm = function( method ) {  
+
+
+    if ( methods[method] ) {
+        return methods[method].apply( this, Array.prototype.slice.call( arguments, 1 ));
+    } else if ( typeof method === 'object' || ! method ) {
+        return methods.init.apply( this, arguments );
+    } else {
+        $.error( 'Method ' +  method + ' not exists for jQuery.eiseIntraForm' );
+    } 
+
+};
+
+
+})( jQuery );(function( $ ){
+
+var isDateInputSupported = function(){
+    var elem = document.createElement('input');
+    elem.setAttribute('type','date');
+    elem.value = 'foo';
+    return (elem.type == 'date' && elem.value != 'foo');
+}
+
+var convertDateForDateInput = function($eiForm, inp){
+    
+    var conf = $eiForm.data('eiseIntraForm').conf;
+    var strRegExDate = conf.dateFormat
+        .replace(new RegExp('\\.', "g"), "\\.")
+        .replace(new RegExp("\\/", "g"), "\\/")
+        .replace("d", "([0-9]{1,2})")
+        .replace("m", "([0-9]{1,2})")
+        .replace("Y", "([0-9]{4})")
+        .replace("y", "([0-9]{1,2})");
+    
+    var arrVal = inp.getAttribute('value').match(strRegExDate);
+    if (arrVal)
+        $(inp).val(arrVal[3]+'-'+arrVal[2]+'-'+arrVal[1]);
+    
+    return;
+
+}
+
+var setCurrentDate = function(oInp){
+    
+    var today = new Date();
+    var dd = today.getDate();
+    var mm = today.getMonth()+1; //January is 0!
+    var hh = today.getHours();
+    var mn = today.getMinutes();
+    var yyyy = today.getFullYear();
+    
+    if(dd<10){dd='0'+dd} if(mm<10){mm='0'+mm} 
+    if(hh<10){hh='0'+hh} if(mn<10){mn='0'+mn} 
+    
+    var date = dd+'.'+mm+'.'+yyyy;
+    var time = hh+':'+mn;
+    if ($(oInp).hasClass('eiseIntra_datetime')){
+        $(oInp).val(date+' '+time);
+    } else {
+        $(oInp).val(date);
+    }
+}
+
+var getFieldLabel = function(oInp){
+    return oInp.prev('label');
+}
+var getFieldLabelText = function(oInp){
+    return getFieldLabel(oInp).text().replace(/[\:\*]+$/, '');
+}
+
+var methods = {
+
+init: function( options ) {
+
+    return this.each(function(){
+         
+        var $this = $(this),
+            data = $this.data('eiseIntraForm');
+        
+        // Если плагин ещё не проинициализирован
+        if ( ! data ) {
+
+            var conf = $.parseJSON($('#eiseIntraConf').val());
+            
+            $(this).data('eiseIntraForm', {
+                form : $this,
+                conf: $.extend( conf, options)
+            });
+        }
+        
+        $this.find('input[type!=hidden],select').each(function() {
+            switch ($(this).attr('type')){ 
+                case "date":
+                    if (isDateInputSupported()){
+                        $(this).css('width', 'auto');
+                        convertDateForDateInput($this, this);
+                    } else {
+                        $(this).addClass('eiseIntra_'+$(this).attr('type'));
+                    }
+                    $(this).attr('autocomplete', 'off');
+                    break;
+                case "datetime":        //not supported yet by any browser
+                case "datetime-local":  //not supported yet by any browser
+                    $(this).addClass('eiseIntra_'+$(this).attr('type'));
+                    $(this).attr('autocomplete', 'off');
+                    break;
+                case "number":
+                    $(this).css('width', 'auto');
+                    $(this).attr('autocomplete', 'off');
+                    break;
+                default:
+                    break;
+            }
+            $(this).change(function(){
+                $(this).addClass('eif_changed');
+            })
+            
+        });
+    
+        $this.find('input[type="submit"]').each(function(){
+            $(this).addClass('eiseIntraSubmit');
+        });
+    
+        $this.find('select.eiseIntraValue').each(function() {
+            //$(this).css('width', 'auto');
+        });
+    
+        $this.find('input.eiseIntra_date, input.eiseIntra_datetime').each(function() {
+            $(this).datepicker({
+                    changeMonth: true,
+                    changeYear: true,
+                    dateFormat: conf.dateFormat.replace('d', 'dd').replace('m', 'mm').replace('Y', 'yy'),
+                    constrainInput: false,
+                    firstDay: 1
+                    , yearRange: 'c-7:c+7'
+                });
+            
+            $(this).bind("dblclick", function(){
+                setCurrentDate(this);
+            })
+        });
+    
+        $this.find('input.eiseIntra_ajax_dropdown').each(function(){
+            
+            var data = $(this).attr('src');
     		eval ("var arrData="+data+";");
     		var table = arrData.table;
     		var prefix = arrData.prefix;
@@ -480,6 +960,136 @@ $.fn.eiseIntraForm = function( method ) {
 
 })( jQuery );
 
+/*********************************************************/
+/* eiseIntraAJAX jQuery plug-in */
+/*********************************************************/
+(function( $ ){
+
+var displayMode;
+
+var methods = {
+
+fillTable: function(ajaxURL, callbackOnLoad){
+    var $tbody = this;
+    var $historyItemTemplate = $tbody.find('.eif_template');
+
+    // hide "no events"
+    var curDisplayMode = $tbody.find('.eif_notfound').css("display")
+    displayMode = (curDisplayMode=='none' ? displayMode : curDisplayMode);
+
+    $tbody.find('.eif_notfound').css("display", "none");
+
+    // remove loaded items
+    $tbody.find('.eif_loaded').remove();
+
+    // show spinner
+    $tbody.find('.eif_spinner').css("display", displayMode);
+
+    var strURL = ajaxURL;
+
+    $.getJSON(strURL,
+        function(data){
+
+            $tbody.find('.eif_spinner').css("display", 'none');
+
+            if (data.ERROR){
+                alert(data.ERROR);
+                return;
+            }
+
+            if(data.data.length==0){
+                $tbody.find('.eif_notfound').css("display", displayMode);
+                return;
+            }
+
+            $.each(data.data, function(i, rw){
+                  
+                // 1. clone elements of .eif_temlplate, append them to tbody
+                var $newItem = $historyItemTemplate.clone(true);
+
+                $newItem.each(function(){
+                    // 2. fill-in data to cloned elements
+                    var $subItem = $(this);
+                    $.each(rw, function (field, value){
+
+                        // set data
+                        var v = (value && typeof(value.v)!='undefined' ? value.v : value);
+                        var $elem = $subItem.find('.eif_'+field);
+                        if (!$elem[0])
+                            return true; //continue
+                        switch ($elem[0].nodeName){
+                            case "INPUT":
+                            case "SELECT":
+                                $elem.val(v);
+                                break;
+                            case "A":
+                                if(value && typeof(value.h)!='undefined'){
+                                    if(value.h!='' && value.v!=''){
+                                        $elem.attr('href', value.h);
+                                        $elem.html(value.v);
+                                    } else {
+                                        $elem.remove();
+                                    }
+                                } else {
+                                    $elem.remove();
+                                }
+                                break;
+                            default:
+                                $elem.html(v);
+                                break;
+                        }
+                        
+
+                        // 3. make eif_invisible fields visible if data is set
+                        if ($elem[0] && value && value!=''){
+                            var invisible = $elem.parents('.eif_invisible')[0];
+                            if(invisible)
+                                $(invisible).removeClass('eif_invisible');
+                        }
+
+                    })
+
+                    // 4. paint eif_evenodd accordingly
+                    if($(this).hasClass('eif_evenodd')){
+                        $(this).addClass('tr'+i%2);
+                    }
+
+                    $(this).addClass('eif_loaded');
+
+                })
+                $newItem.first().addClass('eif_startblock');
+                $newItem.last().addClass('eif_endblock');
+                  
+                // 5. TADAM! make it visible!
+                $newItem.removeClass('eif_template');
+                
+                $tbody.append($newItem);
+                
+                    
+            });
+
+            
+    });  
+}
+
+}
+
+
+$.fn.eiseIntraAJAX = function( method ) {  
+
+
+    if ( methods[method] ) {
+        return methods[method].apply( this, Array.prototype.slice.call( arguments, 1 ));
+    } else if ( typeof method === 'object' || ! method ) {
+        return methods.init.apply( this, arguments );
+    } else {
+        $.error( 'Method ' +  method + ' not exists for jQuery.eiseIntraForm' );
+    } 
+
+};
+
+
+})( jQuery );
 
 function intraInitializeForm(){eiseIntraInitializeForm()}
 
