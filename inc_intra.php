@@ -484,7 +484,9 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
     $strClass = $this->handleClass($arrConfig);
     
     if ($flagWrite){
-        $strRet .= "<textarea name=\"".$strName."\"";
+        $strRet .= "<textarea"
+            ." id=\"".($arrConfig['id'] ? $arrConfig['id'] : $strName)."\""
+            ." name=\"".$strName."\"";
         if($strAttrib) $strRet .= " ".$strAttrib;
         $strRet .= ($strClass ? " ".$strClass : "").
             ($arrConfig["required"] ? " required=\"required\"" : "").">";
