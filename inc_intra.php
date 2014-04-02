@@ -863,10 +863,6 @@ function getSQLValue($col, $flagForArray=false){
         else
            $strValue = "'\".(integer)\$_POST['".$col["Field"]."'][\$i].\"'";
         break;
-      case "text":
-      case "varchar":
-        $strValue = "\".\$oSQL->e($strPost).\"";
-        break;
       case "binary":
         $strValue = "\".\$oSQL->e(\$".$col["Field"].").\"";
         break;
@@ -888,8 +884,10 @@ function getSQLValue($col, $flagForArray=false){
         $strValue = "\".($strPost!=\"\" ? \$oSQL->e($strPost) : \"NULL\").\"";
         break;
       case "PK":
+      case "text":
+      case "varchar":
       default:
-        $strValue = "'\".$strPost.\"'";
+        $strValue = "\".\$oSQL->e($strPost).\"";
         break;
     }
     return $strValue;
