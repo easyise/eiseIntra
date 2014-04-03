@@ -6,10 +6,6 @@ else
 
 $arrJS[] = jQueryRelativePath."simpleTree/jquery.simple.tree.js";
 $arrCSS[] = jQueryRelativePath."simpleTree/simpletree.css";
-
-$arrJS[] = eiseIntraRelativePath."intra.js";
-$arrCSS[] = eiseIntraRelativePath."intra.css";
-$arrCSS[] = commonStuffRelativePath."screen.css";
    
  ?><!DOCTYPE html>
 <html>
@@ -94,6 +90,6 @@ if (isset($toc_generator) && file_exists($toc_generator)){
 
 </div>
 <iframe id="pane" name="pane" src="<?php echo $paneSrc ; ?>" style="position:fixed;" frameborder=0></iframe>
-
+<?php echo $extraHTML; ?>
 </body>
 </html>
