@@ -9,13 +9,21 @@ eiseIntra core class
 include "inc_config.php";
 include "inc_mysqli.php";
 
+/*
 $arrJS[] = eiseIntraRelativePath."intra.js";
 $arrJS[] = eiseIntraRelativePath."intra_execute.js";
 
 $arrCSS[] = imagesRelativePath."sprites/sprite.css";
 $arrCSS[] = eiseIntraRelativePath."intra.css";
 $arrCSS[] = commonStuffRelativePath."screen.css";
+*/
 
+$arrJS[] = jQueryRelativePath."jquery-1.6.1.min.js";
+$arrJS[] = eiseIntraJSPath."intra.js";
+$arrJS[] = eiseIntraJSPath."intra_execute.js";
+
+$arrCSS[] = eiseIntraCSSPath.'themes/'.eiseIntraCSSTheme.'/screen.css';
+$arrCSS[] = imagesRelativePath."sprites/sprite.css";
 
 
 class eiseIntra {

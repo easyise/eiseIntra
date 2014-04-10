@@ -650,7 +650,7 @@ function eiseIntraAdjustPane(){
 function eiseIntraAdjustFrameContent(){
     
     var oMenubarHeight = $(".menubar").outerHeight(true);
-    
+
     if (oMenubarHeight!=null) {
         $("#frameContent").css ("padding-top", oMenubarHeight+"px");
     }   

@@ -24,15 +24,19 @@ $(document).ready(function(){
         drag:false,
 		afterClick:function(node){
             var arrId = node.attr("id").split("|");
+            var newHref;
             switch(arrId[0]){
                case "ent":
-                  var newHref = "entity_list.php?dbName="+arrId[1];
-                  break;
-               default:
-                  var newHref = "database_form.php?dbName="+(node.attr("id"));
+                    newHref = "entity_list.php?dbName="+arrId[1];
+                    break;
+                case 'db':
+                    newHref = "database_form.php?dbName="+(node.attr("id"));
+                    break;
+                default:
                   break;
             }
-			window.frames['pane'].location.href=newHref
+            if (newHref)
+			     window.frames['pane'].location.href=newHref
 		},
 		afterDblClick:function(node){
 			//alert("text-"+$('span:first',node).text());

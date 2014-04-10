@@ -80,9 +80,9 @@ div.menubutton  {
 
 /********************************************************************/
 .eiseIntraForm  fieldset{
-    margin-top: 2em;
-    margin-left: 5px;
-    padding: 1%;
+    margin-left: 0.5%;
+    margin-top: 1.5em;
+    padding: 0.25% 0.25%;
     position: relative;
     z-index: 0;
 }
@@ -96,6 +96,21 @@ div.menubutton  {
     left: 0.5em;
     z-index: 0;
 }
+
+.eiseIntraForm  fieldset.half_screen
+{
+    width: 48%;
+    display: inline-block;
+    vertical-align: top;
+}
+
+.eiseIntraForm  fieldset.third_screen
+{
+    width: 31%; 
+    display: inline-block;
+    vertical-align: top;
+}
+
 
 .eiseIntraForm  div.eiseIntraField {
     line-height: 1.5em;

@@ -14,6 +14,10 @@ define ("eiseIntraRelativePath", "/".ltrim(str_replace(
 define ("eiseIntraAbsolutePath", dirname(__FILE__).DIRECTORY_SEPARATOR);
 define ("commonStuffRelativePath", dirname(eiseIntraRelativePath)."/");
 
+define ("eiseIntraJSPath",  eiseIntraRelativePath.'/js');
+define ("eiseIntraCSSPath",  eiseIntraRelativePath.'/css');
+define ("eiseIntraCSSTheme", 'bluewing');
+
 define ("commonStuffAbsolutePath", dirname(eiseIntraAbsolutePath).DIRECTORY_SEPARATOR);
 
 define ("jQueryRelativePath", commonStuffRelativePath."jquery/");
@@ -39,8 +43,6 @@ define("prgReplaceTo","\\3-\\2-\\1");
 
 $strSubTitle = "DEVELOPMENT";
 $strSubTitleLocal = "Версия для разработки";
-
-$arrJS[] = jQueryRelativePath."jquery-1.6.1.min.js";
 
 // update these values according your localizaion
 $localLanguage = "ru";
