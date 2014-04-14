@@ -14,8 +14,8 @@ define ("eiseIntraRelativePath", "/".ltrim(str_replace(
 define ("eiseIntraAbsolutePath", dirname(__FILE__).DIRECTORY_SEPARATOR);
 define ("commonStuffRelativePath", dirname(eiseIntraRelativePath)."/");
 
-define ("eiseIntraJSPath",  eiseIntraRelativePath.'/js');
-define ("eiseIntraCSSPath",  eiseIntraRelativePath.'/css');
+define ("eiseIntraJSPath",  eiseIntraRelativePath.'js/');
+define ("eiseIntraCSSPath",  eiseIntraRelativePath.'css/');
 define ("eiseIntraCSSTheme", 'bluewing');
 
 define ("commonStuffAbsolutePath", dirname(eiseIntraAbsolutePath).DIRECTORY_SEPARATOR);
