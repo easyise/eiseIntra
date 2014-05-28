@@ -1024,10 +1024,18 @@ function result2JSON($rs, $arrConf = array()){
 
             if (isset($arrConf['arrHref'][$key]) || $arrConf['fields'][$key]['href']){
                 $href = ($arrConf['arrHref'][$key] ? $arrConf['arrHref'][$key] : $arrConf['fields'][$key]['href']);
-                foreach ($rw as $kkey => $vvalue)
-                    $href = str_replace("[".$kkey."]", urlencode($vvalue), $href);
+                $target = $arrConf['fields'][$key]['target'];
+                foreach ($rw as $kkey => $vvalue){
+                    $href = str_replace("[".$kkey."]", (strpos($cell['href'], "[{$rowKey}]")==0 
+                                ? $vvalue // avoid urlencode() for first argument
+                                : urlencode($vvalue)), $href);
+                    $target = str_replace("[".$kkey."]", $vvalue, $target);
+                }
                 $arrRW[$key]['h'] = $href;
                 $arrRW[$key]['rw'] = 'r';
+                if ($target) {
+                    $arrRW[$key]['tr'] = $target;
+                }
             }
         }
         $arrRet[] = $arrRW;

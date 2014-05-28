@@ -135,27 +135,40 @@ init: function( options ) {
     		var url = 'ajax_dropdownlist.php?table='+table+"&prefix="+prefix+(arrData.showDeleted!=undefined ? '&d=1' : '');
             
             var inp = this;
+            var $inpVal = $(inp).prev("input");
             
     		$(this).autocomplete({
                 source: function(request,response) {
-                
+                    
+                    // reset old value
+                    if(request.term.length<3){
+                        response({});
+                        $inpVal.val('');
+                        $inpVal.change();
+                        return;
+                    }
+
                     var extra = $(inp).attr('extra');
                     var urlFull = url+"&q="+encodeURIComponent(request.term)+(extra!=undefined ? '&e='+encodeURIComponent(extra) : '');
                     
                     $.getJSON(urlFull, function(response_json){
                         
+                        // reset old value - we got new JSON!
+                        $inpVal.val('');
+                        $inpVal.change();
+
                         response($.map(response_json.data, function(item) {
                                 return {  label: item.optText, value: item.optValue  }
                             }));
                         });
                         
                     },
-                minLength: 3,
+                minLength: 0,
                 focus: function(event,ui) {
                     event.preventDefault();
                     if (ui.item){
                         $(inp).val(ui.item.label);
-                    } 
+                    }
                 },
                 select: function(event,ui) {
                     event.preventDefault();
@@ -164,14 +177,9 @@ init: function( options ) {
                         $(inp).prev("input").val(ui.item.value);
                     } else 
                         $(inp).prev("input").val("");
+                    $(inp).prev("input").change();
                 },
                 change: function(event, ui){
-                    if (ui.item){
-                        $(inp).val(ui.item.label);
-                        $(inp).prev("input").val(ui.item.value);
-                    } else {
-                        $(inp).prev("input").val("");
-                    }
                 }
     		});
         });
@@ -389,7 +397,11 @@ fill: function(data){
                 default:
                     var html = '';
                     if(fData.h && fData.v!=''){
-                        html = '<a href="'+fData.h+'">'+fData.v+'</a>';
+                        html = '<a href="'+fData.h+'"'
+                            +(fData.tr 
+                                ? ' target="'+fData.tr+'"'
+                                : '')
+                            +'>'+fData.v+'</a>';
                     } else
                         html = fData.v;
                     $inp.html(html);

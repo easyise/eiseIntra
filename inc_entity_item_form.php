@@ -821,7 +821,7 @@ function showFileList_skeleton(){
     $strRes .= "</tr>";
 
     $strRes .= "<tr class=\"eif_notfound\">";
-    $strRes .= "<td colspan='3'>".$this->intra->translate("No Files Attached")."</td>";
+    $strRes .= "<td colspan='4'>".$this->intra->translate("No Files Attached")."</td>";
     $strRes .= "</tr>";
 
     $strRes .= "<tr class=\"eif_spinner\">";
