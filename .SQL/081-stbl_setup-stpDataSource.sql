@@ -1,0 +1,1 @@
+ALTER TABLE stbl_setup ADD COLUMN stpDataSource varchar(50) NULL  AFTER stpCharType;
