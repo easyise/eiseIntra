@@ -1010,6 +1010,7 @@ function result2JSON($rs, $arrConf = array()){
 
             if (isset($rw[$key.'_text'])){
                 $arrRW[$key]['t'] = $rw[$key.'_text'];
+                unset($rw[$key.'_text']);
             }
 
             if (($arrConf['flagAllowDeny']=='allow' && in_array($key, $arrPermittedFields))
@@ -1038,6 +1039,13 @@ function result2JSON($rs, $arrConf = array()){
                 }
             }
         }
+        $arrRW_ = $arrRW;
+        foreach($arrRW_ as $key=>$v){
+            if(isset($arrRW_[$key.'_text'])){
+                unset($arrRW[$key.'_text']);
+            }
+        }
+
         $arrRet[] = $arrRW;
     }
     return ($arrConf['flagEncode'] ? json_encode($arrRet) : $arrRet);

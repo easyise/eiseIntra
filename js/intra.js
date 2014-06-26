@@ -389,9 +389,17 @@ fill: function(data){
                 case 'INPUT':
                 case 'SELECT':
                     $inp.val(fData.v);
+                    $inpNext = $inp.next('input#'+field+'_text');
+                    if ($inpNext && fData.t){
+                        $inpNext.val(fData.t);
+                    }
                     if(fData.rw=='r'){
-                        if($inp.attr('type')!='hidden')
+                        if($inp.attr('type')!='hidden'){
                             $inp.attr('disabled', 'disabled');
+                        }
+                        if($inpNext){
+                            $inpNext.attr('disabled', 'disabled');
+                        }
                     }
                     break;
                 default:
