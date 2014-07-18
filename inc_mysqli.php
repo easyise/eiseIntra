@@ -48,7 +48,7 @@ class eiseSQL extends mysqli{
     /* *** WARNING! method connect() only make some adjustments *** */
     function __construct ($dbhost, $dbuser, $dbpass, $dbname, $flagPersistent=false)  {
         
-        parent::__construct(($flagPersistent ? 'p:' : '').$dbhost, $dbuser, $dbpass, $dbname);
+        @parent::__construct(($flagPersistent ? 'p:' : '').$dbhost, $dbuser, $dbpass, $dbname);
         
         if ($this->connect_errno) {
             throw new Exception("Unable to connect to database: {$this->connect_error} ({$this->connect_errno})");
@@ -76,13 +76,8 @@ class eiseSQL extends mysqli{
             $this->dbname = $dbname;
             
         $res = $this->select_db($this->dbname);
-        
-        
-        if (!$res || $this->connect_error) {
-            
-        }
       
-        return true;
+        return $res;
       
     }
     

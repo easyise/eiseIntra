@@ -93,6 +93,15 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
 /**********************************
    Authentication Routines
 /**********************************/
+function decodeAuthString($authstring){
+
+    $auth_str = base64_decode($authstring);
+        
+    preg_match("/^([^\:]+)\:([\S ]+)$/i", $auth_str, $arrMatches);
+
+    return Array($arrMatches[1], $arrMatches[2]);
+}
+
 function Authenticate($login, $password, &$strError, $method="LDAP"){
     
     $oSQL = $this->oSQL;

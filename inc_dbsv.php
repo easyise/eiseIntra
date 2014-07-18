@@ -1,15 +1,15 @@
 <?php 
 /*
 class DBSV
-version 2.0 beta
+version 3.0 beta
 DataBase Schema Version tool
-requires inc_*sql.php
+requires inc_intra.php
 
 takes content of given directory with SQL version files 
 and run it sequentially, starting from a script number greated than one 
 from current system DBSV version
 
- update version 2.0:
+ update version 3.0:
 supports multi-branch development with gaps in version numbering
 
 Connection *SQL user shoudl have enough privileges to modify schema in current database.
@@ -17,13 +17,117 @@ Connection *SQL user shoudl have enough privileges to modify schema in current d
 
 class eiseDBSV {
 
-function __construct($oSQL, $strDir){
-    $this->oSQL = $oSQL;
-    $this->strDir = $strDir;
-    if (!file_exists($this->strDir)){
-        throw new Exception( "ERROR: DBSV - Directory '{$this->strDir}' doesn't exist" );
+public $conf = array(
+    'DBHOST' => 'localhost'
+    , 'dbsvPath' => './.SQL'
+    );
+
+public $authorized = false;
+
+private $intra;
+
+function __construct($conf){
+
+    $this->conf = array_merge($this->conf, $conf);
+
+    if (!$this->conf['DBNAME']){
+        throw new Exception('Database name not specified');
+    }
+
+    $this->intra = new eiseIntra();
+
+    // check authorization
+    if ($_POST['authstring']){
+
+        list($login, $password) = $this->intra->decodeAuthString($_POST['authstring']);
+
+        if(!$this->intra->Authenticate($login, $password, $strError, 'mysql')){
+            throw new Exception("Unable to connect to server {$login}@{$_POST['host']}");
+        } else {
+            $this->oSQL = $this->intra->oSQL;
+            if (!$this->oSQL->selectDB($this->conf['DBNAME'])){
+                throw new Exception('Unable to select database '.$this->conf['DBNAME']);
+            }
+            
+            $this->authorized = true;
+        }
+    }
+
+    if (!file_exists($this->conf['dbsvPath'])){
+        throw new Exception( "ERROR: DBSV - Directory '{$this->conf['dbsvPath']}' doesn't exist" );
         return;
     }
+}
+
+function form(){
+    $intra = $this->intra;
+    ?>
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+
+<title>DBSV application</title>
+
+<?php
+$intra->loadJS();
+$intra->loadCSS();
+?>
+</head>
+<script>
+$(document).ready(function(){  
+    
+    $('#btnsubmit').removeAttr('disabled');
+
+    $('#loginform').submit(function(){
+        if(!$(this).eiseIntraForm('encodeAuthString'))
+            return false;
+        return true;
+    });
+      
+    window.setTimeout(function(){
+        document.getElementById("login").focus();
+        document.getElementById("login").select();
+    }, 1);
+});
+</script>
+<body>
+
+<div style="margin: 0 auto;width:33%">
+
+<h1 style="text-align: center;">Enter your <?php echo ucfirst($this->conf['DBNAME']) ?> database credentials</h1>
+
+<form action="<?php echo $_SERVER["PHP_SELF"] ?>" id="loginform" method="POST" onsubmit="return LoginForm();" class="eiseIntraForm">
+<input type="hidden" id="DataAction" name="DataAction" value="login">
+<input type="hidden" id="authstring" name="authstring" value="">
+<fieldset class="eiseIntraMainForm">
+
+<div>
+   <label class="eiseIntraField">Host:</label>
+   <input type="text" id="host" name="host" value="<?php echo $this->conf['DBHOST'] ?>" class="eiseIntraValue">
+</div>
+<div class="eiseIntraField">
+    <label>DB User:</label>
+    <input type="text" id="login" name="login" value="" class="eiseIntraValue">
+</div>
+
+<div class="eiseIntraField">
+    <label>DB Password:</label>
+    <input type="password" id="password" name="password" value="" class="eiseIntraValue">
+</div>
+
+<div class="eiseIntraField">
+    <label>&nbsp;</label>
+    <input type="submit" id="btnsubmit" name="btnsubmit" class="eiseIntraSubmit" value="Roll DBSV scripts">
+</div>
+
+</fieldset>
+</form>
+</div>
+</body>
+</html><?php
+    die();
 }
 
 function ExecuteDBSVFramework($dbName){
@@ -58,7 +162,7 @@ function ExecuteDBSVFramework($dbName){
     for ($i=($verNumber+1);$i<=$newVerNo;$i++){
        if (!isset($arrFiles[$i]))
            die("Cannot get SQL script for version #$i.");
-        $fileName = $this->strDir.DIRECTORY_SEPARATOR.$arrFiles[$i];
+        $fileName = $this->conf['dbsvPath'].DIRECTORY_SEPARATOR.$arrFiles[$i];
         $fh = fopen($fileName, "r");
         ///*
         $this->parse_mysql_dump($fileName);
@@ -73,7 +177,7 @@ function ExecuteDBSVFramework($dbName){
 
 private function getFilesArray(){
 
-    $dh  = opendir($this->strDir);
+    $dh  = opendir($this->conf['dbsvPath']);
         
     $arrFiles = Array();
         
@@ -105,8 +209,26 @@ public function getNewVersion(){
 
 function Execute(){
     
-    ob_implicit_flush(true);
-    
+    set_time_limit(600);
+
+    $n = ob_get_level();
+    for ($i=0; $i<$n; $i++) {ob_end_flush();}
+    ob_implicit_flush(1);
+
+    echo str_repeat(" ", 256);
+    ob_flush();
+
+?><!DOCTYPE html>
+<html><head>
+<title>DBSV SQL script application</title>
+</head>
+<body>
+<pre>
+/**************************************************************************/
+/* PHP DBSV for MySQL                                                     */
+/* (c)2008-2014 Ilya S. Eliseev                                           */ 
+/**************************************************************************/
+<?php
     $oSQL = $this->oSQL;
     
     $sqlVer = "SELECT MAX(verNumber) as verNumber FROM stbl_version";
@@ -135,6 +257,7 @@ function Execute(){
         if($nNonVersioned>0){
 
             echo "ERROR: Current DBSV version has non-versioned files. Get DBSV delta first from Database menu using eiseAdmin.\r\n\r\n";
+            echo '</pre></body></html>';
             return;
 
         }
@@ -148,34 +271,38 @@ function Execute(){
     $newVerNo = $this->getNewVersion();
     
     echo "New version number is going to be #".sprintf("%03d",$newVerNo)."\r\n";
-    if ($newVerNo<=$verNumber) {
-        echo "ERROR: Nowhere to update. Currenct DB version is bigger than this update.\r\n\r\n";
-        return;
-    }
+    if ($newVerNo>$verNumber) {
 
-
-    chdir($this->strDir);
-    $newVer = $verNumber+1;
-    foreach($arrFiles as $ver => $file){
-        if ($ver < $newVer)
-            continue;
-            
-        if (!isset($arrFiles[$newVer])){
-            echo "ERROR: Cannot get SQL script for version #{$newVer}. ";
+        chdir($this->conf['dbsvPath']);
+        $newVer = $verNumber+1;
+        foreach($arrFiles as $ver => $file){
+            if ($ver < $newVer)
+                continue;
+                
+            if (!isset($arrFiles[$newVer])){
+                echo "ERROR: Cannot get SQL script for version #{$newVer}. ";
+                $ver = $oSQL->d("SELECT MAX(verNumber) FROM stbl_version");
+                echo "Current version is {$ver}.\r\n";ob_flush();flush();
+                return;
+            }
+            $oSQL->do_query("START TRANSACTION");
+            $this->parse_mysql_dump($arrFiles[$newVer]);
+            $oSQL->do_query("INSERT INTO stbl_version (verNumber, verDate, verFlagVersioned, verDesc) VALUES ({$newVer}, NOW(), 1, '')");
+            $oSQL->do_query("COMMIT");
             $ver = $oSQL->d("SELECT MAX(verNumber) FROM stbl_version");
-            echo "Current version is {$ver}.\r\n";ob_flush();flush();
-            return;
+            echo "Version is now #".sprintf("%03d",$ver)."\r\n";ob_flush();flush();
+            $newVer = $ver+1;
         }
-        $oSQL->do_query("START TRANSACTION");
-        $this->parse_mysql_dump($arrFiles[$newVer]);
-        $oSQL->do_query("INSERT INTO stbl_version (verNumber, verDate, verFlagVersioned, verDesc) VALUES ({$newVer}, NOW(), 1, '')");
-        $oSQL->do_query("COMMIT");
-        $ver = $oSQL->d("SELECT MAX(verNumber) FROM stbl_version");
-        echo "Version is now #".sprintf("%03d",$ver)."\r\n";ob_flush();flush();
-        $newVer = $ver+1;
-    }
 
-    echo "Execution complete";
+        echo "Execution complete";
+
+    } else {
+        echo "Nowhere to update. Currenct DB version is bigger than this update.\r\n\r\n";
+    }
+    
+
+    echo '</pre></body></html>';
+
 }
 
 private function parse_mysql_dump($url){
