@@ -1,7 +1,7 @@
 <?php
 $DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
 
-$intra = new eiseIntra($oSQL);
+$intra = new eiseIntra($oSQL, Array('version'=>$version));
 
 switch ($DataAction){
     case "login":
