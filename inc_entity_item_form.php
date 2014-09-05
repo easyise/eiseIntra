@@ -539,7 +539,7 @@ function getActionLog($arrConfig = array()){
 function showActionLog_skeleton(){
 
     $strRes = "<div id=\"eiseIntraActionLog\" title=\"".$this->intra->translate('Action Log')."\">\r\n";
-    $strRes .= "<table width='100%' class='eiseIntraActionLogTable'>\r\n";
+    $strRes .= "<table class='eiseIntraActionLogTable'>\r\n";
     $strRes .= "<tbody class=\"eif_ActionLog\">";
     
     $strRes .= "<tr class=\"eif_template eif_evenodd\">\r\n";
@@ -801,13 +801,13 @@ function showFileList_skeleton(){
         $strRes .= $this->showFileAttachForm();
     }
 
-    $strRes .= "<table width='100%' class='eiseIntraFileListTable'>\r\n";
+    $strRes .= "<table class=\"eiseIntraFileListTable\">\r\n";
     $strRes .= "<thead>\r\n";
     $strRes .= "<tr>\r\n";
     $strRes .= "<th>".$this->intra->translate('File')."</th>\r\n";
     $strRes .= "<th colspan=\"2\">".$this->intra->translate('Uploaded')."</th>\r\n";
     $strRes .= "<th class=\"eif_filUnattach\">&nbsp;</th>\r\n";
-    $strRes .= "</th>\r\n";
+    $strRes .= "</tr>\r\n";
     $strRes .= "</thead>\r\n";
 
 
@@ -821,11 +821,11 @@ function showFileList_skeleton(){
     $strRes .= "</tr>";
 
     $strRes .= "<tr class=\"eif_notfound\">";
-    $strRes .= "<td colspan='4'>".$this->intra->translate("No Files Attached")."</td>";
+    $strRes .= "<td colspan=3>".$this->intra->translate("No Files Attached")."</td>";
     $strRes .= "</tr>";
 
     $strRes .= "<tr class=\"eif_spinner\">";
-    $strRes .= "<td colspan='4'></td>";
+    $strRes .= "<td colspan=3></td>";
     $strRes .= "</tr>";
         
     $strRes .= "</tbody>";
@@ -836,7 +836,79 @@ function showFileList_skeleton(){
 
 }
 
+function showMessages_skeleton(){
 
+    $strRes = '<div id="eiseIntraMessages" title="'.$this->intra->translate('Messages').'">'."\n";
+
+    $strRes .= '<div class="eiseIntraMessage eif_template eif_evenodd">'."\n";
+    $strRes .= '<div class="eif_msgInsertDate"></div>';
+    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('From').':</label><span class="eif_msgFrom"></span></div>';
+    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('To').':</label><span class="eif_msgTo"></span></div>';
+    $strRes .= '<div class="eiseIntraMessageField eif_invisible"><label>'.$this->intra->translate('CC').':</label><span class="eif_msgCC"></span></div>';
+    $strRes .= '<div class="eiseIntraMessageField eif_invisible"><label>'.$this->intra->translate('Subject').':</label><span class="eif_msgSubject"></span></div>';
+    $strRes .= '<pre class="eif_msgText"></div>';
+    $strRes .= '</pre>'."\n";
+
+    $strRes .= '<div class="eif_notfound">';
+    $strRes .= '<td colspan=3>'.$this->intra->translate('No Messages Found').'</td>';
+    $strRes .= '</div>';
+
+    $strRes .= '<div class="eif_spinner">';
+    $strRes .= '</div>';
+    
+    $strRes .= '<div class="eiseIntraMessageButtons"><input type="button" id="msgNew" value="'.$this->intra->translate('New Message').'">';
+    $strRes .= '</div>';
+        
+    $strRes .= "</div>\r\n";
+
+    $strRes .= '<form id="eiseIntraMessageForm" title="'.$this->intra->translate('New Message').'" class="eiseIntraForm" method="POST">'."\n";
+    $strRes .= '<input type="hidden" name="DataAction" id="DataAction_attach" value="messageSend">'."\r\n";
+    $strRes .= '<input type="hidden" name="entID" id="entID_Message" value="'.$this->entID.'">'."\r\n";
+    $strRes .= '<input type="hidden" name="entItemID" id="entItemID_Message" value="'.$this->entItemID.'">'."\r\n";
+    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('To').':</label>'
+        .$this->intra->showAjaxDropdown('msgToUserID', '', array('required'=>true, 'strTable'=>'svw_user')).'</div>';
+    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('CC').':</label>'
+        .$this->intra->showAjaxDropdown('msgCCUserID', '', array('strTable'=>'svw_user')).'</div>';
+    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('Subject').':</label>'.$this->intra->showTextBox('msgSubject', '').'</div>';
+    $strRes .= '<div class="eiseIntraMessageBody">'.$this->intra->showTextArea('msgText', '').'</div>';
+    $strRes .= '<div class="eiseIntraMessageButtons"><input type="submit" id="msgPost" value="'.$this->intra->translate('Send').'">
+        <input type="button" id="msgClose" value="'.$this->intra->translate('Close').'">
+        </div>';
+    $strRes .= "</form>\r\n";
+
+    return $strRes;
+
+}
+
+public function getMessages(){
+
+    $oSQL = $this->oSQL;
+    $entID = $this->entID;
+    $entItemID = $this->entItemID;
+    $intra = $this->intra;
+
+    $sqlMsg = "SELECT *
+    , (SELECT optText FROM svw_user WHERE optValue=msgFromUserID) as msgFrom
+    , (SELECT optText FROM svw_user WHERE optValue=msgToUserID) as msgTo
+    , (SELECT optText FROM svw_user WHERE optValue=msgCCUserID) as msgCC
+     FROM stbl_message WHERE msgEntityID='$entID' AND msgEntityItemID='{$entItemID}'
+    ORDER BY msgInsertDate DESC";
+    $rsMsg = $oSQL->q($sqlMsg);
+
+    return $intra->result2JSON($rsMsg);
+
+
+    $arrMsg = array();
+    while ($rw = $oSQL->f($rsMsg)) {
+        
+        $arrMsg[] = $rw;  
+    }
+        
+    $this->oSQL->free_result($rsMsg);
+
+    return $arrMsg;
+
+}
 
 }
 ?>

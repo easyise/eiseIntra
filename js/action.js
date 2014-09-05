@@ -95,91 +95,55 @@ var fillActionLogAJAX = function($form){
 
 }
 
-var fillActionLogAJAX__ = function($form){
-    
-    var $divHistory = $('#eiseIntraActionLog')
-    var $tbody = $divHistory.find('.eif_ActionLog');
-    var $historyItemTemplate = $tbody.find('.eif_template');
-
-    // hide "no events"
-    var displayMode = $tbody.find('.eif_notfound').css("display");
-
-    $tbody.find('.eif_notfound').css("display", "none");
-
-    // remove loaded items
-    $tbody.find('.eif_loaded').remove();
-
-    // show spinner
-    $tbody.find('.eif_spinner').css("display", displayMode);
+var fillFileListAJAX = function($form){
 
     var entID = $form.data('eiseIntraForm').entID;
     var entItemID = $form.data('eiseIntraForm').entItemID;
 
-    var strURL = ajaxActionURL+"?DataAction=getActionLog&entItemID="+encodeURIComponent(entItemID)+
+    var strURL = "ajax_details.php?DataAction=getFiles&entItemID="+encodeURIComponent(entItemID)+
         "&entID="+encodeURIComponent(entID);
 
-    $.getJSON(strURL,
-        function(data){
-
-            $tbody.find('.eif_spinner').css("display", 'none');
-
-            if (data.ERROR){
-                alert(data.ERROR);
-                return;
-            }
-
-            if(data.acl.length==0){
-                $tbody.find('.eif_notfound').css("display", displayMode);
-                return;
-            }
-
-            $divHistory.dialog({
+    $('#eiseIntraFileList').dialog({
                 modal: true
                 , width: '40%'
-            });
+            })
+    .find('tbody')
+    .eiseIntraAJAX('fillTable', strURL);   
 
-            $.each(data.acl, function(i, acl){
-                  
-                // 1. clone elements of .eif_temlplate, append them to tbody
-                var $newItem = $historyItemTemplate.clone(true);
+}
 
-                $newItem.each(function(){
-                    // 2. fill-in data to cloned elements
-                    var $subItem = $(this);
-                    $.each(acl, function (field, value){
-                        var $elem = $subItem.find('.eif_'+field);
-                        $elem.text(value);
+var showMessages = function($form){
+    var entID = $form.data('eiseIntraForm').entID;
+    var entItemID = $form.data('eiseIntraForm').entItemID;
 
-                        // 3. make eif_invisible fields visible if data is set
-                        if ($elem[0] && value && value!=''){
-                            var invisible = $elem.parents('.eif_invisible')[0];
-                            if(invisible)
-                                $(invisible).removeClass('eif_invisible');
-                        }
+    var strURL = "ajax_details.php?DataAction=getMessages&entItemID="+encodeURIComponent(entItemID)+
+        "&entID="+encodeURIComponent(entID);
 
-                    })
 
-                    // 4. paint eif_evenodd accordingly
-                    if($(this).hasClass('eif_evenodd')){
-                        $(this).addClass('tr'+i%2);
-                    }
+    $('#eiseIntraMessages #msgNew')[0].onclick = function(){
+        $('#eiseIntraMessages').dialog('close');
+        $('#eiseIntraMessageForm').dialog({modal: true
+                    , width: '400px'});
+    };
+    $('#eiseIntraMessageForm #msgClose')[0].onclick = function(){
+        $('#eiseIntraMessageForm').dialog('close');
+    };
 
-                    $(this).addClass('eif_loaded');
-
-                })
-                $newItem.first().addClass('eif_startblock');
-                $newItem.last().addClass('eif_endblock');
-                  
-                // 5. TADAM! make it visible!
-                $newItem.removeClass('eif_template');
+    $('#eiseIntraMessages')
+        .eiseIntraAJAX('fillTable', strURL, {afterFill: function(data){
+            if(data.data.length==0){
+                $('#eiseIntraMessageForm').dialog({modal: true
+                    , width: '400px'});
                 
-                $tbody.append($newItem);
+            }
+            else {
+                $('#eiseIntraMessages').dialog({
+                    modal: true
+                    , width: '600px'
+                    });
                 
-                    
-            });
-
-            
-    });       
+            }
+        }}); 
 }
 
 function showCommentControls($controls, $parent, options){
@@ -503,6 +467,36 @@ commentRemove: function(options){
         }
         
         options.success(data);
+        
+    });
+},
+
+fillFileListAJAX: function(){
+    return fillFileListAJAX(this);
+},
+
+showMessages: function(){
+
+    return showMessages(this);
+
+},
+
+sendMessages: function(callback){
+    var strURL = location.href;
+    var strPost = "DataAction=send_messages";
+
+    $.getJSON(strURL, strPost, function(data){
+        
+        if (data.length==0){
+            return;
+        }
+        
+        if (data.ERROR ){
+            alert(data.ERROR);
+            return;
+        }
+        
+        callback(data);
         
     });
 }

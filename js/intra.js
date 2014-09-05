@@ -543,7 +543,7 @@ var displayMode;
 
 var methods = {
 
-fillTable: function(ajaxURL, callbackOnLoad){
+fillTable: function(ajaxURL, conf){
     var $tbody = this;
     var $historyItemTemplate = $tbody.find('.eif_template');
 
@@ -566,6 +566,9 @@ fillTable: function(ajaxURL, callbackOnLoad){
 
             $tbody.find('.eif_spinner').css("display", 'none');
 
+            if(conf && conf.beforeFill)
+                conf.beforeFill(data);
+
             if (data.ERROR){
                 alert(data.ERROR);
                 return;
@@ -573,7 +576,6 @@ fillTable: function(ajaxURL, callbackOnLoad){
 
             if(data.data.length==0){
                 $tbody.find('.eif_notfound').css("display", displayMode);
-                return;
             }
 
             $.each(data.data, function(i, rw){
@@ -615,7 +617,7 @@ fillTable: function(ajaxURL, callbackOnLoad){
                         
 
                         // 3. make eif_invisible fields visible if data is set
-                        if ($elem[0] && value && value!=''){
+                        if ($elem[0] && v && v!=''){
                             var invisible = $elem.parents('.eif_invisible')[0];
                             if(invisible)
                                 $(invisible).removeClass('eif_invisible');
@@ -641,6 +643,9 @@ fillTable: function(ajaxURL, callbackOnLoad){
                 
                     
             });
+            
+            if(conf && conf.afterFill)
+                conf.afterFill(data);
 
             
     });  

@@ -1048,7 +1048,7 @@ function GetJoinSentenceByCBSource($sqlSentence, $entField, &$strText, &$strValu
 /***********************************************************************************/
 /* Comments Routines                                                               */
 /***********************************************************************************/
-function updateComments($DataAction){
+static function updateComments($DataAction){
 
 GLOBAL $intra;
 
@@ -1095,7 +1095,7 @@ switch ($DataAction) {
 /***********************************************************************************/
 /* File Attachment Routines                                                        */
 /***********************************************************************************/
-function updateFiles($DataAction){
+static function updateFiles($DataAction){
     
     GLOBAL $intra;
     
@@ -1109,8 +1109,11 @@ function updateFiles($DataAction){
 switch ($da) {
     case "deleteFile":
         $oSQL->q("START TRANSACTION");
-        $rwFile = $oSQL->fetch_array($oSQL->do_query("SELECT * FROM stbl_file WHERE filGUID='{$_GET["filGUID"]}}'"));
-        unlink($arrSetup["stpFilesPath"].$rwFile["filNamePhysical"]);
+        $rwFile = $oSQL->fetch_array($oSQL->do_query("SELECT * FROM stbl_file WHERE filGUID='{$_GET["filGUID"]}'"));
+
+        $filesPath = self::checkFilePath($arrSetup["stpFilesPath"]);
+
+        unlink($filesPath.$rwFile["filNamePhysical"]);
         $oSQL->do_query("DELETE FROM stbl_file WHERE filGUID='{$_GET["filGUID"]}'");
         $oSQL->q("COMMIT");
         
@@ -1128,11 +1131,12 @@ switch ($da) {
         $filename = Date("Y/m/").$fileGUID.".att";
                             
         //saving the file
-        if(!file_exists($arrSetup["stpFilesPath"].Date("Y/m")))
-            mkdir($arrSetup["stpFilesPath"].Date("Y/m"), "0777", true);
-        echo $arrSetup["stpFilesPath"].$filename;
+        $filesPath = self::checkFilePath($arrSetup["stpFilesPath"]);
+
+        if(!file_exists($filesPath.Date("Y/m")))
+            mkdir($filesPath.Date("Y/m"), 0777, true);
         
-        copy($_FILES["attachment"]["tmp_name"], $arrSetup["stpFilesPath"].$filename);
+        copy($_FILES["attachment"]["tmp_name"], $filesPath.$filename);
         
         //making the record in the database
         $sqlFileInsert = "
@@ -1166,9 +1170,145 @@ switch ($da) {
     default: break;
 }
 
+}
+
+static function checkFilePath($filesPath){
+    if(!$filesPath)
+        throw new Exception('File path not set');
+
+    if($filesPath[strlen($arrSetup['stpFilesPath'])-1]!=DIRECTORY_SEPARATOR)
+        $filesPath=$filesPath.DIRECTORY_SEPARATOR;
+
+    if(!is_dir($filesPath))
+        throw new Exception('File path '.$filesPath.' is not a directory');
+
+    return $filesPath;
+}
+
+static function getFile($filGUID, $filePathVar = 'stpFilesPath'){
+
+    GLOBAL $intra;
+    $oSQL = $intra->oSQL;
+
+    $sqlFile = "SELECT * FROM stbl_file WHERE filGUID=".$oSQL->e($filGUID);
+    $rsFile = $oSQL->do_query($sqlFile);
+
+    if ($oSQL->n($rsFile)==0)
+        throw new Exception('File '.$filGUID.' not found');
+
+    $rwFile = $oSQL->fetch_array($rsFile);
+
+    $filesPath = self::checkFilePath($intra->conf[$filePathVar]);
+
+    header("Content-Type: ".$rwFile["filContentType"]);
+    if(headers_sent())
+        $this->Error('Some data has already been output, can\'t send file');
+    header("Content-Length: ".$rwFile["filLength"]);
+    header('Content-Disposition: inline; filename='.$rwFile["filName"]);
+    header('Cache-Control: private, max-age=0, must-revalidate');
+    header('Pragma: public');
+    ini_set('zlib.output_compression','0');
+
+    $fh = fopen($filesPath.$rwFile["filNamePhysical"], "rb");
+    echo fread($fh, $rwFile["filLength"]);
+    fclose($fh);
 
 }
 
+/***********************************************************************************/
+/* Message Routines                                                                */
+/***********************************************************************************/
+static function updateMessages($newData){
+
+    GLOBAL $intra;
+
+    $oSQL = $intra->oSQL;
+
+    $da = $newData["DataAction"];
+
+    switch($da){
+        case 'messageSend':
+            $sqlMsg = "INSERT INTO stbl_message SET
+                msgEntityID = ".($newData['entID']!="" ? $oSQL->e($newData['entID']) : "NULL")."
+                , msgEntityItemID = ".($newData['entItemID']!="" ? $oSQL->e($newData['entItemID']) : "NULL")."
+                , msgFromUserID = '$intra->usrID'
+                , msgToUserID = ".($newData['msgToUserID']!="" ? $oSQL->e($newData['msgToUserID']) : "NULL")."
+                , msgCCUserID = ".($newData['msgCCUserID']!="" ? $oSQL->e($newData['msgCCUserID']) : "NULL")."
+                , msgSubject = ".$oSQL->e($newData['msgSubject'])."
+                , msgText = ".$oSQL->e($newData['msgText'])."
+                , msgSendDate = NULL
+                , msgReadDate = NULL
+                , msgFlagDeleted = 0
+                , msgInsertBy = '$intra->usrID', msgInsertDate = NOW(), msgEditBy = '$intra->usrID', msgEditDate = NOW()";
+
+            $oSQL->q($sqlMsg);
+            $intra->redirect($intra->translate('Message sent'), $_SERVER["PHP_SELF"]."?{$newData['entID']}ID=".urlencode($newData["entItemID"]));
+            die();
+        case 'messageReply':
+            die();
+        case 'messageReplyAll':
+            die();
+    }
+
+}
+
+static function sendMessages($conf){
+    
+    GLOBAL $intra;
+
+    $oSQL = $intra->oSQL;
+
+    // scan tablefor unsent messages
+    $sqlMsg = "SELECT * 
+        FROM stbl_message 
+            LEFT OUTER JOIN stbl_entity ON msgEntityID=entID
+        WHERE msgSendDate IS NULL ORDER BY msgInsertDate DESC";
+    $rsMsg = $oSQL->q($sqlMsg);
+
+    include_once('../common/eiseMail/inc_eisemail.php');
+
+    $sender  = new eiseMail($conf);
+
+    while($rwMsg = $oSQL->f($rsMsg)){
+
+        $rwUsr_From = $intra->getUserData_All($rwMsg['msgFromUserID'], 'all');
+        $rwUsr_To = $intra->getUserData_All($rwMsg['msgToUserID'], 'all');
+        $rwUsr_CC = $intra->getUserData_All($rwMsg['msgCCUserID'], 'all');
+
+        $msg = array('mail_from'=> ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : '')
+            , 'rcpt_to' => ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\"  <".$rwUsr_To['usrEmail'].">" : '')
+            , 'Subject' => ($rwMsg['entTitle'.$intra->local] ? $rwMsg['entTitle'.$intra->local].' '.$rwMsg['msgEntityItemID'].' ' : '')
+                .$rwMsg['msgSubject']
+            , 'Text' => $rwMsg['msgText']
+            );
+        if ($rwMsg['msgCCUserID'])
+            $msg['CC'] = "\"".$rwUsr_CC['usrName']."\"  <".$rwUsr_CC['usrEmail'].">";
+
+        $msg['msgID'] = $rwMsg['msgID'];
+
+        $sender->addMessage($msg);
+
+    }
+    try {
+        $arrMessages = $sender->send();
+    } catch (eiseMailException $e){
+        $strError = $e->getMessage();
+        $arrMessages = $e->getMessages();
+    }
+
+
+    foreach($arrMessages as $msg){
+        if(!$msg['send_time'])
+            continue;
+        $oSQL->q("UPDATE stbl_message SET msgSendDate='".date('Y-m-d H:i:s', $msg['send_time'])."'
+            , msgEditDate=NOW()
+            , msgEditBy='{$intra->usrID}'
+            WHERE msgID=".$oSQL->e($msg['msgID']));
+    }
+
+    if($strError)
+        throw new Exception($strError);
+}
 
 
 /***********************************************************************************/

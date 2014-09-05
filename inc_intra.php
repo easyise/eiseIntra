@@ -467,7 +467,7 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
     $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
     
     $strClass = $this->handleClass($arrConfig);
-    
+   
     $strAttrib = $arrConfig["strAttrib"];
     if ($flagWrite){
         $type = (in_array($arrConfig['type'], $this->arrHTML5AllowedInputTypes) ? $arrConfig["type"] : 'text');
@@ -644,13 +644,23 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
     if(!is_array($arrConfig)){
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
-    
+
+    $confSource = 'source';$confSource_compat = 'strTable';
+    $confPrefix = 'prefix';$confPrefix_compat = 'strPrefix';
+
+    $src = ($arrConfig[$confSource] ?  $confSource : $confSource_compat);
+    $prf = ($arrConfig[$confPrefix] ?  $confPrefix : $confPrefix_compat);
+
+    if(!isset($arrConfig[$src]))
+        throw new Exception("AJAX drop-down box has no source specified", 1);
+
+
     $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
     
     $oSQL = $this->oSQL;
     
     if ($strValue!="" && $arrConfig["strText"]==""){
-        $rs = $this->getDataFromCommonViews($strValue, "", $arrConfig["strTable"], $arrConfig["strPrefix"]);
+        $rs = $this->getDataFromCommonViews($strValue, "", $arrConfig[$src], $arrConfig[$prf]);
         $rw = $oSQL->fetch_array($rs);
         $arrConfig["strText"] = $rw["optText"];
     }
@@ -662,9 +672,13 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
     
     if ($flagWrite){
         $strOut .= $this->showTextBox($strFieldName."_text", $arrConfig["strText"]
-            , Array("FlagWrite"=>true
-                , "strAttrib" => $arrConfig["strAttrib"]." src=\"{table:'{$arrConfig["strTable"]}', prefix:'{$arrConfig["strPrefix"]}'}\" autocomplete=\"off\""
-                , "class" => array_merge($arrConfig["class"], Array("eiseIntra_ajax_dropdown"))));
+            , array_merge(
+                $arrConfig 
+                , Array("FlagWrite"=>true
+                    , "strAttrib" => $arrConfig["strAttrib"]." src=\"{table:'{$arrConfig[$src]}', prefix:'{$arrConfig[$prf]}'}\" autocomplete=\"off\""
+                    , "class" => array_merge($arrConfig["class"], Array("eiseIntra_ajax_dropdown")))
+                )
+            );
     } else {
         $strOut .= "<div id=\"span_{$strFieldName}\"{$strClass}>"
             .($arrConfig['href'] ? "<a href=\"{$arrConfig['href']}\"".($arrConfig["target"] ? " target=\"{$arrConfig["target"]}\"" : '').">" : '')

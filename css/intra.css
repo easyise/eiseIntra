@@ -333,6 +333,7 @@ div.eiseIntraComment {
 .eiseIntraActionLogTable {
     font-size: 8pt;
     border-bottom: 1px solid gray;
+    width: 100%;
 }
 .eiseIntraActionLogTable td {
     padding: 2pt;
@@ -362,6 +363,7 @@ div.eiseIntraComment {
 .eiseIntraFileListTable {
     font-size: 8pt;
     border-bottom: 1px solid gray;
+    width: 100%;
 }
 .eiseIntraFileListTable td {
     padding: 2pt;
@@ -392,4 +394,74 @@ div.eiseIntraComment {
 }
 /*****************************************************/
 /* /eiseIntraFileList */
+/*****************************************************/
+
+
+/*****************************************************/
+/* eiseIntraMessages */
+/*****************************************************/
+#eiseIntraMessages, #eiseIntraMessageForm {
+    display: none;
+}
+
+.eiseIntraMessageField label {
+    width: 13%;
+    font-weight: bold;
+    text-align: right;
+}
+
+.eiseIntraMessageField label {
+    clear: left;
+    cursor: default !important;
+    float: left;
+    padding-right: 1% !important;
+}
+
+.eiseIntraMessageField .eiseIntraValue, .eiseIntraMessageField span {
+    width: 83%;
+}
+
+.eiseIntraMessageField {
+    font-size: 8pt;
+    width: 100%;
+}
+
+.eif_msgInsertDate {
+    float: right;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.eif_msgSubject {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.eif_msgText {
+    border-top: 1px dotted #666;
+    font-family: monospace, "Courier New";
+    min-height: 4em;
+    padding: 0.25em 1em;
+}
+
+.eiseIntraMessage {
+    border-top: 1px solid #666;
+    padding: 0.25em;
+}
+
+.eiseIntraMessageBody textarea {
+    width: 100% !important;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    height: 6em;
+}
+
+.eiseIntraMessageButtons {
+    text-align:center;
+    line-height:1.5em;
+}
+
+
+/*****************************************************/
+/* /eiseIntraMessages */
 /*****************************************************/
