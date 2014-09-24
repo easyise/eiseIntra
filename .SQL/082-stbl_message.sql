@@ -8,6 +8,7 @@ CREATE TABLE `stbl_message` (
   `msgCCUserID` varchar(50) DEFAULT NULL,
   `msgSubject` varchar(255) NOT NULL DEFAULT '',
   `msgText` text,
+  `msgStatus` varchar(50) DEFAULT NULL,
   `msgSendDate` datetime DEFAULT NULL,
   `msgReadDate` datetime DEFAULT NULL,
   `msgFlagDeleted` tinyint(4) NOT NULL DEFAULT '0',

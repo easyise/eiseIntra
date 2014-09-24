@@ -33,6 +33,20 @@ function __construct ($oSQL, $intra, $entID) {
     
 }
 
+public static function getItemIDField($rwEnt){
+    return $rwEnt['entID'].'ID';
+}
+
+public static function getScriptPrefix($rwEnt){
+    return str_replace("tbl_", "", $rwEnt["entTable"]);
+}
+
+public static function getFormURL($rwEntItem){
+    $entItemIDField = self::getItemIDField($rwEntItem);
+    $formURL = self::getScriptPrefix($rwEntItem).'_form.php?'.$entItemIDField.'='.urlencode($rwEntItem[$entItemIDField]);
+    return $formURL;
+}
+
 /* returns array with roles that current user belongs to, can be overriden with methods from successors */
 public function getRoleList(){
     return $this->intra->arrUsrData['roleIDs'];

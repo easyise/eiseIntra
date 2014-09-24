@@ -1201,6 +1201,25 @@ function getUserData_All($usrID, $strWhatData='all'){
    }
 }
 
+
+/******************************************************************************/
+/* static functions                                                           */
+/******************************************************************************/
+static function getFullHREF($iframeHREF){
+    $prjDir = dirname($_SERVER['REQUEST_URI']);
+    $flagHTTPS = preg_match('/^HTTPS/', $_SERVER['SERVER_PROTOCOL']);
+    $strURL = 'http'
+        .($flagHTTPS ? 's' : '')
+        .'://'
+        .$_SERVER['SERVER_NAME']
+        .($_SERVER['SERVER_PORT']!=($flagHTTPS ? 443 : 80) ? ':'.$_SERVER['SERVER_PORT'] : '')
+        .$prjDir.'/'
+        .'index.php?pane='.urlencode($iframeHREF);
+    return $strURL;
+}
+
+
+
 /******************************************************************************/
 /* ARCHIVE/RESTORE ROUTINES                                                   */
 /******************************************************************************/

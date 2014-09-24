@@ -1275,20 +1275,25 @@ static function sendMessages($conf){
         $rwUsr_To = $intra->getUserData_All($rwMsg['msgToUserID'], 'all');
         $rwUsr_CC = $intra->getUserData_All($rwMsg['msgCCUserID'], 'all');
 
+        $rwMsg[self::getItemIDField($rwMsg)] = $rwMsg['msgEntityItemID'];
+
+        $rwMsg = array_merge(array('system' => $conf['system']
+                , 'entItemFormHref' => eiseIntra::getFullHREF(self::getFormURL($rwMsg)))
+            , $rwMsg);
+
         $msg = array('mail_from'=> ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : '')
             , 'rcpt_to' => ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\"  <".$rwUsr_To['usrEmail'].">" : '')
-            , 'Subject' => ($rwMsg['entTitle'.$intra->local] ? $rwMsg['entTitle'.$intra->local].' '.$rwMsg['msgEntityItemID'].' ' : '')
-                .$rwMsg['msgSubject']
             , 'Text' => $rwMsg['msgText']
             );
         if ($rwMsg['msgCCUserID'])
             $msg['CC'] = "\"".$rwUsr_CC['usrName']."\"  <".$rwUsr_CC['usrEmail'].">";
 
-        $msg['msgID'] = $rwMsg['msgID'];
+        $msg = array_merge($msg, $rwMsg);
 
         $sender->addMessage($msg);
 
     }
+
     try {
         $arrMessages = $sender->send();
     } catch (eiseMailException $e){
@@ -1298,12 +1303,13 @@ static function sendMessages($conf){
 
 
     foreach($arrMessages as $msg){
-        if(!$msg['send_time'])
-            continue;
-        $oSQL->q("UPDATE stbl_message SET msgSendDate='".date('Y-m-d H:i:s', $msg['send_time'])."'
+        $sqlMarkSent = "UPDATE stbl_message SET msgSendDate=".($msg['send_time'] ? "'".date('Y-m-d H:i:s', $msg['send_time'])."'" : 'NULL' )."
+            , msgStatus=".($msg['error'] ? $oSQL->e($msg['error']) : 'Sent')."
             , msgEditDate=NOW()
             , msgEditBy='{$intra->usrID}'
-            WHERE msgID=".$oSQL->e($msg['msgID']));
+            WHERE msgID=".$oSQL->e($msg['msgID']);
+        $oSQL->q($sqlMarkSent);
+
     }
 
     if($strError)
