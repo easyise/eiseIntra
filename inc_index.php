@@ -27,17 +27,17 @@ $(document).ready(function(){
             var newHref;
             switch(arrId[0]){
                case "ent":
-                    newHref = "entity_list.php?dbName="+arrId[1];
+                    newHref = "entity_list.php?dbName="+encodeURIComponent(arrId[1]);
                     break;
                 case 'db':
-                    newHref = "database_form.php?dbName="+(node.attr("id"));
+                    newHref = "database_form.php?dbName="+encodeURIComponent(arrId[1]);
                     break;
                 default:
                   break;
             }
             if (newHref)
-			     window.frames['pane'].location.href=newHref
-		},
+                 window.frames['pane'].location.href=newHref
+        },
 		afterDblClick:function(node){
 			//alert("text-"+$('span:first',node).text());
 		},

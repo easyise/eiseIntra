@@ -1304,7 +1304,7 @@ static function sendMessages($conf){
 
     foreach($arrMessages as $msg){
         $sqlMarkSent = "UPDATE stbl_message SET msgSendDate=".($msg['send_time'] ? "'".date('Y-m-d H:i:s', $msg['send_time'])."'" : 'NULL' )."
-            , msgStatus=".($msg['error'] ? $oSQL->e($msg['error']) : 'Sent')."
+            , msgStatus=".($msg['error'] ? $oSQL->e($msg['error']) : $oSQL->e('Sent'))."
             , msgEditDate=NOW()
             , msgEditBy='{$intra->usrID}'
             WHERE msgID=".$oSQL->e($msg['msgID']);

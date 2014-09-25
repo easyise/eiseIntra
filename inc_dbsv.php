@@ -34,22 +34,33 @@ function __construct($conf){
         throw new Exception('Database name not specified');
     }
 
-    $this->intra = new eiseIntra();
+    if($conf['intra']){
+        
+        $this->intra = $conf['intra'];
+        $this->authorized = true;
 
-    // check authorization
-    if ($_POST['authstring']){
+    } else {
+        
+        $this->intra = new eiseIntra();
 
-        list($login, $password) = $this->intra->decodeAuthString($_POST['authstring']);
+        if($conf['authstring']){
 
-        if(!$this->intra->Authenticate($login, $password, $strError, 'mysql')){
-            throw new Exception("Unable to connect to server {$login}@{$_POST['host']}");
-        } else {
-            $this->oSQL = $this->intra->oSQL;
-            if (!$this->oSQL->selectDB($this->conf['DBNAME'])){
-                throw new Exception('Unable to select database '.$this->conf['DBNAME']);
-            }
+            list($login, $password) = $this->intra->decodeAuthString($_POST['authstring']);
+
+            if(!$this->intra->Authenticate($login, $password, $strError, 'mysql')){
+                throw new Exception("Unable to connect to server {$login}@{$_POST['host']}");
+            }   
             
             $this->authorized = true;
+
+        }
+
+    }
+
+    if ($this->authorized){
+        $this->oSQL = $this->intra->oSQL;
+        if (!$this->oSQL->selectDB($this->conf['DBNAME'])){
+            throw new Exception('Unable to select database '.$this->conf['DBNAME']);
         }
     }
 
