@@ -734,6 +734,14 @@ function getTableInfo($dbName, $tblName){
     $oSQL = $this->oSQL;
     
     $arrPK = Array();
+
+    $rwTableStatus=$oSQL->f($oSQL->q("SHOW TABLE STATUS FROM $dbName LIKE '".$tblName."'"));
+    if($rwTableStatus['Comment']=='VIEW' && $rwTableStatus['Engine']==null){
+        $tableType = 'view';
+    } else {
+        $tableType = 'table';
+    }
+
     
     $sqlCols = "SHOW FULL COLUMNS FROM `".$tblName."`";
     $rsCols  = $oSQL->do_query($sqlCols);
@@ -863,6 +871,7 @@ function getTableInfo($dbName, $tblName){
     $arrTable["PKCond"] = $strPKCond;
     $arrTable["PKURI"] = $strPKURI;
 
+    $arrTable['type'] = $tableType;
     
     return $arrTable;
 }

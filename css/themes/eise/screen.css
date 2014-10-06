@@ -1,0 +1,406 @@
+@import url(../../intra.css);
+
+body{
+    font-family:Tahoma, sans-serif;
+    font-size: 11px;
+    color: #000;
+}
+
+#toc {
+    padding-right: 10px;
+    width: 160px;
+}
+
+#pane {
+    top: 65px;
+}
+
+/********************************************************************/
+/* Header stuff                                                     */
+#corner_logo{
+	background-image: url(intra_logo.gif);
+	background-repeat: no-repeat;
+	height: 70px;
+	width: 190px;
+	font-size: 0;
+	float: left;
+	margin-right: 20px;
+}
+#app_title{
+    color: #006699;
+    float: left;
+    font-family: "Arial Black Expanded", "Arial Black",Arial,sans-serif;
+    font-size: 60px;
+    font-stretch: expanded;
+    font-weight: 900;
+    height: 65px;
+    line-height: 85px;
+    letter-spacing: -2px;
+    margin-top: -20px;
+    overflow: hidden;
+}
+#login_info{
+	color: #669;
+    font: 11px Arial;
+    height: 10px;
+    left: 160px;
+    padding: 2px 0;
+    position: absolute;
+    top: 45px;
+
+}
+#login_info a:link{
+	color: #669;
+	text-decoration: underline;
+}
+
+#login_info a:visited{
+	color: #669;
+}
+#login_info a:hover{
+	color: #dd0000;
+}
+
+#languages{
+	position:absolute;
+	top: 15px;
+	left: 100%;
+	margin-left: -60px;
+}
+#languages a{
+	padding-left: 18px;
+    height: 18px;
+    text-indent: 0;
+    color: #006699;
+}
+#languages a:link{
+	text-decoration: none;
+}
+#languages a:visited{
+	text-decoration: none;
+	color: #006699;
+}
+#languages a:hover{
+	text-decoration: underline;
+	color: blue;
+}
+#languages a:active{
+	text-decoration: none;
+	color: red;
+}
+
+#languages a.sel{
+	font-weight: bold;
+}
+
+.lang-en {
+    background: url(gb.png) no-repeat;
+}
+
+.lang-ru {
+    background: url(ru.png) no-repeat;
+}
+
+#header {
+   background: White url(intra_bg.gif) repeat-x top;
+   height: 70px;
+}
+/* /Header stuff                                                    */
+/********************************************************************/
+
+/* TOC menu stuff */
+#toc_button {
+    display: inline-block;
+    cursor: pointer;
+    width: 11px;
+    height: 10px;
+    background: White url(bullet_menuhidden.png) no-repeat;
+}
+
+.toc_menushown {
+    background: White url(bullet_menushown.png) no-repeat !important;
+}
+
+/********************************************************************/
+/* Menubar stuff                                                    */
+.menubar{
+        background-color: White;
+        border-bottom: White;
+        font-family: Verdana, Helvetica, sans-serif;
+}
+
+div.menubutton  {
+    border: 1px solid #666666;
+    border-radius: 3px;
+    padding: 4px 2px 3px 2px;
+    margin: 2px;
+    min-width: 100px;
+    height: 14px;
+}
+
+div.menubutton:hover{
+    border: 1px solid #000000;
+}
+
+.menubutton a {
+    text-decoration: none;
+    color: #000000;
+    margin: 2px;
+    padding: 2px 10px 3px 24px;
+    height: 13px;
+}
+
+.menubutton a:hover {
+    color: #000000;
+    text-decoration: underline;
+}
+
+.menubar div.float_right {
+   float: right !important;
+   min-width: 0 !important;
+}
+
+#sysmsg{
+    color: Navy;
+    padding: 1px 3px 1px 3px;
+    top: 3px;
+    right: 7px;
+    text-align: right;
+    border: 1px solid Navy;
+    font: bold 0.8em sans-serif;
+    background: #B0C4DE;
+}
+#sysmsg.error {
+    color: #CC3300 !important;
+    border: 1px solid #660000;
+    background: #fff0f0;
+}
+/* /Menubar stuff                                                   */
+/********************************************************************/
+
+
+h1 {
+   font-size: 20px;
+   font-weight: bold;
+   margin-top : 5px;
+   margin-bottom : 5px;
+   margin-left : 20px;
+}
+
+.panel {
+    border: 1px solid InactiveBorder;
+    MARGIN: 5px;
+    PADDING: 5px;
+    COLOR: #000;
+    BACKGROUND-COLOR: #EEEEEE;
+}
+
+.input,.select {
+    width: 300px;
+    font-size: 11px;
+}
+
+.eiseIntraForm  fieldset{
+    background-color: #EEEEEE;
+}
+
+.eiseIntraForm legend{
+    font-size: 1em;
+    font-weight: bold;
+}
+
+.eiseIntraForm fieldset:first-of-type {
+    margin-top: 25pt;
+}
+
+.eiseIntraForm fieldset:first-of-type legend {
+    font-size: 14pt;
+    line-height: 18pt;
+}
+
+.eiseIntraForm  label{
+    font-weight: bold;
+    font-size: 0.9em;
+    margin-top: 0.2em;
+    text-align: right;
+}
+
+.eiseIntraMainForm legend {
+    font-size: 1.4em;
+    line-height: 1.4em;
+    font-weight: bold;
+}
+
+.eiseIntraForm  label{
+    width: 24%;
+    font-weight: bold;
+    font-size: 0.9em;
+    text-align:right;
+}
+
+.eiseIntraForm  .eiseValue{
+    width: 74%;
+    font-size: 1.1em;
+}
+
+.eiseIntraSubmit {
+    font-weight: bold;
+    font-size: 1.2em;
+    padding: 0.3em 4em;
+}
+
+
+.eiseIntraHistoryTable {
+    background: Buttonshadow;
+    font-size: 11px;
+    border: 1px solid ButtonShadow;
+}
+.eiseIntraHistoryTable TR {
+    height: 14px;
+}
+
+.eiseIntraHistoryTable TH,.eiseIntraHistoryTable  TD {
+    padding: 2px 3px;
+}
+
+.intraField label {
+    float: left;
+    width: 150px;
+    text-align: right;
+    font-weight: bold;
+    padding-right: 5px !important;
+    cursor: default !important;
+}
+
+.intraLogStatus label {
+    width: 70px !important;
+}
+
+.intraLogStatus div.intraField{
+    padding-bottom: 0 !important;
+}
+
+.intraLogData label {
+    width: auto !important;
+    min-width: 100px !important;
+    font-weight: normal;
+}
+
+.intraLogData div.intraField{
+    padding-bottom: 0 !important;
+}
+
+.intraField div{
+    float: left;
+}
+
+.intraField input, .intraField select, .intraField textarea,  .intraField div{
+    width: 250px;
+    font-size: 11px;
+}
+
+input.intra_date, input.intra_datetime {
+    background: Window url("images/sprites/sprites.png") no-repeat right -2899px;
+    padding-right: 5px;
+}
+
+.intra_ajax_dropdown {
+    background-image: url("images/sprites/sprites.png");
+    background-position: right -17947px;
+    background-repeat: no-repeat;
+}
+
+.intra_date {width: 77px !important;margin-right:173px;}   .intra_datetime {width: 12em !important;}
+
+.intra_uom {
+    width: 4em !important;
+}
+
+.intraForm {
+  float:left;
+  width: 100%;
+}	
+
+.intraFormRow {
+    margin-bottom:0.5em;
+    overflow:hidden;
+}
+
+.intraFieldTitle {
+    font-weight: bold ;
+    font-family: Tahoma ;
+    float:left;
+    padding:0 10px;
+    text-align:right;
+    width:150px;
+}
+
+
+
+.intraFieldValue {
+    font-size: 1.1em;
+    float: left;
+}
+
+.intraLogStatus {
+    background: #FFFFFF;
+    border: 1px solid buttonHighlight;
+    padding: 0 5px 5px 5px;
+    margin-bottom: 2px;
+
+}
+
+.intraLogAction {
+    background: #F0F0F0;
+    border: 1px solid buttonHighlight;
+    padding: 0 5px 5px 5px;
+    margin-bottom: 2px;
+}
+
+
+.intraLogTitle {
+    font-weight: bold ;
+    font-family: Tahoma ;
+    border-bottom: 1px solid buttonShadow;
+    padding-left: 2px;
+    margin-bottom: 5px;
+}
+
+.intraLogData {
+    padding-left: 20px;
+}
+
+.intraLogSubtitle {
+    float:left;
+    padding-right: 10px;
+}
+
+.intraActionButton {
+    width: 150px;
+}
+input.intraTime{
+    width: 30px;
+}
+
+/*************************************************/
+/* Backward compatibility                        */
+.field_title {
+    font-weight: bold ;
+    font-family: Tahoma ;
+    font-size: 0.9em;
+    text-align: right;
+    white-space: nowrap;
+    vertical-align: top;
+    padding-right: 5px;
+    padding-top: 3px;
+    padding-left: 5px;
+}
+.field_value {
+    padding-right: 5px;
+    padding-top: 3px;
+    padding-left: 5px;
+    border-left: buttonshadow 1px solid;
+    width: 100%;
+}
+.tr0 {background:#FFFFFF;}
+.tr1 {background:#F0F0F0;}
