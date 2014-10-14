@@ -44,6 +44,7 @@ public $arrAttributeTypes = array(
     , "ajax_dropdown" => 'FK'
     );
 
+const cachePreventorVar = 'nc';
 
 function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory anymore
 
@@ -696,7 +697,7 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
 function loadJS(){
     GLOBAL $js_path, $arrJS;
         
-        $cachePreventor = preg_replace('/\D/', '', $this->conf['version']);
+        $cachePreventor = self::cachePreventorVar.'='.preg_replace('/\D/', '', $this->conf['version']);
         
         //-----------?????????? ?????????? ???????  $arrJS
         for ($i=0;$i<count($arrJS);$i++){
@@ -716,7 +717,7 @@ function loadJS(){
 function loadCSS(){
     GLOBAL $arrCSS;
     
-    $cachePreventor = preg_replace('/\D/', '', $this->conf['version']);
+    $cachePreventor = self::cachePreventorVar.'='.preg_replace('/\D/', '', $this->conf['version']);
     
     for($i=0; $i<count($arrCSS); $i++ ){
         echo "<link rel=\"STYLESHEET\" type=\"text/css\" href=\"{$arrCSS[$i]}?{$cachePreventor}\" media=\"screen\">\r\n";
