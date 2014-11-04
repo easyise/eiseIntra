@@ -205,6 +205,10 @@ init: function( options ) {
             });
             
         } else {
+            var existingConf = $this.data('eiseIntraForm').conf;
+            if (existingConf)
+                conf = $.extend( conf, existingConf);
+
             $this.data('eiseIntraForm').conf = $.extend( conf, options);
             $this.data('eiseIntraForm').entID = entID;
             $this.data('eiseIntraForm').entItemID = entItemID;

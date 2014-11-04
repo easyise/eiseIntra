@@ -10,15 +10,8 @@ var isDateInputSupported = function(){
 var convertDateForDateInput = function($eiForm, inp){
     
     var conf = $eiForm.data('eiseIntraForm').conf;
-    var strRegExDate = conf.dateFormat
-        .replace(new RegExp('\\.', "g"), "\\.")
-        .replace(new RegExp("\\/", "g"), "\\/")
-        .replace("d", "([0-9]{1,2})")
-        .replace("m", "([0-9]{1,2})")
-        .replace("Y", "([0-9]{4})")
-        .replace("y", "([0-9]{1,2})");
     
-    var arrVal = inp.getAttribute('value').match(strRegExDate);
+    var arrVal = inp.getAttribute('value').match(conf.strRegExDate);
     if (arrVal)
         $(inp).val(arrVal[3]+'-'+arrVal[2]+'-'+arrVal[1]);
     
@@ -67,17 +60,40 @@ init: function( options ) {
         if ( ! data ) {
 
             var conf = $.parseJSON($('#eiseIntraConf').val());
+
+            conf.isDateInputSupported = isDateInputSupported();
+
+            conf.strRegExDate = conf.dateFormat
+                        .replace(new RegExp('\\.', "g"), "\\.")
+                        .replace(new RegExp("\\/", "g"), "\\/")
+                        .replace("d", "([0-9]{1,2})")
+                        .replace("m", "([0-9]{1,2})")
+                        .replace("Y", "([0-9]{4})")
+                        .replace("y", "([0-9]{2})");
             
+            conf.strRegExDate_dateInput = "([0-9]{4})\-([0-9]{1,2})\-([0-9]{1,2})";
+            conf.dateFormat_dateInput = "Y-m-d";
+
+            conf.strRegExTime = conf.timeFormat
+                .replace(new RegExp("\\.", "g"), "\\.")
+                .replace(new RegExp("\\:", "g"), "\\:")
+                .replace(new RegExp("\\/", "g"), "\\/")
+                .replace("h", "([0-9]{1,2})")
+                .replace("H", "([0-9]{1,2})")
+                .replace("i", "([0-9]{1,2})")
+                .replace("s", "([0-9]{1,2})");
+
             $(this).data('eiseIntraForm', {
                 form : $this,
                 conf: $.extend( conf, options)
             });
+
         }
         
         $this.find('input[type!=hidden],select').each(function() {
             switch ($(this).attr('type')){ 
                 case "date":
-                    if (isDateInputSupported()){
+                    if (conf.isDateInputSupported){
                         $(this).css('width', 'auto');
                         convertDateForDateInput($this, this);
                     } else {
@@ -219,22 +235,6 @@ validate: function( ) {
     
     var conf = $(this).data('eiseIntraForm').conf;
     
-    var strRegExDate = conf.dateFormat
-        .replace(new RegExp('\\.', "g"), "\\.")
-        .replace(new RegExp("\\/", "g"), "\\/")
-        .replace("d", "[0-9]{1,2}")
-        .replace("m", "[0-9]{1,2}")
-        .replace("Y", "[0-9]{4}")
-        .replace("y", "[0-9]{1,2}");
-    var strRegExTime = conf.timeFormat
-        .replace(new RegExp("\\.", "g"), "\\.")
-        .replace(new RegExp("\\:", "g"), "\\:")
-        .replace(new RegExp("\\/", "g"), "\\/")
-        .replace("h", "[0-9]{1,2}")
-        .replace("H", "[0-9]{1,2}")
-        .replace("i", "[0-9]{1,2}")
-        .replace("s", "[0-9]{1,2}");
-    
     $(this).find('input.eiseIntraValue,select.eiseIntraValue').each(function() {
         
         var strValue = $(this).val();
@@ -264,20 +264,20 @@ validate: function( ) {
                 }
                 break;
             case 'date':
-                if (isDateInputSupported()){
-                    strRegExDateToUse = "[0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2}";
+                if (conf.isDateInputSupported){
+                    strRegExDateToUse = conf.strRegExDate_dateInput;
                 } else {
-                    strRegExDateToUse = strRegExDate;
+                    strRegExDateToUse = conf.strRegExDate;
                 }
             case 'time':
             case 'datetime':
                 
-                strRegExDateToUse = (strRegExDateToUse!='' ? strRegExDateToUse : strRegExDate);
+                strRegExDateToUse = (strRegExDateToUse!='' ? strRegExDateToUse : conf.strRegExDate);
 
                 var strRegEx = "^"+(strType.match(/date/) ? strRegExDateToUse : "")+
                     (strType=="datetime" ? " " : "")+
-                    (strType.match(/time/) ? strRegExTime : "")+"$";
-                
+                    (strType.match(/time/) ? conf.strRegExTime : "")+"$";
+
                 if (strValue!="" && strValue.match(new RegExp(strRegEx))==null){
                     alert ("Field '"+getFieldLabelText($(this))+"' should contain "+(strType)+" value formatted as \""+conf.dateFormat+
                     (strType.match(/time/) ? ' '+conf.timeFormat.replace('i', 'm') : "")+
@@ -330,8 +330,12 @@ value: function(strFieldName, strType, val, decimalPlaces){
 
     var conf = this.data('eiseIntraForm').conf;
 
+    var strRegExDate = conf.strRegExDate;
+    var strDateFormat = conf.dateFormat;
+    var $inp = this.find('#'+strFieldName);
+
     if (val==undefined){
-        var strValue = this.find('#'+strFieldName).val();
+        var strValue = $inp.val();
         switch(strType){
             case "integer":
             case "int":
@@ -344,6 +348,24 @@ value: function(strFieldName, strType, val, decimalPlaces){
                 .replace(new RegExp("\\"+conf.thousandsSeparator, "g"), '');
                 nVal = parseFloat(strValue);
                 return isNaN(nVal) ? 0 : nVal;
+            case "date":
+            case "datetime":
+                if($inp.attr('type') && $inp.attr('type')=='date' && conf.isDateInputSupported){
+                    strRegExDate = conf.strRegExDate_dateInput;
+                    strDateFormat = conf.dateFormat_dateInput;
+                } else {
+                    strRegExDate = conf.strRegExDate + (strType=='datetime' ? '\s+'+conf.strRegExTime : '');
+                    strDateFormat = conf.dateFormat + (strType=='datetime' ? '\s+'+conf.timeFormat : '');
+                }
+                var arrMatch = strValue.match(strRegExDate);
+
+                if (arrMatch){
+                    strDateFormat = ' '+strDateFormat.replace(/[^dmyhis]/gi, '');
+                    var year = (strDateFormat.indexOf('y')>=0 ? '20'+arrMatch[strDateFormat.indexOf('y')] : arrMatch[strDateFormat.indexOf('Y')]);
+                    return new Date(year, arrMatch[strDateFormat.indexOf('m')]-1, +arrMatch[strDateFormat.indexOf('d')]);
+                } else {
+                    return null;
+                }
             default:
                 return strValue;
         }
