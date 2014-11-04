@@ -103,6 +103,12 @@ class eiseSQL extends mysqli{
                 :  Array("error"=>"Unable to do_query: $query")
                 );
             $this->arrMicroseconds[] = number_format(microtime(true)-$timeStart, 6, ".", "");
+            $arrBkTrace = debug_backtrace();
+            $arrToRecord = array();
+            foreach($arrBkTrace as $i=>$call){
+                $arrToRecord[$i] = ($call['class'] ? $call['class'].'::' : '').$call['function'].'() @ '.$call['file'].':'.$call['line'];
+            }
+            $this->arrBacktrace[] = $arrToRecord;
         }
           
         if (!$this->rs) {
@@ -247,6 +253,7 @@ class eiseSQL extends mysqli{
        $this->arrQueries = Array();
        $this->arrResults = Array();
        $this->arrMicroseconds = Array();
+       $this->arrBacktrace = Array();
        $this->flagProfiling = true;
     }
     
@@ -255,7 +262,9 @@ class eiseSQL extends mysqli{
        echo "Profiling results:";
        for($ii=0;$ii<count($this->arrQueries);$ii++){
           echo "\r\nQuery ##".($ii+1)." (a: {$this->arrResults[$ii]['affected']}, n: {$this->arrResults[$ii]['returned']}), time ".$this->arrMicroseconds[$ii].":\r\n";
-          echo $this->arrQueries[$ii];
+          echo $this->arrQueries[$ii]."\r\n";
+          echo 'Backtrace:';
+          print_r($this->arrBacktrace[$ii]);
           echo "\r\n";
        }
        echo "</pre>";
@@ -267,6 +276,7 @@ class eiseSQL extends mysqli{
           $arrRet[] = array('query'=>$this->arrQueries[$ii]
             , 'affected'=>$this->arrResults[$ii]['affected']
             , 'returned'=>$this->arrResults[$ii]['returned']
+            , 'backtrace'=>$this->backtrace[$ii]
             , 'time'=>$this->arrMicroseconds[$ii]);
       }
       return $arrRet;
