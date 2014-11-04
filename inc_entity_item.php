@@ -8,7 +8,8 @@ class eiseEntityItem extends eiseEntity {
 public $oSQL;
 public $entID;
 public $entItemID;
-public $rwEnt = Array();
+
+public $item;
 
 public $arrTimestamp = Array('ETD', 'ETA', 'ATD', 'ATA');
 public $arrActionPhase = Array('0' => "Planned"
@@ -16,9 +17,10 @@ public $arrActionPhase = Array('0' => "Planned"
 , '2' => "Complete"
 , '3' => "Cancelled");
 
-private $arrAction = Array(); // current action data
-private $arrACL = Array(); // incomplete action data
-private $arrNewData = Array(); // new data, it could be $_POST
+protected $arrAction = Array(); // current action data
+protected $arrNewData = Array(); // new data, it could be $_POST
+
+protected $defaultDataToObtain = array('Text', 'ACL', 'STL', 'comments', 'files', 'messages');
 
 function __construct($oSQL, $intra, $entID, $entItemID, $flagArchive = false){
     
@@ -36,8 +38,27 @@ function __construct($oSQL, $intra, $entID, $entItemID, $flagArchive = false){
         $this->getEntityItemDataFromArchive();
     }
     
-    $this->staID = $this->rwEnt[$entID."StatusID"];
+    $this->staID = $this->item[$entID."StatusID"];
     
+}
+
+function refresh($toRefresh=array('Master')){
+
+    $this->item = array();
+    $this->arrAction = array();
+
+    if(!$this->flagArchive){
+        $this->getEntityItemAllData($toRefresh);
+    } else {
+        $this->getEntityItemDataFromArchive();
+        if(count($toRefresh)>1){
+            unset($toRefresh[array_search('Master', $toRefresh)]); //prevent double-retrieval of information
+            $this->getEntityItemAllData($toRefresh);
+        }
+    }
+
+    return $this->item;
+
 }
 
 function getEntityItemData(){
@@ -45,19 +66,24 @@ function getEntityItemData(){
     $oSQL = $this->oSQL;
     $entID = $this->entID;
     $entItemID = $this->entItemID;
-    
+
     $sqlEnt = "SELECT * 
-            FROM {$this->rwEnt['entTable']}
+            FROM {$this->conf['entTable']}
             LEFT OUTER JOIN stbl_status STA ON STA.staID={$entID}StatusID AND staEntityID='$entID'
             LEFT OUTER JOIN stbl_action_log ACL ON {$entID}ActionLogID=ACL.aclGUID
-            WHERE {$entID}ID='{$entItemID}'";
+            WHERE {$entID}ID=".$oSQL->e($entItemID);
+
     $rsEnt = $oSQL->q($sqlEnt);
     if ($oSQL->n($rsEnt)==0)
         throw new Exception("Entity Item not found".": ".$entID."/".$entItemID);
     
-    $rwEnt = $oSQL->fetch_array($rsEnt);
+    $rwItem = $oSQL->f($rsEnt);
+
+    $this->item = array_merge(
+        (is_array($this->item) ? $this->item : array())
+        , $rwItem);
     
-    $this->rwEnt = array_merge($this->rwEnt, $rwEnt);
+    return $rwItem;
     
 }
 
@@ -66,19 +92,116 @@ function getEntityItemDataFromArchive(){
     $oSQL = $this->oSQL;
     $entID = $this->entID;
     $entItemID = $this->entItemID;
-    
+
     $oSQL_arch = $this->intra->getArchiveSQLObject();
     
     $sqlEnt = "SELECT * 
-            FROM {$this->rwEnt['entTable']}
-            WHERE {$entID}ID='{$entItemID}'";
+            FROM {$this->conf['entTable']}
+            WHERE {$entID}ID=".$oSQL->e($entItemID);
     $rsEnt = $oSQL_arch->q($sqlEnt);
     if ($oSQL_arch->n($rsEnt)==0)
         throw new Exception("Entity Item not found in the Archive database {$oSQL_arch->dbname}".": ".$entID."/".$entItemID);
     
-    $rwEnt = $oSQL_arch->fetch_array($rsEnt);
+    $this->item = $oSQL_arch->fetch_array($rsEnt);
+
+    return $this->item;
     
-    $this->rwEnt = array_merge($rwEnt, $this->rwEnt);
+}
+
+
+function getEntityItemAllData($toRetrieve = null){
+    
+    if($toRetrieve===null)
+        $toRetrieve = $this->defaultDataToObtain;
+
+    if ($this->flagArchive) {
+        $arrData = json_decode($this->item["{$this->entID}Data"], true);
+        $this->item = array_merge($this->item, $arrData);
+        return $this->item;
+    }
+    
+    //   - Master table is $this->item
+    // attributes and combobox values
+    $this->staID = (int)$this->item["{$this->entID}StatusID"];
+
+    if(in_array('Master', $toRetrieve))
+        $this->getEntityItemData();
+
+    if(in_array('Text', $toRetrieve))    
+        foreach($this->conf["ATR"] as $atrID=>$rwATR){
+            
+            if (in_array($rwATR["atrType"], Array("combobox", "ajax_dropdown"))){
+                $this->item[$rwATR["atrID"]."_Text"] = $this->getDropDownText($rwATR, $this->item[$rwATR["atrID"]]);
+            }
+
+        }
+    
+    // collect incomplete/cancelled actions
+    if(in_array('ACL', $toRetrieve)) {
+        $this->item["ACL"]  = Array();
+        $sqlACL = "SELECT * FROM stbl_action_log 
+                WHERE aclEntityItemID='{$this->entItemID}'
+                AND aclActionPhase < 2 
+                ORDER BY aclInsertDate DESC, aclOldStatusID DESC";
+        $rsACL = $this->oSQL->do_query($sqlACL);
+        while($rwACL = $this->oSQL->fetch_array($rsACL)){
+            $this->item["ACL"][$rwACL["aclGUID"]] = $this->getActionData($rwACL["aclGUID"]);
+        }    
+        $this->item["ACL_Cancelled"]  = Array();
+        $sqlACL = "SELECT * FROM stbl_action_log 
+                WHERE aclEntityItemID='{$this->entItemID}'
+                AND aclActionPhase > 2 
+                ORDER BY aclInsertDate DESC, aclOldStatusID DESC";
+        $rsACL = $this->oSQL->do_query($sqlACL);
+        while($rwACL = $this->oSQL->fetch_array($rsACL)){
+            $this->item["ACL"][$rwACL["aclGUID"]] = $this->getActionData($rwACL["aclGUID"]);
+        }    
+    }
+    
+    
+    // collect status log and nested actions
+    if(in_array('STL', $toRetrieve)){
+        $this->item["STL"] = Array();
+        $this->getStatusData(null);
+    }
+    
+    
+    //comments
+    if(in_array('comments', $toRetrieve)){
+        $this->item["comments"] = Array();
+        $sqlSCM = "SELECT * 
+        FROM stbl_comments 
+        WHERE scmEntityItemID='{$this->entItemID}' ORDER BY scmInsertDate DESC";
+        $rsSCM = $this->oSQL->do_query($sqlSCM);
+        while ($rwSCM = $this->oSQL->f($rsSCM)){
+            $this->item["comments"][$rwSCM["scmGUID"]] = $rwSCM;
+        }
+    }
+    
+    //files
+    if(in_array('files', $toRetrieve)){
+        $this->item["files"] = Array();
+        $sqlFile = "SELECT * FROM stbl_file WHERE filEntityID='{$this->entID}' AND filEntityItemID='{$this->entItemID}'
+        ORDER BY filInsertDate DESC";
+        $rsFile = $this->oSQL->do_query($sqlFile);
+        while ($rwFIL = $this->oSQL->f($rsFile)){
+            $this->item["files"][$rwFIL["filGUID"]] = $rwFIL;
+        }
+    }
+    
+    
+    //message
+    if(in_array('message', $toRetrieve)){
+        $this->item["messages"] = Array();//not yet
+    }
+    
+    
+    //echo "<pre>";
+    //print_r($this->item);
+    //die();
+
+    
+    return $this->item;
     
 }
 
@@ -88,32 +211,38 @@ function delete(){
     
     if ($this->flagArchive){
         $oSQL_arch = $this->intra->getArchiveSQLObject();
-        $oSQL_arch->q("DELETE FROM {$this->rwEnt["entTable"]} WHERE {$this->entID}ID=".$oSQL->e($this->entItemID));
+        $oSQL_arch->q("DELETE FROM {$this->conf["entTable"]} WHERE {$this->entID}ID=".$oSQL->e($this->entItemID));
         return;
     }
     
     
-    $rwEnt = $this->rwEnt;
+    $rwEnt = $this->item;
     $entItemID = $this->entItemID;
     $entID = $this->entID;
     
-    $sqlDel[] = "DELETE {$rwEnt["entTable"]}_log, stbl_action_log FROM {$rwEnt["entTable"]}_log INNER JOIN stbl_action_log
+    $sqlDel[] = "DELETE {$this->conf["entTable"]}_log, stbl_action_log FROM {$this->conf["entTable"]}_log INNER JOIN stbl_action_log
         ON aclGUID=l{$entID}GUID WHERE aclEntityItemID='{$entItemID}'";
-    $sqlDel[] = "DELETE {$rwEnt["entTable"]}_log, stbl_status_log FROM {$rwEnt["entTable"]}_log INNER JOIN stbl_status_log
+    $sqlDel[] = "DELETE {$this->conf["entTable"]}_log, stbl_status_log FROM {$this->conf["entTable"]}_log INNER JOIN stbl_status_log
         ON stlGUID=l{$entID}GUID WHERE stlEntityItemID='{$entItemID}'";
-    //$sqlDel[] = "DELETE FROM stbl_action_log WHERE aclEntityItemID='{$entItemID}'";
-    //$sqlDel[] = "DELETE FROM {$rwEnt["entTable"]}_log WHERE l{$entID}GUID IN (SELECT stlGUID FROM stbl_status_log WHERE stlEntityItemID='{$entItemID}')";
-    //$sqlDel[] = "DELETE FROM stbl_status_log WHERE stlEntityItemID='{$entItemID}'";
+    $sqlDel[] = "DELETE FROM stbl_action_log WHERE aclEntityItemID='{$this->entItemID}'";
+    $sqlDel[] = "DELETE FROM stbl_status_log WHERE stlEntityItemID='{$this->entItemID}'";
     // comments
     $sqlDel[] = "DELETE FROM stbl_comments WHERE scmEntityItemID=".$oSQL->e($this->entItemID);
     // files
     $sqlDel[] = "DELETE FROM stbl_file WHERE filEntityItemID=".$oSQL->e($this->entItemID);
     // master
-    $sqlDel[] = "DELETE FROM {$rwEnt["entTable"]} WHERE {$entID}ID='{$entItemID}'";
+    $sqlDel[] = "DELETE FROM {$this->conf["entTable"]} WHERE {$entID}ID='{$this->entItemID}'";
     
     for ($i=0;$i<count($sqlDel);$i++)
         $oSQL->do_query($sqlDel[$i]);
     
+}
+
+// 'Creates' existing entity item
+public function create(){
+
+    $this->doCreate();
+
 }
 
 // updates master table & action log
@@ -124,9 +253,8 @@ public function update($arrNewData, $flagUpdateMultiple = false, $flagFullEdit =
     $this->updateActionLog();
     
     // if no action set with arrNewData we record an update
-    if (!isset($this->arrNewData["actID"]) && !isset($this->arrNewData["aclGUID"])){
-        $this->arrNewData['actID'] = 2;
-        $this->doAction(); // record update operation to the log
+    if (!isset($arrNewData["actID"]) && !isset($arrNewData["aclGUID"])){
+        $this->doUpdate(); // record update operation to the log
     }
     
 }
@@ -135,7 +263,7 @@ public function update($arrNewData, $flagUpdateMultiple = false, $flagFullEdit =
 public function doAction($arrNewData = null){
     
     if ($arrNewData!==null){
-        $this->refresh();
+        $this->refresh(array('Master', 'ACL'));
         $this->arrNewData = $arrNewData;
     }
     
@@ -179,15 +307,6 @@ public function doAction($arrNewData = null){
     return $aclGUID;
 }
 
-// re-reads entity item data from database, resets arrAction and arrNewData
-public function refresh(){
-    
-    unset($this->arrAction);
-    unset($this->arrNewData);
-    $this->getEntityItemData();
-    
-}
-
 // backward-compatibility 
 public function doSimpleAction($arrNewData){
     
@@ -212,6 +331,37 @@ public function doFullAction($arrNewData = Array()){
     
     return $aclGUID;
     
+}
+
+public function doCreate(){
+    
+    $oSQL = $this->oSQL;
+
+    // check existance
+    if($oSQL->d('SELECT COUNT(*) FROM stbl_action_log WHERE aclEntityItemID='.$oSQL->e($this->entItemID).' AND aclActionID=1'))
+        throw new Exception('Create action already exists in log for '.$this->entItemID);
+
+    $this->doSimpleAction(Array(  // Create
+        "actID"=> 1
+    ));
+
+}
+
+public function doUpdate($flagForce = false){
+
+    if(!($this->conf['flagDontLogUpdates'] || $flagForce))
+        $this->doSimpleAction(Array(  // Create
+            "actID"=> 2
+        ));
+
+}
+
+public function doDelete(){
+
+    $this->doSimpleAction(Array(  // Delete
+        "actID"=> 3
+    ));
+
 }
 
 // adds record to stbl_action_log, {entTable}_log with initial data from Master Table
@@ -246,7 +396,7 @@ public function addAction($arrAction = null){
               , `aclInsertBy`, `aclInsertDate`, `aclEditBy`, `aclEditDate`
               ) SELECT
               '{$this->arrAction["aclGUID"]}' as aclGUID
-              , ".($this->rwEnt["{$this->entID}StatusActionLogID"]!="" ? "'".$this->rwEnt["{$this->entID}StatusActionLogID"]."'" : "NULL")." as aclPredID
+              , ".($this->item["{$this->entID}StatusActionLogID"]!="" ? "'".$this->item["{$this->entID}StatusActionLogID"]."'" : "NULL")." as aclPredID
               , ".(int)$this->arrAction["actID"]."
               , '".$this->entItemID."'
               , ".((string)$this->arrAction['aclOldStatusID']=="" ? "NULL"  : "'".(string)$this->arrAction['aclOldStatusID']."'")."
@@ -258,28 +408,29 @@ public function addAction($arrAction = null){
                 , ".(isset($this->arrAction["aclATA_attr"]) ? $this->arrAction["aclATA_attr"] : "NULL")."
                 , ".$oSQL->escape_string($this->arrAction["aclComments"])."
               , '{$this->intra->usrID}', NOW(), '{$this->intra->usrID}', NOW()
-            FROM {$this->rwEnt["entTable"]} WHERE {$this->entID}ID='{$this->entItemID}'";
+            FROM {$this->conf["entTable"]} WHERE {$this->entID}ID='{$this->entItemID}'";
      
     $oSQL->do_query($sqlInsACL);  
     
     // 3. insert ATV
 	// generate script that copy data from the master table
 	$arrFields = Array();
-    foreach($this->arrAction["AAT"] as $atrID => $rwAAT){
-        
-        // define attributes for timestamp
-        if ($rwAAT["aatFlagTimestamp"]) {
-            $this->arrAction["acl".$rwAAT["aatFlagTimestamp"]."_attr"] = ($rwAAT["aatFlagEmptyOnInsert"] ? "NULL" : $atrID);
+    if (is_array($this->arrAction["aatFlagToTrack"]))
+        foreach($this->arrAction["aatFlagToTrack"] as $atrID => $options){
+            
+            // define attributes for timestamp
+            if ($rwAAT["aatFlagTimestamp"]) {
+                $this->arrAction["acl".$rwAAT["aatFlagTimestamp"]."_attr"] = ($rwAAT["aatFlagEmptyOnInsert"] ? "NULL" : $atrID);
+            }
+            
+    		$arrFields["l".$atrID] = ($rwAAT["aatFlagEmptyOnInsert"] ? "NULL" : $atrID);
+    		
         }
-        
-		$arrFields["l".$atrID] = ($rwAAT["aatFlagEmptyOnInsert"] ? "NULL" : $atrID);
-		
-    }
 	
     
     if (count($arrFields)!=0){
     
-        $sqlInsATV = "INSERT INTO {$this->rwEnt["entTable"]}_log (
+        $sqlInsATV = "INSERT INTO {$this->conf["entTable"]}_log (
                 l{$this->entID}GUID
                 ";
             
@@ -297,7 +448,7 @@ public function addAction($arrAction = null){
             
         $sqlInsATV .= "       
                 , '{$usrID}' AS atvInsertBy, NOW() AS atvInsertDate, '{$usrID}' AS atvEditBy, NOW() AS atvEditDate
-            FROM {$this->rwEnt["entTable"]} WHERE {$this->entID}ID='{$this->entItemID}'
+            FROM {$this->conf["entTable"]} WHERE {$this->entID}ID='{$this->entItemID}'
             ";
             
         $oSQL->do_query($sqlInsATV);
@@ -314,7 +465,7 @@ public function findAction($aclOldStatusID, $aclNewStatusID, $aclActionID, $aclA
     $arrACL = Array();
     
     $sqlACL = "SELECT * FROM stbl_action_log 
-        LEFT OUTER JOIN {$this->rwEnt["entTable"]}_log ON aclGUID=l{$this->entID}GUID
+        LEFT OUTER JOIN {$this->conf["entTable"]}_log ON aclGUID=l{$this->entID}GUID
         WHERE aclEntityItemID='{$this->entItemID}'
         ".($aclOldStatusID!==null 
             ? " AND aclOldStatusID".(is_array($aclOldStatusID)
@@ -357,11 +508,9 @@ function finishAction(){
     $usrID = $this->intra->usrID;
     $oSQL = $this->oSQL;
        
-    if ($this->arrAction["aclActionPhase"]=="0")
-        if (!$this->checkCanStart()){
-            throw new Exception("Action '{$this->arrAction["actTitle"]}' cannot be started for {$this->entItemID} because of its status ({$this->rwEnt[$this->entID."StatusID"]})");
-            return false;
-        }
+    if ($this->arrAction["aclActionPhase"]=="0"){
+        $this->onActionStart($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
+    }
     
     // update started action as completed
     $sqlUpdACL = "UPDATE stbl_action_log SET
@@ -375,7 +524,7 @@ function finishAction(){
     $oSQL->do_query($sqlUpdACL);
     
     if ($this->arrAction["actID"]!="2") {
-        $sqlUpdEntTable = "UPDATE {$this->rwEnt["entTable"]} SET
+        $sqlUpdEntTable = "UPDATE {$this->conf["entTable"]} SET
             {$this->entID}ActionLogID='{$this->arrAction["aclGUID"]}'
             , {$this->entID}EditBy='{$this->intra->usrID}', {$this->entID}EditDate=NOW()
             WHERE {$this->entID}ID='{$this->entItemID}'";
@@ -383,11 +532,11 @@ function finishAction(){
     }
     
     // update master table by attrbutes
-    if (count($this->arrAction["AAT"])>0){
-        $sqlUpdMaster = "UPDATE {$this->rwEnt["entTable"]} SET 
+    if (count($this->arrAction["aatFlagToTrack"])>0){
+        $sqlUpdMaster = "UPDATE {$this->conf["entTable"]} SET 
             {$this->entID}EditBy='{$this->intra->usrID}', {$this->entID}EditDate=NOW()";
-        foreach($this->arrAction["AAT"] as $atrID=>$xx){
-            $sqlUpdMaster .= "\r\n, {$atrID} = (SELECT l{$atrID} FROM {$this->rwEnt["entTable"]}_log WHERE l{$this->entID}GUID='{$this->arrAction["aclGUID"]}')";
+        foreach($this->arrAction["aatFlagToTrack"] as $atrID=>$xx){
+            $sqlUpdMaster .= "\r\n, {$atrID} = (SELECT l{$atrID} FROM {$this->conf["entTable"]}_log WHERE l{$this->entID}GUID='{$this->arrAction["aclGUID"]}')";
         }
         $sqlUpdMaster .= "\r\nWHERE {$this->entID}ID='{$this->entItemID}'";
         $oSQL->do_query($sqlUpdMaster);
@@ -395,6 +544,8 @@ function finishAction(){
     
     //echo "<pre>";
     //print_r($this->arrNewData);
+    
+    $this->onActionFinish($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
     
     // if status is changed or action requires status stay interruption, we insert status log entry and update master table
     if (((string)$this->arrAction["aclOldStatusID"]!=(string)$this->arrAction["aclNewStatusID"] 
@@ -440,34 +591,26 @@ function finishAction(){
             INNER JOIN stbl_status ON aclNewStatusID=staID AND staEntityID='{$this->entID}'
             WHERE aclGUID='{$this->arrAction["aclGUID"]}'";
         
-        $sqlSAT = "SELECT * FROM stbl_status_attribute 
-            WHERE satStatusID='{$this->arrAction["aclNewStatusID"]}' AND satEntityID='{$this->entID}' AND satFlagTrackOnArrival=1";
-        $rsSAT = $oSQL->do_query($sqlSAT);
-        
-        $arrSAT = Array();
-        while ($rwSAT = $oSQL->fetch_array($rsSAT)){
-            $arrSAT[] = $rwSAT['satAttributeID'];
-        }
-        
+        $arrSAT = $this->conf['STA'][$this->arrAction['aclNewStatusID']]['satFlagTrackOnArrival'];
         if (count($arrSAT)>0){
-            $sqlSAT = "INSERT INTO {$this->rwEnt["entTable"]}_log (
+            $sqlSAT = "INSERT INTO {$this->conf["entTable"]}_log (
                 l{$this->entID}GUID
                 , l{$this->entID}EditBy , l{$this->entID}EditDate, l{$this->entID}InsertBy, l{$this->entID}InsertDate
                 ";
-            foreach($arrSAT as $ix => $atrID)
+            foreach($arrSAT as $atrID=>$x)
                 $sqlSAT .= ", l{$atrID}";
             $sqlSAT .= ") SELECT 
                 '$stlGUID' as l{$this->entID}GUID
                 , '{$this->intra->usrID}' as l{$this->entID}EditBy , NOW() as l{$this->entID}EditDate, '{$this->intra->usrID}' as {$this->entID}InsertBy, NOW() as {$this->entID}InsertDate
                 ";
-            foreach($arrSAT as $ix => $atrID)
+            foreach($arrSAT as $atrID=>$ix)
                 $sqlSAT .= ", {$atrID}";
-            $sqlSAT .= " FROM {$this->rwEnt["entTable"]} WHERE {$this->entID}ID='{$this->entItemID}'";
+            $sqlSAT .= " FROM {$this->conf["entTable"]} WHERE {$this->entID}ID='{$this->entItemID}'";
             $sql[] = $sqlSAT;
         }
         
         // after action is done, we update entity table with last status action log id
-        $sql[] = "UPDATE {$this->rwEnt["entTable"]} SET
+        $sql[] = "UPDATE {$this->conf["entTable"]} SET
             {$this->entID}ActionLogID='{$this->arrAction["aclGUID"]}'
             , {$this->entID}StatusActionLogID='{$this->arrAction["aclGUID"]}'
             , {$this->entID}StatusID='{$this->arrAction["aclNewStatusID"]}'
@@ -478,98 +621,83 @@ function finishAction(){
             $oSQL->do_query($sql[$i]);
         }
 
-        $this->onStatusDeparture($this->arrAction['aclOldStatusID']);
         $this->onStatusArrival($this->arrAction['aclNewStatusID']);
-        
-    }
 
-    $this->onActionFinish($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
+    }
+    
 }
 
 public function prepareActions(){
     
     $oSQL = $this->oSQL;
     $this->arrAction = Array();
-    $this->arrACL = Array();
     
     if (empty($this->arrNewData["aclGUID"]) &&  empty($this->arrNewData["actID"])){
         //throw new Exception('Neither Action ID nor Action Log GUID specified');
         $this->arrNewData["actID"] = 2;
     }
     
-    // collect all incomplete actions
-    $sqlACL = "SELECT * FROM stbl_action_log 
-        INNER JOIN stbl_action ON aclActionID=actID
-        WHERE aclEntityItemID='{$this->entItemID}' 
-		AND aclActionPhase<2 
-		ORDER BY aclInsertDate DESC";
-    $rsACL = $oSQL->do_query($sqlACL);
-    
-    while ($rwACL = $oSQL->fetch_array($rsACL)){
-        $this->arrACL[$rwACL["aclGUID"]] = $rwACL;
-        
-        $this->arrACL[$rwACL["aclGUID"]]["AAT"] = $this->getActionAttribute($rwACL["aclActionID"]);
-        
-        //getting ATV
-        $sqlATV = "SELECT * FROM {$this->rwEnt["entTable"]}_log WHERE l{$this->entID}GUID='{$rwACL["aclGUID"]}'";
-        $rsATV = $oSQL->do_query($sqlATV);
-        $rwATV = $oSQL->fetch_array($rsATV);
-        foreach($this->arrACL[$rwACL["aclGUID"]]["AAT"] as $atrID => $arr_dummy){
-            $this->arrACL[$rwACL["aclGUID"]]["ATV"][$atrID] = $rwATV["l{$atrID}"];
-        }
-        
-        $oSQL->free_result($rsATV);
-        
+    if(!$this->item['ACL']){
+        $this->getEntityItemAllData(array('ACL'));
     }
-    
+
     //collect coming action
     if ($this->arrNewData["aclGUID"]){
-        $sqlACT = "SELECT * FROM stbl_action_log 
-            LEFT OUTER JOIN stbl_action ON aclActionID=actID
-            WHERE aclGUID='{$this->arrNewData["aclGUID"]}'";
+        $rwACT = $this->item['ACL'][$this->arrNewData["aclGUID"]]; //if ACL GUID specified, we try to locate action in ACL
     } else {
-        $sqlACT = "SELECT *,
-            (SELECT atsNewStatusID FROM stbl_action_status WHERE atsActionID=actID 
-                ORDER BY atsNewStatusID LIMIT 0,1) as aclNewStatusID
-            , ".($this->rwEnt["{$this->entID}StatusID"]=="" ? "NULL" : (int)$this->rwEnt["{$this->entID}StatusID"])." as aclOldStatusID
-            FROM stbl_action 
-            WHERE actID='{$this->arrNewData["actID"]}'";
+        $rwACT = $this->conf['ACT'][$this->arrNewData["actID"]]; // else we retrive action data from ACT associative array member
     }
-    $rsACT = $oSQL->do_query($sqlACT);
-    if ($oSQL->n($rsACT)==0){
+
+    if (!$rwACT){
         throw new Exception("Action not found for ID/GUID {$this->arrNewData["actID"]}/{$this->arrNewData["aclGUID"]}");
     }
-    $rwACT = $oSQL->fetch_array($rsACT);
     
-    $this->arrAction["AAT"] = $this->getActionAttribute($rwACT["actID"]);
-    
-    $this->arrAction["aclOldStatusID"] = isset($this->arrNewData["aclOldStatusID"]) 
+    $aclOldStatusID = isset($this->arrNewData["aclOldStatusID"]) 
         ? $this->arrNewData["aclOldStatusID"] 
         : ($this->arrNewData["aclGUID"] 
             ? $rwACT["aclOldStatusID"] 
-            : $this->rwEnt["{$this->entID}StatusID"]);
-    $this->arrAction["aclNewStatusID"] = isset($this->arrNewData["aclNewStatusID"]) ? $this->arrNewData["aclNewStatusID"] : $rwACT["aclNewStatusID"];
+            : $this->item["staID"]);
+    $aclNewStatusID = isset($this->arrNewData["aclNewStatusID"]) ? $this->arrNewData["aclNewStatusID"] : $rwACT["aclNewStatusID"];
     $this->arrAction["aclComments"] = $this->arrNewData["aclComments"];
+
+    if(!$rwACT['actEntityID']){
+        switch($rwACT['actID']){
+            case 1:
+                if($aclOldStatusID>0)
+                    throw new Exception('Item is already created');
+                break;
+            case 2:
+                if(!$this->conf['STA'][(int)$aclOldStatusID]['staFlagCanUpdate'])
+                    throw new Exception('Update is not allowed');
+                break;
+            case 3:
+                if(!$this->conf['STA'][(int)$aclOldStatusID]['staFlagCanDelete'])
+                    throw new Exception('Delete is not allowed');
+                break;
+            default:
+                break;
+        }
+    } else {
+        if(!in_array($aclOldStatusID, $rwACT['actOldStatusID']))
+            throw new Exception('Action cannot be run for origin status '.$aclOldStatusID);
+        if(!in_array($aclNewStatusID, $rwACT['actNewStatusID']))
+            throw new Exception('Action cannot be run for destination status '.$aclOldStatusID);
+    }
+
+    $this->arrAction['aclOldStatusID'] = $aclOldStatusID;
+    $this->arrAction['aclNewStatusID'] = $aclNewStatusID;
     
     $this->arrAction = array_merge($rwACT, $this->arrAction);
-    
-    foreach($this->arrAction["AAT"] as $atrID => $rwAAT){
-        // define attributes for timestamp
-        if ($rwAAT["aatFlagTimestamp"]) {
-            $this->arrAction["acl".$rwAAT["aatFlagTimestamp"]."_attr"] = ($rwAAT["aatFlagEmptyOnInsert"] ? "NULL" : $atrID);
-        }
-    }
-    
-}
 
-private function checkCanStart(){
-    if ($this->arrAction["actID"]<=4) 
-        return true;
-    
-    if ($this->arrAction["aclOldStatusID"]!=$this->rwEnt[$this->entID."StatusID"])
-        return false;
-    
-    return true;
+    if (is_array($this->arrAction["aatFlagToTrack"]))
+        foreach($this->arrAction["aatFlagToTrack"] as $atrID=>$options){
+            // define attributes for timestamp
+            $arrTS = $this->conf['ACT'][$rwACT['actID']]['aatFlagTimestamp'];
+            if (in_array($atrID, $arrTS)) {
+                $this->arrAction["acl".array_search($atrID, $arrTS)."_attr"] = ($options["aatFlagEmptyOnInsert"] ? "NULL" : $atrID);
+            }
+        }
+
 }
 
 public function attachFile($fileNameOriginal, $fileContents, $fileMIME="Application/binary"){
@@ -632,26 +760,27 @@ function updateMasterTable($arrNewData = Array(), $flagUpdateMultiple = false, $
     
     $entID = $this->entID;
     $entItemID = $this->entItemID;
-    $rwEnt = $this->rwEnt;
+    $rwEnt = $this->item;
     
     $intra = $this->intra;
     
     
-    // 1. update table by visible/editable attributes list
-    $sqlSAT = "SELECT * 
-       FROM stbl_attribute
-       INNER JOIN stbl_status_attribute ON satStatusID='".$rwEnt[$entID."StatusID"]."' AND satAttributeID=atrID AND satEntityID='$entID'
-       WHERE atrEntityID='$entID'
-       ORDER BY atrOrder ASC";
-    $rsSAT = $oSQL->do_query($sqlSAT);
-    
+    // 1. update table by visible/editable attributes list   
     $atrToUpd = Array();
     $strFieldList = "";
     
-    while ($rwSAT = $oSQL->fetch_array($rsSAT)){
+    foreach ($this->conf['STA'][$this->item['staID']]['satFlagShowInForm'] as $atrID=>$FlagWrite){
+
+        $rwSAT = $this->conf['ATR'][$atrID];
+
+        if(!$rwSAT)
+            continue;
+
+        if ($rwSAT['atrFlagDeleted'])
+            continue;
         
-        if ((!$rwSAT["satFlagEditable"] && !$flagFullEditMode)                                                      // not editable
-            || ($arrNewData[$rwSAT["atrID"]]=="" && $flagUpdateMultiple)       // empty on multiple updates
+        if ((!$FlagWrite && !$flagFullEditMode)                                                      // not editable
+            || ($arrNewData[$atrID]=="" && $flagUpdateMultiple)       // empty on multiple updates
             || !isset($arrNewData[$rwSAT["atrID"]]))                           // not set
         continue;
         
@@ -670,7 +799,7 @@ function updateMasterTable($arrNewData = Array(), $flagUpdateMultiple = false, $
         }
     }
     
-    $sqlUpdateTable = "UPDATE {$rwEnt["entTable"]} SET
+    $sqlUpdateTable = "UPDATE {$this->conf["entTable"]} SET
         {$entID}EditDate=NOW(), {$entID}EditBy='{$this->intra->usrID}'
         {$strFieldList}
         WHERE {$entID}ID='{$entItemID}'";
@@ -690,8 +819,8 @@ function updateActionLog($arrNewData = Array()){
     if (count($this->arrAction)==0){
         $this->prepareActions();
     }
-    
-    foreach($this->arrACL as $aclGUID => $arrACL){
+
+    foreach($this->item['ACL'] as $aclGUID => $arrACL){
         $this->updateActionLogItem($aclGUID, $arrACL);
     }
 
@@ -709,7 +838,7 @@ function updateActionLogItem($aclGUID, $arrACL = null){
         $arrACL = $this->getActionData($aclGUID);
     }
     
-    $arrACL["AAT"] = $this->getActionAttribute($arrACL["aclActionID"]); //doesn't matter what's beyond AAT element, we re-read it
+    
     
     foreach ($arrACL["AAT"] as $atrID => $arrAAT){
         
@@ -745,7 +874,7 @@ function updateActionLogItem($aclGUID, $arrACL = null){
         }
         
     }
-    $sqlToTrack = "UPDATE {$this->rwEnt["entTable"]}_log SET 
+    $sqlToTrack = "UPDATE {$this->conf["entTable"]}_log SET 
                 l{$this->entID}EditBy='{$this->intra->usrID}', l{$this->entID}EditDate=NOW()
                 {$strEntityLogFldToSet}
             WHERE l{$this->entID}GUID='{$aclGUID}'";
@@ -814,7 +943,7 @@ function updateStatusLogItem($stlGUID, $arrSTL = null){
     }
 
     if($strFieldsToUpdate){
-        $sqlLog = "UPDATE {$this->rwEnt['entTable']}_log SET 
+        $sqlLog = "UPDATE {$this->conf['entTable']}_log SET 
             l{$this->entID}EditBy='{$this->intra->usrID}', l{$this->entID}EditDate=NOW()
                 {$strFieldsToUpdate}
             WHERE l{$this->entID}GUID='{$stlGUID}'";
@@ -827,10 +956,10 @@ function checkMandatoryFields(){
     
     $oSQL = $this->oSQL;
     
-    $entID = $this->rwEnt["entID"];
-    $entItemID = $this->rwEnt[$entID."ID"];
-    $entTable = $this->rwEnt["entTable"];
-    $rwEnt = $this->rwEnt;
+    $entID = $this->entID;
+    $entItemID = $this->entItemID;
+    $entTable = $this->conf["entTable"];
+    $rwEnt = $this->item;
     $flagAutocomplete = $this->arrAction["actFlagAutocomplete"];
     $aclGUID = $this->arrAction["aclGUID"];
     
@@ -838,7 +967,7 @@ function checkMandatoryFields(){
     foreach($this->arrAction["AAT"] as $atrID => $rwATR)
     if ($rwATR["aatFlagMandatory"] || $rwATR["aatFlagToChange"]){
         
-        $oldValue = $this->rwEnt[$atrID];
+        $oldValue = $this->item[$atrID];
         
         if ($this->arrAction["aclGUID"]==""){
             $sqlCheckMandatory = "SELECT 
@@ -882,8 +1011,8 @@ function checkTimeLine(){
 	
     $oSQL = $this->oSQL;
     
-	$entID = $this->rwEnt["entID"];
-    $entItemID = $this->rwEnt[$entID."ID"];
+	$entID = $this->conf["entID"];
+    $entItemID = $this->item[$entID."ID"];
 	$aclGUID = $this->arrAction["aclGUID"];
 	
 	if ($this->arrAction["actID"]=="2")
@@ -924,11 +1053,6 @@ function startAction(){
     $entID = $this->entID;
     $entItemID = $this->entItemID;
     
-    
-    if (!$this->checkCanStart()){
-        throw new Exception("Action {$this->arrAction["actTitle"]} cannot be started for {$entItemID} because of its status ({$this->rwEnt[$entID."StatusID"]})");
-    }
-    
     $sqlUpdACL = "UPDATE stbl_action_log SET 
         aclActionPhase=1
         , aclStartBy='{$this->intra->usrID}', aclStartDate=NOW()
@@ -936,13 +1060,22 @@ function startAction(){
     WHERE aclGUID='{$this->arrAction["aclGUID"]}'";
     $oSQL->do_query($sqlUpdACL);
     
-    $sqlUpdEntTable = "UPDATE {$this->rwEnt["entTable"]} SET
+    $sqlUpdEntTable = "UPDATE {$this->conf["entTable"]} SET
             {$entID}ActionLogID='{$this->arrAction["aclGUID"]}'
             , {$entID}EditBy='{$this->intra->usrID}', {$entID}EditDate=NOW()
             WHERE {$entID}ID='{$entItemID}'";
     $oSQL->do_query($sqlUpdEntTable);
 
-    $this->onActionFinish($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
+    $this->onActionStart($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
+
+    if (((string)$this->arrAction["aclOldStatusID"]!=(string)$this->arrAction["aclNewStatusID"] 
+          && (string)$this->arrAction["aclNewStatusID"]!=""
+        )
+        || $this->arrAction["actFlagInterruptStatusStay"]){
+
+        $this->onStatusDeparture($this->arrAction['aclOldStatusID']);
+
+    }
     
 }
 
@@ -969,7 +1102,7 @@ function cancelAction(){
             AND stlDepartureActionID='{$this->arrAction["aclGUID"]}'"));
 
         //delete traced attributes for the STL
-        $this->oSQL->q("DELETE FROM {$this->rwEnt["entTable"]}_log WHERE l{$this->entID}GUID='{$stlToDelete}'");
+        $this->oSQL->q("DELETE FROM {$this->conf["entTable"]}_log WHERE l{$this->entID}GUID='{$stlToDelete}'");
 
         // delete status log entry, if any
         $this->oSQL->q("DELETE FROM stbl_status_log WHERE stlGUID='{$stlToDelete}'");
@@ -991,7 +1124,7 @@ function cancelAction(){
 
         } else {
             //delete the action
-            $this->oSQL->q("DELETE FROM {$this->rwEnt["entTable"]}_log 
+            $this->oSQL->q("DELETE FROM {$this->conf["entTable"]}_log 
                 WHERE l{$this->entID}GUID='{$this->arrAction["aclGUID"]}'");
                 
             $this->oSQL->q("DELETE FROM stbl_action_log
@@ -1001,7 +1134,7 @@ function cancelAction(){
         }
 
         // update entity table
-        $this->oSQL->q("UPDATE {$this->rwEnt["entTable"]} SET
+        $this->oSQL->q("UPDATE {$this->conf["entTable"]} SET
             {$this->entID}ActionLogID=(SELECT aclGUID FROM stbl_action_log INNER JOIN stbl_action ON aclActionID=actID AND actEntityID='{$this->entID}' 
                   WHERE aclEntityItemID='{$entItemID}' AND aclActionID<>2 AND aclActionPhase=2 
                   ORDER BY aclATA DESC LIMIT 0,1)
@@ -1014,7 +1147,7 @@ function cancelAction(){
             WHERE {$this->entID}ID='{$entItemID}'");
 
     } else {
-        $this->oSQL->q("DELETE FROM {$this->rwEnt["entTable"]}_log 
+        $this->oSQL->q("DELETE FROM {$this->conf["entTable"]}_log 
            WHERE l{$this->entID}GUID='{$this->arrAction["aclGUID"]}'");
         //we delete action itself
         $this->oSQL->q("DELETE FROM stbl_action_log WHERE aclGUID='{$this->arrAction["aclGUID"]}'");
@@ -1336,7 +1469,7 @@ function archive($arrExtraTables = Array()) {
     $this->getEntityItemAllData();
 	
     // 2. compose XML
-    $strData = json_encode($this->rwEnt);
+    $strData = json_encode($this->item);
 	
     // 3. insert into archive
 	// compose SQL
@@ -1349,7 +1482,7 @@ function archive($arrExtraTables = Array()) {
 		}
 	}
     
-	$sqlIns = "INSERT IGNORE INTO `{$this->rwEnt["entTable"]}` (
+	$sqlIns = "INSERT IGNORE INTO `{$this->conf["entTable"]}` (
           `{$this->entID}ID`
             , `{$this->entID}StatusID`
             , `{$this->entID}StatusTitle`
@@ -1361,30 +1494,30 @@ function archive($arrExtraTables = Array()) {
 		$sqlIns .= "\r\n, `{$atrID}`";
 	}
 	$sqlIns .= ") VALUES (
-		".$oSQL->e($this->rwEnt[$this->entID."ID"])."
-		, ".(int)($this->rwEnt[$this->entID."StatusID"])."
-		, ".$oSQL->e($this->rwEnt["staTitle"])."
-		, ".$oSQL->e($this->rwEnt["staTitleLocal"])."
-		, ".$oSQL->e($oSQL->d("SELECT aclATA FROM stbl_action_log WHERE aclGUID=".$oSQL->e($this->rwEnt["{$this->entID}StatusActionLogID"])))."
+		".$oSQL->e($this->item[$this->entID."ID"])."
+		, ".(int)($this->item[$this->entID."StatusID"])."
+		, ".$oSQL->e($this->item["staTitle"])."
+		, ".$oSQL->e($this->item["staTitleLocal"])."
+		, ".$oSQL->e($oSQL->d("SELECT aclATA FROM stbl_action_log WHERE aclGUID=".$oSQL->e($this->item["{$this->entID}StatusActionLogID"])))."
 		, ".$oSQL->e($strData)."
 		, '{$intra->usrID}', NOW(), '{$intra->usrID}', NOW()";
 	foreach ($this->arrATR as $atrID => $rwATR){
 		switch ($rwATR["atrType"]){
 			case "combobox":
 			case "ajax_dropdown":
-				$val = $oSQL->e($this->rwEnt[$atrID."_Text"]);
+				$val = $oSQL->e($this->item[$atrID."_Text"]);
 				break;
 			case "number":
 			case "numeric":
 			case "date":
 			case "datetime":
-				$val = ($this->rwEnt[$atrID]!="" ? $oSQL->e($this->rwEnt[$atrID]) : "NULL");
+				$val = ($this->item[$atrID]!="" ? $oSQL->e($this->item[$atrID]) : "NULL");
 				break;
 			case "boolean":
-				$val = (int)$this->rwEnt[$atrID];
+				$val = (int)$this->item[$atrID];
 				break;
 			default:
-				$val = $oSQL->e($this->rwEnt[$atrID]);
+				$val = $oSQL->e($this->item[$atrID]);
 				break;
 		}
 		$sqlIns .= "\r\n, {$val}";
@@ -1395,7 +1528,7 @@ function archive($arrExtraTables = Array()) {
 	
 	//echo "<pre>";
 	//echo "{$sqlIns}";
-	//print_r($this->rwEnt);    
+	//print_r($this->item);    
 	
 	// 4. backup extra tables
     foreach($arrExtraTables as $table=>$arrTable)
@@ -1421,37 +1554,37 @@ function restore($arrExtraTables = Array()) {
     
     // restore master
     // - check master compliance
-    $this->arrMaster = $intra->getTableInfo($oSQL->dbname, $this->rwEnt["entTable"]);
+    $this->arrMaster = $intra->getTableInfo($oSQL->dbname, $this->conf["entTable"]);
     
     $strFields = "";
     $strValues = "";
     foreach($this->arrMaster['columns'] as $ix =>  $col){
         $strFields .= ($strFields!="" ? "\r\n, " : "")."`{$col['Field']}`";
-        $strValues .= ($strValues!="" ? "\r\n, " : "").(!isset($this->rwEnt[$col['Field']]) || is_null($this->rwEnt[$col['Field']]) 
+        $strValues .= ($strValues!="" ? "\r\n, " : "").(!isset($this->item[$col['Field']]) || is_null($this->item[$col['Field']]) 
             ? "NULL"
-            : $oSQL->e($this->rwEnt[$col['Field']]));
+            : $oSQL->e($this->item[$col['Field']]));
     }
-    $sqlIns = "INSERT IGNORE INTO {$this->rwEnt['entTable']} ({$strFields}
+    $sqlIns = "INSERT IGNORE INTO {$this->conf['entTable']} ({$strFields}
         ) VALUES ( {$strValues} )";
     $oSQL->q($sqlIns);
     
     // restore action log
-    foreach($this->rwEnt["ACL"] as $rwAct){
+    foreach($this->item["ACL"] as $rwAct){
         $this->restoreAction($rwAct);
     }
     
-    foreach($this->rwEnt["STL"] as $rwSTL){
+    foreach($this->item["STL"] as $rwSTL){
         $this->restoreStatus($rwSTL);
     }
     
     
     // restore comments
-    foreach($this->rwEnt["comments"] as $rwComment){
+    foreach($this->item["comments"] as $rwComment){
         $this->restoreComment($rwComment);
     }
     
     // restore files
-    foreach($this->rwEnt["files"] as $rwFile){
+    foreach($this->item["files"] as $rwFile){
         $this->restoreFile($rwFile);
     }
     
@@ -1574,7 +1707,7 @@ function restoreTrackedAttributes($logGUID, $arrATR){
     if (count($arrATR)==0)  
         return;
         
-    $oSQL->q("INSERT IGNORE INTO {$this->rwEnt["entTable"]}_log (l{$this->entID}GUID) VALUES (".$oSQL->e($logGUID).")");
+    $oSQL->q("INSERT IGNORE INTO {$this->conf["entTable"]}_log (l{$this->entID}GUID) VALUES (".$oSQL->e($logGUID).")");
     
     $sqlFields = "";
     foreach($arrATR as $rwATR){
@@ -1582,7 +1715,7 @@ function restoreTrackedAttributes($logGUID, $arrATR){
             $strFields .= ($strFields=="" ? "" : "\r\n, ")."l{$rwATR["atrID"]} = ".(is_null($rwATR['value']) ? "NULL" : $oSQL->e($rwATR['value']));
     }
     
-    $sqlUpd = "UPDATE {$this->rwEnt["entTable"]}_log SET {$strFields}
+    $sqlUpd = "UPDATE {$this->conf["entTable"]}_log SET {$strFields}
         WHERE l{$this->entID}GUID=".$oSQL->e($logGUID);
     $oSQL->q($sqlUpd);
     
@@ -1643,44 +1776,43 @@ function getActionData($aclGUID){
 	
     if (!$aclGUID) return;
     
-    $sqlACT = "SELECT ACL.*, ACT.*
-       , STA_OLD.staID as staID_Old
-       , STA_OLD.staTitle as staTitle_Old
-       , STA_OLD.staTitleLocal as staTitleLocal_Old
-       , STA_NEW.staID as staID_New
-       , STA_NEW.staTitle as staTitle_New
-       , STA_NEW.staTitleLocal as staTitleLocal_New
+    $sqlACT = "SELECT ACL.*
        FROM stbl_action_log ACL
-       LEFT OUTER JOIN stbl_action ACT ON aclActionID=actID
-       LEFT OUTER JOIN stbl_status STA_OLD ON aclOldStatusID=STA_OLD.staID AND STA_OLD.staEntityID=actEntityID
-       LEFT OUTER JOIN stbl_status STA_NEW ON aclNewStatusID=STA_NEW.staID AND STA_NEW.staEntityID=actEntityID
        WHERE aclGUID='{$aclGUID}'";
 	
 	$rwACT = $oSQL->fetch_array($oSQL->do_query($sqlACT));
+
+    $rwACT = @array_merge($this->conf['ACT'][$rwACT['aclActionID']], $rwACT);
+    $rwACT = @array_merge($rwACT, array(
+        'staID_Old' => $this->conf['STA'][$rwACT['aclOldStatusID']]['staID']
+        , 'staTitle_Old' => $this->conf['STA'][$rwACT['aclOldStatusID']]['staTitle']
+        , 'staTitleLocal_Old' => $this->conf['STA'][$rwACT['aclOldStatusID']]['staTitleLocal']
+        ));
+    $rwACT = @array_merge($rwACT, array(
+        'staID_New' => $this->conf['STA'][$rwACT['aclNewStatusID']]['staID']
+        , 'staTitle_New' => $this->conf['STA'][$rwACT['aclNewStatusID']]['staTitle']
+        , 'staTitleLocal_New' => $this->conf['STA'][$rwACT['aclNewStatusID']]['staTitleLocal']
+        ));
     
 	$arrRet = $rwACT;
 	
 	// linked attributes
-	$arrAAT = $this->getActionAttribute($rwACT["actID"]);
-	
-    $sqlLOG = "SELECT * FROM {$this->rwEnt["entTable"]}_log WHERE l{$entID}GUID='{$rwACT["aclGUID"]}'";
-    $rsLOG = $oSQL->do_query($sqlLOG);
-	if ($oSQL->n($rsLOG) > 0){
-	    $rwLOG = $oSQL->fetch_array($rsLOG);
-	    
-		foreach($arrAAT as $atrID => $arrATR){
-        
-            if (!$arrATR["aatFlagToTrack"]) continue;
-        
-			$arrVal = Array("value" => $rwLOG["l".$arrATR["atrID"]]);
-			if (in_array($arrATR["atrType"], Array("combobox", "ajax_dropdown")))
-				$arrVal["text"] = ($rwLOG["l".$arrATR["atrID"]] != ""
-					? $oSQL->d($this->intra->getDataFromCommonViews($rwLOG["l".$arrATR["atrID"]], null, $arrATR["atrDataSource"], $arrATR["atrProgrammerReserved"], true))
-					: $arrATR["atrDefault"]
-				);
-			$arrRet["AAT"][$atrID] = array_merge($arrATR, $arrVal);
-		}
+	$arrAAT = $this->conf['ACT'][$rwACT["actID"]]['aatFlagToTrack'];
+
+    if(count($arrAAT)>0){
+        $sqlLOG = "SELECT * FROM {$this->conf["entTable"]}_log WHERE l{$entID}GUID='{$rwACT["aclGUID"]}'";
+        $rsLOG = $oSQL->do_query($sqlLOG);
+            $rwLOG = $oSQL->fetch_array($rsLOG);
+            
+        foreach($arrAAT as $atrID=>$options){
+            $arrATR = $this->conf['ATR'][$atrID];
+            $arrVal = Array("value" => $rwLOG["l".$arrATR["atrID"]]);
+            if (in_array($arrATR["atrType"], Array("combobox", "ajax_dropdown")))
+                $arrVal["text"] = $this->getDropDownText($arrATR, $rwLOG["l".$arrATR["atrID"]]);
+            $arrRet["AAT"][$atrID] = $arrVal;
+        }
     }
+    
 	return $arrRet;
     
 }
@@ -1696,10 +1828,9 @@ function getStatusData($stlDepartureActionID){
 	
 	$arrRet = Array();
 	
-	$sqlSTL = "SELECT STL.* , STA.*
+	$sqlSTL = "SELECT STL.*
             , STL_PREVS.stlDepartureActionID AS stlDepartureActionID_prevs
         FROM stbl_status_log STL
-        INNER JOIN stbl_status STA ON staEntityID=stlEntityID AND staID=stlStatusID
         LEFT OUTER JOIN stbl_status_log STL_PREVS 
             ON STL.stlEntityItemID=STL_PREVS.stlEntityItemID 
                 AND STL.stlEntityID=STL_PREVS.stlEntityID 
@@ -1711,15 +1842,16 @@ function getStatusData($stlDepartureActionID){
 	if ($oSQL->n($rsSTL) == 0) return Array();
 	
 	$rwSTL = $oSQL->fetch_array($rsSTL);
+
+    $rwSTL = @array_merge($this->conf['STA'][$rwSTL['stlStatusID']],  $rwSTL);
 		
 	$arrRet = $rwSTL;
 	
 	$stlATD = ($rwSTL["stlATD"]=="" ? date("Y-m-d") : $rwSTL["stlATD"]);   
 	$sqlNAct = "SELECT aclGUID FROM stbl_action_log 
-	   INNER JOIN stbl_action ON aclActionID=actID
 	   WHERE (DATE(aclATA) BETWEEN DATE('{$rwSTL["stlATA"]}') AND DATE('{$stlATD}'))
 		 AND aclOldStatusID='{$rwSTL["stlStatusID"]}'
-		 AND (aclOldStatusID=aclNewStatusID AND actFlagInterruptStatusStay=0)
+		 AND aclOldStatusID=aclNewStatusID
 	   AND aclActionPhase=2
 	   AND aclActionID<>2
 	   AND aclEntityItemID='{$this->entItemID}'
@@ -1730,110 +1862,32 @@ function getStatusData($stlDepartureActionID){
 		$arrRet["ACL"][$rwNAct["aclGUID"]] = $this->getActionData($rwNAct["aclGUID"]);
 	}
 	
-	// linked attributes
-	if (!isset($this->arrSAT[$rwSTL["staID"]]))
-		$this->arrSAT[$rwSTL["staID"]] = $this->getStatusAttribute($rwSTL["staID"]);
-	
-	$sqlLOG = "SELECT * FROM {$this->rwEnt["entTable"]}_log WHERE l{$entID}GUID='{$rwSTL["stlGUID"]}'";
+	$sqlLOG = "SELECT * FROM {$this->conf["entTable"]}_log WHERE l{$entID}GUID='{$rwSTL["stlGUID"]}'";
 	$rsLOG = $oSQL->do_query($sqlLOG);
 	if ($oSQL->n($rsLOG) > 0){
 		$rwLOG = $oSQL->fetch_array($rsLOG);
-		foreach($this->arrSAT[$rwSTL["staID"]] as $atrID => $arrATR){
-            
-            if (!$arrATR["satFlagTrackOnArrival"]) continue;
-            
-			$arrVal = Array("value" => $rwLOG["l".$arrATR["atrID"]]);
-			if (in_array($arrATR["atrType"], Array("combobox", "ajax_dropdown")))
-				$arrVal["text"] = ($rwLOG["l".$arrATR["atrID"]] != ""
-					? $oSQL->d($this->intra->getDataFromCommonViews($rwLOG["l".$arrATR["atrID"]], null, $arrATR["atrDataSource"], $arrATR["atrProgrammerReserved"], true))
-					: $arrATR["atrDefault"]
-				);
-			$arrRet["SAT"][$atrID] = array_merge($arrATR, $arrVal);
-		}
+        $arrTrackOnArrival = $this->conf['STA'][$rwSTL["staID"]]['satFlagTrackOnArrival'];
+        if(is_array($arrTrackOnArrival))
+    		foreach($arrTrackOnArrival as $atrID){
+
+                $arrATR = $this->conf['ATR'][$atrID];
+                
+    			$arrVal = Array("value" => $rwLOG["l{$atrID}"]);
+    			if (in_array($arrATR["atrType"], Array("combobox", "ajax_dropdown")))
+    				$arrVal["text"] = $this->getDropDownText($arrATR, $rwLOG["l{$atrID}"]);
+    			$arrRet["SAT"][$atrID] = $arrVal;
+    		}
 	}
 	
 	$arrRet["stlArrivalAction"] = $this->getActionData($rwSTL["stlArrivalActionID"]);
 		
-	$this->rwEnt["STL"][$rwSTL["stlGUID"]] = $arrRet;
+	$this->item["STL"][$rwSTL["stlGUID"]] = $arrRet;
 
     $nIterations++;
 
     if ($arrRet['stlDepartureActionID_prevs'] && $nIterations<MAX_STL_LENGTH){
         $this->getStatusData($arrRet['stlDepartureActionID_prevs']);
     }
-	
-}
-
-function getEntityItemAllData(){
-	
-    if ($this->flagArchive) {
-        $arrData = json_decode($this->rwEnt["{$this->entID}Data"], true);
-        $this->rwEnt = array_merge($this->rwEnt, $arrData);
-        return $this->rwEnt;
-    }
-    
-	//   - Master table is $this->rwEnt
-	// attributes and combobox values
-    $this->staID = (int)$this->rwEnt["{$this->entID}StatusID"];
-	$this->collectDataStatus();
-	$this->collectDataAttributes();
-	foreach($this->arrAtr as $rwATR){
-		$this->rwEnt["ATR"][$rwATR["atrID"]] = $rwATR;
-		if (in_array($rwATR["atrType"], Array("combobox", "ajax_dropdown"))){
-            if ($rwATR["atrType"] == "combobox" && $rwATR["atrDataSource"]=='' && preg_match('/^Array\(/i', $rwATR["atrProgrammerReserved"])){
-                eval( '$arrOptions = '.$rwATR["atrProgrammerReserved"].';' );
-                $this->rwEnt[$rwATR["atrID"]."_Text"] = $arrOptions[$this->rwEnt[$rwATR["atrID"]]];
-            } else {
-				$this->rwEnt[$rwATR["atrID"]."_Text"] = ($this->rwEnt[$rwATR["atrID"]] != ""
-					? $this->oSQL->d($this->intra->getDataFromCommonViews($this->rwEnt[$rwATR["atrID"]], null, $rwATR["atrDataSource"], $rwATR["atrProgrammerReserved"], true))
-					: $rwATR["atrDefault"]
-				);
-            }
-        }
-	}
-	
-	// collect incomplete/cancelled actions
-	$this->rwEnt["ACL"]  = Array();
-	$sqlACL = "SELECT * FROM stbl_action_log 
-            WHERE aclEntityItemID='{$this->entItemID}'
-            AND aclActionPhase <> 2 
-            ORDER BY aclInsertDate DESC, aclOldStatusID DESC";
-	$rsACL = $this->oSQL->do_query($sqlACL);
-	while($rwACL = $this->oSQL->fetch_array($rsACL)){
-		$this->rwEnt["ACL"][$rwACL["aclGUID"]] = $this->getActionData($rwACL["aclGUID"]);
-	}
-	
-    // collect status log and nested actions
-    $this->rwEnt["STL"] = Array();
-    $this->getStatusData(null);
-	
-	//comments
-	$this->rwEnt["comments"] = Array();
-	$sqlSCM = "SELECT * 
-	FROM stbl_comments 
-	WHERE scmEntityItemID='{$this->entItemID}' ORDER BY scmInsertDate DESC";
-	$rsSCM = $this->oSQL->do_query($sqlSCM);
-	while ($rwSCM = $this->oSQL->f($rsSCM)){
-		$this->rwEnt["comments"][$rwSCM["scmGUID"]] = $rwSCM;
-	}
-	
-	//files
-	$this->rwEnt["files"] = Array();
-	$sqlFile = "SELECT * FROM stbl_file WHERE filEntityID='{$this->entID}' AND filEntityItemID='{$this->entItemID}'
-	ORDER BY filInsertDate DESC";
-	$rsFile = $this->oSQL->do_query($sqlFile);
-	while ($rwFIL = $this->oSQL->f($rsFile)){
-		$this->rwEnt["files"][$rwFIL["filGUID"]] = $rwFIL;
-	}
-	
-	//message
-	$this->rwEnt["messages"] = Array();//not yet
-	
-    //echo "<pre>";
-    //print_r($this->rwEnt);
-    //die();
-    
-	return $this->rwEnt;
 	
 }
 
@@ -1844,16 +1898,29 @@ function onActionPlan($actID, $oldStatusID, $newStatusID){
     //parent::onActionPlan($actID, $oldStatusID, $newStatusID);
 }
 function onActionStart($actID, $oldStatusID, $newStatusID){
+    
     //parent::onActionStart($actID, $oldStatusID, $newStatusID);
+    
+    if ($actID<=4) 
+        return true;
+    
+    if ($oldStatusID!=$this->item['staID'])
+        throw new Exception("Action {$this->arrAction["actTitle"]} cannot be started for {$entItemID} because of its status ({$this->item[$entID."StatusID"]})");
+    
+    $this->onStatusDeparture($oldStatusID);
+
+    return true;
 }
 function onActionFinish($actID, $oldStatusID, $newStatusID){
-    //parent::onActionFinish($actID, $oldStatusID, $newStatusID);
+
+    $this->checkTimeLine();
+
 }
 function onActionCancel($actID, $oldStatusID, $newStatusID){
-    //parent::onActionFinish($actID, $oldStatusID, $newStatusID);
+    //parent::onActionCancel($actID, $oldStatusID, $newStatusID);
 }
 function onActionUndo($actID, $oldStatusID, $newStatusID){
-    //parent::onActionFinish($actID, $oldStatusID, $newStatusID);
+    //parent::onActionUndo($actID, $oldStatusID, $newStatusID);
 }
 
 

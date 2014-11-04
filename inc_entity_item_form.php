@@ -17,19 +17,19 @@ function form($arrConfig=Array()){
     $arrDefaultConf = array('flagHideDraftStatusStay'=>true);
     $arrConfig = array_merge($arrDefaultConf, $arrConfig);
 
-    $entItemID = $rwEnt[$entID."ID"];
+    $entItemID = $this->entItemID;
 
     $oSQL = $this->oSQL;
     $entID = $this->entID;
-    $rwEnt = $this->rwEnt;
+    $item = $this->item;
 
     if (!$this->flagArchive){
 ?>
 <form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" id="entForm" class="eiseIntraForm">
 <input type="hidden" name="DataAction" id="DataAction" value="update">
 <input type="hidden" name="entID" id="entID" value="<?php  echo $entID ; ?>">
-<input type="hidden" name="<?php echo "{$entID}"; ?>ID" id="<?php echo "{$entID}"; ?>ID" value="<?php  echo $rwEnt["{$entID}ID"] ; ?>">
-<input type="hidden" name="aclOldStatusID" id="aclOldStatusID" value="<?php  echo $rwEnt["{$entID}StatusID"] ; ?>">
+<input type="hidden" name="<?php echo "{$entID}"; ?>ID" id="<?php echo "{$entID}"; ?>ID" value="<?php  echo $item["{$entID}ID"] ; ?>">
+<input type="hidden" name="aclOldStatusID" id="aclOldStatusID" value="<?php  echo $item["{$entID}StatusID"] ; ?>">
 <input type="hidden" name="aclNewStatusID" id="aclNewStatusID" value="">
 <input type="hidden" name="actID" id="actID" value="">
 <input type="hidden" name="aclGUID" id="aclGUID" value="">
@@ -45,7 +45,7 @@ function form($arrConfig=Array()){
 <tr>
 <td width="50%">
 
-<h1><?php  echo $rwEnt["entTitle{$this->intra->local}"]." ".$rwEnt["{$entID}ID"] ; ?>
+<h1><?php  echo $item["entTitle{$this->intra->local}"]." ".$item["{$entID}ID"] ; ?>
 <?php  echo ($this->flagArchive ? " (".$this->intra->translate("Archive").")" : "") ; ?></h1>
 
 <?php 
@@ -103,7 +103,7 @@ $(document).ready(function(){
 </script>
 <?php
     //echo "<pre>";
-    //print_r($this->rwEnt);
+    //print_r($this->item);
 
 }
 
@@ -111,28 +111,22 @@ $(document).ready(function(){
 
 function showActions($actionCallBack=""){
     $oSQL = $this->oSQL;
-    $rwEnt = $this->rwEnt;
+    $item = $this->item;
     
-    if(empty($this->arrAct))
-            $this->collectDataActions();
-            
     if (!$this->intra->arrUsrData["FlagWrite"]
-        || (count($this->arrAct)==0 && count($this->rwEnt["ACL"])==0)
+        || (count($this->conf['STA'][$this->staID]['ACT'])==0 && count($this->item["ACL"])==0)
         ) return;
     
     ?>
     <fieldset class="eiseIntraActions eiseIntraSubForm"><legend><?php  echo $this->intra->translate("Actions") ; ?></legend>
     <?php 
-    $entID = $rwEnt["entID"];
-    $entItemID = $rwEnt[$rwEnt["entID"]."ID"];
-    
-    $staID = $rwEnt[$entID."StatusID"];
+    $entID = $this->entID;
+    $entItemID = $this->entItemID;
+    $staID = $this->staID;
     
     $ii = 0;
-    foreach ($this->rwEnt["ACL"] as $ix=>$rwACL){
-            
-        if ($rwACL["aclActionPhase"] > 2) continue; //skip cancelled
-            
+    foreach ($this->item["ACL"] as $ix=>$rwACL){
+
         $this->showActionInfo($rwACL, $actionCallBack);
         $staID = ($ii==0 ? $rwACL["aclNewStatusID"] : $staID);
         $ii++;
@@ -143,10 +137,9 @@ function showActions($actionCallBack=""){
         
         echo $this->showActionRadios();
         
-    }
-    if ($this->intra->arrUsrData["FlagWrite"] && !$this->flagArchive){
-            
-        echo "<div align=\"center\"><input class=\"eiseIntraSubmit\" id=\"btnsubmit\" type=\"submit\" value=\"".$this->intra->translate("Run")."\"></div>";
+        if ($this->intra->arrUsrData["FlagWrite"]){
+            echo "<div align=\"center\"><input class=\"eiseIntraSubmit\" id=\"btnsubmit\" type=\"submit\" value=\"".$this->intra->translate("Run")."\"></div>";
+        }
         
     }
     ?>
@@ -160,12 +153,12 @@ function showEntityItemFields($arrConfig = Array()){
     $strLocal = $this->intra->local;
     
     $oSQL = $this->oSQL;
-    $rwEnt = $this->rwEnt;
+    $item = $this->item;
     
     $entID = $this->entID;
-    $entItemID = $rwEnt[$entID."ID"];
+    $entItemID = $this->entItemID;
     
-    if(empty($this->rwEnt["ATR"])){
+    if(empty($this->conf["ATR"])){
         throw new Exception("Attribute set not found");
     }
     
@@ -173,31 +166,14 @@ function showEntityItemFields($arrConfig = Array()){
         ? $arrConfig['title'] 
         : $this->intra->translate("Data"))."</legend>\r\n";
 
-    echo $this->getFields($arrConfig, $this);
+    echo $this->getFieldsHTML($arrConfig, $this);
     
-    if ($rwEnt[$entID."ID"]){
+    if ($this->entItemID){
         if ($arrConfig["showComments"]){
             // Comments
             $this->showCommentsField();
         }
         
-        if ($arrConfig["showFiles"]){
-            // Files
-            $i++;
-            echo "<div class=\"intraFormRow tr".( $i % 2 )."\">\r\n";
-            echo "<div class=\"eiseIntraFieldTitle\">Files:</div>";
-            echo "<div class=\"eiseIntraFieldValue\">";
-            $sqlFiles = "SELECT * FROM stbl_file WHERE filEntityItemID = '{$rwEnt["shpID"]}'";
-            $rsFiles = $oSQL->do_query($sqlFiles);
-            while ($rwFiles = $oSQL->fetch_array($rsFiles)){
-                echo
-                    "<a href='popup_file.php?filGUID="
-                    . $rwFiles["filGUID"] . "' target=_blank>"
-                    . $rwFiles["filName"] . "</a><br>";
-            }
-             
-            echo "</div></div>\r\n\r\n";
-        }
     }
 
     echo "</fieldset>\r\n\r\n";
@@ -219,23 +195,19 @@ foreach($arrAtr as $atr){
         continue;
     }
 
-    $sqlAtr = "SELECT * 
-        FROM stbl_attribute 
-         LEFT OUTER JOIN stbl_status_attribute ON satStatusID=".$oSQL->e($this->staID)." AND satAttributeID=atrID AND satEntityID=atrEntityID
-        WHERE atrEntityID=".$oSQL->e($this->entID)." AND atrFlagDeleted=0 AND atrID=".$oSQL->e($atr)."
-        ORDER BY atrOrder ASC";
-    $rsAtr = $oSQL->q($sqlAtr);
-    $rwAtr = $oSQL->f($rsAtr);
+    if(!isset($this->conf['STA'][$this->staID]['satFlagShowInForm'][$atr]))
+        continue;
 
-    if (!$intra->arrUsrData["FlagWrite"]) $rwAtr['satFlagEditable'] = false;
-    
+    $rwAtr = $this->conf['ATR'][$atr];
+
     $strFields .= ($strFields!="" ? "\r\n" : "");
     $strFields .= "<div class=\"eiseIntraField\">";
     $strFields .= "<label id=\"title_{$rwAtr["atrID"]}\">".$rwAtr["atrTitle{$intra->local}"].":</label>";
     
-    $rwAtr["value"] = $this->rwEnt[$rwAtr["atrID"]];
-    $rwAtr["text"] = $this->rwEnt[$rwAtr["atrID"]."_Text"];
-    
+    $rwAtr["value"] = $this->item[$rwAtr["atrID"]];
+    $rwAtr["text"] = $this->item[$rwAtr["atrID"]."_Text"];
+    $rwAtr['FlagWrite'] = ($intra->arrUsrData["FlagWrite"] && $this->conf['STA'][$this->staID]['satFlagShowInForm'][$atr]);
+
     $strFields .=  $this->showAttributeValue($rwAtr, "");
     $strFields .= "</div>\r\n\r\n";
 
@@ -257,6 +229,7 @@ function showActivityLog($arrConfig=array()){
     $entItemID = $this->entItemID;
     
     $intra = $this->intra;
+
 ?>
 <fieldset><legend><?php  echo $this->intra->translate("Activity Log") ; ?></legend>
 <?php 
@@ -264,8 +237,8 @@ function showActivityLog($arrConfig=array()){
 // потом внутри статуса показываем действия, выполненные во время стояния в статусе
 
 
-foreach($this->rwEnt["STL"] as $stlGUID => $rwSTL){
-    if ($arrConfig['flagHideDraftStatusStay'] && $rwSTL['stlStatusID']==='0')
+foreach($this->item["STL"] as $stlGUID => $rwSTL){
+    if ($arrConfig['flagHideDraftStatusStay'] && $rwSTL['stlStatusID']===0)
         continue;
     ?>
     <div class="eiseIntraLogStatus">
@@ -287,7 +260,8 @@ foreach($this->rwEnt["STL"] as $stlGUID => $rwSTL){
     // linked attributes
     if (isset($rwSTL["SAT"]))
     foreach($rwSTL["SAT"] as $atrID => $rwATV){
-        $rwATV["satFlagEditable"] = false;
+        $rwATV = array_merge($this->conf['ATR'][$atrID], $rwATV);
+        $rwATV["FlagWrite"] = false;
         ?>
         <div class="eiseIntraField"><label><?php  echo $rwATV["atrTitle{$this->intra->local}"] ; ?>:</label>
         <?php 
@@ -307,18 +281,12 @@ foreach($this->rwEnt["STL"] as $stlGUID => $rwSTL){
 </fieldset>
 &nbsp;
 <?php  
-$nCancelled = 0;
-foreach ($this->rwEnt["ACL"] as $rwACL) {
-    if ($rwACL["aclActionPhase"]==3) $nCancelled++;
-}
-
-
-if ($nCancelled > 0 ) {
+if (count($this->item['ACL_Cancelled']) > 0 ) {
 ?>
 <fieldset><legend><?php  echo $this->intra->translate("Cancelled actions") ; ?></legend>
 <?php 
 $ii = 0;
-foreach ($this->rwEnt["ACL"] as $rwACL) {
+foreach ($this->item["ACL_Cancelled"] as $rwACL) {
    if ($rwACL["aclActionPhase"]!=3) continue;
     $this->showActionInfo($rwACL, $actionCallBack);
     $staID = ($ii==0 ? $rwACL["aclNewStatusID"] : $staID);
@@ -340,7 +308,7 @@ function showActionInfo($rwACT, $actionCallBack=""){
     $strLocal = $this->intra->local;
     
     $flagAlwaysShow = ($rwACT["aclActionPhase"]<2 ? true : false);
-    $flagEditable = $rwACT['aclFlagEditable'] || ($rwACT["aclActionPhase"]<2 && $this->intra->arrUsrData["FlagWrite"]==true && !$this->flagArchive);
+    $flagEditable = ($rwACT["aclActionPhase"]<2 && $this->intra->arrUsrData["FlagWrite"]==true && !$this->flagArchive);
     ?>
     <div class="eiseIntraLogAction">
     <div class="eiseIntraLogTitle" id="aclTitle_<?php  echo $rwACT["aclGUID"] ; ?>" title="Last edited: <?php  echo htmlspecialchars($rwACT["aclEditBy"]."@".Date("d.m.Y H:i", strtotime($rwACT["aclEditDate"]))).
@@ -365,42 +333,35 @@ function showActionInfo($rwACT, $actionCallBack=""){
     <div class="eiseIntraLogData">
 <?php 
     // timestamps
-    $arrTS = $this->getActonTimestamps($rwACT);
-    foreach($arrTS as $ts=>$data){
-        if (is_array($data))
-            continue;
+    foreach($rwACT['aatFlagTimestamp'] as $ts=>$field)
+        if (strpos($field, 'acl')===0){
         ?>
 <div class="eiseIntraField">
-    <label><?php echo $ts.($flagEditable ? "*" : ""); ?>:</label><?php 
-        echo $this->showAttributeValue(Array("atrID"=>"acl{$ts}"
+    <label><?php echo $ts ?>:</label><?php 
+        echo $this->showAttributeValue(Array("atrID"=>$field
             , "value" => $rwACT["acl{$ts}"]
             , "atrType"=>$rwACT["actTrackPrecision"]
-            , "satFlagEditable"=>$flagEditable
+            , "FlagWrite"=>$flagEditable
             , "aatFlagMandatory"=>true
             ), "_".$rwACT["aclGUID"]);
-          //$this->showTimestampField("aclATA", $flagEditable, $rwACT["aclATA"], "_".$rwACT["aclGUID"]); ?>&nbsp;
+             ?>&nbsp;
     </div>
         <?php
     }
-    ///*
+
     // linked attributes
     if (isset($rwACT["AAT"]))
     foreach($rwACT["AAT"] as $ix => $rwATV){
-        $rwATV["satFlagEditable"] = $flagEditable;
-        if (!$rwATV["aatFlagToTrack"])
-            continue;
-        //if ($rwATV["aatFlagTimestamp"]!="")
-        //    continue;   
+        $rwATV = array_merge($this->conf['ATR'][$ix], $rwATV);
+        $rwATV["FlagWrite"] = $flagEditable;
         ?>
         <div class="eiseIntraField"><label><?php  
-            echo $rwATV["atrTitle{$this->intra->local}"].($rwATV["aatFlagMandatory"] && $rwATV["satFlagEditable"] ? "*" : "") ; 
+            echo $rwATV["atrTitle{$this->intra->local}"] ; 
             ?>:</label><?php 
             echo $this->showAttributeValue($rwATV, "_".$rwACT["aclGUID"]); ?>
         </div>
         <?php
     }
-    //*/
-    
     
     if ($rwACT['aclComments']){
         ?>
@@ -574,7 +535,6 @@ function showActionLog_skeleton(){
 /***********************************************************************************/
 function showComments(){
     $oSQL = $this->oSQL;
-    $rwEntity = $this->rwEnt;
     $intra = $this->intra;   
 
     $strComments = '';
@@ -587,7 +547,7 @@ function showComments(){
     if ($this->intra->arrUsrData["FlagWrite"] && !$this->flagArchive){
         $strComments .= '<textarea class="eiseIntraComment"></textarea>'."\r\n";
     }
-    foreach ($this->rwEnt["comments"] as $ix => $rwSCM){
+    foreach ($this->item["comments"] as $ix => $rwSCM){
         $strComments .= '<div id="scm_'.$rwSCM["scmGUID"].'" class="eiseIntraComment'.($intra->usrID==$rwSCM["scmInsertBy"] ? " eiseIntraComment_removable" : "").'">'."\r\n";
         $strComments .= '<div class="eiseIntraComment_userstamp">'.$intra->getUserData($rwSCM["scmInsertBy"]).' '.$intra->translate('at').' '.$intra->dateSQL2PHP($rwSCM["scmInsertDate"], "d.m.Y H:i")."\r\n";
         $strComments .= '</div>'."\r\n";
@@ -613,7 +573,6 @@ function showComments(){
 // old version
 function showCommentsField(){
     $oSQL = $this->oSQL;
-    $rwEntity = $this->rwEnt;
     $intra = $this->intra;   
     ?>
 <div class="eiseIntraField">
@@ -624,7 +583,7 @@ function showCommentsField(){
 <textarea class="eiseIntraComment"></textarea>
 <?php
     }
-    foreach ($this->rwEnt["comments"] as $ix => $rwSCM){
+    foreach ($this->item["comments"] as $ix => $rwSCM){
 ?>
 <div id="scm_<?php  echo $rwSCM["scmGUID"] ; ?>" class="eiseIntraComment<?php echo ($intra->usrID==$rwSCM["scmInsertBy"] ? " eiseIntraComment_removable" : "") ?>">
 <div class="eiseIntraComment_userstamp"><?php  echo $intra->getUserData($rwSCM["scmInsertBy"]).' '.$intra->translate('at').' '.$intra->dateSQL2PHP($rwSCM["scmInsertDate"], "d.m.Y H:i");

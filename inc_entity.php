@@ -2,14 +2,16 @@
 
 class eiseEntity {
 
+const sessKeyPrefix = 'ent:';
+
 public $oSQL;
 public $entID;
-public $rwEnt = Array();
+
 public $intra;
 
-public $rwSta;
-public $arrAtr;
-public $arrAct;
+public $ent; // backward-compatibility
+
+public $conf;
 
 private $eiseListPath = "../common/eiseList";
 private $eiseGridPath = "../common/eiseGrid";
@@ -21,29 +23,174 @@ function __construct ($oSQL, $intra, $entID) {
     
     if (!$entID)  throw new Exception ("Entity ID not set");
     
-    $sqlEnt = "SELECT * FROM stbl_entity WHERE entID=".$oSQL->e($entID);
+    $this->entID = $entID;
+
+    $this->init();
+    
+}
+
+private function init(){
+
+    $sessKey = self::sessKeyPrefix.$this->entID;
+    if($_SESSION[$sessKey]){
+        $this->conf = $_SESSION[$sessKey];
+        return $this->conf;
+    }
+
+    $oSQL = $this->oSQL;
+
+    // read entity information
+    $sqlEnt = "SELECT *
+        , (SELECT GROUP_CONCAT(rolID) FROM stbl_role) as roles
+        FROM stbl_entity WHERE entID=".$oSQL->e($this->entID);
     $rsEnt = $oSQL->q($sqlEnt);
     if ($oSQL->n($rsEnt)==0){
         throw new Exception("Entity '{$entID}' not found");
     }
+
+
     
-    $this->rwEnt = $oSQL->f($rsEnt);
-    $this->rwEnt["entScriptPrefix"] = str_replace("tbl_", "", $this->rwEnt["entTable"]);
-    $this->entID = $entID;
+    $this->ent = $oSQL->f($rsEnt);
     
+    $arrRoles = explode(',', $this->ent['roles']); unset($this->ent['roles']);
+
+    $this->ent["entScriptPrefix"] = self::getScriptPrefix($this->ent);
+
+    $this->conf = $this->ent;
+    
+    // read attributes
+    $sqlAtr = "SELECT * 
+        FROM stbl_attribute 
+        WHERE atrEntityID=".$oSQL->e($this->entID)."
+        ORDER BY atrOrder";
+    $rsAtr = $oSQL->q($sqlAtr);
+    while($rwAtr = $oSQL->f($rsAtr)){
+        $this->conf['ATR'][$rwAtr['atrID']] = $rwAtr;
+    }
+
+    // read status_attribute
+    $sqlSat = "SELECT stbl_status.*,stbl_status_attribute.*  
+            FROM stbl_status_attribute 
+                INNER JOIN stbl_status ON staID=satStatusID AND satEntityID=staEntityID
+                INNER JOIN stbl_attribute ON atrID=satAttributeID
+        WHERE staEntityID=".$oSQL->e($this->entID)."
+        ORDER BY staID, atrOrder";
+    $rsSat = $oSQL->q($sqlSat);
+    while($rwSat = $oSQL->f($rsSat)){
+        
+        if(!isset($this->conf['STA'][$rwSat['staID']])){
+            $arrSta = array();
+            foreach($rwSat as $key=>$val){
+                if(strpos($key, 'sta')===0)
+                    $arrSta[$key] = $val;
+            }
+            $this->conf['STA'][$rwSat['staID']] = $arrSta;
+            if($arrSta['staFlagCanUpdate']){
+                if(!isset($arrActUpd)){
+                    $arrActUpd = $oSQL->f($oSQL->q('SELECT * FROM stbl_action WHERE actID=2'));
+                    $arrActUpd['RLA'] = $arrRoles;
+                }                    
+                $this->conf['STA'][$rwSat['staID']]['ACT'][2] = array_merge($arrActUpd, array('actOldStatusID'=>$rwSat['staID'], 'actNewStatusID'=>$rwSat['staID']));
+            }
+            if($arrSta['staFlagCanDelete']){
+                if(!isset($arrActDel)){
+                    $arrActDel = $oSQL->f($oSQL->q('SELECT * FROM stbl_action WHERE actID=3'));
+                    $arrActDel['RLA'] = $arrRoles;
+                }
+                $this->conf['STA'][$rwSat['staID']]['ACT'][3] = array_merge($arrActDel, array('actOldStatusID'=>$rwSat['staID'], 'actNewStatusID'=>null));
+            }
+        } 
+
+        if($rwSat['satFlagShowInForm'])
+            $this->conf['STA'][$rwSat['staID']]['satFlagShowInForm'][$rwSat['satAttributeID']] = (int)$rwSat['satFlagEditable'];
+        if($rwSat['satFlagShowInList'])
+            $this->conf['STA'][$rwSat['staID']]['satFlagShowInList'][$rwSat['satAttributeID']] = $rwSat['satAttributeID'];
+        if($rwSat['satFlagTrackOnArrival'])
+            $this->conf['STA'][$rwSat['staID']]['satFlagTrackOnArrival'][$rwSat['satAttributeID']] = $rwSat['satAttributeID'];
+          
+    }
+    
+    // read action_attribute
+    $sqlAAt = "SELECT stbl_action.*
+        , (SELECT GROUP_CONCAT(rlaRoleID) FROM stbl_role_action WHERE rlaActionID=actID) as actRoles
+        , stbl_action_attribute.* FROM stbl_action
+        LEFT OUTER JOIN stbl_action_attribute 
+            INNER JOIN stbl_attribute ON atrID=aatAttributeID AND atrFlagDeleted=0
+        ON actID=aatActionID AND actFlagDeleted=0
+        WHERE actEntityID=".$oSQL->e($this->entID)." OR actEntityID IS NULL
+        ORDER BY atrOrder";
+    $rsAAt = $oSQL->q($sqlAAt);
+    while($rwAAt = $oSQL->f($rsAAt)){
+        if(!isset($this->conf['ACT'][$rwAAt['actID']])){
+            $arrAct = array();
+            foreach($rwAAt as $key=>$val){
+                if(strpos($key, 'act')===0)
+                    $arrAct[$key] = $val;
+            }
+            
+            $this->conf['ACT'][$rwAAt['actID']] = array_merge($arrAct, array('RLA'=>explode(',', $arrAct['actRoles'])));
+            $this->conf['ACT'][$rwAAt['actID']]['actOldStatusID'] = array();
+            $this->conf['ACT'][$rwAAt['actID']]['actNewStatusID'] = array();
+            $this->conf['ACT'][$rwAAt['actID']]['AAT'] = array();
+
+            $ts = array('ATA'=>'aclATA', 'ATD'=>'aclATD', 'ETA'=>'aclETA', 'ETD'=>'aclETD');
+            if (!$rwAAt["actFlagHasEstimates"]) {unset($ts["ETA"]);unset($ts["ETD"]);}
+            if ($rwAAt["actFlagDepartureEqArrival"]) {unset($ts["ATD"]);unset($ts["ETD"]);}
+            $this->conf['ACT'][$rwAAt['actID']]['aatFlagTimestamp'] = $ts;
+
+        } 
+        if($rwAAt['aatFlagToTrack'])
+            $this->conf['ACT'][$rwAAt['actID']]['aatFlagToTrack'][$rwAAt['aatAttributeID']] = array('aatFlagEmptyOnInsert'=>(int)$rwAAt['aatFlagEmptyOnInsert']
+                , 'aatFlagToChange'=>(int)$rwAAt['aatFlagToChange']);
+        if($rwAAt['aatFlagMandatory'])
+            $this->conf['ACT'][$rwAAt['actID']]['aatFlagMandatory'][$rwAAt['aatAttributeID']] = $rwAAt['aatAttributeID'];
+        if($rwAAt['aatFlagTimestamp']){
+            if (isset($this->conf['ACT'][$rwAAt['actID']]['aatFlagTimestamp'][$rwAAt['aatFlagTimestamp']]))
+                $this->conf['ACT'][$rwAAt['actID']]['aatFlagTimestamp'][$rwAAt['aatFlagTimestamp']] = $rwAAt['aatAttributeID'];
+        }
+            
+    }
+
+    // read action-status
+    $sqlATS = "SELECT atsOldStatusID
+        , atsNewStatusID
+        , atsActionID
+        FROM stbl_action_status
+        INNER JOIN stbl_action ON actID=atsActionID
+        WHERE actEntityID=".$oSQL->e($this->entID)."
+        ORDER BY atsOldStatusID, actPriority";
+    $rsATS = $oSQL->q($sqlATS);
+    while($rwATS = $oSQL->f($rsATS)){
+        $this->conf['ACT'][$rwATS['atsActionID']]['actOldStatusID'][] = $rwATS['atsOldStatusID'];
+        $this->conf['ACT'][$rwATS['atsActionID']]['actNewStatusID'][] = $rwATS['atsNewStatusID'];
+        $this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][$rwATS['atsActionID']] = array_merge(
+                $this->conf['ACT'][$rwATS['atsActionID']]
+                , array('actOldStatusID'=>$rwATS['atsOldStatusID']
+                    , 'actNewStatusID'=>$rwATS['atsNewStatusID'])
+                );
+        if($this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3]){
+            unset($this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3]);
+            $this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3] = $arrActDel;
+        }
+    }
+
+    $_SESSION[$sessKey] = $this->conf;
+
+    return $this->conf;
+
 }
 
-public static function getItemIDField($rwEnt){
-    return $rwEnt['entID'].'ID';
+public static function getItemIDField($ent){
+    return $ent['entID'].'ID';
 }
 
-public static function getScriptPrefix($rwEnt){
-    return str_replace("tbl_", "", $rwEnt["entTable"]);
+public static function getScriptPrefix($ent){
+    return str_replace("tbl_", "", $ent["entTable"]);
 }
 
-public static function getFormURL($rwEntItem){
-    $entItemIDField = self::getItemIDField($rwEntItem);
-    $formURL = self::getScriptPrefix($rwEntItem).'_form.php?'.$entItemIDField.'='.urlencode($rwEntItem[$entItemIDField]);
+public static function getFormURL($conf, $item){
+    $entItemIDField = self::getItemIDField($conf);
+    $formURL = self::getScriptPrefix($conf).'_form.php?'.$entItemIDField.'='.urlencode($item[$entItemIDField]);
     return $formURL;
 }
 
@@ -62,7 +209,7 @@ private function detectStatusID(){
 }
 
 /* reads data from stbl_status table */
-protected function collectDataStatus($staID = null){
+protected function __collectDataStatus($staID = null){
     
     $rwSta = Array();
     $statusID = ($staID !== null ? $staID : $this->staID);
@@ -77,7 +224,7 @@ protected function collectDataStatus($staID = null){
 }
 
 /* reads data from stbl_attribute table */
-protected function collectDataAttributes(){
+protected function __collectDataAttributes(){
     
     $this->arrAtr = Array();
     
@@ -191,137 +338,30 @@ protected function collectDataActions($arrConfig = Array(), $staID = null){
     
 }
 
-function getActionAttribute($actID, $forceRead = false){
-    
-    if (isset($this->arrAAT[$actID]) && $forceRead===false)
-		return $this->arrAAT[$actID];
-    
-    $oSQL = $this->oSQL;
-    
-    $arrToRet = Array();
-    
-    //getting AAT
-    $sqlAAT = "SELECT 
-    atrID
-	, aatAttributeID
-    , atrTitle
-    , atrTitleLocal
-    , atrDataSource
-    , atrProgrammerReserved
-	, atrDefault
-    , aatFlagMandatory
-    , aatFlagToChange
-    , aatFlagToTrack
-    , aatFlagEmptyOnInsert
-    , aatFlagTimestamp
-    , atrType
-    FROM stbl_action_attribute 
-    INNER JOIN stbl_action ON aatActionID=actID
-    INNER JOIN stbl_attribute ON atrEntityID=actEntityID AND aatAttributeID=atrID
-    WHERE (aatFlagMandatory =1 OR aatFlagToChange=1 OR aatFlagToTrack=1 OR aatFlagEmptyOnInsert=1 OR aatFlagTimestamp=1) AND aatActionID='{$actID}'";
-    $rsAAT = $oSQL->do_query($sqlAAT);
-    while ($rwAAT = $oSQL->fetch_array($rsAAT)){
-        $arrToRet[$rwAAT["aatAttributeID"]]=$rwAAT;
-    }
-    $oSQL->free_result($rsAAT);
-    
-    $this->arrAAT[$actID] = $arrToRet;
-    
-    return $arrToRet;
-}
-
-protected function getActonTimestamps($rwACT){
-    
-    $arrTimestamps = Array(
-        'ATA'=>'aclATA'
-        , 'ATD'=>'aclATD'
-        , 'ETA'=>'aclETA'
-        , 'ETD'=>'aclETD'
-        );
-    
-    // determine do we need to show estimates
-    if (!$rwACT["actFlagHasEstimates"]) {unset($arrTimestamps["ETA"]);unset($arrTimestamps["ETD"]);}
-    
-    // determine do we need to show departure
-    if ($rwACT["actFlagDepartureEqArrival"]) {unset($arrTimestamps["ATD"]);unset($arrTimestamps["ETD"]);}
-        
-    if (isset($rwACT["AAT"]))
-        foreach($rwACT["AAT"] as $atrID=>$rwAAT){
-            if (isset($arrTimestamps[$rwAAT["aatFlagTimestamp"]]))
-                $arrTimestamps[$rwAAT["aatFlagTimestamp"]] = $rwAAT;
-        }
-    
-    return $arrTimestamps;
-}
-
-protected function getStatusAttribute($staID){
-    
-    $oSQL = $this->oSQL;
-    
-    $arrToRet = Array();
-    
-    //getting AAT
-    $sqlSAT = "SELECT 
-    atrID
-	, satAttributeID
-    , atrTitle
-    , atrTitleLocal
-	, atrDataSource
-    , atrProgrammerReserved
-	, atrDefault
-	, satAttributeID
-	, satFlagEditable
-	, satFlagShowInForm
-	, satFlagShowInList
-	, satFlagTrackOnArrival
-    , atrType
-    FROM stbl_status_attribute 
-    INNER JOIN stbl_status ON satStatusID=staID AND staEntityID=satEntityID
-    INNER JOIN stbl_attribute ON atrEntityID=satEntityID AND satAttributeID=atrID
-    WHERE satStatusID='{$staID}' AND satEntityID='{$this->entID}'";
-    $rsSAT = $oSQL->do_query($sqlSAT);
-    while ($rwSAT = $oSQL->fetch_array($rsSAT)){
-        $arrToRet[$rwSAT["satAttributeID"]]=$rwSAT;
-    }
-    $oSQL->free_result($rsSAT);
-    
-    return $arrToRet;
-}
-
-
-protected function getLogID(){
-    $this->oSQL->q("INSERT INTO stbl_log_id (lidInsertDate) VALUES (NOW())");
-    $ret = $this->oSQL->i();
-    $this->oSQL->q("DELETE FROM stbl_log_id");
-    return $ret;
-}
-
 public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array()){
     
     $oSQL = $this->oSQL;
     $entID = $this->entID;
     
     $this->intra->arrUsrData = $this->intra->arrUsrData;
-    $rwEnt = $this->rwEnt;
+    $conf = $this->conf;
     $strLocal = $this->intra->local;
     
     $listName = $entID;
     
     $this->detectStatusID();
-    $this->collectDataStatus();
-    $this->collectDataAttributes();
     
     $staID = $this->staID;
 
-    $lst = new eiseList($oSQL, $listName, Array('title'=>$this->rwEnt["entTitle{$strLocal}Mul"].($staID!=="" 
-            ? ': '.$this->rwSta["staTitle{$strLocal}"] 
+    $lst = new eiseList($oSQL, $listName, Array('title'=>$this->conf["entTitle{$strLocal}Mul"].($staID!=="" 
+            ? ': '.$this->conf['STA'][$staID]["staTitle{$strLocal}"] 
             : '')
         ,  "intra" => $this->intra
         , "cookieName" => $listName.$staID
         , "cookieExpire" => time()+60*60*24*30
             , 'defaultOrderBy'=>"{$this->entID}EditDate"
             , 'defaultSortOrder'=>"DESC"
-            , 'sqlFrom' => "{$rwEnt["entTable"]} LEFT OUTER JOIN stbl_status ON {$entID}StatusID=staID AND staEntityID='{$entID}'".
+            , 'sqlFrom' => "{$this->conf["entTable"]} LEFT OUTER JOIN stbl_status ON {$entID}StatusID=staID AND staEntityID='{$entID}'".
                 ((!in_array("actTitle", $arrExcludeCols) && !in_array("staTitle", $arrExcludeCols))
                     ? "LEFT OUTER JOIN stbl_action_log LAC
                     INNER JOIN stbl_action ON LAC.aclActionID=actID 
@@ -354,7 +394,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
             , 'sql' => $entID."ID"
             , 'filter' => $entID."ID"
             , 'order_field' => $entID."Number"
-            , 'href'=> $rwEnt["entScriptPrefix"]."_form.php?".$entID."ID=[".$entID."ID]"
+            , 'href'=> $conf["entScriptPrefix"]."_form.php?".$entID."ID=[".$entID."ID]"
             );
     if (!in_array("staTitle", $arrExcludeCols))
     $lst->Columns[] = array('title' => "Status"
@@ -397,87 +437,87 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
         $iStartAddCol=$ii;
     }
     
-    foreach($this->arrAtr as $rwAtr){
+    foreach($this->conf['ATR'] as $rwAtr){
         
-        if ($rwAtr["atrID"]==$entID."ID")
+        if ($rwAtr["atrID"]==$entID."ID") // ID field to skip
+            continue;
+
+        if ($rwAtr["atrFlagHideOnLists"]) // if column should be hidden, skip
+            continue;
+
+        if(!empty($this->staID) && !in_array($rwAtr['atrID'], $conf['STA'][$this->staID]['satFlagShowInList'])) // id statusID field is set and atrribute is not set for show, skip
             continue;
         
-        if (
-            (
-                (empty($this->staID) && !$rwAtr["atrFlagHideOnLists"]) || $rwAtr["satFlagShowInList"]
-            ) && !$rwAtr["atrFlagDeleted"]
-            ){
-           
-           if ($rwAtr['atrFlagNoField']){
-                $sqlForAtr = "SELECT atvValue FROM stbl_attribute_value WHERE atvAttributeID='".$rwAtr['atrID']."' AND atvEntityItemID=".$entID."ID ORDER BY atvEditDate DESC LIMIT 0,1";
-                $arr = array(
-                    'title' => (
-                            $rwAtr["atrShortTitle{$strLocal}"]!="" 
-                                ? $rwAtr["atrShortTitle{$strLocal}"] 
-                                : ($rwAtr["atrTitle{$strLocal}"]!=""
-                                    ? $rwAtr["atrTitle{$strLocal}"]
-                                    : ($rwAtr['atrShortTitle']!=''
-                                        ? $rwAtr['atrShortTitle']
-                                        : $rwAtr['atrTitle']
-                                        )
+
+        if ($rwAtr['atrFlagNoField']){
+            $sqlForAtr = "SELECT atvValue FROM stbl_attribute_value WHERE atvAttributeID='".$rwAtr['atrID']."' AND atvEntityItemID=".$entID."ID ORDER BY atvEditDate DESC LIMIT 0,1";
+            $arr = array(
+                'title' => (
+                        $rwAtr["atrShortTitle{$strLocal}"]!="" 
+                            ? $rwAtr["atrShortTitle{$strLocal}"] 
+                            : ($rwAtr["atrTitle{$strLocal}"]!=""
+                                ? $rwAtr["atrTitle{$strLocal}"]
+                                : ($rwAtr['atrShortTitle']!=''
+                                    ? $rwAtr['atrShortTitle']
+                                    : $rwAtr['atrTitle']
                                     )
                                 )
-                    , 'type'=>($rwAtr['atrType']!="" ? $rwAtr['atrType'] : "text")
-                    , 'field' => "atr_".$rwAtr['atrID']
-                    , 'sql' => $sqlForAtr
-                    , 'filter' => "atr_".$rwAtr['atrID']
-                    , 'order_field' => "atr_".$rwAtr['atrID']
-                    );   
-             
-           } else {
-            $arr = array('title' => 
-                    ($rwAtr["atrShortTitle{$strLocal}"]!="" 
-                                ? $rwAtr["atrShortTitle{$strLocal}"] 
-                                : ($rwAtr["atrTitle{$strLocal}"]!=""
-                                    ? $rwAtr["atrTitle{$strLocal}"]
-                                    : ($rwAtr['atrShortTitle']!=''
-                                        ? $rwAtr['atrShortTitle']
-                                        : $rwAtr['atrTitle']
-                                        )
-                                    )
-                                )
+                            )
                 , 'type'=>($rwAtr['atrType']!="" ? $rwAtr['atrType'] : "text")
-                , 'field' => $rwAtr['atrID']
-                , 'filter' => $rwAtr['atrID']
-                , 'order_field' => $rwAtr['atrID']
+                , 'field' => "atr_".$rwAtr['atrID']
+                , 'sql' => $sqlForAtr
+                , 'filter' => "atr_".$rwAtr['atrID']
+                , 'order_field' => "atr_".$rwAtr['atrID']
                 );   
-           }
-           $arr['nowrap'] = true;
-           
-            if ($rwAtr['atrType']=="combobox" || $rwAtr['atrType']=="ajax_dropdown")
-            if (!preg_match("/^Array/i", $rwAtr['atrProgrammerReserved']))
-            { 
-                $arr['source'] = $rwAtr['atrDataSource'];
-                $arr['source_prefix'] = (strlen($rwAtr['atrProgrammerReserved'])==3 ? $rwAtr['atrProgrammerReserved'] : "");
-                $arr['defaultText'] = $rwAtr['atrDefault'];
-            } else 
-                $arr['type'] = "text";
-           
-           $lst->Columns[] = $arr;
-           
-            // check column-after
-            for ($ii=$iStartAddCol;$ii<count($arrAdditionalCols);$ii++){
-                if ($arrAdditionalCols[$ii]['columnAfter']==$rwAtr['atrID']){
-                    $lst->Columns[] = $arrAdditionalCols[$ii];
-                    
-                    while(isset($arrAdditionalCols[$ii+1]) && $arrAdditionalCols[$ii+1]['columnAfter']==""){
-                        $ii++;
-                        $lst->Columns[] = $arrAdditionalCols[$ii];
-                    }
-                }
-                
-            }
-           
+         
+        } else {
+            $arr = array('title' => 
+                ($rwAtr["atrShortTitle{$strLocal}"]!="" 
+                            ? $rwAtr["atrShortTitle{$strLocal}"] 
+                            : ($rwAtr["atrTitle{$strLocal}"]!=""
+                                ? $rwAtr["atrTitle{$strLocal}"]
+                                : ($rwAtr['atrShortTitle']!=''
+                                    ? $rwAtr['atrShortTitle']
+                                    : $rwAtr['atrTitle']
+                                    )
+                                )
+                            )
+            , 'type'=>($rwAtr['atrType']!="" ? $rwAtr['atrType'] : "text")
+            , 'field' => $rwAtr['atrID']
+            , 'filter' => $rwAtr['atrID']
+            , 'order_field' => $rwAtr['atrID']
+            );   
         }
+        $arr['nowrap'] = true;
+       
+        if ($rwAtr['atrType']=="combobox" || $rwAtr['atrType']=="ajax_dropdown")
+        if (!preg_match("/^Array/i", $rwAtr['atrProgrammerReserved']))
+        { 
+            $arr['source'] = $rwAtr['atrDataSource'];
+            $arr['source_prefix'] = (strlen($rwAtr['atrProgrammerReserved'])==3 ? $rwAtr['atrProgrammerReserved'] : "");
+            $arr['defaultText'] = $rwAtr['atrDefault'];
+        } else 
+            $arr['type'] = "text";
+       
+       $lst->Columns[] = $arr;
+       
+        // check column-after
+        for ($ii=$iStartAddCol;$ii<count($arrAdditionalCols);$ii++){
+            if ($arrAdditionalCols[$ii]['columnAfter']==$rwAtr['atrID']){
+                $lst->Columns[] = $arrAdditionalCols[$ii];
+                
+                while(isset($arrAdditionalCols[$ii+1]) && $arrAdditionalCols[$ii+1]['columnAfter']==""){
+                    $ii++;
+                    $lst->Columns[] = $arrAdditionalCols[$ii];
+                }
+            }
+            
+        }
+           
+    }
         
 
         
-    }
     if (!in_array("Comments", $arrExcludeCols))        
     $lst->Columns[] = array('title' => "Comments"
         , 'type'=>"text"
@@ -498,46 +538,42 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     return $lst;
 }
 
-public function getFields($arrConfig = Array(), $oEntItem = null){
-    
-    $strFields = "";
-    
-    if ($oEntItem!==null){
-        $this->staID = $oEntItem->staID;
+public function getFieldsHTML($arrConfig = Array()){
+
+    if($arrConfig['flagFullEdit']){
+        foreach($this->conf['ATR'] as $ix=>$rwAtr)
+            $arrAtrToLoopThru[$ix] = true;
+    } else {
+        $staID = (isset($this->item) ? $this->item['staID'] : $arrConfig['staID']);
+        $arrAtrToLoopThru = $this->conf['STA'][(int)$this->staID]['satFlagShowInForm'];
     }
-    
-    if (empty($this->arrAtr)){
-        $this->collectDataAttributes();
-    }
-    
-    foreach($this->arrAtr as $rwAtr){
-        
-        if ($arrConfig['flagFullEdit']){
-            $rwAtr["satFlagShowInForm"] =true;
-            $rwAtr["satFlagEditable"] =true;
-        }
-        
-        if ($this->staID!=="" && !$rwAtr["satFlagShowInForm"])
-            continue;
+
+    foreach($arrAtrToLoopThru as $atrID=>$FlagWrite){
         
         if (!$this->flagArchive) {
-            if (!$this->intra->arrUsrData["FlagWrite"]) $rwAtr['satFlagEditable'] = false;
             
-            if ($arrConfig['flagShowOnlyEditable'] && !$rwAtr['satFlagEditable'])
+            if ($arrConfig['flagShowOnlyEditable'] && !$FlagWrite)
                 continue;
                 
         } else {
-            $rwAtr['satFlagEditable'] = false;
+            $FlagWrite = true;
         }
+
+        $rwAtr = $this->conf['ATR'][$atrID];
+
+        if (!$this->flagArchive && $rwAtr['atrFlagDeleted'] && !$rwAtr)
+            continue;
         
         $strFields .= ($strFields!="" ? "\r\n" : "");
-        $strFields .= "<div class=\"eiseIntraField\">";
-        $strFields .= "<label id=\"title_{$rwAtr["atrID"]}\">".$rwAtr["atrTitle{$this->intra->local}"].":</label>";
+        $strFields .= "<div class=\"eiseIntraField\" id=\"fld_{$atrID}\">";
+        $strFields .= "<label id=\"title_{$atrID}\">".$rwAtr["atrTitle{$this->intra->local}"].":</label>";
         
-        if ($oEntItem !== null){
-            $rwAtr["value"] = $oEntItem->rwEnt[$rwAtr["atrID"]];
-            $rwAtr["text"] = $oEntItem->rwEnt[$rwAtr["atrID"]."_Text"];
+        if ( isset($this->item) ){
+            $rwAtr["value"] = $this->item[$rwAtr["atrID"]];
+            $rwAtr["text"] = $this->item[$rwAtr["atrID"]."_Text"];
         }
+
+        $rwAtr['FlagWrite'] = $FlagWrite;
         
         $strFields .=  $this->showAttributeValue($rwAtr, "");
         $strFields .= "</div>\r\n\r\n";
@@ -548,7 +584,7 @@ public function getFields($arrConfig = Array(), $oEntItem = null){
     foreach($arrConfig['extraFields'] as $field){
         
         $strFields .= ($strFields!="" ? "\r\n" : "");
-        $strFields .= "<div class=\"eiseIntraField\">";
+        $strFields .= "<div class=\"eiseIntraField\" id=\"fld_{$field['id']}\">";
         $strFields .= "<label".($field['id'] ? " id=\"title_".$field['id']."\"" : '').">".$field['title'].":</label>";
         
         $strFields .=  '<div class="eiseIntraValue">'.$field['html'].'</div>';
@@ -571,9 +607,8 @@ function showAttributeValue($rwAtr, $suffix = ""){
     $intra = $this->intra;
     
     $inputName = $rwAtr["atrID"].$suffix;
-    $arrInpConfig = Array("FlagWrite"=>$this->intra->arrUsrData["FlagWrite"]
-        /*, "required" => (bool)($rwAtr["aatFlagMandatory"] && $rwAtr["satFlagEditable"])*/
-        );
+    $arrInpConfig = Array("FlagWrite"=>$this->intra->arrUsrData["FlagWrite"] &&  $rwAtr['FlagWrite']);
+
     if ($rwAtr['atrClasses']){
         $arrInpConfig['class'] = $rwAtr['classes'];
     }
@@ -581,8 +616,6 @@ function showAttributeValue($rwAtr, $suffix = ""){
         $arrInpConfig['class'] = ($arrInpConfig['class'] ? ' ' : '').'eiseIntra_hasUOM';
     }
     
-    if(!$rwAtr['satFlagEditable'])
-        $arrInpConfig["FlagWrite"] = false;
     switch ($rwAtr['atrType']){
        case "datetime":
          $dtVal = $intra->datetimeSQL2PHP($value);
@@ -590,8 +623,9 @@ function showAttributeValue($rwAtr, $suffix = ""){
          $dtVal = $dtVal ? $dtVal : $intra->dateSQL2PHP($value);
          $strRet = $intra->showTextBox($inputName, $dtVal, 
             array_merge($arrInpConfig, Array("strAttrib" => " old_val=\"".htmlspecialchars($dtVal)."\""
-                , "type"=>($rwAtr['atrType'] ? $rwAtr["atrType"] : "text")
-                ))); 
+                , "type"=>$rwAtr['atrType']
+                )
+            )); 
          break;
        case "combobox":
             if (!$arrInpConfig["FlagWrite"]){ // if read-only && text is set
@@ -637,8 +671,8 @@ function showAttributeValue($rwAtr, $suffix = ""){
         $sqlUOM = "SELECT uomID as optValue, uomTitle{$strLocal} as optText FROM stbl_uom WHERE uomType='{$rwAtr["atrUOMTypeID"]}' ORDER BY uomOrder";
         $rsUOM = $oSQL->q($sqlUOM);
         while($rwUOM = $oSQL->f($rsUOM)) $arrOptions[$rwUOM["optValue"]]=$rwUOM["optText"];
-        $strRet .= $intra->showCombo($rwAtr["atrID"]."_uomID", $this->rwEnt[$rwAtr["atrID"]."_uomID"], $arrOptions
-                , array_merge($arrInpConfig, Array("strAttrib" => " old_val=\"".$this->rwEnt[$rwAtr["atrID"]."_uomID"]."\""
+        $strRet .= $intra->showCombo($rwAtr["atrID"]."_uomID", $this->conf[$rwAtr["atrID"]."_uomID"], $arrOptions
+                , array_merge($arrInpConfig, Array("strAttrib" => " old_val=\"".$this->item[$rwAtr["atrID"]."_uomID"]."\""
                     , 'class'=>"eiseIntra_UOM")));
     }
     return $strRet;
@@ -649,7 +683,7 @@ function showAttributeValue($rwAtr, $suffix = ""){
 function getFormForList($staID){
 
 ?>
-<form action="<?php  echo $this->rwEnt["entScriptPrefix"] ; ?>_form.php" method="POST" id="entForm" class="eiseIntraForm eiseIntraMultiple" style="display:none;">
+<form action="<?php  echo $this->conf["entScriptPrefix"] ; ?>_form.php" method="POST" id="entForm" class="eiseIntraForm eiseIntraMultiple" style="display:none;">
 <input type="hidden" name="DataAction" id="DataAction" value="update">
 <input type="hidden" name="entID" id="entID" value="<?php  echo $this->entID ; ?>">
 <input type="hidden" name="<?php echo $this->entID; ?>ID" id="<?php echo "{$this->entID}"; ?>ID" value="">
@@ -706,30 +740,33 @@ function showActionRadios(){
     
     if (!$this->intra->arrUsrData["FlagWrite"])
         return;
-    
-    if(empty($this->arrAct))
-        $this->collectDataActions();
 
-            
-    foreach($this->arrAct as $rwAct){
-      
+    foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
+        
+        if($rwAct['actFlagDeleted'])
+            continue;
+
+        if(count(array_intersect($this->intra->arrUsrData['roleIDs'], $rwAct['RLA']))==0)
+            continue;
+
         $arrRepeat = Array(($rwAct["actFlagAutocomplete"] ? "1" : "0") => (!$rwAct["actFlagAutocomplete"] ? $this->intra->translate("Plan") : ""));
       
         foreach($arrRepeat as $key => $value){
-            $title = ($rwAct["actID"] == 2 
+            $title = (in_array($rwAct["actID"], array(2, 3))
                ? " - ".$rwAct["actTitle{$this->intra->local}"]." - "
                : $rwAct["actTitle{$this->intra->local}"].
-                  ($rwAct["atsOldStatusID"]!=$rwAct["atsNewStatusID"]
-                  ?  " (".$rwAct["staTitle{$this->intra->local}_Old"]." > ".$rwAct["staTitle{$this->intra->local}_New"].")"
+                  ($rwAct["actOldStatusID"]!=$rwAct["actNewStatusID"]
+                  ?  " (".$this->conf['STA'][$rwAct["actOldStatusID"]]["staTitle{$this->intra->local}"]
+                    ." > ".$this->conf['STA'][$rwAct["actNewStatusID"]]["staTitle{$this->intra->local}"].")"
                   :  "")
             );
           
             $strID = "rad_".$rwAct["actID"]."_".
-              $rwAct["atsOldStatusID"]."_".
-              $rwAct["atsNewStatusID"];
+              $rwAct["actOldStatusID"]."_".
+              $rwAct["actNewStatusID"];
 
             $strOut .= "<input type='radio' name='actRadio' id='$strID' value='".$rwAct["actID"]."' class='eiseIntraRadio'".
-                " orig=\"{$rwAct["atsOldStatusID"]}\" dest=\"{$rwAct["atsNewStatusID"]}\"".
+                " orig=\"{$rwAct["actOldStatusID"]}\" dest=\"{$rwAct["actNewStatusID"]}\"".
                 ($rwAct["actID"] == 2 || ($key=="1" && count($arrRepeat)>1) ? " checked": "")
                  .(!$rwAct["actFlagAutocomplete"] ? " autocomplete=\"false\"" : "")." /><label for='$strID' class='eiseIntraRadio'>".($value!="" ? "$value \"" : "")
                  .$title
@@ -750,32 +787,21 @@ function showActionButtons(){
     
     if (!$this->intra->arrUsrData["FlagWrite"])
         return;
-    
-    if(empty($this->arrAct))
-        $this->collectDataActions();
 
-    $arrAct = array();
-    $actDel = array();
-    foreach($this->arrAct as $a){
-        if($a['actID']==3){
-            $actDel[] = $a;
+    foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
+        
+        if(count(array_intersect($this->intra->arrUsrData['roleIDs'], $rwAct['RLA']))==0)
             continue;
-        }
-        $arrAct[] = $a;
-    }
-    $arrAct = array_merge($arrAct, $actDel);
 
-    foreach($arrAct as $rwAct){
-      
         $title = $rwAct["actTitle{$this->intra->local}"];
           
         $strID = "btn_".$rwAct["actID"]."_".
-              $rwAct["atsOldStatusID"]."_".
-              $rwAct["atsNewStatusID"];
+              $rwAct["actOldStatusID"]."_".
+              $rwAct["actNewStatusID"];
 
-        $strOut .= "<input type='".($rwAct['actID']==3 ? 'button' : 'submit')."' class='eiseIntraActionSubmit".($rwAct['actID']==3 ? ' eiseIntraDelete' : '')."' name='actButton' id='$strID' value='"
+        $strOut .= "<input type='".($rwAct['actID']==3 ? 'button' : 'submit')."' class=\"".($rwAct['actID']==3 ? ' eiseIntraDelete' : 'eiseIntraActionSubmit')."\" name='actButton' id='$strID' value='"
                 .htmlspecialchars($title)."'".
-                " act_id=\"{$rwAct["actID"]}\" orig=\"{$rwAct["atsOldStatusID"]}\" dest=\"{$rwAct["atsNewStatusID"]}\">";
+                " act_id=\"{$rwAct["actID"]}\" orig=\"{$rwAct["actOldStatusID"]}\" dest=\"{$rwAct["actNewStatusID"]}\">";
           
     }
 
@@ -788,11 +814,11 @@ function newItemID($prefix, $datefmt="ym", $numlength=5){
     
     $oSQL = $this->oSQL;
     
-    $sqlNumber = "INSERT INTO {$this->rwEnt["entTable"]}_number (n{$this->entID}InsertDate) VALUES (NOW())";
+    $sqlNumber = "INSERT INTO {$this->conf["entTable"]}_number (n{$this->entID}InsertDate) VALUES (NOW())";
     $oSQL->q($sqlNumber);
     $number = $oSQL->i();
     
-    $oSQL->q("DELETE FROM {$this->rwEnt["entTable"]}_number WHERE n{$this->entID}ID < {$number}");
+    $oSQL->q("DELETE FROM {$this->conf["entTable"]}_number WHERE n{$this->entID}ID < {$number}");
     
     $strID = "{$prefix}".date($datefmt).substr(sprintf("%0{$numlength}d", $number), -1*$numlength);
     
@@ -804,10 +830,10 @@ function newItem($entItemID){
     
     $oSQL = $this->oSQL;
     
-    $sqlIns = "INSERT IGNORE INTO {$this->rwEnt["entTable"]} (
-        {$this->rwEnt["entID"]}ID
-        , {$this->rwEnt["entID"]}StatusID
-        , {$this->rwEnt["entID"]}InsertBy, {$this->rwEnt["entID"]}InsertDate, {$this->rwEnt["entID"]}EditBy, {$this->rwEnt["entID"]}EditDate
+    $sqlIns = "INSERT IGNORE INTO {$this->conf["entTable"]} (
+        {$this->conf["entID"]}ID
+        , {$this->conf["entID"]}StatusID
+        , {$this->conf["entID"]}InsertBy, {$this->conf["entID"]}InsertDate, {$this->conf["entID"]}EditBy, {$this->conf["entID"]}EditDate
         ) VALUES (
         ".$oSQL->e($entItemID)."
         , NULL
@@ -817,9 +843,8 @@ function newItem($entItemID){
     
     
     $item = new eiseEntityItem($this->oSQL, $this->intra, $this->entID, $entItemID);
-    $item->doSimpleAction(Array(  // Create
-        "actID"=>"1"
-    ));
+
+    $item->doCreate();
     
     return $item;
     
@@ -841,8 +866,8 @@ function checkArchiveTable (){
     // 1. check table structure in archive database by attributes
     // get archive table info
     $arrTable = Array("columns" => Array());
-	if (!$oSQL_arch->d("SHOW TABLES LIKE '{$this->rwEnt["entTable"]}'")){
-        $sqlCreate = "CREATE TABLE `{$this->rwEnt["entTable"]}` (
+	if (!$oSQL_arch->d("SHOW TABLES LIKE '{$this->conf["entTable"]}'")){
+        $sqlCreate = "CREATE TABLE `{$this->conf["entTable"]}` (
           `{$this->entID}ID` VARCHAR(50) NOT NULL
             , `{$this->entID}StatusID` INT(11) NOT NULL DEFAULT 0
             , `{$this->entID}StatusTitle` VARCHAR(256) NOT NULL DEFAULT ''
@@ -857,7 +882,7 @@ function checkArchiveTable (){
             ) ENGINE=MyISAM DEFAULT CHARSET=utf8;\r\n";
         $oSQL_arch->q($sqlCreate);
     }
-	$arrTable = $intra_arch->getTableInfo($intra->conf["stpArchiveDB"], $this->rwEnt["entTable"]);
+	$arrTable = $intra_arch->getTableInfo($intra->conf["stpArchiveDB"], $this->conf["entTable"]);
 	
     //make fields array for possible table update
     $arrCol = $arrTable["columns_index"];
@@ -898,7 +923,7 @@ function checkArchiveTable (){
             $predField = "{$rwATR["atrID"]}";
         }
     
-    $sqlArchTable = "ALTER TABLE {$this->rwEnt["entTable"]}{$strFields}";
+    $sqlArchTable = "ALTER TABLE {$this->conf["entTable"]}{$strFields}";
     $oSQL_arch->q($sqlArchTable);
 	
 	$this->oSQL_arch = $oSQL_arch;
@@ -934,12 +959,12 @@ function getEntityTableALTER($atrID, $atrType, $action){
 
     switch ($action){
         case 'add':
-            $sqlRet[] = "ALTER TABLE `{$this->rwEnt['entTable']}` ADD COLUMN `{$atrID}` {$strDBType} NULL DEFAULT NULL";
-            $sqlRet[] = "ALTER TABLE `{$this->rwEnt['entTable']}_log` ADD COLUMN `l{$atrID}` {$strDBType} NULL DEFAULT NULL";
+            $sqlRet[] = "ALTER TABLE `{$this->conf['entTable']}` ADD COLUMN `{$atrID}` {$strDBType} NULL DEFAULT NULL";
+            $sqlRet[] = "ALTER TABLE `{$this->conf['entTable']}_log` ADD COLUMN `l{$atrID}` {$strDBType} NULL DEFAULT NULL";
             break;
         case 'change':
-            $sqlRet[] = "ALTER TABLE `{$this->rwEnt['entTable']}` CHANGE COLUMN `{$atrID}` `{$atrID}` {$strDBType} NULL DEFAULT NULL";
-            $sqlRet[] = "ALTER TABLE `{$this->rwEnt['entTable']}_log` CHANGE COLUMN `l{$atrID}` `l{$atrID}` {$strDBType} NULL DEFAULT NULL";
+            $sqlRet[] = "ALTER TABLE `{$this->conf['entTable']}` CHANGE COLUMN `{$atrID}` `{$atrID}` {$strDBType} NULL DEFAULT NULL";
+            $sqlRet[] = "ALTER TABLE `{$this->conf['entTable']}_log` CHANGE COLUMN `l{$atrID}` `l{$atrID}` {$strDBType} NULL DEFAULT NULL";
             break;
         default:
             return false;
@@ -949,6 +974,25 @@ function getEntityTableALTER($atrID, $atrType, $action){
 
 }
 
+
+function getDropDownText($arrATR, $value){
+
+    $strRet = null;
+
+    if ($arrATR["atrType"] == "combobox" && $arrATR["atrDataSource"]=='' && preg_match('/^Array\(/i', $arrATR["atrProgrammerReserved"])){
+        eval( '$arrOptions = '.$arrATR["atrProgrammerReserved"].';' );
+        $strRet = ($arrOptions[$value]!=''
+            ? $arrOptions[$value]
+            : $arrATR["atrTextIfNull"]);
+    } else {
+        $strRet = ($value != ""
+            ? $this->oSQL->d($this->intra->getDataFromCommonViews($value, null, $arrATR["atrDataSource"], $arrATR["atrProgrammerReserved"], true))
+            : $arrATR["atrTextIfNull"]
+        );
+    }
+
+    return $strRet;
+}
 
 }
 

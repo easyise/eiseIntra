@@ -22,7 +22,7 @@ try {
 } catch(Exception $e){
     $ent = new eiseEntity($oSQL, $intra, $entID);
     SetCookie("UserMessage", "ERROR:".$e->getMessage());
-    header("Location: {$ent->rwEnt["entScriptPrefix"]}_list.php");
+    header("Location: {$ent->conf["entScriptPrefix"]}_list.php");
     die();
 }
 
@@ -38,11 +38,11 @@ switch ($DataAction){
         
         $entItem->updateMasterTable($_POST, false, true);
         
-        foreach($entItem->rwEnt["ACL"] as $aclGUID=>$arrACL){
+        foreach($entItem->item["ACL"] as $aclGUID=>$arrACL){
             $entItem->updateActionLogItem($aclGUID, $arrACL);
         }
         
-        foreach($entItem->rwEnt["STL"] as $stlGUID => $rwSTL){
+        foreach($entItem->item["STL"] as $stlGUID => $rwSTL){
             
             $entItem->updateStatusLogItem($stlGUID, $rwSTL);
 
@@ -61,15 +61,15 @@ switch ($DataAction){
         
         $oSQL->do_query("COMMIT");
         
-        SetCookie("UserMessage", "{$entItem->rwEnt["entTitle"]} updated");
+        SetCookie("UserMessage", "{$entItem->conf["entTitle"]} updated");
         header("Location: ".$_SERVER["PHP_SELF"]."?ID=".urlencode($entItemID)."&entID={$entID}");
         die();
         
 	case "undo";
         
-        foreach($entItem->rwEnt["ACL"] as $aclGUID=>$arrACL){
+        foreach($entItem->item["ACL"] as $aclGUID=>$arrACL){
             if ($arrACL["aclActionPhase"] < 2){
-                SetCookie("UserMessage", "ERROR: ".$entItem->rwEnt["entTitle{$intra->local}"]." ".$intra->translate('has incomplete actions. Cancel them first.'));
+                SetCookie("UserMessage", "ERROR: ".$entItem->conf["entTitle{$intra->local}"]." ".$intra->translate('has incomplete actions. Cancel them first.'));
                 header("Location: ".$_SERVER["PHP_SELF"]."?ID=".urlencode($entItemID)."&entID={$entID}");
                 die();
             }
@@ -79,7 +79,7 @@ switch ($DataAction){
         $oSQL->do_query("START TRANSACTION");
         
         // gathering action data we'd like to cancel
-        $aclGUID = $entItem->rwEnt[$entID."ActionLogID"]; //last action ID stamped at rwEnt
+        $aclGUID = $entItem->item[$entID."ActionLogID"]; //last action ID stamped at item
         
         // compose pseudo-post array
         $arrPseudoPOST = Array('aclGUID'=>$aclGUID // action log GUID
@@ -89,7 +89,7 @@ switch ($DataAction){
         $entItem->doFullAction($arrPseudoPOST);
         
         $oSQL->do_query("COMMIT");
-        SetCookie("UserMessage", "{$entItem->rwEnt["entTitle"]} was rolled back to its previous state");
+        SetCookie("UserMessage", "{$entItem->conf["entTitle"]} was rolled back to its previous state");
         header("Location: ".$_SERVER["PHP_SELF"]."?ID=".urlencode($entItemID)."&entID={$entID}");
         //$oSQL->showProfileInfo();
         
@@ -101,7 +101,7 @@ switch ($DataAction){
     
 
 $arrActions[]= Array ("title" => $intra->translate("Normal edit mode")
-       , "action" => "index.php?pane={$entItem->rwEnt["entScriptPrefix"]}_form.php?{$entID}ID=".urlencode($entItemID)
+       , "action" => "index.php?pane={$entItem->conf["entScriptPrefix"]}_form.php?{$entID}ID=".urlencode($entItemID)
        , "class"=> "ss_arrow_left"
        , "target" => "_top"
     );
@@ -113,11 +113,14 @@ $arrActions[]= Array ("title" => $intra->translate("Undo last Action")
        , "action" => "javascript:confirmUndo()"
        , "class"=> "ss_arrow_undo"
     );
-$arrActions[]= Array ("title" => $intra->translate("Update")." ".$entItem->rwEnt["entTitle{$intra->local}"]
+$arrActions[]= Array ("title" => $intra->translate("Update")." ".$entItem->conf["entTitle{$intra->local}"]
        , "action" => 'javascript:save()'
        , "class"=> "ss_accept save_button"
     );
 }
+
+$intra->arrUsrData["pagTitle{$intra->local}"] = $entItem->conf["entTitle{$intra->local}"].' '.$entItemID.': '.$intra->translate('Full edit mode');
+
 include eiseIntraAbsolutePath."inc-frame_top.php";
 ?>
 
@@ -161,7 +164,7 @@ function save(){
 <form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" id="entForm" class="eiseIntraForm">
 <input type="hidden" name="DataAction" id="DataAction" value="update">
 <input type="hidden" name="entID" id="entID" value="<?php  echo $entID ; ?>">
-<input type="hidden" name="ID" id="ID" value="<?php  echo $entItem->rwEnt["{$entID}ID"] ; ?>">
+<input type="hidden" name="ID" id="ID" value="<?php  echo $entItem->item["{$entID}ID"] ; ?>">
 <input type="hidden" id="undoWarning" value="<?php  echo $intra->translate('WARNING: Undo will erase all data related to last action. Are you sure?') ; ?>">
 
 <div class="panel">
@@ -169,7 +172,7 @@ function save(){
 
 <tr>
 <td width="50%">
-<h1><?php  echo $entItem->rwEnt["entTitle{$intra->local}"].": ".$entItemID ; ?></h1>
+<h1><?php  echo $entItem->conf["entTitle{$intra->local}"].": ".$entItemID ; ?></h1>
 <?php 
 $entItem->showEntityItemFields(Array("flagFullEdit" => true));
  ?>
@@ -183,14 +186,14 @@ $entItem->showEntityItemFields(Array("flagFullEdit" => true));
     $rsCMB = $oSQL->do_query("SELECT * FROM stbl_status WHERE staEntityID=".$oSQL->e($entID)." ORDER BY staID");
     while($rwCMB = $oSQL->fetch_array($rsCMB))
         $arrOptions[$rwCMB["staID"]]=$rwCMB["staTitle"];
-    echo $intra->showCombo($entID."StatusID", $entItem->rwEnt[$entID."StatusID"], $arrOptions);
+    echo $intra->showCombo($entID."StatusID", $entItem->item[$entID."StatusID"], $arrOptions);
  ?></div></div>
  
  <hr>
  -->
 
 <?php
-foreach($entItem->rwEnt["STL"] as $stlGUID => $rwSTL){
+foreach($entItem->item["STL"] as $stlGUID => $rwSTL){
     ?>
     <div class="eiseIntraLogStatus">
     <div class="eiseIntraLogTitle"><span class="eiseIntra_stlTitle"><?php echo ($rwSTL["stlTitle{$intra->local}"]!="" 
@@ -239,7 +242,7 @@ foreach($entItem->rwEnt["STL"] as $stlGUID => $rwSTL){
 
  <fieldset class="eiseIntraActions eiseIntraSubForm"><legend><?php  echo $intra->translate("Incomplete/Cancelled Actions") ; ?></legend>
     <?php 
-    foreach ($entItem->rwEnt["ACL"] as $ix=>$rwACL){
+    foreach ($entItem->item["ACL"] as $ix=>$rwACL){
         
         $rwACL["actTitle{$intra->local}"] .= ' *'.eiseEntity::getActionPhaseTitle($rwACL["aclActionPhase"]).'* ';
         $rwACL["aclFlagEditable"] = true;

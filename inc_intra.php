@@ -270,7 +270,7 @@ function redirect($strMessage, $strLocation, $arrConfig = array()){
 
     $conf = array_merge($this->conf, $arrConfig);
 
-    $cookiePath = (!$intra->conf['flagSetGlobalCookieOnRedirect']
+    $cookiePath = (!$conf['flagSetGlobalCookieOnRedirect']
         ? $strLocation
         : eiseIntraCookiePath);
 
@@ -1321,7 +1321,11 @@ function archiveTable($table, $criteria, $nodelete = false, $limit = ""){
 }
 
 
-
+class eiseException extends Exception  {
+function __construct($msg, $level = 0){
+    parent::__construct($msg);
+}
+}
 
 
 
