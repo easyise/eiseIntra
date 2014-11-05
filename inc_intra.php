@@ -269,9 +269,9 @@ function checkPermissions(){
 function redirect($strMessage, $strLocation, $arrConfig = array()){
 
     $conf = array_merge($this->conf, $arrConfig);
-
-    $cookiePath = (!$conf['flagSetGlobalCookieOnRedirect']
-        ? $strLocation
+    
+    $cookiePath = (!$intra->conf['flagSetGlobalCookieOnRedirect']
+        ? parse_url($strLocation, PHP_URL_PATH)
         : eiseIntraCookiePath);
 
     setcookie ( $this->conf['UserMessageCookieName'], $strMessage, 0, $cookiePath );
@@ -304,11 +304,13 @@ function hasUserMessage(){
 
 function getUserMessage(){
     $strRet = $_COOKIE[$this->conf['UserMessageCookieName']];
-    setcookie($this->conf['UserMessageCookieName'], '', 0, $_SERVER['REQUEST_URI']);
-    setcookie($this->conf['UserMessageCookieName'], ''); // backward-compatibility
+    if($strRet){
+        //setcookie($this->conf['UserMessageCookieName'], '', 0, $_SERVER['REQUEST_URI']);
+        setcookie($this->conf['UserMessageCookieName'], '', 0, $_SERVER['PHP_SELF']);
+        setcookie($this->conf['UserMessageCookieName'], ''); // backward-compatibility
+    }
     return $strRet;
 }
-
 
 function getRoleUsers($strRoleName) {
    $sqlRoleUsers = "SELECT rluUserID
