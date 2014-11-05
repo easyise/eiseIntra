@@ -678,10 +678,13 @@ public function prepareActions(){
                 break;
         }
     } else {
-        if(!in_array($aclOldStatusID, $rwACT['actOldStatusID']))
-            throw new Exception('Action cannot be run for origin status '.$aclOldStatusID);
-        if(!in_array($aclNewStatusID, $rwACT['actNewStatusID']))
-            throw new Exception('Action cannot be run for destination status '.$aclOldStatusID);
+        if(!in_array($aclOldStatusID, $rwACT['actOldStatusID'])){
+            debug_print_backtrace();
+            throw new Exception("Action {$rwACT['actID']} cannot be run for origin status ".$aclOldStatusID);
+        }
+        if(!in_array($aclNewStatusID, $rwACT['actNewStatusID'])){
+            throw new Exception("Action {$rwACT['actID']} cannot be run for destination status ".$aclOldStatusID);
+        }
     }
 
     $this->arrAction['aclOldStatusID'] = $aclOldStatusID;

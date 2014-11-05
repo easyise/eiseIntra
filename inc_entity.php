@@ -59,6 +59,7 @@ private function init(){
     $this->conf = $this->ent;
     
     // read attributes
+    $this->conf['ATR'] = array();
     $sqlAtr = "SELECT * 
         FROM stbl_attribute 
         WHERE atrEntityID=".$oSQL->e($this->entID)."
@@ -69,6 +70,7 @@ private function init(){
     }
 
     // read status_attribute
+    $this->conf['STA'] = array();
     $sqlSat = "SELECT stbl_status.*,stbl_status_attribute.*  
             FROM stbl_status_attribute 
                 INNER JOIN stbl_status ON staID=satStatusID AND satEntityID=staEntityID
@@ -111,6 +113,7 @@ private function init(){
     }
     
     // read action_attribute
+    $this->conf['ACT'] = array();
     $sqlAAt = "SELECT stbl_action.*
         , (SELECT GROUP_CONCAT(rlaRoleID) FROM stbl_role_action WHERE rlaActionID=actID) as actRoles
         , stbl_action_attribute.* FROM stbl_action
@@ -161,6 +164,8 @@ private function init(){
         ORDER BY atsOldStatusID, actPriority";
     $rsATS = $oSQL->q($sqlATS);
     while($rwATS = $oSQL->f($rsATS)){
+        $this->conf['ACT'][$rwATS['atsActionID']]['aclOldStatusID'] = (isset($this->conf['ACT'][$rwATS['atsActionID']]['aclOldStatusID']) ? $this->conf['ACT'][$rwATS['atsActionID']]['aclOldStatusID'] : $rwATS['atsOldStatusID']);
+        $this->conf['ACT'][$rwATS['atsActionID']]['aclNewStatusID'] = (isset($this->conf['ACT'][$rwATS['atsActionID']]['aclNewStatusID']) ? $this->conf['ACT'][$rwATS['atsActionID']]['aclNewStatusID'] : $rwATS['atsNewStatusID']);
         $this->conf['ACT'][$rwATS['atsActionID']]['actOldStatusID'][] = $rwATS['atsOldStatusID'];
         $this->conf['ACT'][$rwATS['atsActionID']]['actNewStatusID'][] = $rwATS['atsNewStatusID'];
         $this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][$rwATS['atsActionID']] = array_merge(
