@@ -542,17 +542,14 @@ function finishAction(){
         $oSQL->do_query($sqlUpdMaster);
     }
     
-    //echo "<pre>";
-    //print_r($this->arrNewData);
-    
     $this->onActionFinish($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
-    
+
     // if status is changed or action requires status stay interruption, we insert status log entry and update master table
-    if (((string)$this->arrAction["aclOldStatusID"]!=(string)$this->arrAction["aclNewStatusID"] 
+    if (((string)$this->arrAction["aclOldStatusID"]!=(string)$this->arrAction["aclNewStatusID"]
           && (string)$this->arrAction["aclNewStatusID"]!=""
         )
         || $this->arrAction["actFlagInterruptStatusStay"]){
-        
+
         $sql = Array();
         $stlGUID = $oSQL->get_data($oSQL->do_query("SELECT UUID()"));
         
@@ -643,7 +640,12 @@ public function prepareActions(){
 
     //collect coming action
     if ($this->arrNewData["aclGUID"]){
-        $rwACT = $this->item['ACL'][$this->arrNewData["aclGUID"]]; //if ACL GUID specified, we try to locate action in ACL
+        if(!$this->arrNewData['isUndo'])
+            $rwACT = $this->item['ACL'][$this->arrNewData["aclGUID"]]; //if ACL GUID specified, we try to locate action in ACL
+        else {
+            $rwACT = $this->getActionData($this->arrNewData["aclGUID"]);
+        }
+
     } else {
         $rwACT = $this->conf['ACT'][$this->arrNewData["actID"]]; // else we retrive action data from ACT associative array member
     }
@@ -667,11 +669,11 @@ public function prepareActions(){
                     throw new Exception('Item is already created');
                 break;
             case 2:
-                if(!$this->conf['STA'][(int)$aclOldStatusID]['staFlagCanUpdate'])
+                if(!$this->conf['STA'][$aclOldStatusID]['staFlagCanUpdate'])
                     throw new Exception('Update is not allowed');
                 break;
             case 3:
-                if(!$this->conf['STA'][(int)$aclOldStatusID]['staFlagCanDelete'])
+                if(!$this->conf['STA'][$aclOldStatusID]['staFlagCanDelete'])
                     throw new Exception('Delete is not allowed');
                 break;
             default:
@@ -1844,7 +1846,7 @@ function getStatusData($stlDepartureActionID){
 	$rsSTL = $oSQL->do_query($sqlSTL);
 	if ($oSQL->n($rsSTL) == 0) return Array();
 	
-	$rwSTL = $oSQL->fetch_array($rsSTL);
+	$rwSTL = $oSQL->f($rsSTL);
 
     $rwSTL = @array_merge($this->conf['STA'][$rwSTL['stlStatusID']],  $rwSTL);
 		

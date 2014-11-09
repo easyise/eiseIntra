@@ -160,7 +160,7 @@ private function init(){
         , atsActionID
         FROM stbl_action_status
         INNER JOIN stbl_action ON actID=atsActionID
-        WHERE actEntityID=".$oSQL->e($this->entID)."
+        WHERE actEntityID=".$oSQL->e($this->entID)." OR actEntityID IS NULL
         ORDER BY atsOldStatusID, actPriority";
     $rsATS = $oSQL->q($sqlATS);
     while($rwATS = $oSQL->f($rsATS)){
@@ -168,11 +168,12 @@ private function init(){
         $this->conf['ACT'][$rwATS['atsActionID']]['aclNewStatusID'] = (isset($this->conf['ACT'][$rwATS['atsActionID']]['aclNewStatusID']) ? $this->conf['ACT'][$rwATS['atsActionID']]['aclNewStatusID'] : $rwATS['atsNewStatusID']);
         $this->conf['ACT'][$rwATS['atsActionID']]['actOldStatusID'][] = $rwATS['atsOldStatusID'];
         $this->conf['ACT'][$rwATS['atsActionID']]['actNewStatusID'][] = $rwATS['atsNewStatusID'];
-        $this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][$rwATS['atsActionID']] = array_merge(
-                $this->conf['ACT'][$rwATS['atsActionID']]
-                , array('actOldStatusID'=>$rwATS['atsOldStatusID']
-                    , 'actNewStatusID'=>$rwATS['atsNewStatusID'])
-                );
+        if($rwATS['atsOldStatusID']!==null)
+            $this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][$rwATS['atsActionID']] = array_merge(
+                    $this->conf['ACT'][$rwATS['atsActionID']]
+                    , array('actOldStatusID'=>$rwATS['atsOldStatusID']
+                        , 'actNewStatusID'=>$rwATS['atsNewStatusID'])
+                    );
         if($this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3]){
             unset($this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3]);
             $this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3] = $arrActDel;

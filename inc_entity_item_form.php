@@ -238,7 +238,8 @@ function showActivityLog($arrConfig=array()){
 
 
 foreach($this->item["STL"] as $stlGUID => $rwSTL){
-    if ($arrConfig['flagHideDraftStatusStay'] && $rwSTL['stlStatusID']===0)
+
+    if ($arrConfig['flagHideDraftStatusStay'] && $rwSTL['stlStatusID']==='0')
         continue;
     ?>
     <div class="eiseIntraLogStatus">
