@@ -843,31 +843,31 @@ function updateActionLogItem($aclGUID, $arrACL = null){
         $arrACL = $this->getActionData($aclGUID);
     }
     
-    
-    
     foreach ($arrACL["AAT"] as $atrID => $arrAAT){
         
         $newValue = null;
         $strACLInputID = $atrID."_".$aclGUID;
-        $strTimeStampInputID = "acl".$arrAAT["aatFlagTimestamp"]."_".$aclGUID;
         
         // if we have it in arrNewData: atrID_aclGUID
         if (isset($this->arrNewData[$strACLInputID])   ) {
             $toEval = "\"".str_replace("\$_POST", "\$this->arrNewData"
-                , $this->intra->getSQLValue(Array('Field'=>$strACLInputID, 'DataType'=>$arrAAT["atrType"])))."\"";
+                , $this->intra->getSQLValue(Array('Field'=>$strACLInputID, 'DataType'=>$this->conf['ATR'][$atrID]["atrType"])))."\"";
             eval("\$newValue = ".$toEval.";");
         }
-            
-        if ($arrAAT["aatFlagTimestamp"]){
+
+        if ($key = array_search($atrID, $arrACL["aatFlagTimestamp"])){
+
+            $strTimeStampInputID = "acl".$key."_".$aclGUID;
+
             // if attribute is a timestamp:
             if(isset($this->arrNewData[$strTimeStampInputID])){ // if we timestamp in arrNewData, we update attribute field in log table
                 $toEval = "\"".str_replace("\$_POST", "\$this->arrNewData"
-                    , $this->intra->getSQLValue(Array('Field'=>$strTimeStampInputID, 'DataType'=>"datetime")))."\"";
+                    , $this->intra->getSQLValue(Array('Field'=>$strTimeStampInputID, 'DataType'=>(!$arrACL['actTrackPrecision'] ? 'datetime' : $arrACL['actTrackPrecision']))))."\"";
                 eval("\$newValue = ".$toEval.";");
             } else { // if there's no timestamp, we try to update ACL timestamp basing on 
                 if ($newValue!==null){
-                    $tsfieldsToSet .= "\r\n, acl{$arrAAT["aatFlagTimestamp"]}={$newValue}";
-                    if($arrACL["actFlagDepartureEqArrival"] && $arrAAT["aatFlagTimestamp"]=="ATA"){
+                    $tsfieldsToSet .= "\r\n, acl{$key}={$newValue}";
+                    if($arrACL["actFlagDepartureEqArrival"] && $key=="ATA"){
                         $tsfieldsToSet .= "\r\n, aclATD={$newValue}";
                     }
                 }
@@ -890,7 +890,7 @@ function updateActionLogItem($aclGUID, $arrACL = null){
         //echo "acl".$ts."_".$aclGUID." ";
         if (isset($this->arrNewData["acl".$ts."_".$aclGUID])){
             $toEval = "\"".str_replace("\$_POST", "\$this->arrNewData"
-                        , $this->intra->getSQLValue(Array('Field'=>"acl".$ts."_".$aclGUID, 'DataType'=>"datetime")))."\"";
+                        , $this->intra->getSQLValue(Array('Field'=>"acl".$ts."_".$aclGUID, 'DataType'=>(!$arrACL['actTrackPrecision'] ? 'datetime' : $arrACL['actTrackPrecision']))))."\"";
                     eval("\$newValue = ".$toEval.";");
             $tsfieldsToSet .= "\r\n, acl{$ts}={$newValue}";
         }
@@ -901,6 +901,7 @@ function updateActionLogItem($aclGUID, $arrACL = null){
        {$tsfieldsToSet}
        WHERE aclGUID='{$aclGUID}'";
     $this->oSQL->q($sqlToTrack);
+
     
 }
 
