@@ -55,6 +55,8 @@ switch ($DataAction){
             
         }
 
+        $entItem->flagFullEdit = true;
+
         $entItem->prepareActions();
         $entItem->addAction();
         $entItem->finishAction();

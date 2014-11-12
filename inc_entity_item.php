@@ -669,7 +669,7 @@ public function prepareActions(){
                     throw new Exception('Item is already created');
                 break;
             case 2:
-                if(!$this->conf['STA'][$aclOldStatusID]['staFlagCanUpdate'])
+                if(!$this->conf['STA'][$aclOldStatusID]['staFlagCanUpdate'] && !$this->flagFullEdit)
                     throw new Exception('Update is not allowed');
                 break;
             case 3:

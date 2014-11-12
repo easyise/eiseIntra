@@ -687,6 +687,11 @@ function showAttributeValue($rwAtr, $suffix = ""){
 
 
 function getFormForList($staID){
+    
+    $strActionControls = $this->showActionRadios();
+
+    if($strActionControls == '')
+        return;
 
 ?>
 <form action="<?php  echo $this->conf["entScriptPrefix"] ; ?>_form.php" method="POST" id="entForm" class="eiseIntraForm eiseIntraMultiple" style="display:none;">
@@ -708,8 +713,8 @@ function getFormForList($staID){
 
 <fieldset class="eiseIntraActions"><legend><?php echo $this->intra->translate("Action"); ?></legend>
 <?php 
-    echo $this->showActionRadios();
-    echo "<div align=\"center\"><input class=\"eiseIntraSubmit\" id=\"btnsubmit\" type=\"submit\" value=\"".$this->intra->translate("Run")."\"></div>";
+    if($$strActionControls)
+        echo "{$$strActionControls}\r\n<div align=\"center\"><input class=\"eiseIntraSubmit\" id=\"btnsubmit\" type=\"submit\" value=\"".$this->intra->translate("Run")."\"></div>";
  ?>
 </fieldset>
 
@@ -747,41 +752,42 @@ function showActionRadios(){
     if (!$this->intra->arrUsrData["FlagWrite"])
         return;
 
-    foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
-        
-        if($rwAct['actFlagDeleted'])
-            continue;
+    if(is_array($this->conf['STA'][$this->staID]['ACT']))
+        foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
+            
+            if($rwAct['actFlagDeleted'])
+                continue;
 
-        if(count(array_intersect($this->intra->arrUsrData['roleIDs'], $rwAct['RLA']))==0)
-            continue;
+            if(count(array_intersect($this->intra->arrUsrData['roleIDs'], $rwAct['RLA']))==0)
+                continue;
 
-        $arrRepeat = Array(($rwAct["actFlagAutocomplete"] ? "1" : "0") => (!$rwAct["actFlagAutocomplete"] ? $this->intra->translate("Plan") : ""));
-      
-        foreach($arrRepeat as $key => $value){
-            $title = (in_array($rwAct["actID"], array(2, 3))
-               ? " - ".$rwAct["actTitle{$this->intra->local}"]." - "
-               : $rwAct["actTitle{$this->intra->local}"].
-                  ($rwAct["actOldStatusID"]!=$rwAct["actNewStatusID"]
-                  ?  " (".$this->conf['STA'][$rwAct["actOldStatusID"]]["staTitle{$this->intra->local}"]
-                    ." > ".$this->conf['STA'][$rwAct["actNewStatusID"]]["staTitle{$this->intra->local}"].")"
-                  :  "")
-            );
+            $arrRepeat = Array(($rwAct["actFlagAutocomplete"] ? "1" : "0") => (!$rwAct["actFlagAutocomplete"] ? $this->intra->translate("Plan") : ""));
           
-            $strID = "rad_".$rwAct["actID"]."_".
-              $rwAct["actOldStatusID"]."_".
-              $rwAct["actNewStatusID"];
-
-            $strOut .= "<input type='radio' name='actRadio' id='$strID' value='".$rwAct["actID"]."' class='eiseIntraRadio'".
-                " orig=\"{$rwAct["actOldStatusID"]}\" dest=\"{$rwAct["actNewStatusID"]}\"".
-                ($rwAct["actID"] == 2 || ($key=="1" && count($arrRepeat)>1) ? " checked": "")
-                 .(!$rwAct["actFlagAutocomplete"] ? " autocomplete=\"false\"" : "")." /><label for='$strID' class='eiseIntraRadio'>".($value!="" ? "$value \"" : "")
-                 .$title
-                 .($value!="" ? "\"" : "")."</label><br />\r\n";
+            foreach($arrRepeat as $key => $value){
+                $title = (in_array($rwAct["actID"], array(2, 3))
+                   ? " - ".$rwAct["actTitle{$this->intra->local}"]." - "
+                   : $rwAct["actTitle{$this->intra->local}"].
+                      ($rwAct["actOldStatusID"]!=$rwAct["actNewStatusID"]
+                      ?  " (".$this->conf['STA'][$rwAct["actOldStatusID"]]["staTitle{$this->intra->local}"]
+                        ." > ".$this->conf['STA'][$rwAct["actNewStatusID"]]["staTitle{$this->intra->local}"].")"
+                      :  "")
+                );
               
-          
-          
-      }
-   }
+                $strID = "rad_".$rwAct["actID"]."_".
+                  $rwAct["actOldStatusID"]."_".
+                  $rwAct["actNewStatusID"];
+
+                $strOut .= "<input type='radio' name='actRadio' id='$strID' value='".$rwAct["actID"]."' class='eiseIntraRadio'".
+                    " orig=\"{$rwAct["actOldStatusID"]}\" dest=\"{$rwAct["actNewStatusID"]}\"".
+                    ($rwAct["actID"] == 2 || ($key=="1" && count($arrRepeat)>1) ? " checked": "")
+                     .(!$rwAct["actFlagAutocomplete"] ? " autocomplete=\"false\"" : "")." /><label for='$strID' class='eiseIntraRadio'>".($value!="" ? "$value \"" : "")
+                     .$title
+                     .($value!="" ? "\"" : "")."</label><br />\r\n";
+                  
+              
+              
+          }
+       }
    
    return $strOut;
 }
