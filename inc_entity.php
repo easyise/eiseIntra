@@ -702,7 +702,7 @@ function getFormForList($staID){
 <fieldset class="eiseIntraMainForm"><legend><?php echo $this->intra->translate("Set Data"); ?></legend>
 
 <?php 
-    echo $this->getFields(Array("flagShowOnlyEditable"=>true));
+    echo $this->getFieldsHTML(Array("flagShowOnlyEditable"=>true));
  ?>
 </fieldset>
 
