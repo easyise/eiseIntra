@@ -713,8 +713,8 @@ function getFormForList($staID){
 
 <fieldset class="eiseIntraActions"><legend><?php echo $this->intra->translate("Action"); ?></legend>
 <?php 
-    if($$strActionControls)
-        echo "{$$strActionControls}\r\n<div align=\"center\"><input class=\"eiseIntraSubmit\" id=\"btnsubmit\" type=\"submit\" value=\"".$this->intra->translate("Run")."\"></div>";
+    if($strActionControls)
+        echo "{$strActionControls}\r\n<div align=\"center\"><input class=\"eiseIntraSubmit\" id=\"btnsubmit\" type=\"submit\" value=\"".$this->intra->translate("Run")."\"></div>";
  ?>
 </fieldset>
 
