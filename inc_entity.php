@@ -794,22 +794,23 @@ function showActionButtons(){
     if (!$this->intra->arrUsrData["FlagWrite"])
         return;
 
-    foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
-        
-        if(count(array_intersect($this->intra->arrUsrData['roleIDs'], $rwAct['RLA']))==0)
-            continue;
+    if(is_array($this->conf['STA'][$this->staID]['ACT']))
+        foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
+            
+            if(count(array_intersect($this->intra->arrUsrData['roleIDs'], $rwAct['RLA']))==0)
+                continue;
 
-        $title = $rwAct["actTitle{$this->intra->local}"];
-          
-        $strID = "btn_".$rwAct["actID"]."_".
-              $rwAct["actOldStatusID"]."_".
-              $rwAct["actNewStatusID"];
+            $title = $rwAct["actTitle{$this->intra->local}"];
+              
+            $strID = "btn_".$rwAct["actID"]."_".
+                  $rwAct["actOldStatusID"]."_".
+                  $rwAct["actNewStatusID"];
 
-        $strOut .= "<input type='".($rwAct['actID']==3 ? 'button' : 'submit')."' class=\"".($rwAct['actID']==3 ? ' eiseIntraDelete' : 'eiseIntraActionSubmit')."\" name='actButton' id='$strID' value='"
-                .htmlspecialchars($title)."'".
-                " act_id=\"{$rwAct["actID"]}\" orig=\"{$rwAct["actOldStatusID"]}\" dest=\"{$rwAct["actNewStatusID"]}\">";
-          
-    }
+            $strOut .= "<input type='".($rwAct['actID']==3 ? 'button' : 'submit')."' class=\"".($rwAct['actID']==3 ? ' eiseIntraDelete' : 'eiseIntraActionSubmit')."\" name='actButton' id='$strID' value='"
+                    .htmlspecialchars($title)."'".
+                    " act_id=\"{$rwAct["actID"]}\" orig=\"{$rwAct["actOldStatusID"]}\" dest=\"{$rwAct["actNewStatusID"]}\">";
+              
+        }
 
    
    return $strOut;
