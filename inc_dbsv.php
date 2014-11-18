@@ -26,7 +26,7 @@ public $authorized = false;
 
 private $intra;
 
-function __construct($conf){
+function __construct($conf = array()){
 
     $this->conf = array_merge($this->conf, $conf);
 
