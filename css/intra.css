@@ -176,6 +176,23 @@ div.menubutton  {
     padding-left: 1%;
 }
 
+.eiseIntraCheckboxSet input  {
+    width: auto;
+    clear: left;
+    float: left;
+}
+.eiseIntraCheckboxSet label  {
+    width: 200px;
+    float: none;
+    clear: right;
+    cursor: pointer;
+    display: inline-block;
+    text-align: left !important;
+    padding-left: 1%;
+    float: left;
+    font-weight: normal !important;
+}
+
 .eif_actionButtons input {
     display: inline-block;
     vertical-align: middle;

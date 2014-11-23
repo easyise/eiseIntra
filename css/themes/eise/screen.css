@@ -381,6 +381,19 @@ input.intra_date, input.intra_datetime {
 input.intraTime{
     width: 30px;
 }
+.eiseIntraActions label.eiseIntraRadio  {
+    text-align: left !important;
+    font-size: 1.0em;
+    font-weight: bold;
+}
+.eiseIntraCheckboxSet input  {
+    width: auto !important;
+}
+.eiseIntraCheckboxSet label  {
+    width: 200px !important;
+    padding-left: 1% !important;
+    font-weight: normal !important;
+}
 
 /*************************************************/
 /* Backward compatibility                        */
