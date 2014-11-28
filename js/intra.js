@@ -773,7 +773,11 @@ function showDropDownWindow(o, divID) {
     
    /* Made by Mathias Bynens <http://mathiasbynens.be/> */
 function number_format(a, b, c, d) {
- a = Math.round(a * Math.pow(10, b)) / Math.pow(10, b);
+
+    var minus = (parseFloat(a)<0 ? '-' : '');
+
+ a = Math.abs(Math.round(a * Math.pow(10, b)) / Math.pow(10, b));
+
  e = a + '';
  f = e.split('.');
  if (!f[0]) {
@@ -800,7 +804,8 @@ function number_format(a, b, c, d) {
   f[0] = j + f[0];
  }
  c = (b <= 0) ? '' : c;
- return f[0] + c + f[1];
+    
+    return minus + f[0] + c + f[1];
 }
 
 function replaceCyrillicLetters(str){
