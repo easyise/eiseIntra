@@ -8,6 +8,7 @@ $DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['Data
 $oSQL->dbname=(isset($_POST["dbName"]) ? $_POST["dbName"] : $_GET["dbName"]);
 $dbName = $oSQL->dbname;
 $oSQL->select_db($dbName);
+$oSQL->dbName = $dbName;
 
 
 $actID = (isset($_POST["actID"]) ? $_POST["actID"] : $_GET["actID"]);
