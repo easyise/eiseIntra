@@ -69,6 +69,9 @@ $(document).ready(function(){
 <div id="header">
 	<a href="index.php" target="_top"><div id="corner_logo"><?php echo $intra->conf["stpCompanyName"]; ?></div></a>
 	<div id="app_title"><?php echo $title; ?></div>
+    <?php if ($warning): ?>
+        <div id="app_warning"><?php echo $warning; ?></div>
+    <?php endif ?>
     <div id="login_info"><?php echo $intra->translate("You're logged in as"); ?> <?php 
     
     if ($authmethod=="mysql"){

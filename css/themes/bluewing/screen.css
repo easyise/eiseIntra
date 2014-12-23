@@ -24,16 +24,28 @@ body{
 	margin-right: 20px;
 }
 #app_title{
-	font-family: "Arial Black", Arial, sans-serif;
+    font-family: "Arial Black", Arial, sans-serif;
     font-weight: 900;
     font-size: 31px;
     height: 31px;
-	color: #006699;
+    color: #006699;
     padding: 12px 170px 7px 10px;
     text-align: center;
     line-height: 27px;
-	text-transform: uppercase;
+    text-transform: uppercase;
     letter-spacing: 7px;
+}
+#app_warning {
+    color: #f30;
+    font-family: Arial,sans-serif;
+    font-size: 15px;
+    height: 13px;
+    letter-spacing: 7px;
+    line-height: 15px;
+    margin-top: -50px;
+    padding: 37px 170px 0 10px;
+    text-align: center;
+    text-transform: uppercase;
 }
 #login_info{
 	font: 11px Tahoma, Arial, Helvetica, sans-serif;
