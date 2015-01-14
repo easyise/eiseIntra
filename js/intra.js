@@ -410,8 +410,22 @@ fill: function(data){
             switch($inp[0].nodeName){
                 case 'INPUT':
                 case 'SELECT':
-                    $inp.val(fData.v);
+                    switch($inp.attr('type')){
+                        case 'checkbox':
+                            if(parseInt(fData.v)==1)
+                                $inp[0].checked = true;
+                            else 
+                                $inp[0].checked = false;
+                            break;
+                        case 'radio':
+                            // not delivered yet
+                            break;
+                        default:
+                            $inp.val(fData.v);
+                    } 
+                    
                     $inpNext = $inp.next('input#'+field+'_text');
+
                     if ($inpNext && fData.t){
                         $inpNext.val(fData.t);
                     }
