@@ -478,6 +478,10 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
             ($strAttrib ? " ".$strAttrib : "").
             ($strClass ? " ".$strClass : "").
             ($arrConfig["required"] ? " required=\"required\"" : "").
+            ($arrConfig["placeholder"] 
+                ? ' placeholder="'.htmlspecialchars($arrConfig["placeholder"]).'"'
+                    .' title="'.htmlspecialchars($arrConfig["placeholder"]).'"'
+                : "").
             ($arrConfig["maxlength"] ? " maxlength=\"{$arrConfig["maxlength"]}\"" : "").
        " value=\"".htmlspecialchars($strValue)."\" />\r\n";
     } else {
