@@ -1,9 +1,15 @@
 <?php
-/***********************************************************************
-
-eiseIntra core class
-
-***********************************************************************/
+/**
+*
+* eiseIntra core class
+*
+* Authentication, form elements display, data handling routines, archive/restore functions
+*
+*
+* @package eiseIntra
+* @version 1.0.15
+*
+**/
 
 
 include "inc_config.php";
@@ -46,6 +52,11 @@ public $arrAttributeTypes = array(
 
 const cachePreventorVar = 'nc';
 
+static $arrKeyboard = array(
+        'EN' =>   'qwertyuiop[]asdfghjkl;\'\\zxcvbnm,./QWERTYUIOP{}ASDFGHJKL:"|ZXCVBNM<>?'
+        , 'RU' => 'йцукенгшщзхъфывапролджэёячсмитьбю/ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЁЯЧСМИТЬБЮ?'
+    );
+
 function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory anymore
 
     $this->conf = Array(                    //defaults for intra
@@ -56,6 +67,7 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
         , 'thousandsSeparator' => ","
         , 'logofftimeout' => 360 //6 hours
         , 'addEiseIntraValueClass' => true
+        , 'keyboards' => 'EN,RU'
  //       , 'flagSetGlobalCookieOnRedirect' = false
     );
     
@@ -980,13 +992,19 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
             $arrExtra = explode("|", $extra);
             foreach($arrExtra as $ix=>$ex){ $strExtra = ' AND extra'.($ix==0 ? '' : $ix).' = '.$oSQL->e($ex); }
         }
-        $sql .= "\r\nWHERE 
-        (`{$arrFields["textField"]}` LIKE ".$oSQL->escape_string($strText, "for_search")." COLLATE 'utf8_general_ci'
-            OR `{$arrFields["textFieldLocal"]}` LIKE ".$oSQL->escape_string($strText, "for_search")." COLLATE 'utf8_general_ci'";
 
-        $sql .= ")
-        ".($flagShowDeleted==false ? " AND IFNULL(`{$arrFields["delField"]}`, 0)=0" : "")
-        .$strExtra;
+        $arrVariations = self::getKeyboardVariations($strText);
+        $sqlVariations = '';
+        
+        foreach($arrVariations as $layout=>$variation){
+            $sqlVariations.= ($sqlVariations=='' ? '' : "\r\nOR")
+                ." `{$arrFields["textField"]}` LIKE ".$oSQL->escape_string($variation, "for_search")." COLLATE 'utf8_general_ci' "
+                ." OR `{$arrFields["textFieldLocal"]}` LIKE ".$oSQL->escape_string($variation, "for_search")." COLLATE 'utf8_general_ci'";
+        }
+
+        $sql .= "\r\nWHERE (\r\n{$sqlVariations}\r\n)"
+            .($flagShowDeleted==false ? " AND IFNULL(`{$arrFields["delField"]}`, 0)=0" : "")
+            .$strExtra;
     }
     $sql .= "\r\nLIMIT 0, 30";
     $rs = $oSQL->do_query($sql);
@@ -1234,6 +1252,59 @@ static function getFullHREF($iframeHREF){
     return $strURL;
 }
 
+/**
+* function to obtain keyboard layout variations when user searches something but missed keyboard layout switch
+* 
+* It takes multibyte UTF-8-encoded string as the parameter, then it searches variations in static property self::$arrKeyboard and returns it as associative array.
+*
+* @package eiseIntra
+* @since 1.0.15
+*
+* @param   string   $src    Original user input
+* @return  array            Associative array of possible string variations, like array('EN'=>'qwe', 'RU'=>'йцу') 
+*/
+
+static function getKeyboardVariations($src){
+    
+    mb_internal_encoding('UTF-8');
+    $toRet = array();
+
+    // 1. look for origin layout. if user has mixed layouts in one criteria - it's definitely bullshit
+    foreach(self::$arrKeyboard as $layoutSrc=>$keyboardSrc){
+        $destToCompare = '';
+        for($i=0;$i<mb_strlen($src);$i++){
+            $key = mb_substr($src, $i, 1);
+            if($key===null) // if symbol not found in this layout, skip it
+                break;
+            $val = mb_substr($keyboardSrc, mb_strpos($keyboardSrc, $key), 1);
+            $destToCompare .= $val;
+        }
+        // if we've found original layout
+        if($destToCompare==$src){
+
+            $toRet[$layoutSrc] = $src;
+
+            // ... we look for variations
+            foreach(self::$arrKeyboard as $layout=>$keyboard){
+                if($layout==$layoutSrc) // skip original layout
+                    continue;
+                $dest = '';
+                for($i=0;$i<mb_strlen($src);$i++){
+                    $key = mb_substr($src, $i, 1);
+                    $val = mb_substr($keyboard, mb_strpos($keyboardSrc, $key), 1);
+
+                    $dest .= $val;
+                }
+                $toRet[$layout] = $dest;
+            }
+
+        }
+
+    }
+
+    return $toRet;
+
+}
 
 
 /******************************************************************************/
