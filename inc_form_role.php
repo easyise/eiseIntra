@@ -1,4 +1,10 @@
 <?php
+
+include_once(commonStuffAbsolutePath."eiseGrid2/inc_eiseGrid.php");
+$arrJS[] = commonStuffRelativePath.'eiseGrid2/eiseGrid.jQuery.js';
+$arrCSS[] = commonStuffRelativePath.'eiseGrid2/themes/default/screen.css';
+
+
 if ($_POST["DataAction"]=="update"){
     
     $sqlRoles = "SELECT rolID FROM stbl_role";
@@ -50,15 +56,6 @@ if ($_POST["DataAction"]=="update"){
     }
 }
 
-include_once(commonStuffAbsolutePath."eiseGrid/inc_eiseGrid.php");
-$arrJS[] = commonStuffRelativePath.'eiseGrid/eiseGrid.js';
-$arrCSS[] = commonStuffRelativePath.'eiseGrid/eiseGrid.css';
-
-#$arrJS[] = "../common/jquery/jquery-autocomplete/lib/jquery.bgiframe.js";
-#$arrJS[] = "../common/jquery/jquery-autocomplete/jquery.autocomplete.js";
-#$arrJS[] = "../common/jquery/jquery-autocomplete/lib/jquery.ajaxQueue.js";
-#$arrCSS[] = "../common/jquery/jquery-autocomplete/jquery.autocomplete.css";
-
 $arrJS[] = jQueryUIRelativePath."js/jquery-ui-1.8.16.custom.min.js";
 $arrCSS[] = jQueryUIRelativePath."css/redmond/jquery-ui-1.8.16.custom.css";
 
@@ -68,21 +65,78 @@ include "inc-frame_top.php";
 ?>
 <script>
 $(document).ready(function(){  
-	easyGridInitialize();
+    var oldTop = 0;
+    var nRows = 0;
+    var ixInRow = 0;
+    var fldsTotalH = 0;
+
+    var arrMaxRowHeights = [];
+	var gridsPerRow = [];
+
+    $('.eiseGrid').eiseGrid();
+
+
+    $('.gridRLU').each(function(){
+        var $flds = $(this).parents('fieldset').first();
+
+        var top = Math.round( $flds.offset().top - parseFloat($flds.css('margin-top').replace('px', '')) );
+        var h = $flds.outerHeight(true);
+
+        if(oldTop!=top){
+            nRows++;
+            ixInRow = 0;
+        }
+
+        arrMaxRowHeights[nRows] = (arrMaxRowHeights[nRows] > h ? arrMaxRowHeights[nRows] : h);
+
+        if(!gridsPerRow[nRows]){
+            gridsPerRow[nRows] = [];
+        }
+        gridsPerRow[nRows][ixInRow] = $flds;
+
+        ixInRow++;
+
+        oldTop = top;
+
+    });
+
+    for(var i=0;i<arrMaxRowHeights.length;i++)
+        fldsTotalH+=arrMaxRowHeights[i];
+
+    var heightDelta = Math.ceil($(document).height()-$(window).height());
+    var viewPortHeight = $(window).height();
+    var otherStuffHeight = Math.ceil($(document).height()-fldsTotalH);
+
+    var rowH = Math.ceil( ( viewPortHeight - otherStuffHeight ) / arrMaxRowHeights.length );
+
+    for(var y=0;y<gridsPerRow.length;y++){
+        var row = gridsPerRow[y];
+        for(var x=0;x<row.length;x++){
+
+            var $flds = row[x];
+
+            var newH = (arrMaxRowHeights[y] > rowH
+                ? rowH
+                : arrMaxRowHeights[y])
+                - parseFloat($flds.css('margin-top').replace('px', ''));
+
+            $flds.height(newH);
+
+            $flds.find('.eiseGrid').eiseGrid('height', newH);
+
+        }
+    }
+
 });
 </script>
 
 
-<h1><?php echo $intra->arrUsrData["pagTitle{$intra->local}"]; ; ?></h1>
-
 <style>
-.eiseGrid > * {
-    display: block !important;
-}
-
 fieldset {
-    display: inline !important;
+    display: inline-block !important;
     vertical-align: top;
+    width: 31.5%;
+    min-width: 300px;
 }
 </style>
 
@@ -95,21 +149,22 @@ fieldset {
 $sqlRoles = "SELECT * FROM stbl_role";
 $rsRol = $oSQL->do_query($sqlRoles);
 
+$nRole = 0;
 while ($rwRol = $oSQL->fetch_array($rsRol)) {
     if ($rwRol["rolFlagDefault"]==1) continue;
  ?>
-<fieldset><legend><?php  echo $rwRol["rolTitle{$intra->local}"] ; ?></legend>
+<fieldset><?php  if ($nRole==0) echo '<legend>'.$intra->arrUsrData["pagTitle{$intra->local}"].'</legend>' ; ?>
 <?php 
 
-$grid = new easyGrid($oSQL
+$grid = new eiseGrid($oSQL
 					, "role_mems_".$rwRol["rolID"]
                     , Array(
                             'flagEditable'=> true
                             , 'arrPermissions' => array_merge($intra->arrUsrData, 
                                 ($rwRol["rolID"]=="Admin"&& $intra->usrID!="admin" ? Array("FlagWrite"=>false) : Array())
                                 )
-                            , 'width'=>"300"
-                             , 'controlBarButtons' => 'add'
+                             , 'controlBarButtons' => 'add|delete'
+                             , 'class' => 'gridRLU'
                             )
                     );
 $grid->Columns[]=Array(
@@ -117,9 +172,8 @@ $grid->Columns[]=Array(
 	,'type'=>'row_id'
 );
 $grid->Columns[] = Array(
-	'title'=> $intra->translate('Users')
+	'title'=> $rwRol["rolTitle{$intra->local}"]
 	,'field'=>'rluUserID_'.$rwRol["rolID"]
-    , 'width' => "300px"
 	,'type'=>'ajax_dropdown'
     , 'source'=>'svw_user'
 );
@@ -136,6 +190,7 @@ $grid->Execute();
  ?>
 </fieldset>
 <?php 
+    $nRole++;
 }
  ?>
 </div>
