@@ -1272,15 +1272,20 @@ static function getKeyboardVariations($src){
     // 1. look for origin layout. if user has mixed layouts in one criteria - it's definitely bullshit
     foreach(self::$arrKeyboard as $layoutSrc=>$keyboardSrc){
         $destToCompare = '';
+        $flagAtLeastOneSymbolFound = false;
         for($i=0;$i<mb_strlen($src);$i++){
             $key = mb_substr($src, $i, 1);
-            if($key===null) // if symbol not found in this layout, skip it
-                break;
-            $val = mb_substr($keyboardSrc, mb_strpos($keyboardSrc, $key), 1);
+            $keyIx = mb_strpos($keyboardSrc, $key);
+            if($keyIx!==false){
+                $val = mb_substr($keyboardSrc, $keyIx, 1);
+                $flagAtLeastOneSymbolFound = true;
+            } else 
+                $val = $key;
             $destToCompare .= $val;
         }
+
         // if we've found original layout
-        if($destToCompare==$src){
+        if( $destToCompare == $src && $flagAtLeastOneSymbolFound ){
 
             $toRet[$layoutSrc] = $src;
 
@@ -1291,15 +1296,23 @@ static function getKeyboardVariations($src){
                 $dest = '';
                 for($i=0;$i<mb_strlen($src);$i++){
                     $key = mb_substr($src, $i, 1);
-                    $val = mb_substr($keyboard, mb_strpos($keyboardSrc, $key), 1);
-
+                    $keyIx = mb_strpos($keyboardSrc, $key);
+                    $val = ($keyIx===false ? $key : mb_substr($keyboard, $keyIx, 1));
                     $dest .= $val;
                 }
-                $toRet[$layout] = $dest;
+                if($dest!=$src)
+                    $toRet[$layout] = $dest;
             }
 
-        }
+            break;
 
+        } 
+
+    }
+
+    if(count($toRet)==0){
+        reset(self::$arrKeyboard);
+        $toRet = array(key(self::$arrKeyboard)=>$src);
     }
 
     return $toRet;
