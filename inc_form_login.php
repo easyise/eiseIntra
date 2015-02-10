@@ -35,9 +35,11 @@ switch ($DataAction){
                 $_SESSION["usrID"] = strtoupper($login);
             }
             SetCookie("last_succesfull_usrID", $login, eiseIntraCookieExpire, eiseIntraCookiePath);
+            header("HTTP/1.0 403 Access denied"); 
             header ("Location: ".(isset($_COOKIE["PageNoAuth"]) ? $_COOKIE["PageNoAuth"] : "index.php"));
             die();
         } else {
+            header("HTTP/1.0 403 Access denied"); 
             SetCookie("last_succesfull_usrID", "", eiseIntraCookieExpire, eiseIntraCookiePath);
             header ("Location: login.php?error=".$strError);
             die();
