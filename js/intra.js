@@ -19,6 +19,25 @@ var convertDateForDateInput = function($eiForm, inp){
 
 }
 
+var getInputType = function($inp){
+    var strType = ($inp.attr('type') ? $inp.attr('type') : 'text');
+    if(strType=='text'){
+        var classList =$inp.attr('class').split(/\s+/);
+        $.each( classList, function(index, item){
+            if (item.match(/^eiseIntra_/)) {
+                switch(item){
+                    case 'eiseIntra_date':
+                    case 'eiseIntra_datetime':
+                        return item.replace('eiseIntra_', '');
+                    default:
+                        break;
+                }
+            }
+        });
+    }
+    return strType;
+}
+
 var setCurrentDate = function(oInp){
     
     var today = new Date();
@@ -61,7 +80,8 @@ init: function( options ) {
 
             var conf = $.parseJSON($('#eiseIntraConf').val());
 
-            conf.isDateInputSupported = isDateInputSupported();
+            //conf.isDateInputSupported = isDateInputSupported();
+            conf.isDateInputSupported = false;
 
             conf.strRegExDate = conf.dateFormat
                         .replace(new RegExp('\\.', "g"), "\\.")
@@ -128,6 +148,7 @@ init: function( options ) {
         });
     
         $this.find('input.eiseIntra_date, input.eiseIntra_datetime').each(function() {
+            $(this).attr('autocomplete', 'off');
             $(this).datepicker({
                     changeMonth: true,
                     changeYear: true,
@@ -143,6 +164,8 @@ init: function( options ) {
         });
     
         $this.find('input.eiseIntra_ajax_dropdown').each(function(){
+
+            $(this).attr('autocomplete', 'off');
             
             var data = $(this).attr('src');
     		eval ("var arrData="+data+";");
@@ -238,7 +261,7 @@ validate: function( ) {
     $(this).find('input.eiseIntraValue,select.eiseIntraValue').each(function() {
         
         var strValue = $(this).val();
-        var strType = $(this).attr('type');
+        var strType = getInputType($(this));
         
         var strRegExDateToUse = '';
 

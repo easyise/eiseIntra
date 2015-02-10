@@ -50,6 +50,14 @@ public $arrAttributeTypes = array(
     , "ajax_dropdown" => 'FK'
     );
 
+private $arrHTML5AllowedInputTypes = 
+    Array("color"
+        #, "date", "datetime", "datetime-local", "time"
+        , "email", "month", "number", "range", "search", "tel", "url", "week", "password");
+
+private $arrClassInputTypes = 
+    Array("ajax_dropdown", "date", "datetime", "datetime-local", "time");
+
 const cachePreventorVar = 'nc';
 
 static $arrKeyboard = array(
@@ -196,8 +204,8 @@ function checkPermissions(){
    // checking user timeout
    if ($_SESSION["last_login_time"]!="" && $strSubTitle != "DEVELOPMENT" ){
       if (mktime() - strtotime($_SESSION["last_login_time"])>60*$this->conf['logofftimeout']) {
-          header("HTTP/1.0 403 Access denied");
           $tt = Date("Y-m-d H:i:s", mktime())." - ".$_SESSION["last_login_time"];
+          header("HTTP/1.0 403 Access denied");
           header ("Location: login.php?error=".urlencode($this->translate("Session timeout ($tt). Please re-login.")));
           die();
       }
@@ -208,7 +216,7 @@ function checkPermissions(){
    $rwUser = $oSQL->fetch_array($rsUser);
    
    if (!$rwUser["usrID"]){
-        header("HTTP/1.0 403 Access denied");
+        header("HTTP/1.0 403 Access denied"); 
         header ("Location: login.php?error=".urlencode($this->translate("Your User ID doesnt exist in master database. Contact system administrator.")));
         die();
    }
@@ -220,7 +228,7 @@ function checkPermissions(){
    }
    
    // checking script permissions
-   $script_name = preg_replace("/^(\/[^\/]+)/", "", $_SERVER["PHP_SELF"]);
+   $script_name = preg_replace("/^(\/[^\/]+)/", "", $_SERVER["SCRIPT_NAME"]);
    $sqlCheckUser = "SELECT
              pagID
            , PAG.pagTitle
@@ -282,7 +290,7 @@ function redirect($strMessage, $strLocation, $arrConfig = array()){
 
     $conf = array_merge($this->conf, $arrConfig);
     
-    $cookiePath = (!$intra->conf['flagSetGlobalCookieOnRedirect']
+    $cookiePath = (!$this->conf['flagSetGlobalCookieOnRedirect']
         ? parse_url($strLocation, PHP_URL_PATH)
         : eiseIntraCookiePath);
 
@@ -438,9 +446,6 @@ function readSettings(){
 }
 
 
-private $arrHTML5AllowedInputTypes = 
-    Array("color", "date", "datetime", "datetime-local", "email", "month", "number", "range", "search", "tel", "time", "url", "week");
-
 private function handleClass(&$arrConfig){
 
     $arrClass = Array();
@@ -470,7 +475,7 @@ private function handleClass(&$arrConfig){
             $arrClass[$class] =  $class;
     
     $arrConfig["class"] = $arrClass;
-    return " class=\"".implode(" ", $arrClass)."\"";
+    return implode(" ", $arrClass);
 }
     
 function showTextBox($strName, $strValue, $arrConfig=Array()) {
@@ -485,10 +490,13 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
    
     $strAttrib = $arrConfig["strAttrib"];
     if ($flagWrite){
-        $type = (in_array($arrConfig['type'], $this->arrHTML5AllowedInputTypes) ? $arrConfig["type"] : 'text');
-       $strRet = "<input type=\"{$type}\" name=\"{$strName}\" id=\"{$strName}\"".
+        $strType = (in_array($arrConfig['type'], $this->arrHTML5AllowedInputTypes) ? $arrConfig["type"] : 'text');
+
+        $strClass .= ($strClass!='' ? ' ' : '').(in_array($arrConfig['type'], $this->arrClassInputTypes) ? 'eiseIntra_'.$arrConfig["type"] : '');
+
+        $strRet = "<input type=\"{$strType}\" name=\"{$strName}\" id=\"{$strName}\"".
             ($strAttrib ? " ".$strAttrib : "").
-            ($strClass ? " ".$strClass : "").
+            ($strClass ? ' class="'.$strClass.'"' : "").
             ($arrConfig["required"] ? " required=\"required\"" : "").
             ($arrConfig["placeholder"] 
                 ? ' placeholder="'.htmlspecialchars($arrConfig["placeholder"]).'"'
@@ -498,7 +506,8 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
        " value=\"".htmlspecialchars($strValue)."\" />\r\n";
     } else {
         $strRet = "<div id=\"span_{$strName}\"".
-        ($strAttrib ? " ".$strAttrib : "").$strClass.">".
+        ($strAttrib ? " ".$strAttrib : "").
+        ($strClass ? ' class="'.$strClass.'"' : "").">".
         htmlspecialchars($strValue)."</div>\r\n".
         "<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\"".
         " value=\"".htmlspecialchars($strValue)."\" />\r\n";
@@ -524,14 +533,14 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
             ." id=\"".($arrConfig['id'] ? $arrConfig['id'] : $strName)."\""
             ." name=\"".$strName."\"";
         if($strAttrib) $strRet .= " ".$strAttrib;
-        $strRet .= ($strClass ? " ".$strClass : "").
+        $strRet .= ($strClass ? ' class="'.$strClass.'"' : "").
             ($arrConfig["required"] ? " required=\"required\"" : "").">";
         $strRet .= htmlspecialchars($strValue);
         $strRet .= "</textarea>";
     } else {
         $strRet = "<div id=\"span_{$strName}\"".
             ($strAttrib ? " ".$strAttrib : "").
-            $strClass.">"
+            ($strClass ? ' class="'.$strClass.'"' : "").">"
                 .($arrConfig['href'] ? "<a href=\"{$arrConfig['href']}\"".($arrConfig["target"] ? " target=\"{$arrConfig["target"]}\"" : '').">" : '')
                 .htmlspecialchars($strValue)."</div>\r\n"
                 .($arrConfig['href'] ? '</a>' : '')
@@ -558,7 +567,7 @@ function showCombo($strName, $strValue, $arrOptions, $arrConfig=Array()){
     if ($flagWrite){
 
         $retVal .= "<select id=\"".$strName."\" name=\"".$strName."\"".$strAttrib.
-            ($strClass ? " ".$strClass : "").
+            ($strClass ? ' class="'.$strClass.'"' : "").
             ($arrConfig["required"] ? " required=\"required\"" : "").">\r\n";
         if ($arrConfig["strZeroOptnText"]){
             $retVal .= "<option value=\"\">".htmlspecialchars($arrConfig["strZeroOptnText"])."</option>\r\n" ;
@@ -592,7 +601,9 @@ function showCombo($strName, $strValue, $arrOptions, $arrConfig=Array()){
         }
         $valToShow=($valToShow!="" ? $valToShow : $arrConfig["strZeroOptnText"]);
         
-        $retVal = "<div id=\"span_{$strName}\"{$strClass}>"
+        $retVal = '<div id="span_{$strName}"'
+            .($strClass ? ' class="'.$strClass.'"' : "")
+            .'>'
             .($arrConfig['href'] ? "<a href=\"{$arrConfig['href']}\"".($arrConfig["target"] ? " target=\"{$arrConfig["target"]}\"" : '').">" : '')
             .htmlspecialchars($valToShow)
             .($arrConfig['href'] ? '</a>' : '')
@@ -687,19 +698,19 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
     $strOut = "";
     $strOut .= "<input type=\"hidden\" name=\"$strFieldName\" id=\"$strFieldName\" value=\"".htmlspecialchars($strValue)."\">\r\n";
     
-    $strClass = $this->handleClass($arrConfig);
-    
     if ($flagWrite){
         $strOut .= $this->showTextBox($strFieldName."_text", $arrConfig["strText"]
             , array_merge(
                 $arrConfig 
                 , Array("FlagWrite"=>true
                     , "strAttrib" => $arrConfig["strAttrib"]." src=\"{table:'{$arrConfig[$src]}', prefix:'{$arrConfig[$prf]}'}\" autocomplete=\"off\""
-                    , "class" => array_merge($arrConfig["class"], Array("eiseIntra_ajax_dropdown")))
+                    , 'type'=>"ajax_dropdown")
                 )
             );
     } else {
-        $strOut .= "<div id=\"span_{$strFieldName}\"{$strClass}>"
+        $strOut .= "<div id=\"span_{$strFieldName}\""
+            .($strClass ? ' class="'.$strClass.'"' : "")
+            .">"
             .($arrConfig['href'] ? "<a href=\"{$arrConfig['href']}\"".($arrConfig["target"] ? " target=\"{$arrConfig["target"]}\"" : '').">" : '')
             .htmlspecialchars($arrConfig["strText"])
             .($arrConfig['href'] ? "</a>" : '')
@@ -1253,7 +1264,7 @@ static function getFullHREF($iframeHREF){
 }
 
 /**
-* function to obtain keyboard layout variations when user searches something but missed keyboard layout switch
+* function to obtain keyboard layout variations when user searches something but miss keyboard layout switch
 * 
 * It takes multibyte UTF-8-encoded string as the parameter, then it searches variations in static property self::$arrKeyboard and returns it as associative array.
 *

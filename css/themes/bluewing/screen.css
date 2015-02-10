@@ -334,7 +334,7 @@ div.eiseIntraField {
 }
 
 input.eiseIntra_date, input.eiseIntra_datetime {
-    background: Window url("/common/images/sprites/sprites.png") no-repeat right -2899px;
+    background: #fff url("/common/images/sprites/sprites.png") no-repeat right -2899px;
     padding-right: 5px;
 }
 
