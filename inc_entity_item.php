@@ -1098,14 +1098,11 @@ function cancelAction(){
     }
     
     if ($this->arrAction["aclActionPhase"]>0){
+
         //get last stl for action
         $stlToDelete = $this->oSQL->get_data($this->oSQL->do_query("SELECT stlGUID FROM stbl_status_log WHERE stlEntityID='{$this->entID}' 
             AND stlEntityItemID='{$this->entItemID}' 
             AND stlArrivalActionID='{$this->arrAction["aclGUID"]}'"));
-        //get full previous stl
-        $rwSTLLast = $this->oSQL->fetch_array($this->oSQL->do_query("SELECT * FROM stbl_status_log WHERE stlEntityID='{$this->entID}' 
-            AND stlEntityItemID='{$this->entItemID}' 
-            AND stlDepartureActionID='{$this->arrAction["aclGUID"]}'"));
 
         //delete traced attributes for the STL
         $this->oSQL->q("DELETE FROM {$this->conf["entTable"]}_log WHERE l{$this->entID}GUID='{$stlToDelete}'");
@@ -1113,8 +1110,19 @@ function cancelAction(){
         // delete status log entry, if any
         $this->oSQL->q("DELETE FROM stbl_status_log WHERE stlGUID='{$stlToDelete}'");
 
-        // update departure action for previous status log entry
-        $this->oSQL->q("UPDATE stbl_status_log SET stlATD=NULL, stlDepartureActionID=NULL WHERE stlGUID='{$rwSTLLast["stlGUID"]}'");
+        
+        if ($this->arrAction['aclOldStatusID']!==null && $this->arrAction['aclOldStatusID']!=='0'){ // if old status wasn't draft or nowhere
+
+            //get full previous stl
+            $sqlSTLLast = "SELECT * FROM stbl_status_log WHERE stlEntityID='{$this->entID}' 
+                AND stlEntityItemID='{$this->entItemID}' 
+                AND stlDepartureActionID='{$this->arrAction["aclGUID"]}'";
+            $rwSTLLast = $this->oSQL->fetch_array($this->oSQL->do_query($sqlSTLLast));
+
+            // update departure action for previous status log entry
+            $this->oSQL->q("UPDATE stbl_status_log SET stlATD=NULL, stlDepartureActionID=NULL WHERE stlGUID='{$rwSTLLast["stlGUID"]}'");
+
+        }
 
         if (empty($this->arrNewData["isUndo"])) {
             if ($this->arrAction["aclActionPhase"]>=2){ // if action is already finish and it's not UNDO, it's cancel
@@ -1145,8 +1153,10 @@ function cancelAction(){
                   WHERE aclEntityItemID='{$entItemID}' AND aclActionID<>2 AND aclActionPhase=2 
                   ORDER BY aclATA DESC LIMIT 0,1)
             ".($stlToDelete != ""
-                ? " , {$this->entID}StatusActionLogID = '{$rwSTLLast["stlGUID"]}'
-                    , {$this->entID}StatusID = '{$rwSTLLast["stlStatusID"]}'"
+                ? " , {$this->entID}StatusActionLogID = ".($this->arrAction['aclOldStatusID']==='0' 
+                        ? "(SELECT aclGUID FROM stbl_action_log WHERE aclActionID=1 AND aclEntityItemID=".$this->oSQL->e($entItemID).")"
+                        : ($rwSTLLast['stlGUID'] ? $this->oSQL->e($rwSTLLast['stlGUID']) : 'NULL') )."
+                    , {$this->entID}StatusID = ".($this->arrAction['aclOldStatusID']===null ? 'NULL' : (int)$this->arrAction['aclOldStatusID'])
                 : ""
             )."
             , {$this->entID}EditBy='{$this->intra->usrID}', {$this->entID}EditDate=NOW()
@@ -1159,7 +1169,6 @@ function cancelAction(){
         $this->oSQL->q("DELETE FROM stbl_action_log WHERE aclGUID='{$this->arrAction["aclGUID"]}'");
     }
 
-    
 }
 
 
