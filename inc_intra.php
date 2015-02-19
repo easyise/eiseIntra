@@ -373,6 +373,8 @@ function checkLanguage(){
             ? $this->local 
             : ""));
 
+    $this->conf['local'] = $this->local;
+
 }
 
 function translate($key){

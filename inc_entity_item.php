@@ -774,35 +774,36 @@ function updateMasterTable($arrNewData = Array(), $flagUpdateMultiple = false, $
     $atrToUpd = Array();
     $strFieldList = "";
     
-    foreach ($this->conf['STA'][$this->item['staID']]['satFlagShowInForm'] as $atrID=>$FlagWrite){
+    if(is_array($this->conf['STA'][$this->item['staID']]['satFlagEditable']))
+        foreach ($this->conf['STA'][$this->item['staID']]['satFlagEditable'] as $atrID=>$FlagWrite){
 
-        $rwSAT = $this->conf['ATR'][$atrID];
+            $rwSAT = $this->conf['ATR'][$atrID];
 
-        if(!$rwSAT)
+            if(!$rwSAT)
+                continue;
+
+            if ($rwSAT['atrFlagDeleted'])
+                continue;
+            
+            if ((!$FlagWrite && !$flagFullEditMode)                                                      // not editable
+                || ($arrNewData[$atrID]=="" && $flagUpdateMultiple)       // empty on multiple updates
+                || !isset($arrNewData[$rwSAT["atrID"]]))                           // not set
             continue;
-
-        if ($rwSAT['atrFlagDeleted'])
-            continue;
-        
-        if ((!$FlagWrite && !$flagFullEditMode)                                                      // not editable
-            || ($arrNewData[$atrID]=="" && $flagUpdateMultiple)       // empty on multiple updates
-            || !isset($arrNewData[$rwSAT["atrID"]]))                           // not set
-        continue;
-        
-        $toEval = "\"".str_replace("\$_POST", "\$this->arrNewData", $intra->getSQLValue(Array('Field'=>$rwSAT['atrID'], 'DataType'=>$rwSAT['atrType'])))."\"";
-        eval("\$newValue = ".$toEval.";");
-        
-        if ($newValue!=$rwEnt[$rwSAT["atrID"]]){
-            $strFieldList .= "\r\n, `{$rwSAT["atrID"]}`={$newValue}";
+            
+            $toEval = "\"".str_replace("\$_POST", "\$this->arrNewData", $intra->getSQLValue(Array('Field'=>$rwSAT['atrID'], 'DataType'=>$rwSAT['atrType'])))."\"";
+            eval("\$newValue = ".$toEval.";");
+            
+            if ($newValue!=$rwEnt[$rwSAT["atrID"]]){
+                $strFieldList .= "\r\n, `{$rwSAT["atrID"]}`={$newValue}";
+            }
+            
+            if ($rwSAT["atrUOMTypeID"]){
+                $strFieldList .= ", {$rwSAT["atrID"]}_uomID=".($this->arrNewData["{$rwSAT["atrID"]}_uomID"]
+                    ? $oSQL->e($this->arrNewData["{$rwSAT["atrID"]}_uomID"])
+                    : $oSQL->e($oSQL->d("SELECT uomID FROM stbl_uom WHERE uomType='{$rwSAT['atrUOMTypeID']}' AND uomRateToDefault=1.0 LIMIT 0,1"))
+                    );
+            }
         }
-        
-        if ($rwSAT["atrUOMTypeID"]){
-            $strFieldList .= ", {$rwSAT["atrID"]}_uomID=".($this->arrNewData["{$rwSAT["atrID"]}_uomID"]
-                ? $oSQL->e($this->arrNewData["{$rwSAT["atrID"]}_uomID"])
-                : $oSQL->e($oSQL->d("SELECT uomID FROM stbl_uom WHERE uomType='{$rwSAT['atrUOMTypeID']}' AND uomRateToDefault=1.0 LIMIT 0,1"))
-                );
-        }
-    }
     
     $sqlUpdateTable = "UPDATE {$this->conf["entTable"]} SET
         {$entID}EditDate=NOW(), {$entID}EditBy='{$this->intra->usrID}'
@@ -968,11 +969,9 @@ function checkMandatoryFields(){
     $rwEnt = $this->item;
     $flagAutocomplete = $this->arrAction["actFlagAutocomplete"];
     $aclGUID = $this->arrAction["aclGUID"];
-    
-    
-    foreach($this->arrAction["AAT"] as $atrID => $rwATR)
-    if ($rwATR["aatFlagMandatory"] || $rwATR["aatFlagToChange"]){
-        
+
+    foreach($this->arrAction["aatFlagMandatory"] as $atrID => $rwATR){
+            
         $oldValue = $this->item[$atrID];
         
         if ($this->arrAction["aclGUID"]==""){
@@ -995,12 +994,10 @@ function checkMandatoryFields(){
                 WHERE l{$entID}GUID='{$aclGUID}'";
         }
         
-        if ($rwATR["aatFlagMandatory"]){
-            if (!$oSQL->get_data($oSQL->do_query($sqlCheckMandatory))){
-                throw new Exception("Mandatory field '{$rwATR["atrTitle"]}' is not set for {$entItemID}");
-                die();
-            } 
-        }
+        if (!$oSQL->get_data($oSQL->do_query($sqlCheckMandatory))){
+            throw new Exception("Mandatory field '{$this->conf['ATR'][$atrID]["atrTitle"]}' is not set for {$entItemID}");
+            die();
+        } 
         
         if ($rwATR["aatFlagToChange"]){
             if (!$oSQL->get_data($oSQL->do_query($sqlCheckChanges))){
@@ -1008,7 +1005,7 @@ function checkMandatoryFields(){
                 die();
             } 
         }
-        
+            
     }
     
 }
@@ -1426,7 +1423,7 @@ static function sendMessages($conf){
         $rwMsg[self::getItemIDField($rwMsg)] = $rwMsg['msgEntityItemID'];
 
         $rwMsg = array_merge(array('system' => $conf['system']
-                , 'entItemFormHref' => eiseIntra::getFullHREF(self::getFormURL($rwMsg)))
+                , 'entItemFormHref' => eiseIntra::getFullHREF(self::getFormURL($rwMsg, $rwMsg)))
             , $rwMsg);
 
         $msg = array('mail_from'=> ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : '')
@@ -1462,6 +1459,7 @@ static function sendMessages($conf){
 
     if($strError)
         throw new Exception($strError);
+
 }
 
 

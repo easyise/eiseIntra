@@ -321,22 +321,25 @@ validate: function( ) {
 },
 
 makeMandatory: function( obj ) {  
-    
+
     return this.each(function(){
     
-    $(this).find('input.eiseIntraValue').each(function(){
+    $(this).find('input,select,textarea').each(function(){
         if ($(this).attr('type')=='hidden')
             return true; // continue
         
         var label = getFieldLabel($(this));
-        label.text(label.text().replace(/\*\:$/, ":"));
-        $(this).removeAttr('required');
+        if(label[0]){
+            label.text(label.text().replace(/\*\:$/, ":"));
+            $(this).removeAttr('required');    
+        }
+        
     });
     
-    if ( obj.strIDs==='')
+    if ( obj.strMandatorySelector=='')
         return;
     
-    $(this).find( obj.strIDs ).each(function(){
+    $(this).find( obj.strMandatorySelector ).each(function(){
         
        var label = getFieldLabel($(this));
        label.text(label.text().replace(/\:$/, "*:"));
@@ -419,16 +422,28 @@ value: function(strFieldName, strType, val, decimalPlaces){
     }
 },
 
-fill: function(data){
+fill: function(data, options){
     
     return this.each(function(){
     
         var $form = $(this);
 
-        $.each(data, function(field, fData){
+        $.each(data, function(field, fieldData){
+
+            if( typeof(fieldData)=='object' && typeof(fieldData.v)=='undefined' )
+                return true; // skip objects without data
+
+            var fData = (typeof(fieldData)=='object' && typeof(fieldData.v)!='undefined' 
+                ? fieldData
+                : {v: fieldData});
+
             var $inp = $form.find('#'+field);
-            if (!$inp[0])
-                return true; // continue
+            if (!$inp[0]){
+                if(options.createMissingAsHidden){
+                    $inp = $('<input type="hidden">').attr('id', field).attr('name', field).appendTo($form);
+                } else 
+                    return true; // continue
+            }
 
             switch($inp[0].nodeName){
                 case 'INPUT':
@@ -571,6 +586,103 @@ encodeAuthString: function(){
     authinput.val(authstr);
 
     return authstr;
+
+},
+
+createDialog: function( conf ){
+
+    if(!conf.fields)
+        return null;
+
+    var $frm = $('<form/>').appendTo('body').addClass('eiseIntraForm');
+    $frm.append('<span class="ui-helper-hidden-accessible"><input type="text"></span>');
+
+    $.each(conf.fields, function(ix, field){
+
+        $frm.eiseIntraForm('addField', field );
+
+    });
+
+    $frm.append('<div class="eif_actionButtons">'
+        +'<input type="submit" value="Update" class="eiseIntraSubmit">'
+        +'<input type="button" value="Close" class="eif_btnClose">'
+        +'</div>');
+
+    $frm.eiseIntraForm('init').submit(function(){
+
+        var objVals = {};
+        $frm.find('input,select,textarea').each(function(ix, inp){
+            if($(inp).attr('name')){
+                objVals[$(inp).attr('name')] = {v: ($(inp).attr('type')=='checkbox' 
+                    ? (inp.checked ? 1 : 0)
+                    : $(inp).val())
+                };
+                if(inp.nodeName.toUpperCase()=='SELECT'){
+                    objVals[$(inp).attr('name')]['t'] = inp.options[inp.options.selectedIndex].text;
+                } 
+                if(typeof($frm.find('#'+$(inp).attr('name')+'_text')[0])!='undefined'){
+                    objVals[$(inp).attr('name')]['t'] = $frm.find('#'+$(inp).attr('name')+'_text').val();
+                }
+            }
+                
+        })
+
+        $frm.dialog('close').remove();
+
+        if(conf.onsubmit)
+            return conf.onsubmit(objVals);
+
+    });
+
+    $frm.dialog({
+        modal: true
+        , title: conf.title
+        , resize: "auto"
+    });
+
+    $frm.find('.eif_btnClose').click(function(){ $frm.dialog('close').remove(); })
+
+    return $frm;
+
+},
+
+addField: function( field ){
+
+    var input;
+
+    switch(field.type){
+        case 'textarea':
+            input = $('<textarea>');
+            break;
+        case 'combobox':
+        case 'select':
+            input = $('<select>');
+            break;
+        case 'password':
+            input = $('<input type="password">');
+            break;
+        default:
+            input = $('<input type="text">');
+            if(field.type!='text'){
+                input.addClass('eiseIntra_'+field.type);
+            }
+            break;
+    }
+
+    //input.attr('id', input.name);
+    input.attr('name', field.name);
+    input.addClass('eiseIntraValue');
+
+    if(field.required){
+        input.attr('required', 'required');
+    }
+
+    var field = $('<div class="eiseIntraField"><label>'+field.title+'</label></div>').appendTo(this);
+
+    field.append(input);
+
+    return field;
+
 
 }
 

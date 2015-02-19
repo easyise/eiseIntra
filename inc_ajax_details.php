@@ -49,6 +49,8 @@ switch ($DataAction){
 
     case 'getActionDetails':
     default: // default is for backward-compatibility
+
+        include eiseIntraAbsolutePath."inc_entity.php";
         $arrRet = Array();
           
         // get action details
@@ -72,18 +74,13 @@ switch ($DataAction){
             die();
         }
 
-        try {
-            $sql = "SELECT * FROM `svw_action_attribute` WHERE actID=".$oSQL->e($rwAct["actID"]);
-            $rs = $oSQL->do_query($sql);
-        } catch(Exception $e){
-            echo json_encode(Array("ERROR"=>$e->getMessage));
-            die();
-        }    
-        $arrAAT = Array();
-        while ($rw=$oSQL->fetch_array($rs)){
-           $arrAAT[] = $rw;
-        }
-        echo json_encode(Array("act"=>$rwAct, "aat"=>$arrAAT));
+        $entID = $rwAct['actEntityID'] ? $rwAct['actEntityID'] : $arrIn['entID'];
+        $oEnt = new eiseEntity($oSQL, $intra, $entID);
+
+        echo json_encode(Array("acl"=>$rwAct 
+            , 'act'=>$oEnt->conf['ACT'][$rwAct['actID']]
+            , 'atr'=>$oEnt->conf['ATR']
+            ));
         die();
 
 }

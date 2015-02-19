@@ -105,6 +105,8 @@ private function init(){
 
         if($rwSat['satFlagShowInForm'])
             $this->conf['STA'][$rwSat['staID']]['satFlagShowInForm'][$rwSat['satAttributeID']] = (int)$rwSat['satFlagEditable'];
+        if($rwSat['satFlagEditable'])
+            $this->conf['STA'][$rwSat['staID']]['satFlagEditable'][$rwSat['satAttributeID']] = (int)$rwSat['satFlagEditable'];
         if($rwSat['satFlagShowInList'])
             $this->conf['STA'][$rwSat['staID']]['satFlagShowInList'][$rwSat['satAttributeID']] = $rwSat['satAttributeID'];
         if($rwSat['satFlagTrackOnArrival'])
@@ -134,7 +136,6 @@ private function init(){
             $this->conf['ACT'][$rwAAt['actID']] = array_merge($arrAct, array('RLA'=>explode(',', $arrAct['actRoles'])));
             $this->conf['ACT'][$rwAAt['actID']]['actOldStatusID'] = array();
             $this->conf['ACT'][$rwAAt['actID']]['actNewStatusID'] = array();
-            $this->conf['ACT'][$rwAAt['actID']]['AAT'] = array();
 
             $ts = array('ATA'=>'aclATA', 'ATD'=>'aclATD', 'ETA'=>'aclETA', 'ETD'=>'aclETD');
             if (!$rwAAt["actFlagHasEstimates"]) {unset($ts["ETA"]);unset($ts["ETD"]);}
@@ -146,7 +147,8 @@ private function init(){
             $this->conf['ACT'][$rwAAt['actID']]['aatFlagToTrack'][$rwAAt['aatAttributeID']] = array('aatFlagEmptyOnInsert'=>(int)$rwAAt['aatFlagEmptyOnInsert']
                 , 'aatFlagToChange'=>(int)$rwAAt['aatFlagToChange']);
         if($rwAAt['aatFlagMandatory'])
-            $this->conf['ACT'][$rwAAt['actID']]['aatFlagMandatory'][$rwAAt['aatAttributeID']] = $rwAAt['aatAttributeID'];
+            $this->conf['ACT'][$rwAAt['actID']]['aatFlagMandatory'][$rwAAt['aatAttributeID']] = array('aatFlagEmptyOnInsert'=>(int)$rwAAt['aatFlagEmptyOnInsert']
+                , 'aatFlagToChange'=>(int)$rwAAt['aatFlagToChange']);
         if($rwAAt['aatFlagTimestamp']){
             if (isset($this->conf['ACT'][$rwAAt['actID']]['aatFlagTimestamp'][$rwAAt['aatFlagTimestamp']]))
                 $this->conf['ACT'][$rwAAt['actID']]['aatFlagTimestamp'][$rwAAt['aatFlagTimestamp']] = $rwAAt['aatAttributeID'];

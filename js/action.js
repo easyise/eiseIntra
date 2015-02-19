@@ -3,10 +3,12 @@
 var ajaxActionURL = "ajax_details.php";
 
 var actionChoosen = function($initiator, fnCallback){
-    
+
+    var entID = $initiator.parents('form').first().eiseIntraForm('value', 'entID');
+        
     var actID = ( $initiator.attr('type')=='radio' ? $initiator.val() : $initiator.attr('act_id') );
 
-    var strURL = ajaxActionURL+"?DataAction=getActionDetails&actID="+actID;
+    var strURL = ajaxActionURL+"?DataAction=getActionDetails&actID="+encodeURIComponent(actID)+'&entID='+encodeURIComponent(entID);
     
     var flagAutocomplete = $initiator.attr('autocomplete')==undefined ? true : false;
     
@@ -18,22 +20,27 @@ var actionChoosen = function($initiator, fnCallback){
                 return;
             }
             
-            var strIDs = "";
-            $.each(data.aat, function(i, item){
+            var strMandatorySelector = "";
+
+            if (data.act.aatFlagMandatory)
+                $.each(data.act.aatFlagMandatory, function(i, item){
                     
-                if(item.aatFlagMandatory=="1"){
-                    strIDs += (strIDs=='' ? '' : ', ')+ ("#"+item.aatAttributeID);
-                }
-                    
-            });
-            
-            fnCallback({mandatory: strIDs
-                , flagAutocomplete: flagAutocomplete
-                , actFlagComment: data.act.actFlagComment
-                , actID: actID
+                    strMandatorySelector += (strMandatorySelector=='' ? '' : ', ')+ ("#"+i);
+                        
+                });
+
+            var oRet = {
+                actID: actID
                 , aclOldStatusID: $initiator.attr('orig')
                 , aclNewStatusID: $initiator.attr('dest')
-            });
+                //, mandatory: strMandatorySelector
+                //, flagAutocomplete: flagAutocomplete
+                , act: $.extend(data.act, {mandatorySelector: strMandatorySelector})
+                , atr: data.atr
+                
+            };
+
+            fnCallback(oRet);
     });
 }
 
@@ -54,20 +61,19 @@ var actionButtonClick = function (oBtn, fnCallback){
                 return;
             }
             
-            var strIDs = "#aclATA_"+aclGUID+", #aclATD_"+aclGUID;
-            $.each(data.aat, function(i, item){
-                    
-                if(item.aatFlagMandatory=="1"){
-                    strIDs += (strIDs=='' ? '' : ', ')+ (
-                        item.aatFlagToTrack 
-                        ? "#"+item.aatAttributeID+'_'+aclGUID
-                        : "#"+item.aatAttributeID
+            var strMandatorySelector = "#aclATA_"+aclGUID+", #aclATD_"+aclGUID;
+
+            if (data.act.aatFlagMandatory)
+                $.each(data.act.aatFlagMandatory, function(field, item){
+                    strMandatorySelector += (strMandatorySelector=='' ? '' : ', ')+ (
+                        typeof(data.act.aatFlagToTrack[field])!='undefined'
+                        ? "#"+field+'_'+aclGUID
+                        : "#"+field
                         );
-                }
-                    
-            });
+                        
+                });
             
-            fnCallback({mandatory: strIDs
+            fnCallback({mandatory: strMandatorySelector
                 , actID: data.act.actID
                 , aclGUID: aclGUID
                 , aclOldStatusID: data.act.aclOldStatusID
@@ -119,6 +125,7 @@ var showMessages = function($form){
     var strURL = "ajax_details.php?DataAction=getMessages&entItemID="+encodeURIComponent(entItemID)+
         "&entID="+encodeURIComponent(entID);
 
+    $('#eiseIntraMessages, #eiseIntraMessageForm').eiseIntraForm('init');
 
     $('#eiseIntraMessages #msgNew')[0].onclick = function(){
         $('#eiseIntraMessages').dialog('close');
@@ -217,10 +224,11 @@ init: function( options ) {
         /********** initialize radio buttons ***********/
         $this.find('fieldset.eiseIntraActions input.eiseIntraRadio').click(function(){
             
-            actionChoosen($(this), function(obj){
+            actionChoosen($(this), function(o){
+
                 $this.eiseIntraForm("makeMandatory", {
-                    strIDs: obj.mandatory
-                    , flagDontSetRequired : (data.conf.flagUpdateMultiple || !obj.flagAutocomplete)});
+                    strMandatorySelector: o.act.mandatorySelector
+                    , flagDontSetRequired : (data.conf.flagUpdateMultiple || o.act.actFlagAutocomplete!='1')});
             });
 
         })
@@ -228,25 +236,56 @@ init: function( options ) {
         $this.find('input.eiseIntraActionSubmit').click(function(event){
                 
                 event.preventDefault(true);
+
+                var $initiatorButton = $(this);
                 
                 actionChoosen($(this), function(o){
-                    $this.eiseIntraForm("makeMandatory", {
-                        strIDs: o.mandatory
-                        , flagDontSetRequired : (data.conf.flagUpdateMultiple || !o.flagAutocomplete)});
-                                    $this.find("#aclGUID").val(o.aclGUID);
 
-                    if (o.actFlagComment=='1'){
-                        var aclComments = prompt('Please comment', '');
-                        if (aclComments==null)
-                            return;
-                        $this.find('#aclComments').val(aclComments);
+                    $this.eiseIntraForm("makeMandatory", {
+                        strMandatorySelector: o.act.mandatorySelector
+                        , flagDontSetRequired : (data.conf.flagUpdateMultiple || o.act.actFlagAutocomplete!='1')});
+                    
+                    $this.find("#aclGUID").val(o.aclGUID);
+
+                    var arrFieldsToFill = [];
+                    if(o.act.aatFlagMandatory)
+                        $.each(o.act.aatFlagMandatory, function(fieldName, arrFlags){
+                            if(typeof($this.find('#'+fieldName)[0])=='undefined')
+                                arrFieldsToFill.push({name: o.atr[fieldName].atrID
+                                    , title: ($this.data('eiseIntraForm').conf.local ? o.atr[fieldName].atrTitleLocal : o.atr[fieldName].atrTitle)
+                                    , type: o.atr[fieldName].atrType
+                                    , defaultValue: o.atr[fieldName].atrDefault
+                                    , required: true});
+                        });
+
+                    if (o.act.actFlagComment=='1'){
+                        arrFieldsToFill.push({name: 'aclComments', title: 'Comments', type: 'textarea', required: true});
                     }
 
+                    if( arrFieldsToFill.length>0 ){
+                        var $frm = $.fn.eiseIntraForm('createDialog', {fields: arrFieldsToFill
+                            , title: $initiatorButton.val()
+                            , onsubmit: function(newValues){
 
+                                $this.eiseIntraForm('fill', $.extend(o, newValues), {createMissingAsHidden: true});
+                                $this.submit();
+
+                                return false;
+                            }
+                        });
+
+                        return;
+
+                    }
+                                        
+/*
                     $this.find("#actID").val(o.actID);
                     $this.find("#aclToDo").val(o.aclToDo);
                     $this.find("#aclOldStatusID").val(o.aclOldStatusID);
                     $this.find("#aclNewStatusID").val(o.aclNewStatusID);
+*/
+
+                    $this.eiseIntraForm('fill', o, {createMissingAsHidden: true});
                     $this.submit();
 
                 });
@@ -256,14 +295,16 @@ init: function( options ) {
         /********** initialize Start/Finish/Cancel buttons ***********/
         $this.find(".eiseIntraActionButton").bind("click", function(){
             actionButtonClick(this, function(o){
+
                 $this.eiseIntraForm("makeMandatory", {
-                    strIDs: o.mandatory
+                    strMandatorySelector: o.mandatory
                     , flagDontSetRequired: (o.aclToDo!='finish')});
                 $this.find("#aclGUID").val(o.aclGUID);
                 $this.find("#aclToDo").val(o.aclToDo);
                 $this.find("#aclOldStatusID").val(o.aclOldStatusID);
                 $this.find("#aclNewStatusID").val(o.aclNewStatusID);
                 $this.submit();
+
             });
         });
         
@@ -381,9 +422,9 @@ checkAction: function(callback){
             $radios.each(function(){
                 if (this.checked){
                     oRadio = $(this);
-                    actionChoosen($(this), function(obj){
+                    actionChoosen($(this), function(o){
                         
-                        if (obj.actFlagComment=='1'){
+                        if (o.act.actFlagComment=='1'){
                             var aclComments = prompt('Please comment', '');
                             if (aclComments==null)
                                 return;
@@ -394,12 +435,12 @@ checkAction: function(callback){
                         $this.find('#aclOldStatusID').val(oRadio.attr('orig'));
                         $this.find('#aclNewStatusID').val(oRadio.attr('dest'));
                         
-                        if (!obj.flagAutocomplete){
+                        if (o.act.actFlagAutocomplete!='1'){
                             $this.find('#aclToDo').val('start');
                         } else {
                             $this.eiseIntraForm("makeMandatory", {
-                                strIDs: obj.mandatory
-                                , flagDontSetRequired : (flagUpdateMultiple || !obj.flagAutocomplete)
+                                strMandatorySelector: o.act.mandatorySelector
+                                , flagDontSetRequired : (flagUpdateMultiple || o.act.actFlagAutocomplete!='1')
                                 });
                         }
                         callback();
