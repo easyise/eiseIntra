@@ -31,7 +31,10 @@ function __construct ($oSQL, $intra, $entID) {
 
 private function init(){
 
-    $sessKey = self::sessKeyPrefix.$this->entID;
+    $sessKey = self::sessKeyPrefix.
+        ($this->intra->conf['systemID'] ? $this->intra->conf['systemID'].':' : '')
+        .$this->entID;
+
     if($_SESSION[$sessKey]){
         $this->conf = $_SESSION[$sessKey];
         return $this->conf;
