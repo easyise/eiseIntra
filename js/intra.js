@@ -439,7 +439,7 @@ fill: function(data, options){
 
             var $inp = $form.find('#'+field);
             if (!$inp[0]){
-                if(options.createMissingAsHidden){
+                if(options && options.createMissingAsHidden){
                     $inp = $('<input type="hidden">').attr('id', field).attr('name', field).appendTo($form);
                 } else 
                     return true; // continue
