@@ -19,6 +19,12 @@ var convertDateForDateInput = function($eiForm, inp){
 
 }
 
+var getInput = function($form, strFieldName){
+
+    return $form.find('#'+strFieldName);
+
+}
+
 var getInputType = function($inp){
     var strType = ($inp.attr('type') ? $inp.attr('type') : 'text');
     if(strType=='text'){
@@ -352,6 +358,24 @@ makeMandatory: function( obj ) {
     
 },
 
+focus: function(strFieldName, onFocus ){
+
+    var $field = getInput(this, strFieldName);
+
+    if(typeof($field[0])=='undefined')
+        $field = this.find('input[type!=hidden],select').first();
+
+    if(typeof(onFocus)!='undefined')
+        $field.focus( onFocus );
+    else {
+
+        $field.select();
+        $field.focus();
+
+    }
+
+},
+
 value: function(strFieldName, strType, val, decimalPlaces){
 
     var conf = this.data('eiseIntraForm').conf;
@@ -544,8 +568,11 @@ change: function(strInputIDs, callback){
 },
 
 conf: function(varName, value){
+
+    if (typeof(varName)=='undefined')
+        return $(this[0]).data('eiseIntraForm').conf;
     
-    if (value==undefined){
+    if (typeof(value)=='undefined'){
         return $(this[0]).data('eiseIntraForm').conf[varName];
     } else {
         $(this).each(function(){
@@ -595,6 +622,13 @@ createDialog: function( conf ){
         return null;
 
     var $frm = $('<form/>').appendTo('body').addClass('eiseIntraForm');
+
+    if(conf.action)
+        $frm.attr('action', conf.action);
+
+    if(conf.method)
+        $frm.attr('method', conf.method);
+
     $frm.append('<span class="ui-helper-hidden-accessible"><input type="text"></span>');
 
     $.each(conf.fields, function(ix, field){
@@ -604,8 +638,8 @@ createDialog: function( conf ){
     });
 
     $frm.append('<div class="eif_actionButtons">'
-        +'<input type="submit" value="Update" class="eiseIntraSubmit">'
-        +'<input type="button" value="Close" class="eif_btnClose">'
+        +'<input type="submit" value="OK" class="eiseIntraSubmit">'
+        +'<input type="button" value="Cancel" class="eif_btnClose">'
         +'</div>');
 
     $frm.eiseIntraForm('init').submit(function(){
@@ -627,10 +661,10 @@ createDialog: function( conf ){
                 
         })
 
-        $frm.dialog('close').remove();
-
         if(conf.onsubmit)
             return conf.onsubmit(objVals);
+
+        $frm.dialog('close').remove();
 
     });
 
@@ -661,6 +695,9 @@ addField: function( field ){
         case 'password':
             input = $('<input type="password">');
             break;
+        case 'hidden':
+            input = $('<input type="hidden">');
+            break;
         default:
             input = $('<input type="text">');
             if(field.type!='text'){
@@ -671,18 +708,30 @@ addField: function( field ){
 
     //input.attr('id', input.name);
     input.attr('name', field.name);
-    input.addClass('eiseIntraValue');
 
-    if(field.required){
-        input.attr('required', 'required');
+
+    if(field.value)
+        input.val(field.value);
+
+    if(field.type!='hidden' && field.title){
+
+        input.addClass('eiseIntraValue');
+
+        if(field.required){
+            input.attr('required', 'required');
+        }
+
+        var $field = $('<div class="eiseIntraField"><label>'+field.title+':</label></div>').append(input);
+    
+    } else {
+        
+        $field = input;
+            
     }
+    
+    $field.appendTo(this);
 
-    var field = $('<div class="eiseIntraField"><label>'+field.title+'</label></div>').appendTo(this);
-
-    field.append(input);
-
-    return field;
-
+    return $field;
 
 }
 
