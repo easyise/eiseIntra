@@ -970,43 +970,44 @@ function checkMandatoryFields(){
     $flagAutocomplete = $this->arrAction["actFlagAutocomplete"];
     $aclGUID = $this->arrAction["aclGUID"];
 
-    foreach($this->arrAction["aatFlagMandatory"] as $atrID => $rwATR){
+    if(is_array($this->arrAction["aatFlagMandatory"]))
+        foreach($this->arrAction["aatFlagMandatory"] as $atrID => $rwATR){
+                
+            $oldValue = $this->item[$atrID];
             
-        $oldValue = $this->item[$atrID];
-        
-        if ($this->arrAction["aclGUID"]==""){
-            $sqlCheckMandatory = "SELECT 
-                CASE WHEN IFNULL({$atrID}, '')='' THEN 0 ELSE 1 END as mandatoryOK 
-                FROM {$entTable} WHERE {$entID}ID='{$entItemID}'";
-            $sqlCheckChanges = "SELECT 
-                CASE WHEN IFNULL({$atrID}, '')='{$rwEnt[$atrID]}' THEN 0 ELSE 1 END as changedOK 
-                FROM {$entTable} WHERE {$entID}ID='{$entItemID}'";;
-        } else {
+            if ($this->arrAction["aclGUID"]==""){
+                $sqlCheckMandatory = "SELECT 
+                    CASE WHEN IFNULL({$atrID}, '')='' THEN 0 ELSE 1 END as mandatoryOK 
+                    FROM {$entTable} WHERE {$entID}ID='{$entItemID}'";
+                $sqlCheckChanges = "SELECT 
+                    CASE WHEN IFNULL({$atrID}, '')='{$rwEnt[$atrID]}' THEN 0 ELSE 1 END as changedOK 
+                    FROM {$entTable} WHERE {$entID}ID='{$entItemID}'";;
+            } else {
+                
+                $sqlCheckMandatory = "SELECT 
+                    CASE WHEN IFNULL(l{$atrID}, '')='' THEN 0 ELSE 1 END as mandatoryOK 
+                    FROM {$entTable}_log 
+                    WHERE l{$entID}GUID='{$aclGUID}'";
+                //$oldValue = $this->arrAction["ACL"][$aclGUID]["ATV"][$atrID];
+                $sqlCheckChanges = "SELECT 
+                    CASE WHEN IFNULL(l{$atrID}, '')=".$oSQL->escape_string($oldValue)." THEN 0 ELSE 1 END as changedOK 
+                    FROM {$entTable}_log
+                    WHERE l{$entID}GUID='{$aclGUID}'";
+            }
             
-            $sqlCheckMandatory = "SELECT 
-                CASE WHEN IFNULL(l{$atrID}, '')='' THEN 0 ELSE 1 END as mandatoryOK 
-                FROM {$entTable}_log 
-                WHERE l{$entID}GUID='{$aclGUID}'";
-            //$oldValue = $this->arrAction["ACL"][$aclGUID]["ATV"][$atrID];
-            $sqlCheckChanges = "SELECT 
-                CASE WHEN IFNULL(l{$atrID}, '')=".$oSQL->escape_string($oldValue)." THEN 0 ELSE 1 END as changedOK 
-                FROM {$entTable}_log
-                WHERE l{$entID}GUID='{$aclGUID}'";
-        }
-        
-        if (!$oSQL->get_data($oSQL->do_query($sqlCheckMandatory))){
-            throw new Exception("Mandatory field '{$this->conf['ATR'][$atrID]["atrTitle"]}' is not set for {$entItemID}");
-            die();
-        } 
-        
-        if ($rwATR["aatFlagToChange"]){
-            if (!$oSQL->get_data($oSQL->do_query($sqlCheckChanges))){
-                throw new Exception("Field value for '{$rwATR["atrTitle"]}' cannot be '{$oldValue}', it should be changed for {$entItemID}");
+            if (!$oSQL->get_data($oSQL->do_query($sqlCheckMandatory))){
+                throw new Exception("Mandatory field '{$this->conf['ATR'][$atrID]["atrTitle"]}' is not set for {$entItemID}");
                 die();
             } 
-        }
             
-    }
+            if ($rwATR["aatFlagToChange"]){
+                if (!$oSQL->get_data($oSQL->do_query($sqlCheckChanges))){
+                    throw new Exception("Field value for '{$rwATR["atrTitle"]}' cannot be '{$oldValue}', it should be changed for {$entItemID}");
+                    die();
+                } 
+            }
+                
+        }
     
 }
 
