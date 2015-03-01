@@ -549,12 +549,12 @@ switch ($DataAction){
 }
 
 if ($easyAdmin){
-    $arrActions[]= Array ("title" => "Fields to Table"
-	   , "action" => "codegen_form.php?entID=$entID&dbName=$dbName&tblName=".$rwEnt["entTable"]."&toGen=MissingFields"
-	   , "class"=> "ss_application_go"
+    $arrActions[]= Array ("title" => "Database"
+	   , "action" => "database_form.php?dbName=$dbName"
+	   , "class"=> "ss_arrow_left"
 	);
-    $arrActions[]= Array ("title" => "Log Table"
-	   , "action" => "codegen_form.php?entID=$entID&dbName=$dbName&tblName=".$rwEnt["entTable"]."&toGen=LogTable"
+    $arrActions[]= Array ("title" => "Entity-related tables"
+	   , "action" => "codegen_form.php?entID=$entID&dbName=$dbName&tblName=".$rwEnt["entTable"]."&toGen=EntTables"
 	   , "class"=> "ss_table_multiple"
 	);
     $arrActions[]= Array ("title" => "Entity Report"

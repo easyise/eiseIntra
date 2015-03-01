@@ -148,7 +148,8 @@ private function init(){
         } 
         if($rwAAt['aatFlagToTrack'])
             $this->conf['ACT'][$rwAAt['actID']]['aatFlagToTrack'][$rwAAt['aatAttributeID']] = array('aatFlagEmptyOnInsert'=>(int)$rwAAt['aatFlagEmptyOnInsert']
-                , 'aatFlagToChange'=>(int)$rwAAt['aatFlagToChange']);
+                , 'aatFlagToChange'=>(int)$rwAAt['aatFlagToChange']
+                , 'aatFlagTimestamp'=>$rwAAt['aatFlagTimestamp']);
         if($rwAAt['aatFlagMandatory'])
             $this->conf['ACT'][$rwAAt['actID']]['aatFlagMandatory'][$rwAAt['aatAttributeID']] = array('aatFlagEmptyOnInsert'=>(int)$rwAAt['aatFlagEmptyOnInsert']
                 , 'aatFlagToChange'=>(int)$rwAAt['aatFlagToChange']);

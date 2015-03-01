@@ -222,7 +222,8 @@ foreach($entItem->item["STL"] as $stlGUID => $rwSTL){
     // linked attributes
     if (isset($rwSTL["SAT"]))
     foreach($rwSTL["SAT"] as $atrID => $rwATV){
-        $rwATV["satFlagEditable"] = true;
+
+        $rwATV = array_merge($entItem->conf['ATR'][$atrID], $rwATV);
         ?>
         <div class="eiseIntraField"><label><?php  echo $rwATV["atrTitle{$intra->local}"] ; ?>:</label>
         <?php 
@@ -244,7 +245,7 @@ foreach($entItem->item["STL"] as $stlGUID => $rwSTL){
 
  <fieldset class="eiseIntraActions eiseIntraSubForm"><legend><?php  echo $intra->translate("Incomplete/Cancelled Actions") ; ?></legend>
     <?php 
-    foreach ($entItem->item["ACL"] as $ix=>$rwACL){
+    foreach ($entItem->item["ACL_Cancelled"] as $ix=>$rwACL){
         
         $rwACL["actTitle{$intra->local}"] .= ' *'.eiseEntity::getActionPhaseTitle($rwACL["aclActionPhase"]).'* ';
         $rwACL["aclFlagEditable"] = true;

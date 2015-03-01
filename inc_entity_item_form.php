@@ -4,9 +4,9 @@ include_once "inc_entity_item.php";
 
 class eiseEntityItemForm extends eiseEntityItem {
 
-function __construct($oSQL, $intra, $entID, $entItemID, $flagArchive = false){
+function __construct($oSQL, $intra, $entID, $entItemID, $conf = array()){
     
-    parent::__construct($oSQL, $intra, $entID, $entItemID, $flagArchive);
+    parent::__construct($oSQL, $intra, $entID, $entItemID, $conf);
     
     $this->getEntityItemAllData();
     
@@ -187,6 +187,9 @@ function showFieldset($title, $id, $arrAtr, $strExtraField=''){
 <fieldset id="<?php echo $id ?>"><legend><?php echo $title; ?></legend>
 <?php 
 echo $strExtraField;
+
+if (count($arrAtr)==0)
+    $arrAtr = array_keys($this->conf['ATR']);
 
 foreach($arrAtr as $atr){
 

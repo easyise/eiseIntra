@@ -22,23 +22,36 @@ protected $arrNewData = Array(); // new data, it could be $_POST
 
 protected $defaultDataToObtain = array('Text', 'ACL', 'STL', 'comments', 'files', 'messages');
 
-function __construct($oSQL, $intra, $entID, $entItemID, $flagArchive = false){
+function __construct( $oSQL, $intra, $entID, $entItemID, $conf = array() ){
     
+    $confDefault = array('flagArchive'=>false
+        , 'flagCreateEmptyObject' => false);
+
+    $confToMerge = is_array($conf) ? $conf : array('flagArchive'=>$conf);
+
+    $conf = array_merge($confDefault, $confToMerge);
+
     parent::__construct($oSQL, $intra, $entID);
     
     $this->entItemID = $entItemID;
     
-    $this->flagArchive = $flagArchive;
+    $this->flagArchive = $conf['flagArchive'];
     
-    if (!$entID)  throw new Exception ("Entity ID not set");
+    if ($entItemID || $conf['flagCreateEmptyObject']) {
+
+        if($entItemID){
+            if (!$flagArchive){
+                $this->getEntityItemData();
+            } else  {
+                $this->getEntityItemDataFromArchive();
+            }
+            
+            $this->staID = $this->item[$entID."StatusID"];
+        }
+    } else 
+        throw new Exception ("Entity ID not set");
     
-    if (!$flagArchive){
-        $this->getEntityItemData();
-    } else  {
-        $this->getEntityItemDataFromArchive();
-    }
     
-    $this->staID = $this->item[$entID."StatusID"];
     
 }
 
@@ -154,7 +167,7 @@ function getEntityItemAllData($toRetrieve = null){
                 ORDER BY aclInsertDate DESC, aclOldStatusID DESC";
         $rsACL = $this->oSQL->do_query($sqlACL);
         while($rwACL = $this->oSQL->fetch_array($rsACL)){
-            $this->item["ACL"][$rwACL["aclGUID"]] = $this->getActionData($rwACL["aclGUID"]);
+            $this->item["ACL_Cancelled"][$rwACL["aclGUID"]] = $this->getActionData($rwACL["aclGUID"]);
         }    
     }
     
@@ -411,12 +424,12 @@ public function addAction($arrAction = null){
             FROM {$this->conf["entTable"]} WHERE {$this->entID}ID='{$this->entItemID}'";
      
     $oSQL->do_query($sqlInsACL);  
-    
+
     // 3. insert ATV
 	// generate script that copy data from the master table
 	$arrFields = Array();
     if (is_array($this->arrAction["aatFlagToTrack"]))
-        foreach($this->arrAction["aatFlagToTrack"] as $atrID => $options){
+        foreach($this->arrAction["aatFlagToTrack"] as $atrID => $rwAAT){
             
             // define attributes for timestamp
             if ($rwAAT["aatFlagTimestamp"]) {
@@ -427,6 +440,7 @@ public function addAction($arrAction = null){
     		
         }
 	
+
     
     if (count($arrFields)!=0){
     
@@ -773,37 +787,44 @@ function updateMasterTable($arrNewData = Array(), $flagUpdateMultiple = false, $
     // 1. update table by visible/editable attributes list   
     $atrToUpd = Array();
     $strFieldList = "";
+
+    $arrATRToLoop = ($flagFullEditMode 
+        ? $this->conf['ATR']
+        : (is_array($this->conf['STA'][$this->item['staID']]['satFlagEditable']) 
+            ? $this->conf['STA'][$this->item['staID']]['satFlagEditable']
+            : array()
+            )
+        );
     
-    if(is_array($this->conf['STA'][$this->item['staID']]['satFlagEditable']))
-        foreach ($this->conf['STA'][$this->item['staID']]['satFlagEditable'] as $atrID=>$FlagWrite){
+    foreach ($arrATRToLoop as $atrID=>$FlagWrite){
 
-            $rwSAT = $this->conf['ATR'][$atrID];
+        $rwSAT = $this->conf['ATR'][$atrID];
 
-            if(!$rwSAT)
-                continue;
-
-            if ($rwSAT['atrFlagDeleted'])
-                continue;
-            
-            if ((!$FlagWrite && !$flagFullEditMode)                                                      // not editable
-                || ($arrNewData[$atrID]=="" && $flagUpdateMultiple)       // empty on multiple updates
-                || !isset($arrNewData[$rwSAT["atrID"]]))                           // not set
+        if(!$rwSAT)
             continue;
-            
-            $toEval = "\"".str_replace("\$_POST", "\$this->arrNewData", $intra->getSQLValue(Array('Field'=>$rwSAT['atrID'], 'DataType'=>$rwSAT['atrType'])))."\"";
-            eval("\$newValue = ".$toEval.";");
-            
-            if ($newValue!=$rwEnt[$rwSAT["atrID"]]){
-                $strFieldList .= "\r\n, `{$rwSAT["atrID"]}`={$newValue}";
-            }
-            
-            if ($rwSAT["atrUOMTypeID"]){
-                $strFieldList .= ", {$rwSAT["atrID"]}_uomID=".($this->arrNewData["{$rwSAT["atrID"]}_uomID"]
-                    ? $oSQL->e($this->arrNewData["{$rwSAT["atrID"]}_uomID"])
-                    : $oSQL->e($oSQL->d("SELECT uomID FROM stbl_uom WHERE uomType='{$rwSAT['atrUOMTypeID']}' AND uomRateToDefault=1.0 LIMIT 0,1"))
-                    );
-            }
+
+        if ($rwSAT['atrFlagDeleted'] && !$flagFullEditMode)
+            continue;
+        
+        if ((!$FlagWrite && !$flagFullEditMode)                                                      // not editable
+            || ($arrNewData[$atrID]=="" && $flagUpdateMultiple)       // empty on multiple updates
+            || !isset($arrNewData[$rwSAT["atrID"]]))                           // not set
+        continue;
+        
+        $toEval = "\"".str_replace("\$_POST", "\$this->arrNewData", $intra->getSQLValue(Array('Field'=>$rwSAT['atrID'], 'DataType'=>$rwSAT['atrType'])))."\"";
+        eval("\$newValue = ".$toEval.";");
+        
+        if ($newValue!=$rwEnt[$rwSAT["atrID"]]){
+            $strFieldList .= "\r\n, `{$rwSAT["atrID"]}`={$newValue}";
         }
+        
+        if ($rwSAT["atrUOMTypeID"]){
+            $strFieldList .= ", {$rwSAT["atrID"]}_uomID=".($this->arrNewData["{$rwSAT["atrID"]}_uomID"]
+                ? $oSQL->e($this->arrNewData["{$rwSAT["atrID"]}_uomID"])
+                : $oSQL->e($oSQL->d("SELECT uomID FROM stbl_uom WHERE uomType='{$rwSAT['atrUOMTypeID']}' AND uomRateToDefault=1.0 LIMIT 0,1"))
+                );
+        }
+    }
     
     $sqlUpdateTable = "UPDATE {$this->conf["entTable"]} SET
         {$entID}EditDate=NOW(), {$entID}EditBy='{$this->intra->usrID}'
