@@ -193,27 +193,8 @@ if (count($arrAtr)==0)
 
 foreach($arrAtr as $atr){
 
-    if ($atr=='__comments'){
-        $strFields .= $this->showComments();
-        continue;
-    }
-
-    if(!isset($this->conf['STA'][$this->staID]['satFlagShowInForm'][$atr]))
-        continue;
-
-    $rwAtr = $this->conf['ATR'][$atr];
-
-    $strFields .= ($strFields!="" ? "\r\n" : "");
-    $strFields .= "<div class=\"eiseIntraField\">";
-    $strFields .= "<label id=\"title_{$rwAtr["atrID"]}\">".$rwAtr["atrTitle{$intra->local}"].":</label>";
+    $strFields .= $this->field($atr);
     
-    $rwAtr["value"] = $this->item[$rwAtr["atrID"]];
-    $rwAtr["text"] = $this->item[$rwAtr["atrID"]."_Text"];
-    $rwAtr['FlagWrite'] = ($intra->arrUsrData["FlagWrite"] && $this->conf['STA'][$this->staID]['satFlagShowInForm'][$atr]);
-
-    $strFields .=  $this->showAttributeValue($rwAtr, "");
-    $strFields .= "</div>\r\n\r\n";
-
 }
 
 echo $strFields;
@@ -223,6 +204,41 @@ echo $strFields;
 <?php
 
 }
+
+/**
+ * 
+ */
+function field($atr){
+
+    $intra = $this->intra;
+
+    $field = '';
+
+    if ($atr=='__comments'){
+        $field .= $this->showComments();
+        return $field;
+    }
+
+    if(!isset($this->conf['STA'][(int)$this->staID]['satFlagShowInForm'][$atr]))
+        return '';
+
+    $rwAtr = $this->conf['ATR'][$atr];
+
+    $field .= ($field!="" ? "\r\n" : "");
+    $field .= "<div class=\"eiseIntraField\">";
+    $field .= "<label id=\"title_{$rwAtr["atrID"]}\">".$rwAtr["atrTitle{$intra->local}"].":</label>";
+    
+    $rwAtr["value"] = $this->item[$rwAtr["atrID"]];
+    $rwAtr["text"] = $this->item[$rwAtr["atrID"]."_Text"];
+    $rwAtr['FlagWrite'] = ($intra->arrUsrData["FlagWrite"] && $this->conf['STA'][(int)$this->staID]['satFlagShowInForm'][$atr]);
+
+    $field .=  $this->showAttributeValue($rwAtr, "");
+    $field .= "</div>\r\n\r\n";
+
+    return $field;
+
+}
+
 
 function showActivityLog($arrConfig=array()){
 
@@ -473,7 +489,7 @@ function getActionLog($arrConfig = array()){
       WHERE aclEntityItemID='".$this->entItemID."'".
       (!$arrConfig['flagIncludeUpdate'] ? " AND aclActionID<>2" : "")
       ."
-      ORDER BY aclInsertDate DESC, actNewStatusID DESC";
+      ORDER BY aclInsertDate DESC, aclNewStatusID DESC";
     $rs = $this->oSQL->do_query($sql);
     while ($rw = $this->oSQL->fetch_array($rs)) {
         if(!$rw['usrID']) $rw['usrName'] = $rw['aclInsertBy'];

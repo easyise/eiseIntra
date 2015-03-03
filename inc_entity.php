@@ -806,23 +806,31 @@ function showActionButtons(){
     if (!$this->intra->arrUsrData["FlagWrite"])
         return;
 
-    if(is_array($this->conf['STA'][$this->staID]['ACT']))
-        foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
-            
-            if(count(array_intersect($this->intra->arrUsrData['roleIDs'], $rwAct['RLA']))==0)
-                continue;
+    if($this->staID!==null){
+        if(is_array($this->conf['STA'][$this->staID]['ACT'])){
+            foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
 
-            $title = $rwAct["actTitle{$this->intra->local}"];
-              
-            $strID = "btn_".$rwAct["actID"]."_".
-                  $rwAct["actOldStatusID"]."_".
-                  $rwAct["actNewStatusID"];
+                if(count(array_intersect($this->intra->arrUsrData['roleIDs'], $rwAct['RLA']))==0)
+                    continue;
 
-            $strOut .= "<input type='".($rwAct['actID']==3 ? 'button' : 'submit')."' class=\"".($rwAct['actID']==3 ? ' eiseIntraDelete' : 'eiseIntraActionSubmit')."\" name='actButton' id='$strID' value='"
-                    .htmlspecialchars($title)."'".
-                    " act_id=\"{$rwAct["actID"]}\" orig=\"{$rwAct["actOldStatusID"]}\" dest=\"{$rwAct["actNewStatusID"]}\">";
-              
+                $title = $rwAct["actTitle{$this->intra->local}"];
+                  
+                $strID = "btn_".$rwAct["actID"]."_".
+                      $rwAct["actOldStatusID"]."_".
+                      $rwAct["actNewStatusID"];
+
+                $strOut .= "<input type='".($rwAct['actID']==3 ? 'button' : 'submit')."' class=\"".($rwAct['actID']==3 ? ' eiseIntraDelete' : 'eiseIntraActionSubmit')."\" name='actButton' id='$strID' value='"
+                        .htmlspecialchars($title)."'".
+                        " act_id=\"{$rwAct["actID"]}\" orig=\"{$rwAct["actOldStatusID"]}\" dest=\"{$rwAct["actNewStatusID"]}\">";
+                  
+            }
         }
+    } else {
+        $strOut .= '<input type="submit" class="eiseIntraActionSubmit" name="actButton\" id="btn_1__0" value="'
+                        .$this->intra->translate('Create').'"'.
+                        ' act_id="1" orig="" dest="0">';
+    }
+
 
    
    return $strOut;

@@ -47,6 +47,9 @@ function __construct( $oSQL, $intra, $entID, $entItemID, $conf = array() ){
             }
             
             $this->staID = $this->item[$entID."StatusID"];
+
+        } else {
+            $this->staID = null;
         }
     } else 
         throw new Exception ("Entity ID not set");
@@ -135,7 +138,8 @@ function getEntityItemAllData($toRetrieve = null){
     
     //   - Master table is $this->item
     // attributes and combobox values
-    $this->staID = (int)$this->item["{$this->entID}StatusID"];
+    if($this->item["{$this->entID}StatusID"]!==null)
+        $this->staID = (int)$this->item["{$this->entID}StatusID"];
 
     if(in_array('Master', $toRetrieve))
         $this->getEntityItemData();
