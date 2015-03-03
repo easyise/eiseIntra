@@ -19,10 +19,8 @@ echo "\t".$strHead."\r\n";
 if ($intra->hasUserMessage()) {
    $strUserMessage = $intra->getUserMessage();
 }
- ?><div style="display:none;" id="sysmsg"<?php  
-     echo (preg_match("/^ERROR/", $strUserMessage) ? " class='error'" : "") ; 
-   ?>><?php  
-     echo $strUserMessage ; 
+ ?><div id="sysmsg"><?php
+     echo htmlspecialchars($strUserMessage) ; 
      ?></div>
 
 <?php 

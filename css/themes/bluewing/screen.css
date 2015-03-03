@@ -169,7 +169,25 @@ div.menubutton:hover{
    min-width: 0 !important;
 }
 
-#sysmsg{
+.ei_sysmsg_error {
+    -webkit-box-shadow: 0px 10px 5px rgba(0, 0, 0, 0.5);  
+    -moz-box-shadow: 0px 10px 5px rgba(0, 0, 0, 0.5); 
+    box-shadow: 0px 10px 5px rgba(0, 0, 0, 0.5);
+}
+.ei_sysmsg_info {
+    filter:alpha(opacity=90); /* for IE4 - IE7 */
+    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=90)"; /* IE8 */
+    -moz-opacity:0.9;
+    -khtml-opacity: 0.9;
+    opacity: 0.9;
+    -webkit-box-shadow: -5px 5px 5px rgba(0, 0, 0, 0.5);  
+    -moz-box-shadow: -5px 5px 5px rgba(0, 0, 0, 0.5); 
+    box-shadow: -5px 5px 5px rgba(0, 0, 0, 0.5);
+    margin-right: 7px;
+    margin-top: 3px;
+}
+
+#sysmsg.normal{
     color: Navy;
     padding: 1px 3px 1px 3px;
     top: 3px;
@@ -181,9 +199,15 @@ div.menubutton:hover{
 }
 #sysmsg.error {
     color: #CC3300 !important;
+    padding: 1px 3px 1px 3px;
+    top: 3px;
+    right: 7px;
+    text-align: right;
     border: 1px solid #660000;
+    font: bold 0.8em sans-serif;
     background: #fff0f0;
 }
+
 /* /Menubar stuff                                                   */
 /********************************************************************/
 

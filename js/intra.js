@@ -939,11 +939,70 @@ function MsgClose(){
        $("#sysmsg").fadeOut("slow");
     }
 function MsgShow(){
-	var msg = $('#sysmsg').html();
-	if (msg !=""){
-       $("#sysmsg").slideDown("slow", function(){ window.setTimeout("MsgClose()", 10000);});
-	  }
+    var $sysmsg = $('#sysmsg');
+    var msg = $sysmsg.html();
+	var msgText = $sysmsg.text();
+
+    if (msg !=""){
+
+        if(!$sysmsg.find('#sysmsgicon')[0])
+            $sysmsg.html('').append('<span class="ui-icon" style="float: left; margin-right: .3em;" id="sysmsgicon"></span>');
+
+        if(msgText.match(/^ERROR(\:){0,1}\s*/i)){ // show alert box with buttons
+            
+            if(typeof($sysmsg.dialog)=='function'){
+                
+                msg = msg.replace(/(^ERROR(\:){0,1}\s*)/i, '');
+
+                $sysmsg.css('white-space', 'normal');
+
+                $sysmsg.append('<p style="margin-left: 20px; margin-top:0">'+msg+'</p>').find('#sysmsgicon').addClass('ui-icon-alert');
+
+                $sysmsg.dialog({
+                    dialogClass: "ui-state-error ei_sysmsg_error"
+                    , resizable: false
+                    , title: 'ERROR'
+                    , buttons: {Ok: function(){ $sysmsg.dialog('close') } }
+                    , open: function(){
+                        window.setTimeout(function(){
+                            $sysmsg.dialog('close')
+                        }, 10000)
+                    }
+                    , hide: 'fade'
+                })
+            } else {
+                $("#sysmsg").addClass('error').slideDown("slow", function(){ window.setTimeout("MsgClose()", 10000);});
+            }
+        } else { // show infobox
+
+            if(typeof($sysmsg.dialog)=='function'){
+                
+                msg = msg.replace(/(^ERROR(\:){0,1}\s*)/i, '');
+                $sysmsg.append('<p style="margin-left: 20px; margin-top:0">'+msg+'</p>').find('#sysmsgicon').addClass('ui-icon-info');
+
+                $sysmsg.css('white-space', 'nowrap');
+
+                $sysmsg.dialog({
+                    dialogClass: "ei_dialog_notitle ei_sysmsg_info"
+                    , resizable: false
+                    , height: $('#menubar').height()
+                    , width: 'auto'
+                    , position: {my: 'right top', at: 'right top', of: window}
+                    , open: function(){
+                        window.setTimeout(function(){
+                            $sysmsg.dialog('close')
+                        }, 7000)
+                    }
+                    , hide: 'fade'
+                })
+            } else {
+                $("#sysmsg").addClass('normal').slideDown("slow", function(){ window.setTimeout("MsgClose()", 10000);});
+            }
+
+        }
+
     }
+}
 
 
 /* backward compatibilty stuff */    

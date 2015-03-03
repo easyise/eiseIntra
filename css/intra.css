@@ -57,10 +57,12 @@ div.menubutton  {
    float: right !important;
 }
 
-#sysmsg{
-    position: absolute;
-    white-space: nowrap;
-    z-index: 125;
+#sysmsg {
+    display: none;
+}
+
+.ei_dialog_notitle .ui-dialog-titlebar {
+    display:none;
 }
 
 .eiseIntraError {
