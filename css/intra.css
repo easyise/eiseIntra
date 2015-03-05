@@ -59,6 +59,7 @@ div.menubutton  {
 
 #sysmsg {
     display: none;
+    overflow: visible;
 }
 
 .ei_dialog_notitle .ui-dialog-titlebar {
