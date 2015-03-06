@@ -127,6 +127,9 @@ function getEntityItemDataFromArchive(){
 
 function getEntityItemAllData($toRetrieve = null){
     
+    if(!$this->entItemID)
+        return array();
+
     if($toRetrieve===null)
         $toRetrieve = $this->defaultDataToObtain;
 
