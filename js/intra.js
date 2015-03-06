@@ -852,6 +852,10 @@ fillTable: function(ajaxURL, conf){
 
                     $(this).addClass('eif_loaded');
 
+                    if(rw.rowClass && rw.rowClass.v){
+                        $(this).addClass(rw.rowClass.v);
+                    }
+
                 })
                 $newItem.first().addClass('eif_startblock');
                 $newItem.last().addClass('eif_endblock');
