@@ -1197,6 +1197,37 @@ function cancelAction(){
 
 }
 
+/**
+ * Function to obtain user ID who run action $actID last time.
+ * 
+ * @return user ID that could be found in stbl_user. If action not found, it returns NULL
+ *
+ * @package eiseIntra
+ */
+function whoRunAction($actID){
+    foreach($this->item['STL'] as $stlGUID=>$arrSTL){
+        if($arrSTL['stlArrivalAction']['aclActionID']==$actID){
+            return $arrSTL['stlArrivalAction']['aclFinishBy'];
+        }
+    }
+    return null;
+}
+
+/**
+ * Function to obtain user ID who last time lead the item to the status specified in $staID.
+ * 
+ * @return user ID that could be found in stbl_user. If status not found, it returns NULL
+ *
+ * @package eiseIntra
+ */
+function whoLeadToStatus($staID){
+    foreach($this->item['STL'] as $stlGUID=>$arrSTL){
+        if($arrSTL['stlStatusID']==$staID){
+            return $arrSTL['stlInsertBy'];
+        }
+    }
+    return null;
+}
 
 function GetJoinSentenceByCBSource($sqlSentence, $entField, &$strText, &$strValue){
    $prgValue = "/(SELECT|,)\s+(\S+) as optValue/i";
@@ -1416,8 +1447,11 @@ static function updateMessages($newData){
                 , msgInsertBy = '$intra->usrID', msgInsertDate = NOW(), msgEditBy = '$intra->usrID', msgEditDate = NOW()";
 
             $oSQL->q($sqlMsg);
-            $intra->redirect($intra->translate('Message sent'), $_SERVER["PHP_SELF"]."?{$newData['entID']}ID=".urlencode($newData["entItemID"]));
-            die();
+            
+            if($newData["entItemID"]!='' && $newData['entID']!='')
+                $intra->redirect($intra->translate('Message sent'), $_SERVER["PHP_SELF"]."?{$newData['entID']}ID=".urlencode($newData["entItemID"]));
+            break;
+
         case 'messageReply':
             die();
         case 'messageReplyAll':
@@ -1449,11 +1483,15 @@ static function sendMessages($conf){
         $rwUsr_To = $intra->getUserData_All($rwMsg['msgToUserID'], 'all');
         $rwUsr_CC = $intra->getUserData_All($rwMsg['msgCCUserID'], 'all');
 
-        $rwMsg[self::getItemIDField($rwMsg)] = $rwMsg['msgEntityItemID'];
+        $rwMsg['system'] = $conf['system'];
 
-        $rwMsg = array_merge(array('system' => $conf['system']
-                , 'entItemFormHref' => eiseIntra::getFullHREF(self::getFormURL($rwMsg, $rwMsg)))
-            , $rwMsg);
+        if($rwMsg['msgEntityItemID']!='' && $rwMsg['msgEntityID']!=''){
+
+            $rwMsg[self::getItemIDField($rwMsg)] = $rwMsg['msgEntityItemID'];
+
+            $rwMsg['entItemFormHref'] = eiseIntra::getFullHREF(self::getFormURL($rwMsg, $rwMsg));    
+
+        }
 
         $msg = array('mail_from'=> ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : '')
             , 'rcpt_to' => ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\"  <".$rwUsr_To['usrEmail'].">" : '')
