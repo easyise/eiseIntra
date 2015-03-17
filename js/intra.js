@@ -981,7 +981,6 @@ function MsgShow(){
 
             if(typeof($sysmsg.dialog)=='function'){
                 
-                msg = msg.replace(/(^ERROR(\:){0,1}\s*)/i, '');
                 $sysmsg.append('<p style="margin-left: 20px; margin-top:0">'+msg+'</p>').find('#sysmsgicon').addClass('ui-icon-info');
 
                 $sysmsg.css('white-space', 'nowrap');
