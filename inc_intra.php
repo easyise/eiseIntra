@@ -1,15 +1,15 @@
 <?php
 /**
-*
-* eiseIntra core class
-*
-* Authentication, form elements display, data handling routines, archive/restore functions
-*
-*
-* @package eiseIntra
-* @version 1.0.15
-*
-**/
+ *
+ * eiseIntra core class
+ *
+ * Authentication, form elements display, data handling routines, archive/restore functions
+ *
+ *
+ * @package eiseIntra
+ * @version 1.0.15
+ *
+ */
 
 
 include "inc_config.php";
@@ -904,6 +904,8 @@ function getTableInfo($dbName, $tblName){
     $arrTable["PKURI"] = $strPKURI;
 
     $arrTable['type'] = $tableType;
+
+    $arrTable['Comment'] = $rwTableStatus['Comment'];
     
     return $arrTable;
 }
