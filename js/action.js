@@ -119,6 +119,7 @@ var fillFileListAJAX = function($form){
 }
 
 var showMessages = function($form){
+
     var entID = $form.data('eiseIntraForm').entID;
     var entItemID = $form.data('eiseIntraForm').entItemID;
 
@@ -138,7 +139,7 @@ var showMessages = function($form){
 
     $('#eiseIntraMessages')
         .eiseIntraAJAX('fillTable', strURL, {afterFill: function(data){
-            if(data.data.length==0){
+            if(data.length==0){
                 $('#eiseIntraMessageForm').dialog({modal: true
                     , width: '400px'});
                 

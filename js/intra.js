@@ -816,7 +816,7 @@ var displayMode;
 var $body;
 var $template;
 
-var _fill = function(data){
+var _fill = function(data, conf){
 
     $body.find('.eif_spinner').css("display", 'none');
 
@@ -892,9 +892,12 @@ var _fill = function(data){
         $newItem.removeClass('eif_template');
         
         $body.append($newItem);
-        
             
     });
+
+    if(conf && conf.afterFill)
+        conf.afterFill(data);
+    
 }
 
 var methods = {

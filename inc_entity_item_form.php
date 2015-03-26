@@ -817,6 +817,9 @@ function showFileList_skeleton(){
 
 function showMessages_skeleton(){
 
+    $oldFlagWrite = $intra->arrUsrData['FlagWrite'];
+    $intra->arrUsrData['FlagWrite'] = true;
+
     $strRes = '<div id="eiseIntraMessages" title="'.$this->intra->translate('Messages').'">'."\n";
 
     $strRes .= '<div class="eiseIntraMessage eif_template eif_evenodd">'."\n";
@@ -854,6 +857,8 @@ function showMessages_skeleton(){
         <input type="button" id="msgClose" value="'.$this->intra->translate('Close').'">
         </div>';
     $strRes .= "</form>\r\n";
+
+    $intra->arrUsrData['FlagWrite'] = $oldFlagWrite;
 
     return $strRes;
 
