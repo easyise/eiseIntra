@@ -817,8 +817,8 @@ function showFileList_skeleton(){
 
 function showMessages_skeleton(){
 
-    $oldFlagWrite = $intra->arrUsrData['FlagWrite'];
-    $intra->arrUsrData['FlagWrite'] = true;
+    $oldFlagWrite = $this->intra->arrUsrData['FlagWrite'];
+    $this->intra->arrUsrData['FlagWrite'] = true;
 
     $strRes = '<div id="eiseIntraMessages" title="'.$this->intra->translate('Messages').'">'."\n";
 
@@ -858,7 +858,7 @@ function showMessages_skeleton(){
         </div>';
     $strRes .= "</form>\r\n";
 
-    $intra->arrUsrData['FlagWrite'] = $oldFlagWrite;
+    $this->intra->arrUsrData['FlagWrite'] = $oldFlagWrite;
 
     return $strRes;
 
