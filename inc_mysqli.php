@@ -84,9 +84,12 @@ class eiseSQL extends mysqli{
     // escapes chracters
     function e($str, $usage="for_ins_upd"){ //escape_string
         return "'".($usage!="for_ins_upd" 
-		? "%".str_replace("_", "\_", self::real_escape_string($str))."%"
-		: self::real_escape_string($str)
-		)."'";
+    		? "%".str_replace("_", "\_", self::real_escape_string($str))."%"
+    		: self::real_escape_string($str)
+    		)."'";
+    }
+    function unq($sqlReadyValue){
+        return (strtoupper($sqlReadyValue)=='NULL' ? null : (string)preg_replace("/^(')(.*)(')$/", '\2', $sqlReadyValue));
     }
     
     //do_query, returns object mysqli_result
