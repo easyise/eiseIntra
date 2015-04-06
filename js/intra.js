@@ -813,10 +813,9 @@ $.fn.eiseIntraForm = function( method ) {
 (function( $ ){
 
 var displayMode;
-var $body;
 var $template;
 
-var _fill = function(data, conf){
+var _fill = function($body, data, conf){
 
     $body.find('.eif_spinner').css("display", 'none');
 
@@ -904,8 +903,8 @@ var methods = {
 
 showSpinner: function(){
     
-    $body = this;
-
+    var $body = this;
+    
     // hide "no events"
     var curDisplayMode = $body.find('.eif_notfound').css("display")
     displayMode = (curDisplayMode=='none' ? displayMode : curDisplayMode);
@@ -922,11 +921,12 @@ showSpinner: function(){
 
 fillTable: function(URLorObj, conf){
     
-    $body = this;
+    var $body = this;
 
     if(typeof(URLorObj)=='object'){
         
-        _fill(URLorObj, conf);
+        console.log('fillTable - OBJ', $body);
+        _fill($body, URLorObj, conf);
 
     } else {
 
@@ -941,12 +941,14 @@ fillTable: function(URLorObj, conf){
                 if(conf && conf.beforeFill)
                     conf.beforeFill(data);
 
-                if (data.ERROR){
-                    alert(data.ERROR);
+                if (data.status!='ok' 
+                    || data.ERROR // backward-compatibility
+                    )
+                {
+                    alert(data.ERROR ? data.ERROR : data.message);
                     return;
                 }
-
-                _fill(data.data, conf);
+                _fill($body, data.data, conf);
 
         });  
 
@@ -1021,8 +1023,13 @@ function eiseIntraAdjustFrameContent(){
 function MsgClose(){
        $("#sysmsg").fadeOut("slow");
     }
-function MsgShow(){
+function MsgShow(text){
     var $sysmsg = $('#sysmsg');
+    
+    if(text)
+        $sysmsg.html(text);
+
+   
     var msg = $sysmsg.html();
 	var msgText = $sysmsg.text();
 

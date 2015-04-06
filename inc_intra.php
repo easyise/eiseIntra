@@ -59,6 +59,8 @@ private $arrClassInputTypes =
     Array("ajax_dropdown", "date", "datetime", "datetime-local", "time");
 
 const cachePreventorVar = 'nc';
+const dataActionKey = 'DataAction';
+const dataReadKey = 'DataAction';
 
 static $arrKeyboard = array(
         'EN' =>   'qwertyuiop[]asdfghjkl;\'\\zxcvbnm,./QWERTYUIOP{}ASDFGHJKL:"|ZXCVBNM<>?'
@@ -114,6 +116,15 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
 /**********************************
    Authentication Routines
 /**********************************/
+/**
+ * Function decodes authstring login:password
+ * using current encoding algorithm 
+ * (now base64).
+ * 
+ * @param string $authstring
+ *
+ * @return array {string $login, string $password}
+ */
 function decodeAuthString($authstring){
 
     $auth_str = base64_decode($authstring);
@@ -123,6 +134,24 @@ function decodeAuthString($authstring){
     return Array($arrMatches[1], $arrMatches[2]);
 }
 
+/**
+ * Function that checks authentication with credentials database using selected $method.
+ * Now it supports the following methods:
+ * 1) LDAP - it checks credentials with specified GLOBAL $ldap_server with GLOBAL $ldap_domain
+ * 2) database (or DB) - it checks credentials with database table stbl_user
+ * 3) mysql - it checks credentials of MySQL database user supplied with $login and $password parameters
+ * Function returns true when authentication successfull, otherwise it returns false and $strError parameter 
+ * variable becomes updated with authentication error message.
+ *
+ * LDAP method was successfully tested with Active Directory on Windows 2000, 2003, 2008, 2008R2 servers.
+ * 
+ * @param string $login - login name
+ * @param string $password - password
+ * @param string $strError - error message will be set to this parameter passed by ref
+ * @param string $method - authentication method. Can be 'LDAP', 'database'(equal to 'DB'), 'mysql'
+ * 
+ * @return boolean authentication result: true on success, otherwise false.
+ */
 function Authenticate($login, $password, &$strError, $method="LDAP"){
     
     $oSQL = $this->oSQL;
@@ -189,12 +218,47 @@ function Authenticate($login, $password, &$strError, $method="LDAP"){
     
 }
 
+/**
+ * This function intialize session with session cookes placed at path set by eiseIntraCookiePath global constant.
+ */
 function session_initialize(){
    session_set_cookie_params(0, eiseIntraCookiePath);
    session_start();
    $this->usrID = $_SESSION["usrID"];
 } 
 
+/**
+ * This function checks current user's permissions on currently open script.
+ * Also it checks session expiration time, and condition when user is blocked or not in the database.
+ * Script name is obtained from $_SERVER['SCRIPT_NAME'] global variable.
+ * Permission information is collected from stbl_page_role table and calculated according to user role membership defined at stbl_role_user table.
+ * Permissions are calulated in the following way:
+ * - if at least one user's role is permitted to do something, it means that this user is permitted to to it.
+ * 
+ * If user has no permissions to 'Read' the script, function throws header Location: login.php and stops the script.
+ * When 'Read' permissions are confirmed for the user, function updates $intra->arrUsrData property with the following data:
+ * - all user data from stbl_user table
+ * - string pagID - database page ID
+ * - string pagTitle - page title in English
+ * - string pagTitleLocal - page title in local language
+ * - string* FlagRead - always '1'
+ * - string* FlagCreate - '0' or '1', as set in database
+ * - string* FlagUpdate - '0' or '1', as set in database
+ * - string* FlagDelete - '0' or '1', as set in database
+ * - string* FlagWrite - '0' or '1', as set in database
+ * - array roles - array of role titles in currently selected language
+ * - array roleIDs - array of role IDs
+ * ---------------
+ * (*) - type is 'string' because of PHP function mysql_fetch_assoc()'s nature. It fetches anything like strings despite actual data type in the database.
+ *
+ * NOTE: Role membership information is collected from stbl_role_user table basing on rluInsertDate timestamp, 
+ * it should not be in the future. It is useful when some actions should be temporarily delegated to the other user in case of vacations, illness etc.
+ *
+ * Page permissions can be set with eiseAdmin's GUI at <database>/Pages menu.
+ * Role membership can be set by system's GUI at system's Setting/Access Control menu or <database>/Roles menu of eiseAdmin.
+ *
+ * @return array $intra->arrUsrData
+ */
 function checkPermissions(){
    
    $oSQL = $this->oSQL;
@@ -312,6 +376,26 @@ function backref($urlIfNoReferer){
         $backref = ($_COOKIE["referer"] ? $_COOKIE["referer"] : $urlIfNoReferer);
     }
     return $backref;
+
+}
+
+/**
+ * Function outputs JSON-encoded response basing on intra specification and terminates the script.
+ * 
+ * @param string $status - response status. 'ok' should be set in case of successfull execution
+ * @param string $message - status message to be displayed to the user
+ * @param varian $data - data to be transmitted
+ *
+ */
+function json($status, $message, $data=null){
+    
+    header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
+    header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
+    header("Content-type: application/json"); // JSON
+
+    echo json_encode(array('status'=>$status, 'message'=>$message, 'data'=>$data));
+
+    die();
 
 }
 
@@ -447,6 +531,9 @@ function readSettings(){
     return $arrSetup;
 }
 
+/**
+ * Input display functions
+ */
 
 private function handleClass(&$arrConfig){
 
@@ -724,7 +811,16 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
 }
 
 
-// Page-formatting routines
+/**
+ * 
+ * Page-formatting functions 
+ *
+ */
+
+/**
+ * Function that loads JavaScript files basing on GLOBAL $arrJS
+ *
+ */
 function loadJS(){
     GLOBAL $js_path, $arrJS;
         
@@ -745,6 +841,10 @@ function loadJS(){
         
 }
 
+/**
+ * Function that loads CSS files basing on GLOBAL $arrCSS
+ *
+ */
 function loadCSS(){
     GLOBAL $arrCSS;
     
@@ -756,11 +856,60 @@ function loadCSS(){
 
 }
 
+/**
+ * Data handling hook function. If $_GET or $_POST ['DataAction'] array member fits contents of $dataAction parameter that can be array or string, 
+ * user function $function_name will be called and contents of $_POST or $_GET will be passed as parameters.
+ *
+ * @param variant $dataAction - string or array of possible <input name=DataAction> values that $function should handle.
+ * @param string $function - callback function name.
+ * 
+ * @return variant value that return user function.
+ */
+function dataAction($dataAction, $function){
+    
+    $newData = ($_SERVER['REQUEST_METHOD']=='POST' ? $_POST : $_GET);
+
+    $dataAction = (is_array($dataAction) ? $dataAction : array($dataAction));
+
+    if(in_array($newData[self::dataActionKey], $dataAction)
+        && $this->arrUsrData['FlagWrite']
+        && is_callable($function))
+        return call_user_func($function, $newData);
+
+}
+
+/**
+ * Data read hook function. If $query['DataAction'] array member fits contents of $dataReadValues parameter that can be array or string, 
+ * user function $function_name will be called and contents of $query parameter will be passed. If $query parameter is omitted, function 
+ * will take $_GET global array.
+ *
+ * @param variant $dataReadValues - string or array of possible <input name=DataAction> values that $function should handle.
+ * @param string $function - callback function name.
+ * @param array $query - associative array data query  
+ * 
+ * @return variant value that return user function.
+ */
+function dataRead($dataReadValues, $function, $query=null){
+    
+    $query = (is_array($query) ? $query : $_GET);
+
+    $dataReadValues = (is_array($dataReadValues) ? $dataReadValues : array($dataReadValues));
+
+    if(in_array($query[self::dataReadKey], $dataReadValues)
+        && is_callable($function))
+            return call_user_func($function, $query);
+
+}
+
+
 
 /**********************************
    Database Routines
 /**********************************/
-// returns rs with data obtained from stadard views
+/**
+ * Funiction retrieves MySQL table information with eiseIntra's semantics
+ *
+ */
 function getTableInfo($dbName, $tblName){
     
     $oSQL = $this->oSQL;

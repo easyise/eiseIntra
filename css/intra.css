@@ -1,6 +1,6 @@
 html { height: 100% }
 
-* html body { height: 100% } /*Äëÿ IE, ò.ê. îí íå ïîääåðæèâàåò min-height*/ 
+* html body { height: 100% } /*Ð”Ð»Ñ IE, Ñ‚.Ðº. Ð¾Ð½ Ð½Ðµ Ð¿Ð¾Ð´Ð´ÐµÑ€Ð¶Ð¸Ð²Ð°ÐµÑ‚ min-height*/ 
 
 body{
     margin: 0 0 0 0;
@@ -321,23 +321,21 @@ div.eiseIntraComment {
 /* ajax-filled forms/lists  */
 /*****************************************************/
 .eif_template {
-    display: none;
+    display: none !important;
 }
 
 .eif_invisible {
     display: none;
 }
 
-.eif_spinner, .eif_notfound {
+.eif_spinner > *, .eif_notfound > * {
     min-height:150px;
     max-height:150px;
     height:150px;
     text-align: center;
     vertical-align: middle;
 }
-.eif_spinner td, .eif_notfound td{
-    vertical-align: middle;
-}
+
 .eif_spinner {
     background: url("/common/images/spinner_large.gif") no-repeat scroll center center transparent;
 }
