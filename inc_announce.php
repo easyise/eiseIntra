@@ -82,7 +82,7 @@ public static function announces($arrRolesPermitted, $arrConfig = array()){
 
 .ei_announce {
 	overflow: hidden;
-	padding: 2px 10px;
+	padding: 2px 16px;
 	position: relative;
 }
 
@@ -102,8 +102,8 @@ public static function announces($arrRolesPermitted, $arrConfig = array()){
 }
 .ei_btnDeleteAnnounce {
 	position: absolute;
-	top:0;
-	right: 0px;
+	top: 1.2em;
+	right: 16px;
 	width: 22px !important;
 	height: 22px !important;
 	padding: 0 !important;
