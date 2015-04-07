@@ -941,7 +941,7 @@ fillTable: function(URLorObj, conf){
                 if(conf && conf.beforeFill)
                     conf.beforeFill(data);
 
-                if (data.status!='ok' 
+                if ((data.status && data.status!='ok')
                     || data.ERROR // backward-compatibility
                     )
                 {
