@@ -535,6 +535,89 @@ function readSettings(){
  * Input display functions
  */
 
+/**
+ * This function returns HTML for single field
+ */
+public function field( $title, $name, $value, $conf=array() ){
+
+    $oSQL = $this->oSQL;
+
+    
+    if($conf['type']=='hidden')
+        return '<input type="hidden" name="'.$name.'" id="'.$name.'" value="'.htmlspecialchars($value).'">'."\r\n";
+
+    $html = '';
+
+    $html .= "<div class=\"eiseIntraField\" id=\"field_{$name}\">";
+
+    $title = ($this->conf['auto_translate'] ? $this->translate($title) : $title);
+
+    if($conf['type']!='boolean'){
+        $html .= "<label id=\"title_{$name}\">".htmlspecialchars($title).":</label>";
+    } else {
+        $html .= "<label></label>";
+    }
+
+    switch($conf['type']){
+
+        case "datetime":
+        case "date":
+            $html .= $this->showTextBox($name
+                , ($conf['type']=='datetime' ? $this->datetimeSQL2PHP($value) : $this->dateSQL2PHP($value)) 
+                , $conf); 
+            break;
+
+        case "select":
+        case "combobox"://backward-compatibility
+
+            $defaultConf = array('strZeroOptnText'=>$this->translate('--please select'));
+            $conf  = array_merge($defaultConf, $conf);
+
+            if (is_array($conf['source'])){
+                $opts = $conf['source'];
+            } else {
+                $rsCMB = $this->getDataFromCommonViews(null, null, $conf["source"]
+                    , $conf["source_prefix"]
+                    , (! ($this->arrUsrData['FlagWrite'] && (isset($conf['FlagWrite']) ? $conf['FlagWrite'] : 1) ) )
+                    , ''
+                    , true
+                    );
+                $opts = Array();
+                while($rwCMB = $oSQL->f($rsCMB))
+                    $opts[$rwCMB["optValue"]]=$rwCMB["optText"];
+            }
+            $html .= $this->showCombo($name, $value, $opts, $conf);
+            break;
+
+        case "ajax_dropdown":
+        case "typeahead":
+            $html .= $this->showAjaxDropdown($name, $value, $conf);
+            break;
+
+        case "boolean":
+        case "checkbox":
+            $html .= '<div class="eiseIntraValue eiseIntraCheckbox">';
+            $html .= $this->showCheckBox($name, $value, $conf);
+            $html .= '<label for="'.$name.'">'.htmlspecialchars($title).'</label>';
+            $html .= '</div>';
+            break;
+
+        case "textarea":
+            $html .= $this->showTextArea($name, $value, $conf);
+            break;
+
+        case 'text':
+        default:
+            $html .= $this->showTextBox($name, $value, $conf);
+            break;
+    }
+
+    $html .= '</div>'."\r\n\r\n";
+
+    return $html;
+
+}
+
 private function handleClass(&$arrConfig){
 
     $arrClass = Array();
@@ -765,10 +848,14 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
     }
 
     $confSource = 'source';$confSource_compat = 'strTable';
-    $confPrefix = 'prefix';$confPrefix_compat = 'strPrefix';
-
     $src = ($arrConfig[$confSource] ?  $confSource : $confSource_compat);
-    $prf = ($arrConfig[$confPrefix] ?  $confPrefix : $confPrefix_compat);
+
+    foreach(array('source_prefix', 'prefix', 'strPrefix') as $variation){
+        if(isset($arrConfig[$variation])){
+            $prf = $arrConfig[$variation];
+            break;
+        }
+    }
 
     if(!isset($arrConfig[$src]))
         throw new Exception("AJAX drop-down box has no source specified", 1);
@@ -779,7 +866,7 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
     $oSQL = $this->oSQL;
     
     if ($strValue!="" && $arrConfig["strText"]==""){
-        $rs = $this->getDataFromCommonViews($strValue, "", $arrConfig[$src], $arrConfig[$prf]);
+        $rs = $this->getDataFromCommonViews($strValue, "", $arrConfig[$src], $prf);
         $rw = $oSQL->fetch_array($rs);
         $arrConfig["strText"] = $rw["optText"];
     }
@@ -792,7 +879,7 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
             , array_merge(
                 $arrConfig 
                 , Array("FlagWrite"=>true
-                    , "strAttrib" => $arrConfig["strAttrib"]." src=\"{table:'{$arrConfig[$src]}', prefix:'{$arrConfig[$prf]}'}\" autocomplete=\"off\""
+                    , "strAttrib" => $arrConfig["strAttrib"]." src=\"{table:'{$arrConfig[$src]}', prefix:'{$prf}'}\" autocomplete=\"off\""
                     , 'type'=>"ajax_dropdown")
                 )
             );
@@ -1125,7 +1212,7 @@ function getMultiPKCondition($arrPK, $strValue){
 }
 
 
-function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $flagShowDeleted=false, $extra=''){
+function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $flagShowDeleted=false, $extra='', $flagNoLimits=false){
     
     $oSQL = $this->oSQL;
 
@@ -1170,7 +1257,8 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
             .($flagShowDeleted==false ? " AND IFNULL(`{$arrFields["delField"]}`, 0)=0" : "")
             .$strExtra;
     }
-    $sql .= "\r\nLIMIT 0, 30";
+    if(!$flagNoLimits)
+        $sql .= "\r\nLIMIT 0, 30";
     $rs = $oSQL->do_query($sql);
     
     return $rs;
