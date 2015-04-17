@@ -18,7 +18,7 @@ body{
 /********************************************************************/
 /* Header stuff                                                     */
 #corner_logo{
-	background-image: url(intra_logo.gif);
+	background-image: url(img/intra_logo.gif);
 	background-repeat: no-repeat;
 	height: 70px;
 	width: 190px;
@@ -94,15 +94,15 @@ body{
 }
 
 .lang-en {
-    background: url(gb.png) no-repeat;
+    background: url(img/gb.png) no-repeat;
 }
 
 .lang-ru {
-    background: url(ru.png) no-repeat;
+    background: url(img/ru.png) no-repeat;
 }
 
 #header {
-   background: White url(intra_bg.gif) repeat-x top;
+   background: White url(img/intra_bg.gif) repeat-x top;
    height: 70px;
 }
 /* /Header stuff                                                    */
@@ -114,11 +114,11 @@ body{
     cursor: pointer;
     width: 11px;
     height: 10px;
-    background: White url(bullet_menuhidden.png) no-repeat;
+    background: White url(img/bullet_menuhidden.png) no-repeat;
 }
 
 .toc_menushown {
-    background: White url(bullet_menushown.png) no-repeat !important;
+    background: White url(img/bullet_menushown.png) no-repeat !important;
 }
 
 /********************************************************************/
@@ -417,3 +417,7 @@ input.intraTime{
 }
 .tr0 {background:#FFFFFF;}
 .tr1 {background:#F0F0F0;}
+
+.ui-autocomplete-loading {
+    background: white url("img/spinner16x16.gif") right center no-repeat;
+}

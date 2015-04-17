@@ -491,8 +491,12 @@ option.deleted {
 
 
 .spinner {
-	background-image: url('/common/images/spinner.gif');
+	background-image: url('img/spinner.gif');
 	background-position: 0 0;
 	background-repeat: no-repeat;
 	padding-left: 20px;
 }
+
+.ui-autocomplete-loading {
+    background: white url("img/spinner16x16.gif") right center no-repeat;
+  }
