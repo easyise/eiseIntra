@@ -732,10 +732,10 @@ addField: function( field ){
             element = $('<select>');
             break;
         case 'password':
-            element = $('<element type="password">');
+            element = $('<input type="password">');
             break;
         case 'hidden':
-            element = $('<element type="hidden">');
+            element = $('<input type="hidden">');
             break;
         case 'hr':
             element = $('<hr>');
@@ -744,7 +744,7 @@ addField: function( field ){
             element = $('<p>');
             break;
         default:
-            element = $('<element type="text">');
+            element = $('<input type="text">');
             if(field.type!='text'){
                 element.addClass('eiseIntra_'+field.type);
             }
@@ -760,7 +760,7 @@ addField: function( field ){
     if(field.value && type=='p')
         element.html(field.value);
 
-    if( field.type!='hidden' && field.title && !$.inArray(type, ['hr', 'p']) ){
+    if( field.type!='hidden' && field.title && $.inArray(type, ['hr', 'p'])<0 ){
 
         element.addClass('eiseIntraValue');
 
@@ -769,7 +769,7 @@ addField: function( field ){
         }
 
         var $field = $('<div class="eiseIntraField"><label>'+field.title+':</label></div>').append(element);
-    
+
     } else {
         
         $field = element;
