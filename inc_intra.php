@@ -53,7 +53,7 @@ public $arrAttributeTypes = array(
 private $arrHTML5AllowedInputTypes = 
     Array("color"
         #, "date", "datetime", "datetime-local", "time"
-        , "email", "month", "number", "range", "search", "tel", "url", "week", "password");
+        , "email", "month", "number", "range", "search", "tel", "url", "week", "password", "text");
 
 private $arrClassInputTypes = 
     Array("ajax_dropdown", "date", "datetime", "datetime-local", "time");
@@ -537,82 +537,107 @@ function readSettings(){
 
 /**
  * This function returns HTML for single field
+ * If parameter $title is specified, it returns full HTML with container, label and input/text
+ * If parameter $name is specified it returns HTML for input/text according to $value parameter
+ * else it returns HTML specified in $value parameter.
  */
 public function field( $title, $name, $value, $conf=array() ){
 
     $oSQL = $this->oSQL;
 
     
-    if($conf['type']=='hidden')
+    if(in_array($conf['type'], array('row_id', 'hidden')) )
         return '<input type="hidden" name="'.$name.'" id="'.$name.'" value="'.htmlspecialchars($value).'">'."\r\n";
 
     $html = '';
 
-    $html .= "<div class=\"eiseIntraField\" id=\"field_{$name}\">";
+    if($title) {
 
-    $title = ($this->conf['auto_translate'] ? $this->translate($title) : $title);
+        $html .= "<div class=\"eiseIntraField\" id=\"field_{$name}\">";
 
-    if($conf['type']!='boolean'){
-        $html .= "<label id=\"title_{$name}\">".htmlspecialchars($title).":</label>";
+        $title = ($this->conf['auto_translate'] ? $this->translate($title) : $title);
+
+        if($conf['type']!='boolean'){
+            $html .= "<label id=\"title_{$name}\">".htmlspecialchars($title).":</label>";
+        } else {
+            $html .= "<label></label>";
+        }
+
+    }
+
+    if($name){
+
+        switch($conf['type']){
+
+            case "datetime":
+            case "date":
+                $html .= $this->showTextBox($name
+                    , ($conf['type']=='datetime' ? $this->datetimeSQL2PHP($value) : $this->dateSQL2PHP($value)) 
+                    , $conf); 
+                break;
+
+            case "select":
+            case "combobox"://backward-compatibility
+
+                $defaultConf = array();
+                $conf  = array_merge($defaultConf, $conf);
+
+                $conf['source'] = self::confVariations($conf, array('source', 'arrValues', 'strTable'));
+                $conf['source_prefix'] = self::confVariations($conf, array('source_prefix', 'prefix', 'prfx'));
+                $conf['strZeroOptnText'] = self::confVariations($conf, array('defaultText', 'textIfNull', 'strZeroOptnText'));
+
+                if (is_array($conf['source'])){
+                    $opts = $conf['source'];
+                } else {
+                    $rsCMB = $this->getDataFromCommonViews(null, null, $conf["source"]
+                        , $conf["source_prefix"]
+                        , (! ($this->arrUsrData['FlagWrite'] && (isset($conf['FlagWrite']) ? $conf['FlagWrite'] : 1) ) )
+                        , ''
+                        , true
+                        );
+                    $opts = Array();
+                    while($rwCMB = $oSQL->f($rsCMB))
+                        $opts[$rwCMB["optValue"]]=$rwCMB["optText"];
+                }
+                $html .= $this->showCombo($name, $value, $opts, $conf);
+                break;
+
+            case "ajax_dropdown":
+            case "typeahead":
+                $html .= $this->showAjaxDropdown($name, $value, $conf);
+                break;
+
+            case "boolean":
+            case "checkbox":
+                $html .= '<div class="eiseIntraValue eiseIntraCheckbox">';
+                $html .= $this->showCheckBox($name, $value, $conf);
+                $html .= '<label for="'.$name.'">'.htmlspecialchars($title).'</label>';
+                $html .= '</div>';
+                break;
+
+            case "textarea":
+                $html .= $this->showTextArea($name, $value, $conf);
+                break;
+
+            case 'text':
+            default:
+                $html .= $this->showTextBox($name, $value, $conf);
+                break;
+                    
+        }
+
     } else {
-        $html .= "<label></label>";
+
+        $html .= '<div class="eiseIntraValue">'.$value.'</div>';
+
     }
 
-    switch($conf['type']){
 
-        case "datetime":
-        case "date":
-            $html .= $this->showTextBox($name
-                , ($conf['type']=='datetime' ? $this->datetimeSQL2PHP($value) : $this->dateSQL2PHP($value)) 
-                , $conf); 
-            break;
+    if($title){
 
-        case "select":
-        case "combobox"://backward-compatibility
+        $html .= '</div>'."\r\n\r\n";
 
-            $defaultConf = array('strZeroOptnText'=>$this->translate('--please select'));
-            $conf  = array_merge($defaultConf, $conf);
-
-            if (is_array($conf['source'])){
-                $opts = $conf['source'];
-            } else {
-                $rsCMB = $this->getDataFromCommonViews(null, null, $conf["source"]
-                    , $conf["source_prefix"]
-                    , (! ($this->arrUsrData['FlagWrite'] && (isset($conf['FlagWrite']) ? $conf['FlagWrite'] : 1) ) )
-                    , ''
-                    , true
-                    );
-                $opts = Array();
-                while($rwCMB = $oSQL->f($rsCMB))
-                    $opts[$rwCMB["optValue"]]=$rwCMB["optText"];
-            }
-            $html .= $this->showCombo($name, $value, $opts, $conf);
-            break;
-
-        case "ajax_dropdown":
-        case "typeahead":
-            $html .= $this->showAjaxDropdown($name, $value, $conf);
-            break;
-
-        case "boolean":
-        case "checkbox":
-            $html .= '<div class="eiseIntraValue eiseIntraCheckbox">';
-            $html .= $this->showCheckBox($name, $value, $conf);
-            $html .= '<label for="'.$name.'">'.htmlspecialchars($title).'</label>';
-            $html .= '</div>';
-            break;
-
-        case "textarea":
-            $html .= $this->showTextArea($name, $value, $conf);
-            break;
-
-        case 'text':
-        default:
-            $html .= $this->showTextBox($name, $value, $conf);
-            break;
     }
-
-    $html .= '</div>'."\r\n\r\n";
 
     return $html;
 
@@ -662,9 +687,10 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
    
     $strAttrib = $arrConfig["strAttrib"];
     if ($flagWrite){
+        
         $strType = (in_array($arrConfig['type'], $this->arrHTML5AllowedInputTypes) ? $arrConfig["type"] : 'text');
 
-        $strClass .= ($strClass!='' ? ' ' : '').(in_array($arrConfig['type'], $this->arrClassInputTypes) ? 'eiseIntra_'.$arrConfig["type"] : '');
+        $strClass .= (!in_array($arrConfig['type'], $this->arrHTML5AllowedInputTypes) ? ($strClass!='' ? ' ' : '').'eiseIntra_'.$arrConfig["type"] : '');
 
         $strRet = "<input type=\"{$strType}\" name=\"{$strName}\" id=\"{$strName}\"".
             ($strAttrib ? " ".$strAttrib : "").
@@ -847,17 +873,11 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
 
-    $confSource = 'source';$confSource_compat = 'strTable';
-    $src = ($arrConfig[$confSource] ?  $confSource : $confSource_compat);
+    $src = eiseIntra::confVariations($arrConfig, array('source', 'strTable'));
+    $prf = eiseIntra::confVariations($arrConfig, array('source_prefix', 'prefix', 'strPrefix'));
+    $txt = eiseIntra::confVariations($arrConfig, array('text', 'strText'));
 
-    foreach(array('source_prefix', 'prefix', 'strPrefix') as $variation){
-        if(isset($arrConfig[$variation])){
-            $prf = $arrConfig[$variation];
-            break;
-        }
-    }
-
-    if(!isset($arrConfig[$src]))
+    if(!$src)
         throw new Exception("AJAX drop-down box has no source specified", 1);
 
 
@@ -865,21 +885,21 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
     
     $oSQL = $this->oSQL;
     
-    if ($strValue!="" && $arrConfig["strText"]==""){
-        $rs = $this->getDataFromCommonViews($strValue, "", $arrConfig[$src], $prf);
+    if ($strValue!="" && $txt==""){
+        $rs = $this->getDataFromCommonViews($strValue, "", $src, $prf);
         $rw = $oSQL->fetch_array($rs);
-        $arrConfig["strText"] = $rw["optText"];
+        $txt = $rw["optText"];
     }
     
     $strOut = "";
     $strOut .= "<input type=\"hidden\" name=\"$strFieldName\" id=\"$strFieldName\" value=\"".htmlspecialchars($strValue)."\">\r\n";
     
     if ($flagWrite){
-        $strOut .= $this->showTextBox($strFieldName."_text", $arrConfig["strText"]
+        $strOut .= $this->showTextBox($strFieldName."_text", $txt
             , array_merge(
                 $arrConfig 
                 , Array("FlagWrite"=>true
-                    , "strAttrib" => $arrConfig["strAttrib"]." src=\"{table:'{$arrConfig[$src]}', prefix:'{$prf}'}\" autocomplete=\"off\""
+                    , "strAttrib" => $arrConfig["strAttrib"]." src=\"{table:'{$src}', prefix:'{$prf}'}\" autocomplete=\"off\""
                     , 'type'=>"ajax_dropdown")
                 )
             );
@@ -888,7 +908,7 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
             .($strClass ? ' class="'.$strClass.'"' : "")
             .">"
             .($arrConfig['href'] ? "<a href=\"{$arrConfig['href']}\"".($arrConfig["target"] ? " target=\"{$arrConfig["target"]}\"" : '').">" : '')
-            .htmlspecialchars($arrConfig["strText"])
+            .htmlspecialchars($txt)
             .($arrConfig['href'] ? "</a>" : '')
             ."</div>\r\n";
     }
@@ -897,6 +917,27 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
     
 }
 
+/**
+ * Static functions that returns first occurence of configuration array $conf key variations passed as $variations parameter (array).
+ *
+ * @param $conf associative (configuration) array
+ * @param $variations enumerated array of variations
+ * 
+ * @return $conf array value of first occurence of supplied key variations. NULL if key not found
+ *
+ * @example echo eiseIntra::confVariations(array('foo'=>'bar', 'foo1'=>'bar1'), array('fee', 'foo', 'fuu', 'fyy'));
+ * output: bar
+ */
+private static function confVariations($conf, $variations){
+    $retVal = null;
+    foreach($variations as $variant){
+        if(isset($conf[$variant])){
+            $retVal = $conf[$variant];
+            break;
+        }
+    }
+    return $retVal;
+}
 
 /**
  * 

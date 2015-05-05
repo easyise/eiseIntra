@@ -366,7 +366,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     $staID = $this->staID;
 
     $lst = new eiseList($oSQL, $listName, Array('title'=>$this->conf["entTitle{$strLocal}Mul"].($staID!=="" 
-            ? ': '.$this->conf['STA'][$staID]["staTitle{$strLocal}"] 
+            ? ': '.($this->conf['STA'][$staID]["staTitle{$strLocal}Mul"] ? $this->conf['STA'][$staID]["staTitle{$strLocal}Mul"] : $this->conf['STA'][$staID]["staTitle{$strLocal}"])
             : '')
         ,  "intra" => $this->intra
         , "cookieName" => $listName.$staID

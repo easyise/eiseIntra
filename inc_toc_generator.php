@@ -79,7 +79,9 @@ while ($rw = $oSQL->fetch_array($rs)){
       $rsSta = $oSQL->do_query($sqlSta);
       while ($rwSta = $oSQL->fetch_array($rsSta)){
          echo "<li id='".$rw["pagID"]."_".$rwSta["staID"]."'><a target='pane' href='".
-            $rw["pagFile"]."?".$rw["pagEntityID"]."_staID=".$rwSta["staID"]."'>".$rwSta["staTitle{$intra->local}"]."</a>\r\n";
+            $rw["pagFile"]."?".$rw["pagEntityID"]."_staID=".$rwSta["staID"]."'>"
+            .($rwSta["staTitle{$intra->local}Mul"] ? $rwSta["staTitle{$intra->local}Mul"] : $rwSta["staTitle{$intra->local}"])
+            ."</a>\r\n";
       }
    }
    
