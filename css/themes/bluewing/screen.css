@@ -12,6 +12,10 @@ body{
     font-size: 8pt;
 }
 
+#toc li::first-letter {
+    text-transform: uppercase;
+}
+
 /********************************************************************/
 /* Header stuff                                                     */
 #corner_logo{
@@ -27,7 +31,7 @@ body{
     font-family: "Arial Black", Arial, sans-serif;
     font-weight: 900;
     font-size: 31px;
-    height: 31px;
+    height: 50px;
     color: #006699;
     padding: 12px 170px 7px 10px;
     text-align: center;
@@ -52,8 +56,10 @@ body{
     color: #fff;
     height: 12px;
     line-height: 12px;
-    padding: 1px 170px 0px 0px;
+    position: absolute;
     text-align: center;
+    top: 50px;
+    width: 100%;
 }
 
 #login_info a:link{
@@ -136,10 +142,8 @@ div.menubutton  {
     border-top: 1px solid ButtonFace;
     border-right: 1px solid ButtonFace;
     border-bottom: 1px solid ButtonFace;
-    padding: 4px 2px 3px 2px;
     margin: 2px;
     min-width: 100px;
-    height: 14px;
 }
 
 div.menubutton:first{
@@ -151,12 +155,14 @@ div.menubutton:hover{
 }
 
 .menubutton a {
-    text-decoration: none;
     color: #000000;
-    margin: 2px;
-    padding: 2px 10px 3px 24px;
     font-size: 11px;
-    height: 13px;
+    line-height: 16px;
+    height: 16px;
+    margin: 2px;
+    padding: 0 10px 0 24px;
+    text-decoration: none;
+    display: block;
 }
 
 .menubutton a:hover {
@@ -360,12 +366,14 @@ div.eiseIntraField {
 input.eiseIntra_date, input.eiseIntra_datetime {
     background: #fff url("/common/images/sprites/sprites.png") no-repeat right -2899px;
     padding-right: 5px;
+    padding-right: 20px;
 }
 
 .eiseIntra_ajax_dropdown {
     background-image: url("/common/images/sprites/sprites.png");
     background-position: right -17947px;
     background-repeat: no-repeat;
+    padding-right: 20px;
 }
 
 .eiseIntra_date {width: 8em !important;}   .eiseIntra_datetime {width: 14em !important;}

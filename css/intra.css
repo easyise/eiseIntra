@@ -9,6 +9,8 @@ body{
     height: 100%;
 }
 
+* { box-sizing: border-box;}
+
 form{   margin: 0 0 0 0;  padding: 0 0 0 0; }
 img {   border: 0 none; }
 
@@ -64,6 +66,14 @@ div.menubutton  {
 
 .ei_dialog_notitle .ui-dialog-titlebar {
     display:none;
+}
+
+.ui-dialog {
+    z-index: 100;
+}
+
+.ui-dialog .ui-dialog-titlebar-close span {
+    margin: -8px -8px !important;
 }
 
 .eiseIntraError {
