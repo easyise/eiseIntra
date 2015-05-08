@@ -660,6 +660,9 @@ createDialog: function( conf ){
 
         $frm.eiseIntraForm('addField', field );
 
+        if(field.type=='file')
+            $frm.attr('enctype', 'multipart/form-data')
+
     });
 
     $frm.append('<div class="eif_actionButtons">'
@@ -734,6 +737,12 @@ addField: function( field ){
         case 'password':
             element = $('<input type="password">');
             break;
+        case 'file':
+            element = $('<input type="file">');
+            break;
+        case 'checkbox':
+            element = $('<input type="checkbox">');
+            break;
         case 'hidden':
             element = $('<input type="hidden">');
             break;
@@ -754,11 +763,14 @@ addField: function( field ){
     if(field.name)
         element.attr('name', field.name);
 
-    if(field.value && !$.inArray(type, ['hr', 'p']))
+    if(field.value && $.inArray(type, ['hr', 'p', 'checkbox']) < 0 )
         element.val(field.value);
 
     if(field.value && type=='p')
         element.html(field.value);
+
+    if(field.value===true && type=='checkbox')
+        element.attr('checked', 'checked');
 
     if( field.type!='hidden' && field.title && $.inArray(type, ['hr', 'p'])<0 ){
 
@@ -776,8 +788,6 @@ addField: function( field ){
             
     }
     
-
-
     $field.appendTo(this);
 
     return $field;
