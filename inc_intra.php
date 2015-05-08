@@ -24,7 +24,7 @@ $arrCSS[] = eiseIntraRelativePath."intra.css";
 $arrCSS[] = commonStuffRelativePath."screen.css";
 */
 
-$arrJS[] = jQueryRelativePath."jquery-1.6.1.min.js";
+$arrJS[] = jQueryPath."jquery-1.6.1.min.js";
 $arrJS[] = eiseIntraJSPath."intra.js";
 $arrJS[] = eiseIntraJSPath."intra_execute.js";
 

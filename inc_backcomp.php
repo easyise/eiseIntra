@@ -1,4 +1,7 @@
 <?php
+define ("jQueryRelativePath", commonStuffRelativePath."jquery/");
+define ("jQueryUIRelativePath", jQueryRelativePath."ui/");
+
 $arrUsrData = $intra->arrUsrData;
 $usrID = $intra->usrID;
 $strLocal = $intra->local;

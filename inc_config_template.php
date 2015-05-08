@@ -20,9 +20,9 @@ define ("eiseIntraCSSTheme", 'bluewing');
 
 define ("commonStuffAbsolutePath", dirname(eiseIntraAbsolutePath).DIRECTORY_SEPARATOR);
 
-define ("jQueryRelativePath", commonStuffRelativePath."jquery/");
-define ("jQueryUIRelativePath", jQueryRelativePath."ui/");
-define ("jQueryUITheme","redmond");
+define ("jQueryPath", commonStuffRelativePath."jquery/");
+define ("jQueryUIPath", jQueryPath."jquery-ui-1.11.4.custom/");
+
 define ("imagesRelativePath", commonStuffRelativePath."images/");
 
 define ("eiseIntraCookiePath", "/"); // could be ("eiseIntraCookiePath", "/eiseAdmin/"); for eiseAdmin to allow its co-existance with other systems
