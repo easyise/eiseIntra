@@ -435,17 +435,21 @@ public function addAction($arrAction = null){
     // 3. insert ATV
 	// generate script that copy data from the master table
 	$arrFields = Array();
-    if (is_array($this->arrAction["aatFlagToTrack"]))
-        foreach($this->arrAction["aatFlagToTrack"] as $atrID => $rwAAT){
-            
-            // define attributes for timestamp
-            if ($rwAAT["aatFlagTimestamp"]) {
-                $this->arrAction["acl".$rwAAT["aatFlagTimestamp"]."_attr"] = ($rwAAT["aatFlagEmptyOnInsert"] ? "NULL" : $atrID);
-            }
-            
-    		$arrFields["l".$atrID] = ($rwAAT["aatFlagEmptyOnInsert"] ? "NULL" : $atrID);
-    		
+    foreach( (array)$this->arrAction["aatFlagToTrack"] as $atrID => $rwAAT ){
+        
+        // define attributes for timestamp
+        if ($rwAAT["aatFlagTimestamp"]) {
+            $this->arrAction["acl".$rwAAT["aatFlagTimestamp"]."_attr"] = ($rwAAT["aatFlagEmptyOnInsert"] ? "NULL" : $atrID);
         }
+        
+		$arrFields["l".$atrID] = ($rwAAT["aatFlagEmptyOnInsert"] 
+            ? "NULL" 
+            : ($rwAAT['aatFlagUserStamp'] 
+                ? $oSQL->e($this->intra->usrID)
+                : $atrID)
+            );
+		
+    }
 	
 
     
@@ -524,7 +528,6 @@ public function findAction($aclOldStatusID, $aclNewStatusID, $aclActionID, $aclA
     return $arrACL;
 }
 
-
 function finishAction(){
     $usrID = $this->intra->usrID;
     $oSQL = $this->oSQL;
@@ -547,8 +550,22 @@ function finishAction(){
     if ($this->arrAction["actID"]!="2") {
         $sqlUpdEntTable = "UPDATE {$this->conf["entTable"]} SET
             {$this->entID}ActionLogID='{$this->arrAction["aclGUID"]}'
-            , {$this->entID}EditBy='{$this->intra->usrID}', {$this->entID}EditDate=NOW()
-            WHERE {$this->entID}ID='{$this->entItemID}'";
+            , {$this->entID}EditBy='{$this->intra->usrID}', {$this->entID}EditDate=NOW()";
+
+        // update tracked attributes
+        foreach( (array)$this->arrAction["aatFlagToTrack"] as $atrID=>$xx ){
+            $sqlUpdEntTable .= "\r\n, {$atrID} = (SELECT l{$atrID} FROM {$this->conf["entTable"]}_log WHERE l{$this->entID}GUID='{$this->arrAction["aclGUID"]}')";
+        }
+
+        // update userstamps
+        foreach ( (array)$this->arrAction["aatFlagUserStamp"] as $atrID => $xx ) {
+            if(array_key_exists($atrID, (array)$this->arrAction["aatFlagToTrack"]))
+                continue;
+            $sqlUpdEntTable .= "\r\n, {$atrID} = ".$oSQL->e($this->intra->usrID);
+        }
+
+        $sqlUpdEntTable .= "\r\n";    
+        $sqlUpdEntTable .= "WHERE {$this->entID}ID='{$this->entItemID}'";
         $oSQL->do_query($sqlUpdEntTable);
     }
     
@@ -556,9 +573,7 @@ function finishAction(){
     if (count($this->arrAction["aatFlagToTrack"])>0){
         $sqlUpdMaster = "UPDATE {$this->conf["entTable"]} SET 
             {$this->entID}EditBy='{$this->intra->usrID}', {$this->entID}EditDate=NOW()";
-        foreach($this->arrAction["aatFlagToTrack"] as $atrID=>$xx){
-            $sqlUpdMaster .= "\r\n, {$atrID} = (SELECT l{$atrID} FROM {$this->conf["entTable"]}_log WHERE l{$this->entID}GUID='{$this->arrAction["aclGUID"]}')";
-        }
+        
         $sqlUpdMaster .= "\r\nWHERE {$this->entID}ID='{$this->entItemID}'";
         $oSQL->do_query($sqlUpdMaster);
     }
@@ -876,6 +891,11 @@ function updateActionLogItem($aclGUID, $arrACL = null){
         
         $newValue = null;
         $strACLInputID = $atrID."_".$aclGUID;
+
+        if($arrAAT['aatFlagUserStamp']){
+            $strEntityLogFldToSet .= ", l{$atrID} = ".$oSQL->e($this->intra->usrID);
+            continue;
+        }
         
         // if we have it in arrNewData: atrID_aclGUID
         if (isset($this->arrNewData[$strACLInputID])   ) {

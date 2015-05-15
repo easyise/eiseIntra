@@ -149,13 +149,18 @@ private function init(){
         if($rwAAt['aatFlagToTrack'])
             $this->conf['ACT'][$rwAAt['actID']]['aatFlagToTrack'][$rwAAt['aatAttributeID']] = array('aatFlagEmptyOnInsert'=>(int)$rwAAt['aatFlagEmptyOnInsert']
                 , 'aatFlagToChange'=>(int)$rwAAt['aatFlagToChange']
-                , 'aatFlagTimestamp'=>$rwAAt['aatFlagTimestamp']);
+                , 'aatFlagTimestamp'=>$rwAAt['aatFlagTimestamp']
+                , 'aatFlagUserStamp'=>$rwAAt['aatFlagUserStamp']
+                );
         if($rwAAt['aatFlagMandatory'])
             $this->conf['ACT'][$rwAAt['actID']]['aatFlagMandatory'][$rwAAt['aatAttributeID']] = array('aatFlagEmptyOnInsert'=>(int)$rwAAt['aatFlagEmptyOnInsert']
                 , 'aatFlagToChange'=>(int)$rwAAt['aatFlagToChange']);
         if($rwAAt['aatFlagTimestamp']){
             if (isset($this->conf['ACT'][$rwAAt['actID']]['aatFlagTimestamp'][$rwAAt['aatFlagTimestamp']]))
                 $this->conf['ACT'][$rwAAt['actID']]['aatFlagTimestamp'][$rwAAt['aatFlagTimestamp']] = $rwAAt['aatAttributeID'];
+        }
+        if($rwAAt['aatFlagUserStamp']){
+            $this->conf['ACT'][$rwAAt['actID']]['aatFlagUserStamp'][$rwAAt['aatAttributeID']] = $rwAAt['aatAttributeID'];
         }
             
     }

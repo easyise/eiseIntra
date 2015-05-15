@@ -99,6 +99,9 @@ $gridATR->Columns[] = Array(
         , 'type' => "order"
 );
 $gridATR->Columns[] = Array(
+        'field' => "atrID_old"
+);
+$gridATR->Columns[] = Array(
         'title' => $intra->translate("Field")
         , 'field' => "atrID"
         , 'type' => "text"
@@ -367,58 +370,72 @@ switch ($DataAction){
         $gridSTA->Update();
         $arrSTAToDelete = explode("|", $_POST["inp_sta_deleted"]);
         for($i=0;$i<count($arrSTAToDelete);$i++)
-           if ($arrSTAToDelete[$i]!=""){
-              $arrSta = explode("##", $arrSTAToDelete[$i]);
-              $staID = $arrSta[0];
-              $sqlACT = "SELECT atsID FROM stbl_action_status 
-			  	INNER JOIN stbl_action ON actID=atsActionID
-				WHERE (atsNewStatusID='".$staID."' OR atsOldStatusID='".$staID."') AND actEntityID='$entID'";
-              //echo $sqlACT; die();
-              $rsActToDel = $oSQL->do_query($sqlACT);
-              while ($rwATS = $oSQL->fetch_array($rsActToDel)){
-				  $sqlATS = "DELETE FROM tbl_action_status WHERE atsID='{$rwATS['atsID']}'";
-				  $oSQL->q($sqlATS);
-			  }
-              $sql[] = "DELETE FROM stbl_status_attribute WHERE satStatusID='".$staID."' AND satEntityID='$entID'";
-           }
+            if ($arrSTAToDelete[$i]!=""){
+                $arrSta = explode("##", $arrSTAToDelete[$i]);
+                $staID = $arrSta[0];
+                $sqlACT = "SELECT atsID FROM stbl_action_status 
+			  	    INNER JOIN stbl_action ON actID=atsActionID
+				    WHERE (atsNewStatusID='".$staID."' OR atsOldStatusID='".$staID."') AND actEntityID='$entID'";
+                //echo $sqlACT; die();
+                $rsActToDel = $oSQL->do_query($sqlACT);
+                while ($rwATS = $oSQL->fetch_array($rsActToDel)){
+				    $sqlATS = "DELETE FROM tbl_action_status WHERE atsID='{$rwATS['atsID']}'";
+				    $oSQL->q($sqlATS);
+			    }
+                $sql[] = "DELETE FROM stbl_status_attribute WHERE satStatusID='".$staID."' AND satEntityID='$entID'";
+            }
         
-        if (!$easyAdmin){
-            
-            include_once eiseIntraAbsolutePath.'/inc_entity.php';
-            $ent = new eiseEntity($oSQL, $intra, $entID);
+        include_once eiseIntraAbsolutePath.'/inc_entity.php';
+        $ent = new eiseEntity($oSQL, $intra, $entID);
 
-            $atrTableName = $ent->rwEnt['entTable'];
-            $arrTableInfo = $intra->getTableInfo('', $atrTableName);
+        $atrTableName = $ent->conf['entTable'];
+        $arrTableInfo = $intra->getTableInfo($oSQL->dbName, $atrTableName);
 
-            $arrSQLAlter = array();
-            $lastAddedColumn = '';
+        $arrSQLAlter = array();
+        $lastAddedColumn = '';
 
-            foreach ($_POST['inp_atr_updated'] as $ix => $value) {
-                if (!$value) //if not updated, skip it
-                    continue;
-                if ($_POST['atrID_id'][$ix]=='') { // if new one
+        foreach ($_POST['inp_atr_updated'] as $ix => $value) {
+            if (!$value) //if not updated, skip it
+                continue;
 
-                    $atrID = $entID.preg_replace('/([^a-z0-9]+)/i', '', $_POST['atrTitle'][$ix]);
-                    $_POST['atrID'][$ix] = $atrID;
-                    $sqlA = $ent->getEntityTableALTER($atrID, $_POST['atrType'][$ix], 'add');
-                    if ($sqlA){
-                        $arrSQLAlter = array_merge($arrSQLAlter, $sqlA);
-                        $lastAddedColumn = $atrID;
-                    }
+            if ($_POST['atrID_id'][$ix]=='') { // if new one
 
-                } else { // if old one change its type
+                $atrID = $entID.preg_replace('/([^a-z0-9]+)/i', '', $_POST['atrTitle'][$ix]);
+                $_POST['atrID'][$ix] = $atrID;
+                $sqlA = $ent->getEntityTableALTER($atrID, $_POST['atrType'][$ix], 'add');
+                if ($sqlA){
+                    $arrSQLAlter = array_merge($arrSQLAlter, $sqlA);
+                    $lastAddedColumn = $atrID;
+                }
 
-                    $newIntraDataType = $intra->arrAttributeTypes[$_POST['atrType'][$ix]];
-                    $oldIntraDataType = $arrTableInfo['columns'][$_POST['atrID'][$ix]]['DataType'];
+            } else { // if old one change its type
 
-                    if ($newIntraDataType!=$oldIntraDataType){
-                        $sqlA = $ent->getEntityTableALTER($_POST['atrID'][$ix], $_POST['atrType'][$ix], 'change');
-                        if ($sqlA)
-                            $arrSQLAlter = array_merge($arrSQLAlter, $sqlA);
-                    }
+                if ($_POST['atrID_old'][$ix]!=$_POST['atrID'][$ix]){
+                    $newAtrID = trim($_POST['atrID'][$ix]);
+                    $sqlUpdSTA = "UPDATE stbl_status_attribute SET satAttributeID=".$oSQL->e($newAtrID)." 
+                        WHERE satAttributeID=".$oSQL->e($_POST['atrID_old'][$ix])."
+                            AND satEntityID=".$oSQL->e($entID);
+                    $oSQL->q($sqlUpdSTA);
+                    $sqlUpdAAT = "UPDATE stbl_action_attribute INNER JOIN stbl_action ON aatActionID=actID SET aatAttributeID=".$oSQL->e($newAtrID)." 
+                        WHERE aatAttributeID=".$oSQL->e($_POST['atrID_old'][$ix])."
+                            AND actEntityID=".$oSQL->e($entID);
+                    $oSQL->q($sqlUpdAAT);
 
                 }
+
+                $newIntraDataType = $intra->arrAttributeTypes[$_POST['atrType'][$ix]];
+                $oldIntraDataType = $arrTableInfo['columns'][$_POST['atrID'][$ix]]['DataType'];
+
+                if ($newIntraDataType!=$oldIntraDataType){
+                    $sqlA = $ent->getEntityTableALTER($_POST['atrID'][$ix], $_POST['atrType'][$ix], 'change');
+                    if ($sqlA)
+                        $arrSQLAlter = array_merge($arrSQLAlter, $sqlA);
+                }
+
             }
+        }
+
+        if (!$easyAdmin){
 
             if ($lastAddedColumn!=''){
                 $strCodeMaster .= "CHANGE ".$entID."InsertBy ".$entID."InsertBy VARCHAR(255) NULL DEFAULT NULL  AFTER {$lastAddedColumn}";
@@ -621,6 +638,7 @@ $sqlATR = "SELECT * FROM stbl_attribute WHERE atrEntityID='$entID' ORDER BY atrO
 $rsATR = $oSQL->do_query($sqlATR);
 while ($rwATR = $oSQL->fetch_array($rsATR)){
     $rwATR['atrID_id'] = $rwATR['atrID']."##".$entID;
+    $rwATR['atrID_old'] = $rwATR['atrID'];
     $gridATR->Rows[] = $rwATR;
 }
 
