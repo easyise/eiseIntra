@@ -586,6 +586,9 @@ public function field( $title, $name, $value, $conf=array() ){
                 $conf['source_prefix'] = self::confVariations($conf, array('source_prefix', 'prefix', 'prfx'));
                 $conf['strZeroOptnText'] = self::confVariations($conf, array('defaultText', 'textIfNull', 'strZeroOptnText'));
 
+                if(!$conf['source'])
+                  $conf['source'] = array();
+
                 if (is_array($conf['source'])){
                     $opts = $conf['source'];
                 } else {
