@@ -792,6 +792,42 @@ addField: function( field ){
 
     return $field;
 
+},
+
+/**
+ * This function  adjusts fieldset heights by maximum height, within the range specified in ixStart and ixFinish indexes
+ * WARNING: works under box-sizing: border-box
+ *
+ */
+adjustFieldsetHeights: function(ixStart, ixFinish){
+
+    ixStart = typeof(ixStart)=='undefined' ? 0 : ixStart;
+    ixFinish = typeof(ixFinish)=='undefined' ? 1 : ixFinish;
+
+    return this.each(function(){
+
+        var hMax = 0;
+        $(this).find('fieldset').each(function(ix){
+            if(ix<ixStart || ix>ixFinish)
+                return true; //continue
+            hMax = $(this).outerHeight(true) > hMax ? $(this).outerHeight(true) : hMax;
+        });
+
+
+        $(this).find('fieldset').each(function(ix){
+
+            if(ix<ixStart || ix>ixFinish)
+                return true; //continue
+
+            if($(this).outerHeight(true)<hMax){
+                var margins = $(this).outerHeight(true)-$(this).outerHeight(false);
+                $(this).height(hMax - margins);
+            }
+        });
+
+    });
+
+    
 }
 
 };

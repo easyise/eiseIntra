@@ -558,7 +558,9 @@ public function field( $title, $name, $value, $conf=array() ){
         $title = ($this->conf['auto_translate'] ? $this->translate($title) : $title);
 
         if($conf['type']!='boolean'){
-            $html .= "<label id=\"title_{$name}\">".htmlspecialchars($title).":</label>";
+            $html .= "<label id=\"title_{$name}\">".htmlspecialchars($title).(
+                trim($title)!='' ? ':' : ''
+              )."</label>";
         } else {
             $html .= "<label></label>";
         }
