@@ -1287,7 +1287,12 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
         $strExtra = '';
         if ($extra!=''){
             $arrExtra = explode("|", $extra);
-            foreach($arrExtra as $ix=>$ex){ $strExtra = ' AND extra'.($ix==0 ? '' : $ix).' = '.$oSQL->e($ex); }
+            foreach($arrExtra as $ix=>$ex){ 
+                $ex = trim($ex);
+                $strExtra .= ($ex!='' 
+                    ? ' AND extra'.($ix==0 ? '' : $ix).' = '.$oSQL->e($ex) 
+                    : ''); 
+            }
         }
 
         $arrVariations = self::getKeyboardVariations($strText);
