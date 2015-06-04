@@ -706,14 +706,14 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
                     .' title="'.htmlspecialchars($arrConfig["placeholder"]).'"'
                 : "").
             ($arrConfig["maxlength"] ? " maxlength=\"{$arrConfig["maxlength"]}\"" : "").
-       " value=\"".htmlspecialchars($strValue)."\" />\r\n";
+       " value=\"".htmlspecialchars($strValue)."\" />";
     } else {
         $strRet = "<div id=\"span_{$strName}\"".
         ($strAttrib ? " ".$strAttrib : "").
         ($strClass ? ' class="'.$strClass.'"' : "").">".
         htmlspecialchars($strValue)."</div>\r\n".
         "<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\"".
-        " value=\"".htmlspecialchars($strValue)."\" />\r\n";
+        " value=\"".htmlspecialchars($strValue)."\" />";
     }
     
    return $strRet;
