@@ -1273,6 +1273,34 @@ function GetJoinSentenceByCBSource($sqlSentence, $entField, &$strText, &$strValu
 /***********************************************************************************/
 /* Comments Routines                                                               */
 /***********************************************************************************/
+static function addComment($arrCommentData){
+    
+    GLOBAL $intra;
+    $oSQL = $intra->oSQL;
+    $usrID = $intra->usrID;
+
+    $oSQL->do_query("SET @scmGUID=UUID()");
+    
+    $sqlIns = "INSERT INTO stbl_comments (
+         scmGUID
+         , scmEntityItemID
+         , scmAttachmentID
+         , scmContent
+         , scmInsertBy, scmInsertDate, scmEditBy, scmEditDate
+         ) VALUES (
+         @scmGUID
+         , ".($arrCommentData['scmEntityItemID']!="" ? "'".$arrCommentData['scmEntityItemID']."'" : "NULL")."
+         , ".($arrCommentData['scmAttachmentID']!="" ? "'".$arrCommentData['scmAttachmentID']."'" : "NULL")."
+         , ".$oSQL->escape_string($arrCommentData['scmContent'])."
+         , '{$intra->usrID}', NOW(), '{$intra->usrID}', NOW());";
+    $oSQL->do_query($sqlIns);
+     
+    $scmGUID = $oSQL->get_data($oSQL->do_query("SELECT @scmGUID as scmGUID"));
+    
+    return $scmGUID; 
+
+}
+
 static function updateComments($DataAction){
 
 GLOBAL $intra;
@@ -1288,25 +1316,9 @@ switch ($DataAction) {
        die();
        break;
     case "add_comment":
-       
-       $oSQL->do_query("SET @scmGUID=UUID()");
-       
-       $sqlIns = "INSERT INTO stbl_comments (
-            scmGUID
-            , scmEntityItemID
-            , scmAttachmentID
-            , scmContent
-            , scmInsertBy, scmInsertDate, scmEditBy, scmEditDate
-            ) VALUES (
-            @scmGUID
-            , ".($_GET['scmEntityItemID']!="" ? "'".$_GET['scmEntityItemID']."'" : "NULL")."
-            , ".($_GET['scmAttachmentID']!="" ? "'".$_GET['scmAttachmentID']."'" : "NULL")."
-            , ".$oSQL->escape_string($_GET['scmContent'])."
-            , '{$intra->usrID}', NOW(), '{$intra->usrID}', NOW());";
-        $oSQL->do_query($sqlIns);
         
-        $scmGUID = $oSQL->get_data($oSQL->do_query("SELECT @scmGUID as scmGUID"));
-        
+        self::addComment($_GET);
+       
         $arrData = Array("scmGUID"=>$scmGUID
             , "user"=>$intra->getUserData($intra->usrID).' '.$intra->translate('at').' '
                 .date("d.m.Y H:i"));
