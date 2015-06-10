@@ -551,14 +551,14 @@ public function field( $title, $name, $value, $conf=array() ){
 
     $html = '';
 
-    if($title) {
+    if($title!==null) {
 
-        $html .= "<div class=\"eiseIntraField\" id=\"field_{$name}\">";
+        $html .= "<div class=\"eiseIntraField\"".($name!='' ? " id=\"field_{$name}\"" : '').">";
 
         $title = ($this->conf['auto_translate'] ? $this->translate($title) : $title);
 
-        if($conf['type']!='boolean'){
-            $html .= "<label id=\"title_{$name}\">".htmlspecialchars($title).(
+        if(!in_array($conf['type'], array('boolean', 'checkbox')) ) {
+            $html .= "<label".($name!='' ? " id=\"title_{$name}\"" : '').">".htmlspecialchars($title).(
                 trim($title)!='' ? ':' : ''
               )."</label>";
         } else {
@@ -620,6 +620,12 @@ public function field( $title, $name, $value, $conf=array() ){
                 $html .= '</div>';
                 break;
 
+            case 'submit':
+            case 'delete':
+            case 'button':
+                $html .= $this->showButton($name, $value, $conf);
+                break;
+
             case "textarea":
                 $html .= $this->showTextArea($name, $value, $conf);
                 break;
@@ -638,7 +644,7 @@ public function field( $title, $name, $value, $conf=array() ){
     }
 
 
-    if($title){
+    if($title!==null){
 
         $html .= '</div>'."\r\n\r\n";
 
@@ -752,6 +758,54 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
     }
     return $strRet;        
     
+}
+
+/**
+ * showButton() method returns <input type="submit"> or <button> HTML. Input type should be specified in $arrConfig['type'] member. 
+ *
+ * @return HTML string
+ *
+ * @param $strName - button name and id, can be empty or null
+ * @param $strValue - button label
+ * @param $arrConfing - configuration array. The same as for any other form elements. Supported input types ($arrConfig['type'] values) are:
+ *      - submit - <input type="submit" class="eiseIntraActionSubmit"> will be returned
+ *      - delete - method will return <button class="eiseIntraDelete">
+ *      - button (default) - <button> element will be returned
+ */
+function showButton($strName, $strValue, $arrConfig=array()){
+
+    if(!is_array($arrConfig)){
+        $arrConfig = Array("strAttrib"=>$arrConfig);
+    }
+    
+
+
+    $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
+    
+    $o = $this->conf['addEiseIntraValueClass'];
+    $this->conf['addEiseIntraValueClass'] = false;
+    $strClass = $this->handleClass($arrConfig);
+    $this->conf['addEiseIntraValueClass'] = $o;
+
+    $value = ($this->conf['auto_translate'] ? $this->translate($strValue) : $strValue);
+
+    if($arrConfig['type']=='submit'){
+        $strRet = '<input type="submit"'
+            .($strName!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
+            .' class="eiseIntraActionSubmit'.($strClass!='' ? ' ' : '').$strClass.'"'
+            .(!$flagWrite ? ' disabled' : '')
+            .' value="'.htmlspecialchars($value).'">';
+    } else {
+        if($arrConfig['type']=='delete')
+            $strClass = 'eiseIntraDelete'.($strClass!='' ? ' ' : '').$strClass;
+        $strRet = '<button'
+            .($strName!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
+            .(!$flagWrite ? ' disabled' : '')
+            .'>'.$value.'</button>';
+    }
+
+    return $strRet;
+
 }
 
 function showCombo($strName, $strValue, $arrOptions, $arrConfig=Array()){
