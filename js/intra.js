@@ -769,18 +769,22 @@ addField: function( field ){
     if(field.value && type=='p')
         element.html(field.value);
 
-    if(field.value===true && type=='checkbox')
+    if((field.value===true || field.checked) && type=='checkbox')
         element.attr('checked', 'checked');
 
     if( field.type!='hidden' && field.title && $.inArray(type, ['hr', 'p'])<0 ){
-
-        element.addClass('eiseIntraValue');
 
         if(field.required){
             element.attr('required', 'required');
         }
 
-        var $field = $('<div class="eiseIntraField"><label>'+field.title+':</label></div>').append(element);
+
+        var $field = (type=='checkbox' 
+            ? $('<div>')
+                .append('<label></label>')
+                .append( $('<label>'+field.title+'</label>').prepend(element).addClass('eiseIntraValue') )
+            : $('<div><label>'+field.title+':</label></div>').append(element.addClass('eiseIntraValue'))
+            ).addClass('eiseIntraField');
 
     } else {
         

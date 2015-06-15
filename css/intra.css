@@ -143,6 +143,10 @@ div.menubutton  {
     padding-right: 1% !important;
 }
 
+.eiseIntraForm label.eiseIntraValue {
+    text-align: left;
+}
+
 .eiseIntraForm .eiseIntraValue{
     clear: right;
     width: 73%;
