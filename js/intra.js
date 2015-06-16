@@ -37,10 +37,16 @@ var getInput = function($form, strFieldName){
 
 }
 
+var getAllInputs = function($form){
+
+    return $form.find('.eiseIntraField input,.eiseIntraField select,.eiseIntraField textarea');
+
+}
+
 var getInputType = function($inp){
     var strType = ($inp.attr('type') ? $inp.attr('type') : 'text');
     if(strType=='text'){
-        var classList =$inp.attr('class').split(/\s+/);
+        var classList = ($inp.attr('class') ? $inp.attr('class').split(/\s+/) : []);
         $.each( classList, function(index, item){
             if (item.match(/^eiseIntra_/)) {
                 switch(item){
@@ -78,11 +84,13 @@ var setCurrentDate = function(oInp){
 }
 
 var getFieldLabel = function(oInp){
-    return oInp.prev('label');
+    return oInp.parents('.eiseIntraField').first().find('label').last();
 }
 var getFieldLabelText = function(oInp){
     return getFieldLabel(oInp).text().replace(/[\:\*]+$/, '');
 }
+
+var arrInitiallyRequiredFields = [];
 
 var methods = {
 
@@ -128,7 +136,7 @@ init: function( options ) {
 
         }
         
-        $this.find('input[type!=hidden],select').each(function() {
+        getAllInputs($this).each(function() {
             switch ($(this).attr('type')){ 
                 case "date":
                     if (conf.isDateInputSupported){
@@ -153,16 +161,15 @@ init: function( options ) {
             }
             $(this).change(function(){
                 $(this).addClass('eif_changed');
-            })
+            });
+            if( $(this).attr('required')=='required' && $(this).attr('id')!=''){
+                arrInitiallyRequiredFields.push($(this).attr('id'));
+            }
             
         });
-    
+
         $this.find('input[type="submit"]').each(function(){
             $(this).addClass('eiseIntraSubmit');
-        });
-    
-        $this.find('select.eiseIntraValue').each(function() {
-            //$(this).css('width', 'auto');
         });
     
         $this.find('input.eiseIntra_date, input.eiseIntra_datetime').each(function() {
@@ -255,13 +262,12 @@ init: function( options ) {
 
         })
         
-        $this.find('input.eiseIntraDelete').each(function() {
-            $(this).click(function(ev){
+        $this.find('input.eiseIntraDelete').click(function(ev){
                 if (confirm("Are you sure you'd like to delete?")){
+                    $this.find('input,select').removeAttr('required');
                     $this.find('#DataAction').val('delete');
                     $this.submit();
                 } 
-            });
         });
         
     });
@@ -272,26 +278,27 @@ validate: function( ) {
     if ($(this).find('#DataAction')=='delete')
         return true;
     
-    var canSubmit = true;
+    var canSubmit = true,
+        conf = $(this).data('eiseIntraForm').conf,
+        $this = $(this);
     
-    var conf = $(this).data('eiseIntraForm').conf;
-    
-    $(this).find('input.eiseIntraValue,select.eiseIntraValue').each(function() {
-        
-        var strValue = $(this).val();
-        var strType = getInputType($(this));
-        
-        var strRegExDateToUse = '';
+    getAllInputs($this).each(function() {
 
-        var $inpToCheck = $(this).hasClass("eiseIntra_ajax_dropdown") ? $(this).prev("input") : $(this);
-        
-        if ($inpToCheck.attr('required')==='required' && $inpToCheck.val()===""){
-            alert(getFieldLabelText($inpToCheck)+" is mandatory");
-            $(this).focus();
-            canSubmit = false;
-            return false; //break;
+        var strValue = $(this).val()
+            ,strType = getInputType($(this))
+            ,strRegExDateToUse = ''
+            ,$inpToCheck=$(this);
+
+        if ($inpToCheck.attr('required')==='required'){
+            if ($inpToCheck.val()===""){
+                alert(getFieldLabelText($inpToCheck)+" is mandatory");
+                $(this).focus();
+                canSubmit = false;
+                return false; //break;
+            }
         }
         
+
         switch (strType){
             case "number":
                 nValue = parseFloat(strValue
@@ -342,12 +349,13 @@ makeMandatory: function( obj ) {
 
     return this.each(function(){
     
-    $(this).find('input,select,textarea').each(function(){
+    getAllInputs($(this)).each(function(){
+
         if ($(this).attr('type')=='hidden')
             return true; // continue
         
         var label = getFieldLabel($(this));
-        if(label[0]){
+        if(label[0] && $.inArray( $(this).attr('id'), arrInitiallyRequiredFields ) < 0){
             label.text(label.text().replace(/\*\:$/, ":"));
             $(this).removeAttr('required');    
         }
@@ -1094,7 +1102,7 @@ function MsgShow(text){
                 
                 msg = msg.replace(/(^ERROR(\:){0,1}\s*)/i, '');
 
-                $sysmsg.css('white-space', 'normal');
+                $sysmsg.css('white-space', 'pre');
 
                 $sysmsg.append('<p style="margin-left: 20px; margin-top:0">'+msg+'</p>').find('#sysmsgicon').addClass('ui-icon-alert');
 
