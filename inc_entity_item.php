@@ -151,7 +151,7 @@ function getEntityItemAllData($toRetrieve = null){
         foreach($this->conf["ATR"] as $atrID=>$rwATR){
             
             if (in_array($rwATR["atrType"], Array("combobox", "ajax_dropdown"))){
-                $this->item[$rwATR["atrID"]."_Text"] = $this->getDropDownText($rwATR, $this->item[$rwATR["atrID"]]);
+                $this->item[$rwATR["atrID"]."_text"] = $this->getDropDownText($rwATR, $this->item[$rwATR["atrID"]]);
             }
 
         }
@@ -1617,7 +1617,7 @@ function archive($arrExtraTables = Array()) {
 		switch ($rwATR["atrType"]){
 			case "combobox":
 			case "ajax_dropdown":
-				$val = $oSQL->e($this->item[$atrID."_Text"]);
+				$val = $oSQL->e($this->item[$atrID."_text"]);
 				break;
 			case "number":
 			case "numeric":

@@ -587,7 +587,7 @@ public function getFieldsHTML($arrConfig = Array()){
         
         if ( isset($this->item) ){
             $rwAtr["value"] = $this->item[$rwAtr["atrID"]];
-            $rwAtr["text"] = $this->item[$rwAtr["atrID"]."_Text"];
+            $rwAtr["text"] = $this->item[$rwAtr["atrID"]."_text"];
         }
 
         $rwAtr['FlagWrite'] = $FlagWrite;
