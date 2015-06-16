@@ -208,15 +208,12 @@ echo $strFields;
 /**
  * 
  */
-function field($atr){
+function field( $atr, $arrConf = array() ){
 
     $intra = $this->intra;
 
-    $field = '';
-
     if ($atr=='__comments'){
-        $field .= $this->showComments();
-        return $field;
+        return $this->showComments();
     }
 
     if(!isset($this->conf['STA'][(int)$this->staID]['satFlagShowInForm'][$atr]))
@@ -224,18 +221,18 @@ function field($atr){
 
     $rwAtr = $this->conf['ATR'][$atr];
 
-    $field .= ($field!="" ? "\r\n" : "");
-    $field .= "<div class=\"eiseIntraField\">";
-    $field .= "<label id=\"title_{$rwAtr["atrID"]}\">".$rwAtr["atrTitle{$intra->local}"].":</label>";
-    
-    $rwAtr["value"] = $this->item[$rwAtr["atrID"]];
-    $rwAtr["text"] = $this->item[$rwAtr["atrID"]."_Text"];
-    $rwAtr['FlagWrite'] = ($intra->arrUsrData["FlagWrite"] && $this->conf['STA'][(int)$this->staID]['satFlagShowInForm'][$atr]);
+    $arrConf = array_merge(
+        array('type'=>$rwAtr['atrType']
+            , 'text' => $this->item[$rwAtr["atrID"]."_text"]
+            , 'source' => $rwAtr['atrDataSource']
+            , 'source_prefix' => $rwAtr['atrProgrammerReserved']
+            , 'FlagWrite' => $this->conf['STA'][(int)$this->staID]['satFlagShowInForm'][$atr]
+            , 'UOM' => $rwAtr['atrUOMTypeID']
+            )
+        , $arrConf
+        );
 
-    $field .=  $this->showAttributeValue($rwAtr, "");
-    $field .= "</div>\r\n\r\n";
-
-    return $field;
+    return $this->intra->field($rwAtr["atrTitle{$intra->local}"], $rwAtr['atrID'], $this->item[$rwAtr["atrID"]], $arrConf);
 
 }
 
