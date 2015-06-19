@@ -597,7 +597,7 @@ public function field( $title, $name, $value, $conf=array() ){
                     $rsCMB = $this->getDataFromCommonViews(null, null, $conf["source"]
                         , $conf["source_prefix"]
                         , (! ($this->arrUsrData['FlagWrite'] && (isset($conf['FlagWrite']) ? $conf['FlagWrite'] : 1) ) )
-                        , ''
+                        , (string)$conf['extra']
                         , true
                         );
                     $opts = Array();
@@ -826,7 +826,7 @@ function showCombo($strName, $strValue, $arrOptions, $arrConfig=Array()){
         $retVal .= "<select id=\"".$strName."\" name=\"".$strName."\"".$strAttrib.
             ($strClass ? ' class="'.$strClass.'"' : "").
             ($arrConfig["required"] ? " required=\"required\"" : "").">\r\n";
-        if ($arrConfig["strZeroOptnText"]){
+        if ($arrConfig["strZeroOptnText"]!==null){
             $retVal .= "<option value=\"\">".htmlspecialchars($arrConfig["strZeroOptnText"])."</option>\r\n" ;
         }
         if (!isset($arrConfig['deletedOptions']))
