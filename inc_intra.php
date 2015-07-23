@@ -558,9 +558,11 @@ public function field( $title, $name, $value, $conf=array() ){
         $title = ($this->conf['auto_translate'] ? $this->translate($title) : $title);
 
         if(!in_array($conf['type'], array('boolean', 'checkbox')) ) {
-            $html .= "<label".($name!='' ? " id=\"title_{$name}\"" : '').">".htmlspecialchars($title).(
-                trim($title)!='' ? ':' : ''
-              )."</label>";
+            if ($title!==''){
+                $html .= "<label".($name!='' ? " id=\"title_{$name}\"" : '').">".htmlspecialchars($title).(
+                    trim($title)!='' ? ':' : ''
+                  )."</label>";
+            }
         } else {
             $html .= "<label></label>";
         }

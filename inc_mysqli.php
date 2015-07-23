@@ -91,6 +91,10 @@ class eiseSQL extends mysqli{
     function unq($sqlReadyValue){
         return (strtoupper($sqlReadyValue)=='NULL' ? null : (string)preg_replace("/^(')(.*)(')$/", '\2', $sqlReadyValue));
     }
+
+    function secure($arg){
+        return $this->unq($this->e($arg));
+    }
     
     //do_query, returns object mysqli_result
     function q($query){ 
