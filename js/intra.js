@@ -645,6 +645,7 @@ encodeAuthString: function(){
  * @param {Object} conf
  * @param {String} conf.action Form "action" acttribute
  * @param {String} conf.method Form "method" acttribute
+ * @param {Boolean} conf.flagUnsubmittable =true, if form should not be submitted 
  * @param {Function} conf.onsubmit Callback for onSubmit form event
  * @param {Array} conf.fields Fields array, see "addField()" method for details.
  * @return {jQuery} jQuery object with created FORM element.
@@ -673,9 +674,11 @@ createDialog: function( conf ){
 
     });
 
+    var btnCloseTitle = (conf.flagUnsubmittable ? 'Close' : 'Cancel');
+
     $frm.append('<div class="eif_actionButtons">'
-        +'<input type="submit" value="OK" class="eiseIntraSubmit">'
-        +'<input type="button" value="Cancel" class="eif_btnClose">'
+        +(conf.flagUnsubmittable ? '' : '<input type="submit" value="OK" class="eiseIntraSubmit">')
+        +'<input type="button" value="'+btnCloseTitle+'" class="eif_btnClose">'
         +'</div>');
 
     $frm.eiseIntraForm('init').submit(function(){
