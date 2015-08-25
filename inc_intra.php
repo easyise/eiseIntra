@@ -3,11 +3,11 @@
  *
  * eiseIntra core class
  *
- * Authentication, form elements display, data input/output handling routines, archive/restore functions
+ * Authentication, form elements display, data handling routines, archive/restore functions
  *
  *
  * @package eiseIntra
- * @version 2.0.0beta
+ * @version 1.0.15
  *
  */
 
@@ -15,24 +15,24 @@
 include "inc_config.php";
 include "inc_mysqli.php";
 
+/*
+$arrJS[] = eiseIntraRelativePath."intra.js";
+$arrJS[] = eiseIntraRelativePath."intra_execute.js";
+
+$arrCSS[] = imagesRelativePath."sprites/sprite.css";
+$arrCSS[] = eiseIntraRelativePath."intra.css";
+$arrCSS[] = commonStuffRelativePath."screen.css";
+*/
+
+$arrJS[] = jQueryPath."jquery-1.6.1.min.js";
+$arrJS[] = eiseIntraJSPath."intra.js";
+$arrJS[] = eiseIntraJSPath."intra_execute.js";
+
+$arrCSS[] = eiseIntraCSSPath.'themes/'.eiseIntraCSSTheme.'/screen.css';
+$arrCSS[] = imagesRelativePath."sprites/sprite.css";
+
+
 class eiseIntra {
-
-public static $arrPreloadCSS = array(
-    "{BootstrapPath}css/bootstrap.css"
-    , "{eiseIntraLibRelativePath}metisMenu/dist/metisMenu.css"
-    , "{eiseIntraLibRelativePath}font-awesome/css/font-awesome.css"
-    , "{eiseIntraCSSPath}themes/{eiseIntraCSSTheme}/style.css"
-    );
-public static $arrPreloadJS = array(
-    "{jQueryPath}jquery-1.11.3.js"
-    , "{BootstrapPath}js/bootstrap.js"
-    , "{jQueryUIPath}jquery-ui.js"
-    , "{eiseIntraLibRelativePath}metisMenu/dist/metisMenu.js"
-    , "{eiseIntraJSPath}intra.js"
-    , "{eiseIntraJSPath}intra_execute.js"
-    );
-
-const cachePreventorVar = 'nc';
 
 public $arrDataTypes = array("integer", "real", "boolean", "text", "binary", "date", "time", "datetime","FK","PK");
 
@@ -58,53 +58,27 @@ private $arrHTML5AllowedInputTypes =
 private $arrClassInputTypes = 
     Array("ajax_dropdown", "date", "datetime", "datetime-local", "time");
 
+const cachePreventorVar = 'nc';
+const dataActionKey = 'DataAction';
+const dataReadKey = 'DataAction';
 
 static $arrKeyboard = array(
         'EN' =>   'qwertyuiop[]asdfghjkl;\'\\zxcvbnm,./QWERTYUIOP{}ASDFGHJKL:"|ZXCVBNM<>?'
         , 'RU' => 'йцукенгшщзхъфывапролджэёячсмитьбю/ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЁЯЧСМИТЬБЮ?'
     );
-/**
- * eiseIntra class constructor
- *
- * @param $oSQL - eiseSQL object 
- * @param $conf - configuration array. Constructor merges specified values with $eiseIntraConf global array. 
- *  Full member list is the following:
- *  - dateFormat (default: "d.m.Y") date format, see PHP date() function reference
- *  - timeFormat (default: "H:i") time format, see PHP date() function reference
- *  - decimalPlaces (default: "2") default decimal places
- *  - decimalSeparator (default: ".") decimal separator
- *  - thousandsSeparator (default: ",") thousand separator
- *  - logofftimeout (default: 360) user log-off (session) timeout, default is 6 hours 
- *  - addEiseIntraValueClass (default: true) flag that allows to add eiseIntraValue class
- *  - keyboards (default: 'EN,RU') - available keyboard layouts
- *  - flagSetGlobalCookieOnRedirect - if true, eiseIntra::redirect() method will set user message cookie path to eiseIntraCookiePath constant value
- *  - localLanguage - local language according to ISO-639-1 standard (example: 'ru' for Russian)
- *  - localCountry - local country name ISO code (example: 'RU' for Russia)
- *  - localCurrency - local currency ISO code (example: 'RUB' for Russian roubles)
- *  - strSubTitle - system subtitle to warn user about non-production environment (example: 'DEVELOPMENT')
- *  - strSubTitleLocal - system subtitle to warn user about non-production environment, in local language (example: 'Версия разработчика')
- *  - flagCollectKeys - if true, system collects arguments passed to eiseIntra::translate() method when system work in local language mode
- *  - flagBuildLess - if true, system rebuilts style.css for selected theme using eiseIntra::buildLess() static function. Remember to turn it off on production!
- *  - strFrontEndSuffix - string value, recommended to be set to '.min' on production. This will force PHP to insert links to compressed versions of JS and CSS scripts. E.g. 300K jquery-1.11.3.js is more usable on development environment, but end-users should receive compressed to 100K jquery-1.11.3.min.js.
- */
+
 function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory anymore
 
-    GLOBAL $eiseIntraConf;
-
-    $this->conf = array_merge(
-        (array)$eiseIntraConf
-        , Array(                    //defaults for intra
-            'dateFormat' => "d.m.Y" // date format, see PHP date() function reference
-            , 'timeFormat' => "H:i" // time format, see PHP date() function reference
-            , 'decimalPlaces' => "2" // default decimal places
-            , 'decimalSeparator' => "." // decimal separator
-            , 'thousandsSeparator' => "," // thousand separator
-            , 'logofftimeout' => 360 // user log-off timeout, default is 6 hours 
-            , 'addEiseIntraValueClass' => true // flag
-            , 'keyboards' => 'EN,RU'
-            , 'dataActionKey' => 'DataAction'
-            , 'dataReadKey' => 'DataAction'
-        )
+    $this->conf = Array(                    //defaults for intra
+        'dateFormat' => "d.m.Y" // 
+        , 'timeFormat' => "H:i" // 
+        , 'decimalPlaces' => "2"
+        , 'decimalSeparator' => "."
+        , 'thousandsSeparator' => ","
+        , 'logofftimeout' => 360 //6 hours
+        , 'addEiseIntraValueClass' => true
+        , 'keyboards' => 'EN,RU'
+ //       , 'flagSetGlobalCookieOnRedirect' = false
     );
     
     $this->conf = array_merge($this->conf, $conf);
@@ -136,12 +110,6 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
     $this->conf['UserMessageCookieName'] = eiseIntraUserMessageCookieName ? eiseIntraUserMessageCookieName: 'UserMessage';
 
     $this->oSQL = $oSQL;
-
-    if($this->conf['flagBuildLess']){
-        
-        self::buildLess();
-
-    }
 
 }
 
@@ -460,9 +428,6 @@ function getRoleUsers($strRoleName) {
    return $arrRoleUsers;
 }
 
-/**
- * This function checks what language is used by client. Being executed before actual output, it defines what language to use on output: English or local one.
- */
 function checkLanguage(){
     
     if(isset($_GET["local"])){
@@ -496,15 +461,7 @@ function checkLanguage(){
 
 }
 
-/**
- * This method translates simple sentences from English to local language by searching translation in lang.php using $key parameter as the key, in case when output language is local. Otherwise, it returns unchanged $key parameter.
- * If $intra->conf has 'collect_keys' flag and $key is missing in lang.php, it calls eiseIntra::addTranslationKey() method to add missing key to stbl_translation for further translation by the developer.
- * 
- * @param $key (string) input in English
- *
- * @return (string) output in local or English language
- */
-public function translate($key){
+function translate($key){
     
     $key = addslashes($key);
     
@@ -515,12 +472,7 @@ public function translate($key){
     return stripslashes(isset($this->lang[$key]) ? $this->lang[$key] : $key);
 }
 
-/**
- * This method adds missing key to stbl_translation table for further translation by the developer. 
- *
- * @param $key (string) - simple sentence in English, 255 chars max
- */
-protected function addTranslationKey($key){
+function addTranslationKey($key){
     $oSQL = $this->oSQL;
     $sqlSTR = "INSERT IGNORE INTO stbl_translation (
         strKey
@@ -531,19 +483,6 @@ protected function addTranslationKey($key){
     $oSQL->q($sqlSTR);
 }
 
-/**
- * This method returns current output language.
- * 
- * @return (string) language ISO code
- */
-public function getLanguage(){
-    return (
-        $this->local 
-            ? $this->conf['localLanguage']
-            : 'en'
-        );
-
-}
 
 function readSettings(){
     
@@ -607,20 +546,20 @@ public function field( $title, $name, $value, $conf=array() ){
     $oSQL = $this->oSQL;
 
     
-    if( in_array($conf['type'], array('row_id', 'hidden')) )
+    if(in_array($conf['type'], array('row_id', 'hidden')) )
         return '<input type="hidden" name="'.$name.'" id="'.$name.'" value="'.htmlspecialchars($value).'">'."\r\n";
 
     $html = '';
 
     if($title!==null) {
 
-        $html .= "<div class=\"eiseIntraField eif-field\"".($name!='' ? " id=\"field-{$name}\"" : '').">";
+        $html .= "<div class=\"eiseIntraField\"".($name!='' ? " id=\"field_{$name}\"" : '').">";
 
         $title = ($this->conf['auto_translate'] ? $this->translate($title) : $title);
 
         if(!in_array($conf['type'], array('boolean', 'checkbox')) ) {
             if ($title!==''){
-                $html .= "<label".($name!='' ? ' id="title-'.$name.'" for="'.$name.'"' : '').'>'.htmlspecialchars($title).(
+                $html .= "<label".($name!='' ? " id=\"title_{$name}\"" : '').">".htmlspecialchars($title).(
                     trim($title)!='' ? ':' : ''
                   )."</label>";
             }
@@ -677,7 +616,7 @@ public function field( $title, $name, $value, $conf=array() ){
 
             case "boolean":
             case "checkbox":
-                $html .= '<div class="eiseIntraValue eif-value eiseIntraCheckbox eif-checkbox">';
+                $html .= '<div class="eiseIntraValue eiseIntraCheckbox">';
                 $html .= $this->showCheckBox($name, $value, $conf);
                 $html .= '<label for="'.$name.'">'.htmlspecialchars($title).'</label>';
                 $html .= '</div>';
@@ -702,7 +641,7 @@ public function field( $title, $name, $value, $conf=array() ){
 
     } else {
 
-        $html .= '<div class="eiseIntraValue eif-value">'.$value.'</div>';
+        $html .= '<div class="eiseIntraValue">'.$value.'</div>';
 
     }
 
@@ -717,55 +656,11 @@ public function field( $title, $name, $value, $conf=array() ){
 
 }
 
-/**
- * This function returns HTML for single fieldset
- * 
- * @param $fields - HTML with fields
- * @param $legend - contents of <legend> tag
- * @param $conf - array with configuration data, with following possible members:
- *  - id - contents of 'id' attribute of <fieldset> tag
- *  - class - contents of 'class' attribute of <fieldset> tag
- *  - attr - string of extra attributes to be added to <fieldset> tag
- *  - attr_legend - string of extra attributes to be added to <fieldset><legend> tag
- */
-public function fieldset($legend=null, $fields='', $conf = array()){
-
-    return '<fieldset'
-        .($conf['id']!='' ? ' id="'.htmlspecialchars($conf['id']).'"' : '')
-        .($conf['class']!='' ? ' class="'.htmlspecialchars($conf['class']).'"' : '')
-        .($conf['attr']!='' ? ' '.$conf['attr'] : '')
-        .'>'
-        .($legend 
-            ? "\r\n".'<legend'.($conf['attr_legend']!='' ? ' '.$conf['attr_legend'] : '').'>'.$legend.'</legend>'
-            : '')
-        ."\r\n".$fields
-        .'</fieldset>'
-        ."\r\n\r\n";
-
-}
-
-/**
- * This function returns HTML for the form
- */
-public function form($action, $dataAction, $fields, $method='POST', $conf=array()){
-
-    return '<form action="'.htmlspecialchars($action).'"'
-        .' method="'.htmlspecialchars($method).'"'
-        .($conf['id']!='' ? ' id="'.htmlspecialchars($conf['id']).'"' : '')
-        .' class="eiseIntraForm eif-form'.($conf['class']!='' ? ' '.$conf['class'] : '').'"'
-        .($conf['attr']!='' ? ' '.$conf['attr'] : '')
-        .'>'."\r\n"
-        .$this->field(null, $this->conf['dataActionKey'], $dataAction, array('type'=>'hidden'))."\r\n"
-        .$fields."\r\n"
-        .'</form>'."\r\n\r\n\r\n";
-
-}
-
 private function handleClass(&$arrConfig){
 
     $arrClass = Array();
     if ($this->conf['addEiseIntraValueClass'])
-        $arrClass['eiseIntraValue'] = 'eiseIntraValue eif-value';
+        $arrClass['eiseIntraValue'] = 'eiseIntraValue';
     
     // get contents of 'class' attribute in strAttrib
     $prgClass = "/\s+class=[\"\']([^\"\']+)[\"\']/i";
@@ -899,12 +794,12 @@ function showButton($strName, $strValue, $arrConfig=array()){
     if($arrConfig['type']=='submit'){
         $strRet = '<input type="submit"'
             .($strName!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
-            .' class="eiseIntraActionSubmit eif-submit'.($strClass!='' ? ' ' : '').$strClass.'"'
+            .' class="eiseIntraActionSubmit'.($strClass!='' ? ' ' : '').$strClass.'"'
             .(!$flagWrite ? ' disabled' : '')
             .' value="'.htmlspecialchars($value).'">';
     } else {
         if($arrConfig['type']=='delete')
-            $strClass = 'eiseIntraDelete eif-delete'.($strClass!='' ? ' ' : '').$strClass;
+            $strClass = 'eiseIntraDelete'.($strClass!='' ? ' ' : '').$strClass;
         $strRet = '<button'
             .($strName!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
             .(!$flagWrite ? ' disabled' : '')
@@ -1116,24 +1011,22 @@ private static function confVariations($conf, $variations){
  *
  */
 function loadJS(){
-
     GLOBAL $js_path, $arrJS;
         
-    $cachePreventor = self::cachePreventorVar.'='.preg_replace('/\D/', '', $this->conf['version']);
-
-    $arrJS = array_merge(self::$arrPreloadJS, (array)$arrJS);    
-
-    for ($i=0;$i<count($arrJS);$i++){
-        $js = self::parseConst($arrJS[$i]);
-        echo "<script type=\"text/javascript\" src=\"{$js}?{$cachePreventor}\"></script>\r\n";
-    }
-    unset ($i);
-    
-    $arrScript = array_pop(explode("/",$_SERVER["PHP_SELF"]));
-    $arrScript = explode(".",$arrScript);
-    $strJS = (isset($js_path) ? $js_path : "js/").$arrScript[0].".js";
-    if (file_exists( $strJS)) 
-        echo "<script type=\"text/javascript\" src=\"{$strJS}\"></script>\r\n";
+        $cachePreventor = self::cachePreventorVar.'='.preg_replace('/\D/', '', $this->conf['version']);
+        
+        //-----------?????????? ?????????? ???????  $arrJS
+        for ($i=0;$i<count($arrJS);$i++){
+           echo "<script type=\"text/javascript\" src=\"{$arrJS[$i]}?{$cachePreventor}\"></script>\r\n";
+        }
+        unset ($i);
+        
+//------------?????????? ??????? ??? ?????????? ???????? ?? js/*.js
+        $arrScript = array_pop(explode("/",$_SERVER["PHP_SELF"]));
+        $arrScript = explode(".",$arrScript);
+        $strJS = (isset($js_path) ? $js_path : "js/").$arrScript[0].".js";
+        if (file_exists( $strJS)) 
+            echo "<script type=\"text/javascript\" src=\"{$strJS}\"></script>\r\n";
         
 }
 
@@ -1143,30 +1036,13 @@ function loadJS(){
  */
 function loadCSS(){
     GLOBAL $arrCSS;
-
-    $arrCSS = array_merge(self::$arrPreloadCSS, $arrCSS);
     
     $cachePreventor = self::cachePreventorVar.'='.preg_replace('/\D/', '', $this->conf['version']);
     
     for($i=0; $i<count($arrCSS); $i++ ){
-        $css = self::parseConst($arrCSS[$i]);
-        echo "<link rel=\"STYLESHEET\" type=\"text/css\" href=\"{$css}?{$cachePreventor}\" media=\"screen\">\r\n";
+        echo "<link rel=\"STYLESHEET\" type=\"text/css\" href=\"{$arrCSS[$i]}?{$cachePreventor}\" media=\"screen\">\r\n";
     }
 
-}
-
-static function parseConst($str){
-
-    $s = $str;
-
-    if( preg_match_all('/\{([^\s\$\}]+)\}/', $str, $arrMatch) ){
-        foreach($arrMatch[1] as $mtch){
-            $s = str_replace('{'.$mtch.'}', constant($mtch), $s);
-        }
-        
-    }
-
-    return $s;
 }
 
 /**
@@ -1184,7 +1060,7 @@ function dataAction($dataAction, $function){
 
     $dataAction = (is_array($dataAction) ? $dataAction : array($dataAction));
 
-    if(in_array($newData[$this->conf['dataActionKey']], $dataAction)
+    if(in_array($newData[self::dataActionKey], $dataAction)
         && $this->arrUsrData['FlagWrite']
         && is_callable($function))
         return call_user_func($function, $newData);
@@ -1208,7 +1084,7 @@ function dataRead($dataReadValues, $function, $query=null){
 
     $dataReadValues = (is_array($dataReadValues) ? $dataReadValues : array($dataReadValues));
 
-    if(in_array($query[$this->conf['dataReadKey']], $dataReadValues)
+    if(in_array($query[self::dataReadKey], $dataReadValues)
         && is_callable($function))
             return call_user_func($function, $query);
 
@@ -1799,44 +1675,6 @@ static function getKeyboardVariations($src){
     }
 
     return $toRet;
-
-}
-
-/**
- * This function rebuilds style.css for selected theme using style.less located in the same folder as style.css. 
- * REMEMBER TO chmod a+w to this folder!
- */
-static function buildLess(){
-    
-    require_once LessPHPPath.'Less.php';
-
-    $strThemePath = $_SERVER['DOCUMENT_ROOT'].str_replace('/', DIRECTORY_SEPARATOR, eiseIntraCSSPath.'themes/'.eiseIntraCSSTheme.'/');
-
-    $parser = new Less_Parser();
-    $parser->parseFile( $strThemePath.'style.less' );
-    $css = $parser->getCss();
-
-    file_put_contents($strThemePath.'style.css', $css);
-
-}
-
-
-/**
- * This function dumps specified $to_echo variable using var_export() or simply echoes it, with stack trace ahead
- *
- *  @param $to_echo - variable to dump
- *
- */
-static function debug($to_echo){
-
-    echo '<pre>';
-    echo debug_print_backtrace();
-    if(is_array($to_echo) || is_object($to_echo)){
-        var_export($to_echo);
-    } else 
-        echo $to_echo;
-    echo "\r\n";
-    echo '</pre>';
 
 }
 
