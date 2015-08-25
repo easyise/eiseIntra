@@ -23,6 +23,7 @@ define ("commonStuffAbsolutePath", dirname(eiseIntraAbsolutePath).DIRECTORY_SEPA
 define ("jQueryPath", commonStuffRelativePath."jquery/");
 define ("jQueryUIPath", jQueryPath."jquery-ui-1.11.4.custom/");
 
+define ("jQueryUITheme","redmond");
 define ("imagesRelativePath", commonStuffRelativePath."images/");
 
 define ("eiseIntraCookiePath", "/"); // could be ("eiseIntraCookiePath", "/eiseAdmin/"); for eiseAdmin to allow its co-existance with other systems
@@ -30,21 +31,21 @@ define ("eiseIntraCookieExpire", time()+60*60*24*30); // 30 days
 
 define ('eiseIntraUserMessageCookieName', 'UserMessage');
 
-// replace values below for LDAP authentication
-$ldap_server = "2.12.85.06";
-$ldap_domain = "e-ise.com";
-$ldap_dn = "DC=ru,DC=e-ise,DC=com";
-$ldap_anonymous_login = "anon"."@".$ldap_domain;
-$ldap_anonymous_password = "anonpass";
+$ldap_server = "172.18.1.10";
+$ldap_domain = "ylrus.com";
+$ldap_dn = "OU=Offices,DC=ylrus,DC=com";
+$ldap_anonymous_login = "svcCDBAdmin"."@".$ldap_domain;
+$ldap_anonymous_password = "svcP@ssw0rd!";
 
 define("prgDT", "/([0-9]{1,2})[\.\-\/]([0-9]{1,2})[\.\-\/]([0-9]{4})/i");
 $prgDT = prgDT;
 define("prgReplaceTo","\\3-\\2-\\1");
 
-$strSubTitle = "DEVELOPMENT";
-$strSubTitleLocal = "Версия для разработки";
+$strSubTitle = "STAGING";
+$strSubTitleLocal = "Версия для отладки";
 
-// update these values according your localizaion
+//$arrJS[] = "../common/jquery/jquery-1.2.6.js";
+
 $localLanguage = "ru";
 $localCountry = "RUS";
 $localCurrency = "RUB";
