@@ -252,7 +252,7 @@ class eiseSQL extends mysqli{
     function not_right($error="MySQL error") {
         if ($this->flagProfiling)
             $this->showProfileInfo();
-        throw new Exception("{$this->errno}: {$this->error},\r\n{$error}\r\n");
+        throw new Exception("{$this->errno}: {$this->error},\r\n{$error}\r\n", $this->errno);
     }
     
     function startProfiling(){
