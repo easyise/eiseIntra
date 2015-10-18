@@ -680,7 +680,10 @@ function showAttributeValue($rwAtr, $suffix = ""){
             array_merge($arrInpConfig, Array("strAttrib" => " old_val=\"".htmlspecialchars($value)."\"")));
           break;
        default:
-          $strRet = $intra->showTextBox($inputName, $value, $arrInpConfig);
+          $strRet = $intra->showTextBox($inputName, $value, array_merge($arrInpConfig, Array("strAttrib" => " old_val=\"".htmlspecialchars($dtVal)."\""
+                , "type"=>$rwAtr['atrType']
+                ))
+          );
           break;
     }
     
