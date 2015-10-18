@@ -1256,6 +1256,9 @@ function getSQLValue($col, $flagForArray=false){
     
     if (preg_match("/norder$/i", $col["Field"]))
         $col["DataType"] = "nOrder";
+
+    if (preg_match("/ID$/", $col["Field"]))
+        $col["DataType"] = "FK";
     
     switch($col["DataType"]){
       case "integer":
