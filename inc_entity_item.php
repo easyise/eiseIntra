@@ -1443,7 +1443,7 @@ static function getFile($filGUID, $filePathVar = 'stpFilesPath'){
     if(headers_sent())
         $this->Error('Some data has already been output, can\'t send file');
     header("Content-Length: ".$rwFile["filLength"]);
-    header('Content-Disposition: inline; filename='.$rwFile["filName"]);
+    header('Content-Disposition: inline; filename='.urlencode($rwFile["filName"]) );
     header('Cache-Control: private, max-age=0, must-revalidate');
     header('Pragma: public');
     ini_set('zlib.output_compression','0');
