@@ -1529,6 +1529,7 @@ static function sendMessages($conf){
 
         $msg = array('mail_from'=> ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : '')
             , 'rcpt_to' => ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\"  <".$rwUsr_To['usrEmail'].">" : '')
+            , 'Subject' => $rwMsg['msgSubject']
             , 'Text' => $rwMsg['msgText']
             );
         if ($rwMsg['msgCCUserID'])
