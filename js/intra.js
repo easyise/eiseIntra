@@ -715,7 +715,7 @@ createDialog: function( conf ){
         , title: conf.title
         , resize: "auto"
     };
-    
+
     if(conf.onclose)
         dlgConf.beforeClose = conf.onclose;
 
@@ -1000,7 +1000,6 @@ fillTable: function(URLorObj, conf){
 
     if(typeof(URLorObj)=='object'){
         
-        console.log('fillTable - OBJ', $body);
         _fill($body, URLorObj, conf);
 
     } else {
