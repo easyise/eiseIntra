@@ -129,8 +129,16 @@ class eiseSQL extends mysqli{
         return $mysqli_result->num_rows;
     }
     
-    function f($mysqli_result){ //fetch_assoc
-        return $mysqli_result->fetch_assoc();
+    function f($mysqli_result_or_query){ //fetch_assoc
+        if (is_object($mysqli_result_or_query)){
+            $mysqli_result = $mysqli_result_or_query;
+            return $mysqli_result->fetch_assoc();
+        } else if (is_string($mysqli_result_or_query)){
+            $sql = $mysqli_result_or_query;
+            $mysqli_result = $this->q($sql);
+            return $this->f($mysqli_result);
+        } else
+            throw new Exception('Wront variable type passed to eiseSQL::get_data() function: '.gettype($variant));
     }
     function fa($mysqli_result){ //fetch_ix_array
         return $mysqli_result->fetch_array();
@@ -144,14 +152,14 @@ class eiseSQL extends mysqli{
     function a(){ //affected_rows
         return $this->affected_rows;
     }
-    function d($variant){ //get_data
-        if (is_object($variant)){
-            $mysqli_result = $variant;
+    function d($mysqli_result_or_query){ //get_data
+        if (is_object($mysqli_result_or_query)){
+            $mysqli_result = $mysqli_result_or_query;
             $mysqli_result->data_seek(0);
             $arr = $mysqli_result->fetch_array();
             return $arr[0];
-        } else if (is_string($variant)){
-            $sql = $variant;
+        } else if (is_string($mysqli_result_or_query)){
+            $sql = $mysqli_result_or_query;
             $mysqli_result = $this->q($sql);
             return $this->d($mysqli_result);
         } else
