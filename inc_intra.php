@@ -328,8 +328,9 @@ function checkPermissions(){
     
     $sqlRoles = "SELECT rolID, rolTitle$this->local
        FROM stbl_role ROL
-       INNER JOIN stbl_role_user RLU ON RLU.rluRoleID=ROL.rolID
-       WHERE RLU.rluUserID = '{$_SESSION["usrID"]}' AND DATEDIFF(NOW(), rluInsertDate)>=0";
+       LEFT OUTER JOIN stbl_role_user RLU ON RLU.rluRoleID=ROL.rolID
+       WHERE (RLU.rluUserID = '{$_SESSION["usrID"]}' AND DATEDIFF(NOW(), rluInsertDate)>=0)
+          OR rolID='Everyone'";
     $rsRoles = $oSQL->do_query($sqlRoles);
     $arrRoles = Array();
     $arrRoleIDs = Array();
@@ -338,8 +339,14 @@ function checkPermissions(){
         $arrRoleIDs[] = $rwRol["rolID"];
     }
     $oSQL->free_result($rsRoles); 
-     
+
     $this->arrUsrData = array_merge($rwUser, $rwPerms);
+
+    $clear_uri = preg_replace('/^'.preg_quote(dirname($_SERVER['PHP_SELF']), '/').'/', '', $_SERVER['REQUEST_URI']);
+    if($rwPage = $oSQL->f($oSQL->q("SELECT * FROM stbl_page WHERE pagFile=".$oSQL->e($clear_uri))) ) {
+        $this->arrUsrData = array_merge( $this->arrUsrData, $rwPage);  
+    }
+
     $this->arrUsrData["roles"] = $arrRoles;
     $this->arrUsrData["roleIDs"] = $arrRoleIDs;
     $_SESSION["last_login_time"] = Date("Y-m-d H:i:s");
