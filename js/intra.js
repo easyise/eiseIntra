@@ -699,19 +699,27 @@ createDialog: function( conf ){
             }
                 
         })
+        
 
         if(conf.onsubmit)
-            return conf.onsubmit(objVals);
-
+            return conf.onsubmit(objVals, $frm);
+        
         $frm.dialog('close').remove();
+
+        return true;
 
     });
 
-    $frm.dialog({
+    var dlgConf= {
         modal: true
         , title: conf.title
         , resize: "auto"
-    });
+    };
+    
+    if(conf.onclose)
+        dlgConf.beforeClose = conf.onclose;
+
+    $frm.dialog(dlgConf);
 
     $frm.find('.eif_btnClose').click(function(){ $frm.dialog('close').remove(); })
 
@@ -744,6 +752,12 @@ addField: function( field ){
         case 'combobox':
         case 'select':
             element = $('<select>');
+            $.each(field.options, function(ix, item){
+                $opt = $('<option>');
+                $opt.attr('value', item.v);
+                $opt.text(item.t);
+                $opt.appendTo(element);
+            })
             break;
         case 'password':
             element = $('<input type="password">');
