@@ -595,7 +595,8 @@ public function field( $title, $name, $value, $conf=array() ){
 
                 $conf['source'] = self::confVariations($conf, array('source', 'arrValues', 'strTable'));
                 $conf['source_prefix'] = self::confVariations($conf, array('source_prefix', 'prefix', 'prfx'));
-                $conf['strZeroOptnText'] = self::confVariations($conf, array('defaultText', 'textIfNull', 'strZeroOptnText'));
+                if( ( $confVar = self::confVariations($conf, array('defaultText', 'textIfNull', 'strZeroOptnText')) )!==null )
+                    $conf['strZeroOptnText'] = $confVar;
 
                 if(!$conf['source'])
                   $conf['source'] = array();
@@ -835,7 +836,7 @@ function showCombo($strName, $strValue, $arrOptions, $arrConfig=Array()){
         $retVal .= "<select id=\"".$strName."\" name=\"".$strName."\"".$strAttrib.
             ($strClass ? ' class="'.$strClass.'"' : "").
             ($arrConfig["required"] ? " required=\"required\"" : "").">\r\n";
-        if ($arrConfig["strZeroOptnText"]!==null){
+        if ( isset($arrConfig["strZeroOptnText"]) ){
             $retVal .= "<option value=\"\">".htmlspecialchars($arrConfig["strZeroOptnText"])."</option>\r\n" ;
         }
         if (!isset($arrConfig['deletedOptions']))

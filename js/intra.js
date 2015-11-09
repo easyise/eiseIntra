@@ -717,7 +717,7 @@ createDialog: function( conf ){
     };
 
     if(conf.onclose)
-        dlgConf.beforeClose = conf.onclose;
+        dlgConf.close = conf.onclose;
 
     $frm.dialog(dlgConf);
 

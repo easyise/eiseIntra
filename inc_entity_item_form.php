@@ -228,6 +228,7 @@ function field( $atr, $arrConf = array() ){
             , 'source_prefix' => $rwAtr['atrProgrammerReserved']
             , 'FlagWrite' => $this->conf['STA'][(int)$this->staID]['satFlagShowInForm'][$atr]
             , 'UOM' => $rwAtr['atrUOMTypeID']
+            , 'textIfNull' => $intra->translate($rwAtr['atrTextIfNull'])
             )
         , $arrConf
         );
