@@ -503,6 +503,9 @@ function getActionLog($arrConfig = array()){
             , 'aclEditBy' => $this->intra->translate('by ').($this->intra->local ? ($rw['usrNameLocal'] ? $rw['usrNameLocal'] : $rw['usrName']) : $rw['usrName'])
             , 'aclEditDate' => date("{$this->intra->conf['dateFormat']} {$this->intra->conf['timeFormat']}"
                 , strtotime($rw["aclEditDate"]))
+            , 'aclATA' => date("{$this->intra->conf['dateFormat']}"
+                    .(strtotime($rw["aclATA"])!=strtotime(date('Y-m-d', strtotime($rw["aclATA"]))) ? " {$this->intra->conf['timeFormat']}" : '')
+                , strtotime($rw["aclATA"]))
             );
         $arrACL[] = $acl;  
     }
@@ -524,7 +527,7 @@ function showActionLog_skeleton(){
     $strRes .= "<tr class=\"eif_template eif_evenodd\">\r\n";
     $strRes .= "<td class=\"eif_actTitlePast\"></td>\r\n";
     $strRes .= "<td class=\"eif_aclEditBy\"></td>";
-    $strRes .= "<td class=\"eif_aclEditDate\"></td>";
+    $strRes .= "<td class=\"eif_aclATA\" style=\"text-align:right;\"></td>";
     $strRes .= "</tr>";
     
     $strRes .= "<tr class=\"eif_template eif_evenodd eif_invisible\">";

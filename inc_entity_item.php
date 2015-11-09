@@ -732,6 +732,15 @@ public function prepareActions(){
     
     $this->arrAction = array_merge($rwACT, $this->arrAction);
 
+    if($timestamp = $this->arrNewData['aclETD'])
+        $this->arrAction['aclETD_attr'] = $this->intra->datePHP2SQL($timestamp);
+    if($timestamp = $this->arrNewData['aclETA'])
+        $this->arrAction['aclETA_attr'] = $this->intra->datePHP2SQL($timestamp);
+    if($timestamp = $this->arrNewData['aclATD'])
+        $this->arrAction['aclATD_attr'] = $this->intra->datePHP2SQL($timestamp);
+    if($timestamp = $this->arrNewData['aclATA'])
+        $this->arrAction['aclATA_attr'] = $this->intra->datePHP2SQL($timestamp);
+
     if (is_array($this->arrAction["aatFlagToTrack"]))
         foreach($this->arrAction["aatFlagToTrack"] as $atrID=>$options){
             // define attributes for timestamp

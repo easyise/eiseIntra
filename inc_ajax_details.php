@@ -11,8 +11,8 @@ switch ($DataAction){
     case 'getMessages':
         include eiseIntraAbsolutePath."inc_entity_item_form.php";
         try {
-            $oItem = new eiseEntityItemForm($oSQL, $intra, $arrIn['entID'], $arrIn['entItemID']);    
-            $arrFIL = $oItem->getMessages();
+            $o = new eiseEntityItemForm($oSQL, $intra, $arrIn['entID'], $arrIn['entItemID']);    
+            $arrFIL = $o->getMessages();
         } catch (Exception $e){
             echo json_encode(Array("ERROR"=>$e->getMessage()));
             die();
@@ -23,8 +23,8 @@ switch ($DataAction){
     case 'getFiles':
         include eiseIntraAbsolutePath."inc_entity_item_form.php";
         try {
-            $oJob = new eiseEntityItemForm($oSQL, $intra, $arrIn['entID'], $arrIn['entItemID']);    
-            $arrFIL = $oJob->getFiles();
+            $o = new eiseEntityItemForm($oSQL, $intra, $arrIn['entID'], $arrIn['entItemID']);    
+            $arrFIL = $o->getFiles();
         } catch (Exception $e){
             echo json_encode(Array("ERROR"=>$e->getMessage()));
             die();
@@ -36,8 +36,8 @@ switch ($DataAction){
         
         include eiseIntraAbsolutePath."inc_entity_item_form.php";
         try {
-            $oJob = new eiseEntityItemForm($oSQL, $intra, $arrIn['entID'], $arrIn['entItemID']);    
-            $arrACL = $oJob->getActionLog();
+            $o = new eiseEntityItemForm($oSQL, $intra, $arrIn['entID'], $arrIn['entItemID']);    
+            $arrACL = $o->getActionLog();
         } catch (Exception $e){
             echo json_encode(Array("ERROR"=>$e->getMessage()));
             die();
