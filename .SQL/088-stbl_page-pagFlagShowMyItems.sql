@@ -1,0 +1,1 @@
+ALTER TABLE stbl_page ADD COLUMN pagFlagShowMyItems tinyint(4) NOT NULL DEFAULT '0' AFTER pagEntityID;

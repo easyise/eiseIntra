@@ -1,13 +1,6 @@
 <?php
 /*-----------------------------Standard menu from stbl_page table---------------------------------*/	
-$sql = "SELECT PG1.pagID
-            , PG1.pagParentID
-            , PG1.pagTitle{$intra->local}
-            , PG1.pagFile
-            , PG1.pagIdxLeft
-            , PG1.pagIdxRight
-            , PG1.pagFlagShowInMenu
-            , PG1.pagEntityID
+$sql = "SELECT PG1.*
             , COUNT(DISTINCT PG2.pagID) as iLevelInside
             , (SELECT COUNT(*) FROM stbl_page CH 
                 WHERE CH.pagParentID=PG1.pagID AND CH.pagFlagShowInMenu=1) as nChildren
@@ -56,7 +49,8 @@ while ($rw = $oSQL->fetch_array($rs)){
        echo "<ul>";
     
     if (preg_match("/list\.php$/", $rw["pagFile"]) && $rw["pagEntityID"]!=""){
-       $hrefSuffix = "?".$rw["pagEntityID"]."_staID=";
+       $hrefSuffix = "?".$rw["pagEntityID"]."_staID=".($rw['pagFlagShowMyItems'] ? '&'.$rw["pagEntityID"].'_'.$rw["pagEntityID"].'FlagMyItems=' : '') ;
+       $rwEnt = $oSQL->f('SELECT * FROM stbl_entity WHERE entID='.$oSQL->e($rw["pagEntityID"]));
     }
     
     $flagIsEntity = ($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent" ? true : false);
@@ -74,16 +68,24 @@ while ($rw = $oSQL->fetch_array($rs)){
         )
         .($rw["nChildren"]==0 && !($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent") ? "</li>" : "")."\r\n";
    
-   if ($hrefSuffix){
-      $sqlSta = "SELECT * FROM stbl_status WHERE staEntityID='".$rw["pagEntityID"]."' AND staFlagDeleted=0";
-      $rsSta = $oSQL->do_query($sqlSta);
-      while ($rwSta = $oSQL->fetch_array($rsSta)){
-         echo "<li id='".$rw["pagID"]."_".$rwSta["staID"]."'><a target='pane' href='".
-            $rw["pagFile"]."?".$rw["pagEntityID"]."_staID=".$rwSta["staID"]."'>"
-            .($rwSta["staTitle{$intra->local}Mul"] ? $rwSta["staTitle{$intra->local}Mul"] : $rwSta["staTitle{$intra->local}"])
-            ."</a>\r\n";
-      }
-   }
+    if ($hrefSuffix){
+
+        if($rw['pagFlagShowMyItems']){
+            echo '<li id="'.$rw["pagID"].'-my-items"><a target="pane" href="'
+                .$rw["pagFile"].'?'.$rw["pagEntityID"].'_staID=&'.$rw["pagEntityID"].'_'.$rw["pagEntityID"].'FlagMyItems=1">'
+                .($intra->translate('My '.$rwEnt['entTitleMul']))
+                ."</a>\r\n";
+        }
+
+        $sqlSta = "SELECT * FROM stbl_status WHERE staEntityID='".$rw["pagEntityID"]."' AND staFlagDeleted=0";
+        $rsSta = $oSQL->do_query($sqlSta);
+        while ($rwSta = $oSQL->fetch_array($rsSta)){
+            echo "<li id='".$rw["pagID"]."_".$rwSta["staID"]."'><a target='pane' href='"
+                .$rw["pagFile"]."?".$rw["pagEntityID"]."_staID=".$rwSta["staID"]."'>"
+                .($rwSta["staTitle{$intra->local}Mul"] ? $rwSta["staTitle{$intra->local}Mul"] : $rwSta["staTitle{$intra->local}"])
+                ."</a>\r\n";
+        }
+    }
    
    if ($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent"){
       echo "<ul>\r\n";

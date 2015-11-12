@@ -1538,7 +1538,6 @@ static function sendMessages($conf){
 
         $msg = array('mail_from'=> ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : '')
             , 'rcpt_to' => ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\"  <".$rwUsr_To['usrEmail'].">" : '')
-            , 'Subject' => $rwMsg['msgSubject']
             , 'Text' => $rwMsg['msgText']
             );
         if ($rwMsg['msgCCUserID'])
@@ -1573,6 +1572,102 @@ static function sendMessages($conf){
 
 }
 
+/***********************************************************************************/
+/* Bookmark Routines                                                        */
+/***********************************************************************************/
+public static $arrBookmarkTitles = array(
+    array(
+        'past'=> 'Unfavorited'
+        , 'title' => 'Add to Favorites'
+        , 'class' => 'ss_heart_add'
+    )
+    , array(
+        'past'=> 'Added to favorites'
+        , 'title' => 'Unfavorite'
+        , 'class' => 'ss_heart_delete'
+    )
+    );
+
+
+/**
+ * This method sets or removes bookmark on current entity item. If there's a bookmark it removes it, otherwise it adds a record and returns its ID.
+ * 
+ * @return integer $bmkID - itentity of bookmark record added or, if bookmark was removed, it returns NULL
+ */
+public function bookmark(){
+
+    $oSQL = $this->oSQL;
+    $entID = $this->entID;
+    $entItemID = $this->entItemID;
+    $intra = $this->intra;
+
+    $sqlBKM = "SELECT bkmID FROM stbl_bookmark WHERE bkmEntityID='{$entID}' AND bkmEntityItemID='{$entItemID}' AND bkmUserID='{$intra->usrID}'";
+    $bkmID = $oSQL->d($sqlBKM);
+
+    if($bkmID){
+        $oSQL->q('DELETE FROM stbl_bookmark WHERE bkmID='.$bkmID);
+        return null;
+    } else {
+
+        $sqlBKM_Insert = "INSERT INTO stbl_bookmark SET
+            bkmUserID = '{$intra->usrID}'
+            , bkmEntityID = '{$entID}'
+            , bkmEntityItemID = '{$entItemID}'
+            , bkmFlagDeleted = 0
+            , bkmInsertBy = '{$intra->usrID}', bkmInsertDate = NOW()";
+        $oSQL->q($sqlBKM_Insert);
+
+        $bkmID = $oSQL->i();
+
+        return $bkmID;
+
+    }
+
+}
+
+/**
+ * This method returns bookmark ID if current entity item is bookmarked by current user or not. Bookmark ID is the content of bmkID field of stbl_bookmark table.
+ *
+ * @return (string) bookmark ID. If item's not bookmarked, function returns NULL. If stbl_bookmark is not found, eiseSQL throws exception.
+ */
+public function isBookmarked(){
+
+    return $this->oSQL->d("SELECT bkmID FROM stbl_bookmark WHERE bkmEntityID='{$this->entID}' AND bkmEntityItemID=".$this->oSQL->e($this->entItemID)." AND bkmUserID=".$this->oSQL->e($this->intra->usrID) );
+
+}
+
+
+static function updateBookmarks($newData){
+
+    GLOBAL $intra, $entID;
+
+    if(!$entID)
+        return;
+
+    $oSQL = $intra->oSQL;
+
+    $da = $newData["DataAction"];
+
+    if($da=='bookmark'){
+
+        try {
+            $o = new eiseEntityItem($oSQL, $intra, $entID, $newData[$entID.'ID']);
+            $bmkID = $o->bookmark();
+
+            $flagBookmarked = (int)($bmkID!==null);
+
+            $arrRet = array('addClass'=>self::$arrBookmarkTitles[$flagBookmarked]['class']
+                    , 'removeClass'=>self::$arrBookmarkTitles[(int)!$flagBookmarked]['class']
+                    , 'title'=>self::$arrBookmarkTitles[$flagBookmarked]['title']);
+            $intra->json('ok', $bmkID, $arrRet);
+
+        } catch (Exception $e) {
+            $intra->json('error', $e->getMessage());
+        }
+            
+    }
+
+}
 
 /***********************************************************************************/
 /* Archive/Restore Routines                                                        */

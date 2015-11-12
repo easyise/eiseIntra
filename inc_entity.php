@@ -359,14 +359,17 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     
     $oSQL = $this->oSQL;
     $entID = $this->entID;
-    
-    $this->intra->arrUsrData = $this->intra->arrUsrData;
+
+    $intra = $this->intra;
+
     $conf = $this->conf;
     $strLocal = $this->intra->local;
-    
+
     $listName = $entID;
     
     $this->detectStatusID();
+
+    $hasBookmarks = $oSQL->d("SHOW TABLES LIKE 'stbl_bookmark'");
     
     $staID = $this->staID;
 
@@ -379,8 +382,9 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
             , 'defaultOrderBy'=>"{$this->entID}EditDate"
             , 'defaultSortOrder'=>"DESC"
             , 'sqlFrom' => "{$this->conf["entTable"]} LEFT OUTER JOIN stbl_status ON {$entID}StatusID=staID AND staEntityID='{$entID}'".
+                ($hasBookmarks ? " LEFT OUTER JOIN stbl_bookmark ON bkmEntityID='{$entID}' AND bkmEntityItemID={$entID}ID" : '').
                 ((!in_array("actTitle", $arrExcludeCols) && !in_array("staTitle", $arrExcludeCols))
-                    ? "LEFT OUTER JOIN stbl_action_log LAC
+                    ? " LEFT OUTER JOIN stbl_action_log LAC
                     INNER JOIN stbl_action ON LAC.aclActionID=actID 
                     ON {$entID}ActionLogID=LAC.aclGUID
                     LEFT OUTER JOIN stbl_action_log SAC ON {$entID}StatusActionLogID=SAC.aclGUID"
@@ -395,6 +399,12 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     $lst->Columns[] = array('title' => "##"
             , 'field' => "phpLNums"
             , 'type' => "num"
+            );
+
+    if($hasBookmarks)
+        $lst->Columns[] = array('field' => $entID."FlagMyItems"
+            , 'filter' => $entID."FlagMyItems"
+            , 'sql'=>"bkmUserID='{$intra->usrID}' OR {$entID}InsertBy='{$intra->usrID}'"
             );
 
     if ($staID!="" && $this->intra->arrUsrData["FlagWrite"] && !in_array("ID_to_proceed", $arrExcludeCols)){

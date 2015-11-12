@@ -1,0 +1,1 @@
+ALTER TABLE stbl_action_attribute ADD COLUMN aatFlagUserStamp tinyint(4) NOT NULL DEFAULT '0' AFTER aatFlagEmptyOnInsert;

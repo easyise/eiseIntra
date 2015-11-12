@@ -895,5 +895,70 @@ public function getMessages(){
 
 }
 
+
+/**
+ * This static function echoes HTML of 'My Favorites' (Bookmarks) block to be obtained with AJAX for display on the system front page. It echoes <fieldset> with <div class="ei-accordion"> to apply jQueryUI's accordion widget.
+ * If the user has no items favorited, it just echoes nothing.
+ * This function call is added to inc_ajax_details.php that included into project/ajax_details.php
+ *
+ * @return void
+ */
+public static function getBookmarks($arrDescr = array()){
+
+    GLOBAL $intra;
+    $oSQL = $intra->oSQL;
+
+    $expires = 2;
+    header("Pragma: public");
+    header("Cache-Control: maxage=".$expires);
+    header('Expires: ' . gmdate('D, d M Y H:i:s', time()+$expires) . ' GMT');
+
+    $sql = "SELECT * 
+            FROM stbl_bookmark
+            WHERE bkmUserID='{$intra->usrID}'
+            ORDER BY bkmEntityID, bkmInsertDate DESC";
+    $rs = $oSQL->do_query($sql);
+    if ($oSQL->num_rows($rs)) {
+        ?><fieldset id="ei-bookmarks"><legend><?php echo $intra->translate('My Favorites');?></legend>
+        <div class='ei-accordion'>
+        <?php
+        $entity = '';
+        while ($rw=$oSQL->fetch_array($rs)){
+            if ($rw['bkmEntityID']!=$entity){
+                if ($entity) echo "</div>\r\n";
+                $sql = "SELECT * FROM stbl_entity WHERE entID='".$rw['bkmEntityID']."'";
+                $rsE = $oSQL->do_query($sql);
+                $rwE = $oSQL->fetch_array($rsE);
+                $entID = $rwE['entID'];
+                $table = $rwE['entTable'];
+                $descr = ($arrDescr[$entID] ? $arrDescr[$entID] : "##{$entID}ID##");
+                $form = preg_replace('/^(tbl_)/', '', $table).'_form.php';
+                ?><h3><a href='#'><?php echo $rwE["entTitle{$intra->local}"];?></a></h3>
+                <div>
+                <?php
+            }
+            $o = new eiseEntityItem($oSQL, $intra, $entID, $rw['bkmEntityItemID']);
+
+            $description = $descr;
+            foreach($o->item as $field=>$valRaw){
+                $val = eiseIntra::formatByType($intra, $o->conf['ATR'][$field]['atrType'], $valRaw);
+                $description = str_replace('##'.$field.'##', $val, $description);
+            }
+
+            echo "<div><a href='".$form."?".$entID."ID=".$o->item[$entID."ID"]."&hash=".md5($o->item[$entID.'EditDate'])."'>" 
+                ,'<div>'.htmlentities($description).'</div>'
+                ,"</a>"
+                ,'<div><small>',$o->item["staTitle{$intra->local}"],' ',date('d.m.Y H:i',strtotime($o->item[$entID."EditDate"])),'</small></div>'
+                ,"</div>\r\n";
+            $entity = $rw['bkmEntityID'];
+        }
+        ?>
+        </div>
+        </fieldset>
+        <?php
+    }
+
+}
+
 }
 ?>

@@ -123,35 +123,52 @@ var showMessages = function($form){
     var entID = $form.data('eiseIntraForm').entID;
     var entItemID = $form.data('eiseIntraForm').entItemID;
 
+    if(!this.htmlMsgForm){
+        this.htmlMsgForm = $('#eiseIntraMessageForm')[0].outerHTML;
+        $('#eiseIntraMessageForm').remove();
+    }
+    if(!this.htmlMsgList){
+        this.htmlMsgList = $('#eiseIntraMessages')[0].outerHTML;
+        $('#eiseIntraMessages').remove();
+    }
+
+    var msgmng = this;
+
+    var showNewMessageForm = function(){
+        var $frm = $(msgmng.htmlMsgForm).dialog({modal: true
+                    , width: '400px'})
+                    .eiseIntraForm();
+        $frm.find('#msgClose')[0]
+            .onclick = function(){
+                $frm.dialog('close').remove();
+            };
+    }
+
     var strURL = "ajax_details.php?DataAction=getMessages&entItemID="+encodeURIComponent(entItemID)+
         "&entID="+encodeURIComponent(entID);
+    
+    $.getJSON(strURL, function(response){
+        if(response.data && response.data.length==0){
+            
+                showNewMessageForm();
 
-    $('#eiseIntraMessages, #eiseIntraMessageForm').eiseIntraForm('init');
+        }
+        else {
+            var $list = $(msgmng.htmlMsgList).dialog({
+                modal: true
+                , width: '600px'
+                })
+                .eiseIntraForm();
 
-    $('#eiseIntraMessages #msgNew')[0].onclick = function(){
-        $('#eiseIntraMessages').dialog('close');
-        $('#eiseIntraMessageForm').dialog({modal: true
-                    , width: '400px'});
-    };
-    $('#eiseIntraMessageForm #msgClose')[0].onclick = function(){
-        $('#eiseIntraMessageForm').dialog('close');
-    };
+            $list.eiseIntraAJAX('fillTable', response.data);
 
-    $('#eiseIntraMessages')
-        .eiseIntraAJAX('fillTable', strURL, {afterFill: function(data){
-            if(data.length==0){
-                $('#eiseIntraMessageForm').dialog({modal: true
-                    , width: '400px'});
-                
-            }
-            else {
-                $('#eiseIntraMessages').dialog({
-                    modal: true
-                    , width: '600px'
-                    });
-                
-            }
-        }}); 
+            $list.find('#msgNew')[0]
+                    .onclick = function(){
+                        $list.dialog('close').remove();
+                        showNewMessageForm();
+                    };
+        }
+    }); 
 }
 
 function showCommentControls($controls, $parent, options){
@@ -545,6 +562,31 @@ sendMessages: function(callback){
         callback(data);
         
     });
+},
+
+bookmark: function($elem, callback){
+
+    var strURL = location.href;
+    var strPost = {DataAction: 'bookmark'};
+
+    var entID = this.find('#entID').val()
+        , entItemID = this.find('#'+entID+'ID').val();
+
+    $.getJSON(strURL, strPost, function(response){
+        
+                if (response.length==0){
+                    return;
+                }
+                
+                if (response.ERROR ){
+                    alert(response.ERROR);
+                    return;
+                }
+                
+                $elem.addClass(response.data.addClass).removeClass(response.data.removeClass).text(response.data.title).fadeIn(1000);
+            }
+        );
+
 }
 
 };

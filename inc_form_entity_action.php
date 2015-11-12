@@ -121,6 +121,11 @@ $gridAAT->Columns[] = Array(
         , 'field' => "aatFlagEmptyOnInsert"
         , 'type' => "checkbox"
 );
+$gridAAT->Columns[] = Array(
+        'title' => $intra->translate("UserStamp")
+        , 'field' => "aatFlagUserStamp"
+        , 'type' => "checkbox"
+);
 
 $gridAAT->Columns[] = Array(
         'title' => $intra->translate("Timestamp?")
@@ -219,6 +224,7 @@ switch($DataAction){
             , aatFlagToAdd
             , aatFlagToPush
             , aatFlagEmptyOnInsert
+            , aatFlagUserStamp
             , aatFlagTimestamp
             , aatInsertBy, aatInsertDate, aatEditBy, aatEditDate
             ) SELECT
@@ -230,6 +236,7 @@ switch($DataAction){
             , aatFlagToAdd
             , aatFlagToPush
             , aatFlagEmptyOnInsert
+            , aatFlagUserStamp
             , aatFlagTimestamp
             , '{$intra->usrID}', NOW(), '{$intra->usrID}', NOW()
             FROM stbl_action_attribute WHERE aatActionID=".$oSQL->e($actID_src);
@@ -288,6 +295,7 @@ switch($DataAction){
                 , aatFlagMandatory
                 , aatFlagToChange
                 , aatFlagEmptyOnInsert
+                , aatFlagUserStamp
                 , aatFlagTimestamp
                 , aatInsertBy, aatInsertDate, aatEditBy, aatEditDate
                 ) VALUES (
@@ -297,6 +305,7 @@ switch($DataAction){
                 , '".(integer)$_POST["aatFlagMandatory"][$i]."'
                 , '".(integer)$_POST["aatFlagToChange"][$i]."'
                 , '".(integer)$_POST["aatFlagEmptyOnInsert"][$i]."'
+                , '".(integer)$_POST["aatFlagUserStamp"][$i]."'
                 , ".$oSQL->escape_string($_POST["aatFlagTimestamp"][$i])."
                 , '$usrID', NOW(), '$usrID', NOW())";
                 

@@ -1405,35 +1405,7 @@ function result2JSON($rs, $arrConf = array()){
 
         foreach($rw as $key=>$value){
 
-            switch($arrFields[$key]['type']){
-                case 'real':
-                    $decPlaces = (isset($arrConf['fields'][$key]['decimalPlaces'])
-                        ? $arrConf['fields'][$key]['decimalPlaces']
-                        : ($arrFields[$key]['decimalPlaces']<6
-                            ? $arrFields[$key]['decimalPlaces']
-                            : $this->conf['decimalPlaces'])
-                        );
-                    $arrRW[$key]['v'] = $this->decSQL2PHP($value, $decPlaces);
-                    break;
-                case 'integer':
-                case 'boolean':
-                    $arrRW[$key]['v'] = (int)$value;
-                    break;
-                case 'date':
-                    $arrRW[$key]['v'] = $this->dateSQL2PHP($value);
-                    break;
-                case 'datetime':
-                    $arrRW[$key]['v'] = $this->datetimeSQL2PHP($value);
-                    break;
-                case 'timestamp':
-                    $arrRW[$key]['v'] = $this->datetimeSQL2PHP(date('Y-m-d H:i:s', $value));
-                    break;
-                case 'time':
-                default:
-                    $arrRW[$key]['v'] = (string)$value;
-                    break;
-            }
-
+            $arrRW[$key]['v'] = eiseIntra::formatByType($this, $arrFields[$key]['type'], $value);
 
             if (isset($rw[$key.'_text'])){
                 $arrRW[$key]['t'] = $rw[$key.'_text'];
@@ -1609,13 +1581,49 @@ function getUserData_All($usrID, $strWhatData='all'){
 /******************************************************************************/
 /* static functions                                                           */
 /******************************************************************************/
+static function formatByType($intra, $type, $value){
+
+    $retVal = null;
+
+    switch($type){
+        case 'real':
+            $decPlaces = (isset($arrConf['fields'][$key]['decimalPlaces'])
+                ? $arrConf['fields'][$key]['decimalPlaces']
+                : ($arrFields[$key]['decimalPlaces']<6
+                    ? $arrFields[$key]['decimalPlaces']
+                    : $intra->conf['decimalPlaces'])
+                );
+            $retVal = $intra->decSQL2PHP($value, $decPlaces);
+            break;
+        case 'integer':
+        case 'boolean':
+            $retVal = (int)$value;
+            break;
+        case 'date':
+            $retVal = $intra->dateSQL2PHP($value);
+            break;
+        case 'datetime':
+            $retVal = $intra->datetimeSQL2PHP($value);
+            break;
+        case 'timestamp':
+            $retVal = $intra->datetimeSQL2PHP(date('Y-m-d H:i:s', $value));
+            break;
+        case 'time':
+        default:
+            $retVal = (string)$value;
+            break;
+    }
+
+    return $retVal;
+}
+
 static function getFullHREF($iframeHREF){
     $prjDir = dirname($_SERVER['REQUEST_URI']);
     $flagHTTPS = preg_match('/^HTTPS/', $_SERVER['SERVER_PROTOCOL']);
     $strURL = 'http'
         .($flagHTTPS ? 's' : '')
         .'://'
-        .$_SERVER['SERVER_NAME']
+        .$_SERVER['HTTP_HOST']
         .($_SERVER['SERVER_PORT']!=($flagHTTPS ? 443 : 80) ? ':'.$_SERVER['SERVER_PORT'] : '')
         .$prjDir.'/'
         .'index.php?pane='.urlencode($iframeHREF);

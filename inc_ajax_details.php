@@ -8,44 +8,50 @@ else
 $DataAction = $arrIn["DataAction"];
 
 switch ($DataAction){
+    case 'getBookmarks':
+
+        include eiseIntraAbsolutePath."inc_entity_item_form.php";
+        try {
+            eiseEntityItemForm::getBookmarks();  
+        } catch (Exception $e){}
+        die();
+
     case 'getMessages':
         include eiseIntraAbsolutePath."inc_entity_item_form.php";
         try {
             $o = new eiseEntityItemForm($oSQL, $intra, $arrIn['entID'], $arrIn['entItemID']);    
-            $arrFIL = $o->getMessages();
+            $arrMsg = $o->getMessages();
+
+            $intra->json('ok', $intra->translate('Messages: ').count($arrMsg), $arrMsg);
+
         } catch (Exception $e){
-            echo json_encode(Array("ERROR"=>$e->getMessage()));
-            die();
+            $intra->json('error', $e->getMessage());
         }
 
-        echo json_encode(array('data'=>$arrFIL));
-        die();
     case 'getFiles':
         include eiseIntraAbsolutePath."inc_entity_item_form.php";
         try {
             $o = new eiseEntityItemForm($oSQL, $intra, $arrIn['entID'], $arrIn['entItemID']);    
             $arrFIL = $o->getFiles();
+
+            $intra->json('ok', $intra->translate('Fiels: ').count($arrFIL), $arrFIL);
+
         } catch (Exception $e){
-            echo json_encode(Array("ERROR"=>$e->getMessage()));
-            die();
+            $intra->json('error', $e->getMessage());
         }
 
-        echo json_encode(array('data'=>$arrFIL));
-        die();
     case 'getActionLog':
         
         include eiseIntraAbsolutePath."inc_entity_item_form.php";
         try {
             $o = new eiseEntityItemForm($oSQL, $intra, $arrIn['entID'], $arrIn['entItemID']);    
             $arrACL = $o->getActionLog();
-        } catch (Exception $e){
-            echo json_encode(Array("ERROR"=>$e->getMessage()));
-            die();
-        }
 
-        echo json_encode(array('data'=>$arrACL));
-        die();
-        
+            $intra->json('ok', $intra->translate('Events: ').count($arrACL), $arrACL);
+
+        } catch (Exception $e){
+            $intra->json('error', $e->getMessage());
+        }
 
     case 'getActionDetails':
     default: // default is for backward-compatibility
