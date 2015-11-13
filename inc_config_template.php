@@ -31,11 +31,12 @@ define ("eiseIntraCookieExpire", time()+60*60*24*30); // 30 days
 
 define ('eiseIntraUserMessageCookieName', 'UserMessage');
 
-$ldap_server = "172.18.1.10";
-$ldap_domain = "ylrus.com";
-$ldap_dn = "OU=Offices,DC=ylrus,DC=com";
-$ldap_anonymous_login = "svcCDBAdmin"."@".$ldap_domain;
-$ldap_anonymous_password = "svcP@ssw0rd!";
+// replace values below for LDAP authentication
+$ldap_server = "2.12.85.06";
+$ldap_domain = "e-ise.com";
+$ldap_dn = "DC=ru,DC=e-ise,DC=com";
+$ldap_anonymous_login = "anon"."@".$ldap_domain;
+$ldap_anonymous_password = "anonpass";
 
 define("prgDT", "/([0-9]{1,2})[\.\-\/]([0-9]{1,2})[\.\-\/]([0-9]{4})/i");
 $prgDT = prgDT;
