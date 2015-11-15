@@ -933,7 +933,7 @@ public static function getBookmarks($arrDescr = array()){
                 $table = $rwE['entTable'];
                 $descr = ($arrDescr[$entID] ? $arrDescr[$entID] : "##{$entID}ID##");
                 $form = preg_replace('/^(tbl_)/', '', $table).'_form.php';
-                ?><h3><a href='#'><?php echo $rwE["entTitle{$intra->local}"];?></a></h3>
+                ?><h3><a href='#'><?php echo $rwE["entTitle{$intra->local}Mul"];?></a></h3>
                 <div>
                 <?php
             }

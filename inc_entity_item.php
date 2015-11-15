@@ -1658,7 +1658,7 @@ static function updateBookmarks($newData){
 
             $arrRet = array('addClass'=>self::$arrBookmarkTitles[$flagBookmarked]['class']
                     , 'removeClass'=>self::$arrBookmarkTitles[(int)!$flagBookmarked]['class']
-                    , 'title'=>self::$arrBookmarkTitles[$flagBookmarked]['title']);
+                    , 'title'=>$intra->translate(self::$arrBookmarkTitles[$flagBookmarked]['title']));
             $intra->json('ok', $bmkID, $arrRet);
 
         } catch (Exception $e) {

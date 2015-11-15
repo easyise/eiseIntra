@@ -73,7 +73,7 @@ while ($rw = $oSQL->fetch_array($rs)){
         if($rw['pagFlagShowMyItems']){
             echo '<li id="'.$rw["pagID"].'-my-items"><a target="pane" href="'
                 .$rw["pagFile"].'?'.$rw["pagEntityID"].'_staID=&'.$rw["pagEntityID"].'_'.$rw["pagEntityID"].'FlagMyItems=1">'
-                .($intra->translate('My '.$rwEnt['entTitleMul']))
+                .($intra->translate('My ').$rwEnt["entTitle{$intra->local}Mul"])
                 ."</a>\r\n";
         }
 
