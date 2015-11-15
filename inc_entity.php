@@ -369,7 +369,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     
     $this->detectStatusID();
 
-    $hasBookmarks = $oSQL->d("SHOW TABLES LIKE 'stbl_bookmark'");
+    $hasBookmarks = (boolean)$oSQL->d("SHOW TABLES LIKE 'stbl_bookmark'");
     
     $staID = $this->staID;
 
@@ -401,11 +401,15 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
             , 'type' => "num"
             );
 
-    if($hasBookmarks)
-        $lst->Columns[] = array('field' => $entID."FlagMyItems"
-            , 'filter' => $entID."FlagMyItems"
-            , 'sql'=>"bkmUserID='{$intra->usrID}' OR {$entID}InsertBy='{$intra->usrID}'"
+    if($hasBookmarks){
+        // we add hidden column
+        $fieldMyItems = $lst->name."FlagMyItems";
+        $lst->Columns[] = array('field' => $fieldMyItems
+            , 'filter' => $fieldMyItems
+            , 'type' => 'boolean'
+            , 'sql'=> "bkmUserID='{$intra->usrID}' OR {$entID}InsertBy='{$intra->usrID}'"
             );
+    }
 
     if ($staID!="" && $this->intra->arrUsrData["FlagWrite"] && !in_array("ID_to_proceed", $arrExcludeCols)){
         $lst->Columns[] = array('title' => "sel"
