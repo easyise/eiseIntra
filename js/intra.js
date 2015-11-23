@@ -898,6 +898,8 @@ var _fill = function($body, data, conf){
 
     if(!data || data.length==0){
         $body.find('.eif_notfound').css("display", displayMode);
+    } else {
+        $body.find('.eif_notfound').css("display", 'none');
     }
 
     $.each(data, function(i, rw){
