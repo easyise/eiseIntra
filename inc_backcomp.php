@@ -2,6 +2,10 @@
 define ("jQueryRelativePath", commonStuffRelativePath."jquery/");
 define ("jQueryUIRelativePath", jQueryRelativePath."ui/");
 
+define("prgDT", "/([0-9]{1,2})[\.\-\/]([0-9]{1,2})[\.\-\/]([0-9]{4})/i");
+$prgDT = prgDT;
+define("prgReplaceTo","\\3-\\2-\\1");
+
 $arrUsrData = $intra->arrUsrData;
 $usrID = $intra->usrID;
 $strLocal = $intra->local;
@@ -44,6 +48,9 @@ function ShowSQLCombo($oSQL, $strName, $strValue, $sqlOptions, $strParams="", $s
         ($strParams!="" || $strZeroOptnText!="" ? Array("indent" => $arrIndent, "strAttrib"=>$strParams, "strZeroOptnText"=>$strZeroOptnText) : Array()));
 }
 
+$localLanguage = $intra->conf['localLanguage'];
+$localCountry = $intra->conf['localCountry'];
+$localCurrency = $intra->conf['localCurrency'];
 
 function DateSQL2PHP($arg){GLOBAL $intra; return $intra->dateSQL2PHP($arg);}
 function DatePHP2SQL($arg){GLOBAL $intra; return $intra->datePHP2SQL($arg);}

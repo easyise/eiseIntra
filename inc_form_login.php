@@ -1,7 +1,8 @@
 <?php
 $DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
 
-$intra = new eiseIntra($oSQL, Array('version'=>$version));
+if(!isset($intra))
+    $intra = new eiseIntra($oSQL, Array('version'=>$version));
 
 switch ($DataAction){
     case "login":
@@ -83,6 +84,39 @@ if ($strMode == "LDAP"){
 }
  ?>
 
+<div class="container">
+
+<?php 
+if ($_GET["error"]){
+?>
+<div class="eiseIntraError" style="text-align: center;width: 66%;margin: 0 auto;">ERROR: <?php  echo $_GET["error"] ; ?></div>
+<?php
+}
+
+echo $intra->form($_SERVER['PHP_SELF'], 'login' 
+    , $intra->fieldset(
+            $intra->translate('Welcome to ').$title
+            , $intra->field(null, 'authstring', '', array('type'=>'hidden'))
+                    .($flagShowHost 
+                        ? $intra->field($intra->translate('Host'), 'host', '')
+                        : ''
+                    )
+                    .$intra->field($intra->translate('Login Name'), 'login', $_COOKIE["last_succesfull_usrID"])
+                    .$intra->field($intra->translate('Password'), 'password', '', array('type'=>'password'))
+                    .$intra->field(' ', 'btnsubmit', $intra->translate('Log in'), array('type'=>'submit'))
+                    .'<div class="text-center"><small>'.$intra->translate(
+                        ($binding 
+                            ? 'Please enter Windows login/password.' 
+                            : 'Please enter MySQL login/password.'
+                            )
+                        ).'</small></div>'."\r\n"
+        )
+    , 'POST', array('id'=>'loginform'));
+
+
+ ?>
+</div>
+
 <script>
 $(document).ready(function(){  
    
@@ -106,52 +140,5 @@ $(document).ready(function(){
 });
 
 </script>
-
-<div style="margin: 0 auto;width:33%">
-
-<h1 style="text-align: center;">Welcome to <?php  echo $title ; ?></h1>
-
-<?php 
-if ($_GET["error"]){
-?>
-<div class="eiseIntraError" style="text-align: center;width: 66%;margin: 0 auto;">ERROR: <?php  echo $_GET["error"] ; ?></div>
-<?php
-}
- ?>
-<form action="<?php echo $_SERVER["PHP_SELF"] ?>" id="loginform" method="POST" onsubmit="return LoginForm();" class="eiseIntraForm">
-<input type="hidden" id="DataAction" name="DataAction" value="login">
-<input type="hidden" id="authstring" name="authstring" value="">
-<fieldset class="eiseIntraMainForm">
-
-<?php 
-if ($flagShowHost) {?>
-<div>
-   <label class="eiseIntraField">Host:</label>
-   <input type="text" id="host" name="host" value="" class="eiseIntraValue">
-</div>
-<?php
-}
-?>
-<div class="eiseIntraField">
-	<label>Login:</label>
-	<input type="text" id="login" name="login" value="<?php echo $_COOKIE["last_succesfull_usrID"] ; ?>" class="eiseIntraValue">
-</div>
-
-<div class="eiseIntraField">
-	<label>Password:</label>
-	<input type="password" id="password" name="password" value="" class="eiseIntraValue">
-</div>
-
-<div class="eiseIntraField">
-	<label>&nbsp;</label>
-	<input type="submit" id="btnsubmit" name="btnsubmit" class="eiseIntraSubmit" value="<?php  echo $intra->translate("Login") ; ?>">
-</div>
-
-<div><label>&nbsp;</label><div>Please enter your <strong><?php echo ($binding ? "Windows" : "database"); ?></strong> login/password.</div>
-</div>
-
-</fieldset>
-</form>
-</div>
 </body>
 </html>

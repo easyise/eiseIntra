@@ -1,0 +1,96 @@
+@import (reference) "../../../lib/bootstrap/less/bootstrap.less";
+
+.eif-form {
+    
+}
+
+.eif-form > fieldset {
+    .form-horizontal;
+    background-color: @gray-lighter;
+    padding-top: 0;
+    padding-bottom: @grid-gutter-width / 2;
+    @radius: 5px;
+    .border-top-radius(@radius);
+    .border-bottom-radius(@radius);
+}
+
+.eif-form > fieldset legend {
+    margin-bottom: 25px;
+    border: none;
+}
+
+.eif-field {
+    &:extend(.form-group all);
+    /*
+    .make-row();
+    .form-group;
+    */
+}
+
+.eif-field > label {
+    &:extend(.control-label all);
+    .make-xs-column(2);
+}
+
+.eif-field > .eif-value
+, .eif-field > .eiseIntraValue
+{
+    .form-control;
+    .make-xs-column(10);
+}
+
+.eif-field > div.eif-value
+, .eif-field > div.eiseIntraValue
+{
+    border: 0;
+    box-shadow: none;
+    border-radius: 0;
+    background-color: transparent;
+}
+
+.eiseIntraActionSubmit,
+.eif-submit
+{
+    .btn;
+    .btn-primary;
+    .btn-lg;
+}
+
+.eiseIntraDelete,
+.eif-delete
+{
+    .btn;
+    .btn-default;
+    .btn-sm;
+}
+
+.ui-autocomplete-loading {
+    background: white url("img/spinner16x16.gif") right center no-repeat;
+}
+
+#loginform >fieldset {
+    .make-md-column(6);
+    .make-md-column-offset(3);
+    margin-top: 60px;
+    .box-shadow(0px 10px 5px rgba(0, 0, 0, 0.5));
+}
+
+#loginform >fieldset legend  {
+    .h1;
+    .text-center;
+    margin-bottom: 50px;
+    margin-top: -20px;
+}
+
+#loginform > fieldset .eif-field > label {
+    .make-md-column(4);
+}
+
+#loginform > fieldset .eif-field > .eif-value
+{
+    .make-md-column(7);
+}
+
+#loginform input[type="submit"] {
+    .make-md-column(3.5);
+}
