@@ -377,7 +377,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
             ? ': '.($this->conf['STA'][$staID]["staTitle{$strLocal}Mul"] ? $this->conf['STA'][$staID]["staTitle{$strLocal}Mul"] : $this->conf['STA'][$staID]["staTitle{$strLocal}"])
             : '')
         ,  "intra" => $this->intra
-        , "cookieName" => $listName.$staID
+        , "cookieName" => $listName.$staID.($_GET["{$listName}_{$listName}FlagMyItems"]==="1" ? 'MyItems' : '')
         , "cookieExpire" => time()+60*60*24*30
             , 'defaultOrderBy'=>"{$this->entID}EditDate"
             , 'defaultSortOrder'=>"DESC"
