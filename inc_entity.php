@@ -411,7 +411,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
             );
     }
 
-    if ($staID!="" && $this->intra->arrUsrData["FlagWrite"] && !in_array("ID_to_proceed", $arrExcludeCols)){
+    if ( $this->intra->arrUsrData["FlagWrite"] && !in_array("ID_to_proceed", $arrExcludeCols) ){
         $lst->Columns[] = array('title' => "sel"
                  , 'field' => "ID_to_proceed"
                  , 'sql' => $entID."ID"
@@ -476,7 +476,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
         if ($rwAtr["atrFlagHideOnLists"]) // if column should be hidden, skip
             continue;
 
-        if(!empty($this->staID) && !in_array($rwAtr['atrID'], $conf['STA'][$this->staID]['satFlagShowInList'])) // id statusID field is set and atrribute is not set for show, skip
+        if(!empty($this->staID) && !in_array($rwAtr['atrID'], (array)$conf['STA'][$this->staID]['satFlagShowInList'])) // id statusID field is set and atrribute is not set for show, skip
             continue;
         
 
@@ -1028,8 +1028,17 @@ function getDropDownText($arrATR, $value){
 
     $strRet = null;
 
-    if ($arrATR["atrType"] == "combobox" && $arrATR["atrDataSource"]=='' && preg_match('/^Array\(/i', $arrATR["atrProgrammerReserved"])){
+    if ( ($arrATR["atrType"] == "combobox") && $arrATR["atrDataSource"]=='' && preg_match('/^Array\(/i', $arrATR["atrProgrammerReserved"]) ) {
         eval( '$arrOptions = '.$arrATR["atrProgrammerReserved"].';' );
+        $strRet = ($arrOptions[$value]!=''
+            ? $arrOptions[$value]
+            : $arrATR["atrTextIfNull"]);
+    } elseif ($arrATR["atrType"] == "combobox" && preg_match('/^Array\(/i', $arrATR["atrDataSource"]) ) {
+        eval( '$arrOptions = '.$arrATR["atrDataSource"].';' );
+        $strRet = ($arrOptions[$value]!=''
+            ? $arrOptions[$value]
+            : $arrATR["atrTextIfNull"]);
+    } elseif ($arrATR["atrType"] == "combobox" && ($arrOptions = @json_decode($arrATR["atrDataSource"], true)) ) {
         $strRet = ($arrOptions[$value]!=''
             ? $arrOptions[$value]
             : $arrATR["atrTextIfNull"]);

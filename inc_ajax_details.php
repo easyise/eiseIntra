@@ -5,9 +5,17 @@ if ($_SERVER["REQUEST_METHOD"]=="POST")
 else 
   $arrIn = $_GET;
   
-$DataAction = $arrIn["DataAction"];
+$DataAction = $arrIn[eiseIntra::dataReadKey];
 
 switch ($DataAction){
+    case 'getMenu':
+        echo $intra->menu();
+        die();
+
+    case 'getTopLevelMenu':
+        echo $intra->topLevelMenu($eiseIntraTopLevelMenu);
+        die();
+
     case 'getBookmarks':
 
         include eiseIntraAbsolutePath."inc_entity_item_form.php";

@@ -5,9 +5,6 @@ $atrID  = (isset($_POST['atrID']) ? $_POST['atrID'] : $_GET['atrID'] );
 $atrEntityID  = (isset($_POST['atrEntityID']) ? $_POST['atrEntityID'] : $_GET['atrEntityID'] );
 $DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['DataAction'] );
 
-$oSQL->dbname = isset($_POST["dbName"]) ? $_POST["dbName"] : $_GET["dbName"];
-$oSQL->select_db($oSQL->dbname);
-
 if($intra->arrUsrData['FlagWrite']){
 
 switch($DataAction){
@@ -109,18 +106,18 @@ $rsATR = $oSQL->do_query($sqlATR);
 $rwATR = $oSQL->fetch_array($rsATR);
 
 $arrActions[]= Array ('title' => 'Back to list'
-	   , 'action' => "entity_form.php?entID={$atrEntityID}&dbName={$oSQL->dbname}"
+	   , 'action' => "entity_form.php?entID={$atrEntityID}&dbName={$dbName}"
 	   , 'class'=> 'ss_arrow_left'
 	);
-$arrJS[] = jQueryUIRelativePath.'js/jquery-ui-1.8.16.custom.min.js';
-$arrCSS[] = jQueryUIRelativePath.'css/'.jQueryUITheme.'/jquery-ui-1.8.16.custom.css';
-include eiseIntraAbsolutePath.'inc-frame_top.php';
+
+$intra->requireComponent('jquery-ui');
+
+include eiseIntraAbsolutePath.'inc_top.php';
 ?>
 
 <form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" class="eiseIntraForm">
 <input type="hidden" name="atrID" value="<?php  echo htmlspecialchars($atrID) ; ?>">
 <input type="hidden" name="atrEntityID" value="<?php  echo htmlspecialchars($atrEntityID) ; ?>">
-<input type="hidden" name="dbName" value="<?php  echo htmlspecialchars($oSQL->dbname) ; ?>">
 <input type="hidden" name="DataAction" value="update">
 
 <fieldset class="eiseIntraMainForm"><legend>Attribute</legend>
@@ -222,5 +219,5 @@ $(document).ready(function(){
 });
 </script>
 <?php
-include eiseIntraAbsolutePath.'inc-frame_bottom.php';
+include eiseIntraAbsolutePath.'inc_bottom.php';
 ?>

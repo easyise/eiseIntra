@@ -1,15 +1,12 @@
 <?php 
 include "common/auth.php";
-include "common/common.php";
 
-$dbName = (isset($_POST["dbName"]) ? $_POST["dbName"] : $_GET["dbName"]);
-$oSQL->select_db($dbName);
+if($_GET[eiseIntra::dataActionKey]=='new')
+    unset($dbName);
 
-include commonStuffAbsolutePath.'eiseGrid2/inc_eiseGrid.php';
-$arrJS[] = commonStuffRelativePath.'eiseGrid2/eiseGrid.jQuery.js';
-$arrCSS[] = commonStuffRelativePath.'eiseGrid2/themes/default/screen.css';
+$intra->requireComponent(array('grid', 'batch'));
 
-$grid = new easyGrid($oSQL
+$grid = new eiseGrid($oSQL
                     ,"tbl"
                     , Array(
                             'arrPermissions' => Array('FlagWrite' => true)
@@ -158,7 +155,7 @@ if ($eiseDBSVersion){
 }
 
 
-include eiseIntraAbsolutePath."inc-frame_top.php";
+include eiseIntraAbsolutePath."inc_top.php";
 ?>
 <style>
 .eiseIntraField label {
@@ -169,16 +166,15 @@ include eiseIntraAbsolutePath."inc-frame_top.php";
 }
 </style>
 
-<form action="database_act.php" method="POST" class="eiseIntraForm">
-<fieldset class="eiseIntraMainForm"><legend><?php echo ($dbName!="" ? "Database $dbName" : "New Database"); ?></legend>
+<form action="database_act.php" method="POST" class="eiseIntraForm" id="frm-create-database">
+<fieldset class="eiseIntraMainForm"><legend><?php echo ($dbName!="" ? "Database $dbName" : $intra->translate("New Database") ); ?></legend>
 <table width="100%">
-<input type="hidden" name="dbName_key" value="<?php  echo $dbName ; ?>">
 <input type="hidden" name="DataAction" value="create">
 <tr>
 <td width="40%">
 <div class="eiseIntraField">
 <label><?php  echo $intra->translate('Name') ; ?>:</label>
-<?php echo $intra->showTextBox('dbName', $dbName, (array('FlagWrite' => !(bool)$dbName))) ?>
+<?php echo $intra->showTextBox('dbName_new', $dbName, (array('FlagWrite' => !(bool)$dbName))) ?>
 </div>
 
 <div class="eiseIntraField">
@@ -193,10 +189,10 @@ if ($arrFlags["hasEntity"]){
 
     $oSQL->q('SET SESSION group_concat_max_len = 1000000');
 
-    foreach($arrEntityTables as $tableName){
+    foreach(eiseAdmin::$arrEntityTables as $tableName){
         if (!in_array($tableName, $arrTables))
           continue;
-        $strEntityHashes .= getTableHash($oSQL, $tableName);
+        $strEntityHashes .= $intra->getTableHash($tableName);
     }
     ?>
 <div class="eiseIntraField">
@@ -274,7 +270,7 @@ $grid->Execute();
 </td>
 </tr>
 <tr>
-<td style="text-align:center;"><input value="Save" type="submit" onclick="return confirm('Are you sure you\'d like to create the database?')"></td>
+<td style="text-align:center;"><input value="Save" type="submit" class="btn-save"></td>
 </tr>
 <?php
 }
@@ -288,6 +284,21 @@ $grid->Execute();
 $(window).load(function(){
 
     $('.eiseGrid').eiseGrid();
+
+    var fnSubmit = function(ev){
+        $(this).eiseIntraBatch('submit', {
+            timeoutTillAutoClose: null
+            , flagAutoReload: false
+            , onclose: function(){
+                $('#frm-create-database').submit(fnSubmit);
+            }
+            , title: $('#frm-create-database legend').first().text()
+        });
+        ev.stopPropagation();
+        return false;
+    }
+
+    $('#frm-create-database').submit(fnSubmit)
 
 });
 
@@ -321,7 +332,12 @@ function dumpSelectedTables(dbName, what){
         (what=='tables' ? "&strTables="+encodeURIComponent(strTablesToDump) : '')+
         ($('#flagNoData')[0].checked ? '&flagNoData=1' : '')+
         ($('#flagDonwloadAsDBSV')[0].checked ? '&flagDonwloadAsDBSV=1' : '');
-    location.href = strURL;
+    if($('#flagDonwloadAsDBSV')[0].checked){
+        location.href=strURL;
+    } else {
+        $('body').eiseIntraBatch({url: strURL, title: 'Dump', timeoutTillAutoClose: null, flagAutoReload: false})
+    }
+    
 
 }
 
@@ -331,5 +347,5 @@ function dumpSelectedTables(dbName, what){
 
 <?php
 
-include eiseIntraAbsolutePath."inc-frame_bottom.php";
+include eiseIntraAbsolutePath."inc_bottom.php";
 ?>

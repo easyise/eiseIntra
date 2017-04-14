@@ -2,13 +2,11 @@
 include 'common/auth.php';
 
 $DataAction = $_GET["DataAction"] ? $_GET["DataAction"] : $_POST["DataAction"];
-$dbName = $_GET["dbName"] ? $_GET["dbName"] : $_POST["dbName"];
+$dbName = $_GET["dbName"] ? $_GET["dbName"] : ($_POST["dbName"] ? $_POST['dbName'] : $_COOKIE['dbName']);
 $oSQL->dbname = $dbName;
 $oSQL->select_db($dbName);
 
-include commonStuffAbsolutePath.'eiseGrid2/inc_eiseGrid.php';
-$arrJS[] = commonStuffRelativePath.'eiseGrid2/eiseGrid.jQuery.js';
-$arrCSS[] = commonStuffRelativePath.'eiseGrid2/themes/default/screen.css';
+$intra->requireComponent('grid');
 
 $gridSTR = new easyGrid($oSQL
         ,'str'
@@ -67,7 +65,7 @@ $arrActions[]= Array ('title' => $intra->translate('Edit grid')
 	   , 'class'=> 'ss_application_form'
 	);
 }
-include eiseIntraAbsolutePath."inc-frame_top.php";
+include eiseIntraAbsolutePath."inc_top.php";
 ?>
 <script>
 $(document).ready(function(){  
@@ -119,5 +117,5 @@ $gridSTR->Execute();
  ?>
 
 <?php
-include eiseIntraAbsolutePath."inc-frame_bottom.php";
+include eiseIntraAbsolutePath."inc_bottom.php";
 ?>

@@ -1,6 +1,5 @@
 <?php
 include "common/auth.php";
-include "common/common.php";
 
 set_time_limit(1200);
 ob_start();
@@ -16,13 +15,12 @@ case 'dump':
     header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
     header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
     
-    
     switch ($_GET['what']) {
         case 'security':
-            $arrTablesToDump = $arrMenuTables;
+            $arrTablesToDump = eiseAdmin::$arrMenuTables;
             break;
         case 'entities':
-            $arrTablesToDump = $arrEntityTables;
+            $arrTablesToDump = eiseAdmin::$arrEntityTables;
             break;
         case 'tables':
             $arrTablesToDump = explode('|', $_GET['strTables']);
@@ -34,7 +32,7 @@ case 'dump':
     $arrOptions= Array();
     if($_GET['flagNoData']) $arrOptions['flagNoData'] = true;
 
-    $strTables = dumpTables($oSQL, $arrTablesToDump, $arrOptions);
+    $strTables = $intra->dumpTables($arrTablesToDump, $arrOptions);
 
     if ($_GET['flagDonwloadAsDBSV']){
         $sqlDBSV = "SHOW TABLES FROM `$dbName` LIKE 'stbl_version'";
@@ -48,17 +46,12 @@ case 'dump':
         header("Content-Disposition: attachment;filename={$fileName}");
         echo $strTables;
     } else {
-        $arrActions[]= Array ("title" => "Back to form"
-           , "action" => ($_SERVER['HTTP_REFERER'] ? $_SERVER['HTTP_REFERER'] : "database_form.php?dbName=".urlencode($dbName))
-           , "class" => "ss_arrow_left"
-        );  
-        include(eiseIntraAbsolutePath.'inc-frame_top.php');
-        ?>
+        
+        header("Content-Type: text/plain; charset=UTF-8");
+        header("Expires: 0");
+        header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
 
-<textarea style="position:absolute;width:90%;height:90%;"><?php echo $strTables ?></textarea>
-
-        <?php
-        include(eiseIntraAbsolutePath.'inc-frame_bottom.php');
+        echo $strTables;
 
     }
     die();
@@ -167,6 +160,8 @@ case "convert":
         header('Content-Transfer-Encoding: none'); 
 
         // create archive
+        include 'common/zipfile.class.php';
+
         $zip = new zipfile();
         $verMin = 1000; $verMax = '1';
         while ($rwVER = $oSQL->f($rsVER)) {
@@ -200,23 +195,24 @@ case "convert":
 
 case "create":
 
-if ($_POST["dbName_key"]==""){
+if ($_POST["dbName_new"]!=""){
 
-   echo "<pre>";   
-   
-   //print_r($_POST);
-   
-   include_once ( eiseIntraAbsolutePath."inc_dbsv.php" );
+    header("Content-Type: text/plain; charset=UTF-8");
+    header("Expires: 0");
+    header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
+
+    include_once ( eiseIntraAbsolutePath."inc_dbsv.php" );
+
     $dbsv = new eiseDBSV(array('intra' => $intra
             , 'dbsvPath'=>eiseIntraAbsolutePath.".SQL"
             , 'DBNAME' => 'mysql'));
-   $frameworkDBVersion = $dbsv->getNewVersion();
+    $frameworkDBVersion = $dbsv->getNewVersion();
    
-   echo "Database initial script for framework version ".$frameworkDBVersion."\r\n";
+    echo "#Database initial script for framework version ".$frameworkDBVersion."\r\n";
    
    
    //create new database
-    $sqlDB = "CREATE DATABASE `".$_POST["dbName"]."` /*!40100 CHARACTER SET utf8 COLLATE utf8_general_ci */";
+    $sqlDB = "CREATE DATABASE `".$_POST["dbName_new"]."` /*!40100 CHARACTER SET utf8 COLLATE utf8_general_ci */";
     if ($_POST["flagRun"])
         $oSQL->do_query($sqlDB);
    
@@ -294,8 +290,9 @@ if ($_POST["hasPages"]=="on") {
     `pagFile` VARCHAR(255) NULL DEFAULT NULL,
     `pagTable` VARCHAR(20) NULL DEFAULT NULL,
     `pagEntityID` VARCHAR(3) NULL DEFAULT NULL,
-    `pagFlagSystem` TINYINT(4) UNSIGNED NULL DEFAULT NULL,
-    `pagFlagHierarchy` TINYINT(4) UNSIGNED NULL DEFAULT NULL,
+    `pagFlagShowMyItems` TINYINT(4) NOT NULL DEFAULT 0 COMMENT 'Displays My Items menu item when checked and entity set',
+    `pagFlagSystem` TINYINT(4) NOT NULL DEFAULT 0,
+    `pagFlagHierarchy` TINYINT(4) NOT NULL DEFAULT 0,
     `pagInsertBy` VARCHAR(30) NULL DEFAULT NULL,
     `pagInsertDate` DATETIME NULL DEFAULT NULL,
     `pagEditBy` VARCHAR(30) NULL DEFAULT NULL,
@@ -745,7 +742,7 @@ ENGINE=InnoDB;
     $sqlTable['INSERT stbl_action'] = "
 INSERT INTO `stbl_action` (`actID`, `actEntityID`, `actTrackPrecision`, `actTitle`, `actTitleLocal`, `actTitlePast`, `actTitlePastLocal`, `actDescription`, `actDescriptionLocal`, `actFlagDeleted`, `actPriority`, `actFlagComment`, `actShowConditions`, `actFlagHasEstimates`, `actFlagDepartureEqArrival`, `actFlagAutocomplete`, `actDepartureDescr`, `actArrivalDescr`, `actFlagInterruptStatusStay`, `actInsertBy`, `actInsertDate`, `actEditBy`, `actEditDate`) VALUES
     (1, NULL, 'datetime', 'Create', 'Создать', 'Created', 'Создан', 'create new', 'create new', 0, 0, 0, '', 0, 0, 1, NULL, NULL, 0, 'admin', NOW(), 'admin', NOW()),
-    (2, NULL, 'datetime', 'Update', 'Обновить данные', 'Updated', 'Данные обновлены', 'update existing', 'update existing', 0, 0, 0, '', 0, 0, 1, NULL, NULL, 0, 'admin', NOW(), 'admin', NOW()),
+    (2, NULL, 'datetime', 'Save', 'Сохранить данные', 'Saved', 'Данные сохранены', 'update existing', 'update existing', 0, 0, 0, '', 0, 0, 1, NULL, NULL, 0, 'admin', NOW(), 'admin', NOW()),
     (3, NULL, 'datetime', 'Delete', 'Удалить', 'Deleted', 'Удалено', 'delete existing', 'delete existing', 0, -1, 0, '', 0, 0, 1, NULL, NULL, 0, 'admin', NOW(), 'admin', NOW()),
     (4, NULL, 'datetime', 'Superaction', 'Superaction', 'Superaction', 'Superaction', '', '', 0, 0, 1, '', 0, 0, 0, '', '', 0, 'admin', NOW(), 'admin', NOW());
 ";
@@ -881,11 +878,29 @@ INSERT INTO `stbl_uom` (`uomID`, `uomType`, `uomTitleLocal`, `uomTitle`, `uomRat
     ('t', 'wgt', 'т', 't', 1000.0000, 2, 0, 0, NULL, NULL, NULL, NULL, NULL);
         ";
     
+    $sqlTable['CREATE TABLE `stbl_bookmark`'] = "CREATE TABLE `stbl_bookmark` (
+  `bkmID` int(10) NOT NULL AUTO_INCREMENT,
+  `bkmUserID` varchar(50) NOT NULL,
+  `bkmEntityID` varchar(20) NOT NULL,
+  `bkmEntityItemID` varchar(50) NOT NULL,
+  `bkmFlagDeleted` tinyint(4) NOT NULL DEFAULT '0',
+  `bkmInsertBy` varchar(50) DEFAULT NULL,
+  `bkmInsertDate` datetime DEFAULT NULL,
+  PRIMARY KEY (`bkmID`),
+  UNIQUE KEY `bkmUserID_bkmEntityID_bkmEntityItemID` (`bkmUserID`,`bkmEntityID`,`bkmEntityItemID`),
+  KEY `IX_bkmUserID` (`bkmUserID`),
+  KEY `IX_bkmEntityID` (`bkmEntityID`),
+  KEY `IX_bkmEntityItemID` (`bkmEntityItemID`),
+  KEY `IX_bkmInsertBy` (`bkmInsertBy`),
+  KEY `IX_bkmInsertDate` (`bkmInsertDate`)
+) ENGINE=InnoDB AUTO_INCREMENT=1000 DEFAULT CHARSET=utf8;
+    ";
+
     }
     
     $ii = 1;
     if ($_POST['flagRun']){
-        $oSQL->select_db($_POST["dbName"]);
+        $oSQL->select_db($_POST["dbName_new"]);
     }
     $nScripts = count($sqlTable);
     foreach($sqlTable as $action=>$sql){
@@ -896,8 +911,6 @@ INSERT INTO `stbl_uom` (`uomID`, `uomType`, `uomTitleLocal`, `uomTitle`, `uomRat
         $ii++;
     }
     
-    echo "</pre>";
-
 }
 
 break;

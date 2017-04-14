@@ -1,0 +1,31 @@
+.ei-sidebar-menu .ei-menu > li.root > ul > li.doc::first-letter {
+    text-transform: none !important;
+}
+
+#header_version_info {
+    color: #669;
+    position: absolute;
+    right: 5px;
+    top: 45px;
+}
+
+#server_form fieldset {
+	display: inline-block;
+    vertical-align: top;
+}
+
+#fldsStatus {
+	width: 36%;
+}
+
+#fldsProcs {
+	width: 60%;
+}
+
+.prc_STATE div, .prc_COMMAND div {
+	text-align: center;
+}
+
+#query_explainer {
+	display: none;
+}

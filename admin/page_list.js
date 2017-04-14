@@ -1,7 +1,7 @@
 
 var simpleTreeCollection;
 $(document).ready(function(){
-	simpleTreeCollection = $('.simpleTree').simpleTree({
+	simpleTreeCollection = $('#tree').simpleTree({
 		autoclose: true,
 		drag: true,
 		afterClick:function(node){

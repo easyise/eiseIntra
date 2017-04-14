@@ -1,0 +1,145 @@
+
+@import url(../../eiseGrid.css);
+
+.eiseGrid {
+    font-family: Tahoma;
+}
+
+.eg-table {
+    background: #ffffff;
+	font-size: 12px;
+	border-color: #eee;
+}
+
+.eg-table > thead > tr > th {
+    color: #000;
+    background: #99b4d1;
+    border-color: #ccc;
+    font-weight: 300; 
+    text-align: center;
+    padding: 0;
+    height:28px;
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+.eg-container tbody.eg-data td
+, .eg-table tfoot td
+{
+	color: #333;
+	border-color: #ddd;
+	line-height: 20px;
+}
+
+.eg-totals-caption {
+	padding-right: 2px;
+}
+
+.eg-container td > input 
+{
+	padding-left: 4px;
+	padding-right: 4px;
+}
+.eg-container tbody.eg-data td > div
+, .eg-table tfoot td
+{
+	padding-left: 4px;
+	padding-right: 4px;
+}
+
+td.eg-numeric
+, td.eg-real
+, td.eg-money
+, td.eg-numeric
+, td.eg-number
+, td.eg-double
+, td.eg-float
+, td.eg-integer
+, td.eg-int {
+    padding-right: 2px;
+}
+
+.eg-table td.eg-date input
+, .eg-table td.eg-datetime input
+, .eg-table td.eg-ajax_dropdown input
+, .eg-table td.eg-has-icon input
+{
+    padding-right: 20px; 
+}
+
+td.eg-date input, td.eg-datetime input{
+    background-image:url( icon_calendar.png );
+}
+
+td.eg-ajax_dropdown input{
+    background-image:url( icon_table_link.png );
+}
+
+.eg-selected tr {
+    background-color: rgba(128, 128, 128, 0.1);
+}
+
+.eg-updated tr td {
+    background-color: rgba(255, 255, 190, 0.5);
+}
+
+.eg-no-rows td {
+    width: 100%;
+    text-align: center;
+    padding: 20px;
+    height: 60px;
+}
+.eg-spinner td {
+    width: 100%;
+    min-height: 60px;
+    height: 60px;
+    text-align: center;
+    padding-top: 22px;
+    padding-bottom: 17px;
+    background: url("spinner.gif") no-repeat scroll center center transparent;
+    color: #000;
+    text-shadow: #fff -1px -1px 0px;
+    padding-left: 15px;
+    padding-right: 0px;
+}
+
+.eg-controlbar {
+    margin-bottom: -25px;
+    padding-top: 2px;
+    padding-left: 2px;
+    margin-left: 3px;
+}
+
+.eg-button {
+    width: 22px;
+    height: 22px;
+    border-left: 1px solid #f4f4f4;
+    border-top: 1px solid #f4f4f4;
+    border-right: 1px solid #d5d5d5;
+    border-bottom: 1px solid #d5d5d5;
+    border-radius: 2px;
+    background: #f0f0f0;
+    color: transparent;
+    overflow: hidden;
+}
+
+.eg-button-add {background: #f0f0f0 url(icon_add.png) center no-repeat;}
+.eg-button-delete {background: #f0f0f0 url(table_row_delete.png) center no-repeat;}
+.eg-button-edit {background: #f0f0f0 url(table_edit.png) center no-repeat;}
+.eg-button-insert {background: #f0f0f0 url(icon_row_insert.png) center no-repeat;}
+.eg-button-moveup {background: #f0f0f0 url(icon_arrow_up.png) center no-repeat;}
+.eg-button-movedown {background: #f0f0f0 url(icon_arrow_down.png) center no-repeat;}
+.eg-button-refresh {background: #f0f0f0 url(icon_arrow_refresh.png) center no-repeat;}
+.eg-button-save {background: #f0f0f0 url(icon_save.png) center no-repeat;}
+.eg-button-refresh {background: #f0f0f0 url(icon_table_refresh.png) center no-repeat;}
+
+.eg-pseudotabs {
+    line-height: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.eg-3d {
+    display: none;
+}

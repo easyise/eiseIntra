@@ -1,15 +1,7 @@
 <?php 
-include commonStuffAbsolutePath.'eiseGrid/inc_eiseGrid.php';
-$arrJS[] = commonStuffRelativePath.'eiseGrid/eiseGrid.js';
-$arrCSS[] = commonStuffRelativePath.'eiseGrid/eiseGrid.css';
+$intra->requireComponent('jquery-ui', 'grid');
 
 $DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['DataAction'] );
-
-$oSQL->dbname=(isset($_POST["dbName"]) ? $_POST["dbName"] : $_GET["dbName"]);
-$dbName = $oSQL->dbname;
-$oSQL->select_db($dbName);
-$oSQL->dbName = $dbName;
-
 
 $actID = (isset($_POST["actID"]) ? $_POST["actID"] : $_GET["actID"]);
 
@@ -94,6 +86,7 @@ $gridAAT->Columns[] = Array(
         , 'field' => "atrTitle"
         , 'type' => "text"
         , 'disabled' => true
+        , 'mandatory' =>  true
         , 'width' => "100%"
 );
 
@@ -130,7 +123,7 @@ $gridAAT->Columns[] = Array(
 $gridAAT->Columns[] = Array(
         'title' => $intra->translate("Timestamp?")
         , 'field' => "aatFlagTimestamp"
-        , 'type' => "combobox"
+        , 'type' => "select"
         , "defaultText" => "-"
         , 'arrValues' => Array("ETD"=>"ETD"
             , "ETA"=>"ETA"
@@ -357,11 +350,11 @@ if ($easyAdmin){
        , "class"=> "ss_page_copy"
     );
 }
-include eiseIntraAbsolutePath."inc-frame_top.php";
+include eiseIntraAbsolutePath."inc_top.php";
 ?>
 <script>
 $(document).ready(function(){  
-    easyGridInitialize();
+    $('.eiseGrid').eiseGrid();
 });
 </script>
 
@@ -492,5 +485,5 @@ $gridAAT->Execute();
 
 
 <?php
-include eiseIntraAbsolutePath."inc-frame_bottom.php";
+include eiseIntraAbsolutePath."inc_bottom.php";
  ?>

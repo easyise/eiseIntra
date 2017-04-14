@@ -22,10 +22,6 @@ td     {  	vertical-align: top; padding: 0;}
 }
 
 #toc {
-    overflow-y: auto;
-    overflow-x: visible;
-    position:fixed;
-    z-index: 101;
 }
 
 #pane {
@@ -53,6 +49,18 @@ div.menubutton  {
 
 .menubutton a {
     text-indent: 0;
+    font-size: 11px;
+    line-height: 16px;
+    height: 16px;
+    margin: 2px;
+    padding: 0 10px 0 24px;
+    text-decoration: none;
+    display: block;
+}
+
+.menubutton.no-title a {
+    padding-left: 16px;
+    padding-right: 0;
 }
 
 .menubar div.float_right {
@@ -67,6 +75,21 @@ div.menubutton  {
 .ei_dialog_notitle .ui-dialog-titlebar {
     display:none;
 }
+.ei-dialog-notitle .ui-dialog-titlebar {
+    display:none;
+}
+.ei-modal-spinner {
+
+}
+
+.ei-password-confirm .eiseIntraField label {
+    width: auto;
+}
+.ei-password-confirm .eiseIntraField input.eiseIntraValue {
+    width: 100%;
+}
+
+
 
 .ui-dialog {
     z-index: 100;
@@ -143,6 +166,20 @@ div.menubutton  {
     padding-right: 1% !important;
 }
 
+.eiseIntraForm .eiseIntraField.field-delimiter {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.eiseIntraForm label.field-delimiter-label {
+    text-align: left;
+    width: 100%;
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+    border-bottom-color: #999;
+    margin-bottom: 0.25em;
+}
+
 .eiseIntraForm label.eiseIntraValue {
     text-align: left;
 }
@@ -208,6 +245,14 @@ div.menubutton  {
     padding-left: 1%;
     float: left;
     font-weight: normal !important;
+}
+
+.eiseIntraForm .eiseIntraCheckbox label {
+    clear: right;
+    cursor: pointer !important;
+    float: none;
+    padding-right: 0 !important;
+    width: auto;
 }
 
 .eif_actionButtons input {
@@ -471,9 +516,10 @@ div.eiseIntraComment {
 
 .eif_msgText {
     border-top: 1px dotted #666;
-    font-family: monospace, "Courier New";
+    font-family: monospace,"Courier New";
     min-height: 4em;
     padding: 0.25em 1em;
+    white-space: pre-wrap;
 }
 
 .eiseIntraMessage {
@@ -497,3 +543,44 @@ div.eiseIntraComment {
 /*****************************************************/
 /* /eiseIntraMessages */
 /*****************************************************/
+
+/**
+ * Single page classes
+ */ 
+
+.ei-header {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 102;
+}
+
+.ei-sidebar-menu {
+    position: fixed;
+    height: 100%;
+    max-height: 100%;
+    position: fixed;
+    z-index: 101;
+}
+
+.ei-sidebar-menu-content {
+    overflow-y: auto;
+    overflow-x: visible;
+    height: 100%;
+}
+
+.ei-action-menu {
+    position: fixed;
+    left: auto !important;
+    top: auto !important;
+}
+
+.ei-pane {
+    height: 100%;
+    x-overflow: hidden;
+    y-overflow: auto;
+}
+
+/**
+ * /Single page classes
+ */ 

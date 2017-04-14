@@ -268,12 +268,13 @@ init: function( options ) {
                     var arrFieldsToFill = [];
                     if(o.act.aatFlagMandatory)
                         $.each(o.act.aatFlagMandatory, function(fieldName, arrFlags){
-                            if(typeof($this.find('#'+fieldName)[0])=='undefined')
+                            if(typeof($this.find('#'+fieldName)[0])=='undefined' && o.atr[fieldName].atrType!='combobox'){
                                 arrFieldsToFill.push({name: o.atr[fieldName].atrID
                                     , title: ($this.data('eiseIntraForm').conf.local ? o.atr[fieldName].atrTitleLocal : o.atr[fieldName].atrTitle)
                                     , type: o.atr[fieldName].atrType
                                     , defaultValue: o.atr[fieldName].atrDefault
                                     , required: true});
+                            }
                         });
 
                     if (o.act.actFlagComment=='1'){

@@ -1,20 +1,35 @@
 <?php 
-/*
-class DBSV
-version 3.0 beta
-DataBase Schema Version tool
-requires inc_intra.php
-
-takes content of given directory with SQL version files 
-and run it sequentially, starting from a script number greated than one 
-from current system DBSV version
-
- update version 3.0:
-supports multi-branch development with gaps in version numbering
-
-Connection *SQL user shoudl have enough privileges to modify schema in current database.
-*/
-
+/**
+ * eiseIntra DBSV class - special class for DataBase Schema Version tool.
+ *
+ * Schema, i.e. table structure and routines, is kept in sequence of SQL scripts from initial system creation time. Each SQL script is a text file with set of SQL commands like CREATE, ALTER, CHANGE or DROP, to be applied to project database objects. File name has 3-digit prefix that defines its number in sequence, like 001, 002, 003 etc, no gaps. It's mandatory that script files are having '.sql' extension. DBSV executes them one by one and stores file number in special table named 'stbl_version' in project database. Current schema vesrion number is maximum script number stored in this table.
+ * Directory with these SQL scripts is normally included in the same repository as PHP files. In order to keep them 'invisible' to the web server or php-fpm, it's strongly suggested to name this directory with period in the beginning of its name, like '.SQL' or '.DBSV' etc.
+ *
+ * Some important notice on modifying routines:
+ *  Views: first DROP existing view, then CREATE. Avoid DEFINER and other junk.
+ * @example DROP VIEW IF EXISTS `vw_my_view`; CREATE VIEW `vw_my_view` AS SELECT * FROM `tbl_my_table`;
+ *  Functions: function update should be placed in two scripts: at first you DROP existing function, at second - you CREATE function and finish this script with double semicolon (important!).
+ * @example 053-fn_xx-DROP.sql: DROP FUNCTION IF EXISTS `fn_xx`;
+ * @example 054-fn_xx-CREATE.sql: CREATE FUNCTION `fn_xx` (`param` varchar(50)) RETURNS int {..function properties..} BEGIN {..function code..} END;;
+ *  Stored Procedures: same as for functions - two scripts, one with DROP, second with CREATE and who semicolons in the end.
+ *
+ * These rules for Functions and Stored Procedures are mandatory because PHP cannot execute several semicolon-separated SQL scripts at one run. DBSV doesn't perform recursive analysis of SQL code and it just splits SQL script by ";[\r\n]" pattern (semicolon+new line symbol). It's not perfect but it works in 99.9% cases.
+ * 
+ * last update:
+ * Support of multi-branch development with gaps in version numbering. If you wish to add a new feature to the project that updates schema and develop it in a side repository branch, you can make gaps in squence numbers. It will leave you a room for some urgent updates/fixes in master branch. In order to proceed with it, you need to add a special 'jump' script that will update stbl_version directly. Let say, that we need to jump from database schema version 095 to 120. Create a script named '096-new-feature-jump-to-120.sql' and fill it with the following content:
+ * @example INSERT INTO stbl_version (verNumber, verDesc, verFlagVersioned, verDate) VALUES (119, 'jump to version 120', 1, NOW());
+ *
+ * As you can see, this script will shift your current schema version to 119. After execution it will be allowed to create scripts 120, 121, etc. Do not forget to put it into your new branch, forked from the current master. If master branch will be changed with schema update, simply rename this script with sequence number of new master version plus one. Fro example, if master changed to 98, rename your 'jump' to '099-new-feature-jump-to-120.sql'.
+ *
+ * If master schema version becomes changed as dramatically as it exceeds your gap estimation... There's the only way to handle it - icrease gap and manually rename SQL script files from you new feature branch.
+ * 
+ * Connection *SQL user should have enough privileges to modify schema in current database.
+ *
+ *
+ * @package eiseIntra
+ * @version 1.0.15
+ *
+ */
 class eiseDBSV {
 
 public $conf = array(
@@ -47,7 +62,7 @@ function __construct($conf = array()){
 
             list($login, $password) = $this->intra->decodeAuthString($_POST['authstring']);
 
-            if(!$this->intra->Authenticate($login, $password, $strError, 'mysql')){
+            if(!$this->intra->Authenticate($login, $password, 'mysql', array('flagNoSession'=>true))){
                 throw new Exception("Unable to connect to server {$login}@{$_POST['host']}");
             }   
             

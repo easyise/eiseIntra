@@ -147,7 +147,7 @@ switch($DataAction){
         break;
 }
 
-include eiseIntraAbsolutePath."inc-frame_top.php";
+include eiseIntraAbsolutePath."inc_top.php";
 ?>
 
 <h1>Roles</h1>
@@ -182,5 +182,5 @@ $gridROL->Execute();
 ?>
 
 <?php
-include eiseIntraAbsolutePath."inc-frame_bottom.php";
+include eiseIntraAbsolutePath."inc_bottom.php";
 ?>

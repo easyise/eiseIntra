@@ -1,7 +1,12 @@
-$(window).load(function(){  
+$(document).ready(function(){
     
+    $('body').eiseIntra();
+    
+})
+
+$(window).load(function(){  
+
     eiseIntraAdjustFrameContent();
-    MsgShow();	
 
     $('#menubar a.confirm').click(function(event){
         

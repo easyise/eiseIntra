@@ -1,1 +1,3 @@
-<?php $version = '2.0.001'; ?>
+<?php 
+$title = "Admin";
+$version = '1.5.001';

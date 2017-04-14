@@ -1,0 +1,180 @@
+.eiseGrid {  
+    position: relative;
+}
+
+.eg_table {
+	border-collapse: collapse;
+    border-spacing: 0 !important;
+    box-sizing: border-box !important;
+    -moz-box-sizing:  border-box !important;
+    -webkit-box-sizing: border-box !important;
+    table-layout: fixed;
+}
+
+.eg_table th {
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    font-weight: normal; 
+    text-align: center;
+    box-sizing: border-box;
+    -moz-box-sizing:  border-box;
+    -webkit-box-sizing: border-box;
+    overflow:hidden;
+}
+.eg_table th:last-of-type {
+    border-right-width: 0;
+    border-right-style: none;
+}
+
+.eg_table tfoot td {
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+}
+.eg_table tfoot td:last-of-type {
+    border-right-width: 0;
+    border-right-style: none;
+}
+
+.eg_tdBody {
+    border-collapse: collapse;
+    border: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.eg_body {
+    border-collapse: collapse;
+    border: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.eg_body table {
+    width: 100%;
+    border-spacing: 0 !important;
+    border-collapse: collapse;
+    border: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    table-layout: fixed;
+
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+    
+}
+
+
+.eiseGrid td {
+    box-sizing: border-box;
+    -moz-box-sizing:  border-box;
+    -webkit-box-sizing: border-box;
+}
+
+.eg_body td {
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+}
+.eg_body td:last-of-type {
+    border-right-width: 0;
+    border-right-style: none;
+}
+
+.eg_body td div {
+    white-space: nowrap;
+    position: relative;
+    overflow: hidden;
+}
+
+.eiseGrid td input {
+    width: 100%;
+    border: 0;
+    margin: 0;
+    background: transparent;
+    font-size: inherit;
+    font-family: inherit;
+    text-align: inherit;
+    color: inherit;
+}
+
+.eiseGrid .eg_template {
+    display: none;
+}
+
+td.eg_date input, td.eg_datetime input, td.eg_ajax_dropdown input{
+    box-sizing: border-box !important;
+    -moz-box-sizing: border-box !important;
+     -webkit-box-sizing: border-box !important;
+    background-position: right top;
+    background-repeat:no-repeat;  
+    padding-right: 18px; 
+}
+
+.eg_controlbar {
+    float: left;
+}
+
+td.eg_date input {
+     width: 60px !important;
+}
+
+td.eg_datetime input {
+     width: 90px !important;
+}
+
+td.eg_date div, td.eg_datetime div {
+    white-space: nowrap;
+}
+
+td.eg_checkbox input {
+    width: auto;
+}
+
+select.eg_floating_select {
+    display: none;
+    position: absolute;
+    z-index: 100;
+}
+
+.eg_no_rows {
+    width: 100%;
+}
+
+.eg_pseudotabs {
+    line-height: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.eg_3d {
+    display: none;
+}
+
+.eg_tr_no_rows {
+    display: none;
+}
+
+.eg_tr_spinner {
+    display: none;
+}
+
+
+col {
+    box-sizing: border-box !important;
+    -moz-box-sizing: border-box !important;
+     -webkit-box-sizing: border-box !important;
+     overflow:hidden;
+}
+
+tr.eg_tabs > td > div {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}

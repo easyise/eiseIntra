@@ -1,14 +1,7 @@
 <?php 
-include commonStuffAbsolutePath.'eiseGrid/inc_eiseGrid.php';
-$arrJS[] = commonStuffRelativePath.'eiseGrid/eiseGrid.js';
-$arrCSS[] = commonStuffRelativePath.'eiseGrid/eiseGrid.css';
+$intra->requireComponent('jquery-ui', 'grid');
 
 $DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['DataAction'] );
-
-$dbName =(isset($_POST["dbName"]) ? $_POST["dbName"] : $_GET["dbName"]);
-$oSQL->select_db($dbName);
-$oSQL->dbName = $dbName;
-
 
 $staID = (isset($_POST["staID"]) ? $_POST["staID"] : $_GET["staID"]);
 $entID = (isset($_POST["entID"]) ? $_POST["entID"] : $_GET["entID"]);
@@ -88,11 +81,12 @@ $arrActions[]= Array ('title' => $rwSta["entTitle"]
 	   , 'action' => "entity_form.php?dbName=$dbName&entID=".$rwSta["entID"]
 	   , 'class'=> 'ss_arrow_left'
 	);
-include eiseIntraAbsolutePath."inc-frame_top.php";
+include eiseIntraAbsolutePath."inc_top.php";
 ?>
 <script>
 $(document).ready(function(){  
-	easyGridInitialize();
+	
+    $('.eiseGrid').eiseGrid();
     
     $("th.sat_satFlagShowInForm, th.sat_satFlagEditable, th.sat_satFlagShowInList").css("cursor", "pointer");
     
@@ -316,5 +310,5 @@ if ($intra->arrUsrData["FlagWrite"]){ ?>
 
 
 <?php
-include eiseIntraAbsolutePath."inc-frame_bottom.php";
+include eiseIntraAbsolutePath."inc_bottom.php";
  ?>

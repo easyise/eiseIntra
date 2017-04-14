@@ -1,28 +1,21 @@
 <?php 
 include "common/auth.php";
 
-$oSQL->select_db($_GET["dbName"]);
-
 $pane = (isset($_GET["pane"]) 
     ? $_GET["pane"] 
     : (isset($_COOKIE['pane']) 
         ? $_COOKIE['pane'] : "Structure"));
 
-SetCookie("pane", $pane);
-        
-$dbName = $_GET["dbName"];
-$tblName = $_GET["tblName"];
+SetCookie("pane", $pane, 0, $intra->conf['cookiePath']);
 
-$arrJS[] = jQueryUIRelativePath."js/jquery-ui-1.8.16.custom.min.js";
-$arrCSS[] = jQueryUIRelativePath."css/redmond/jquery-ui-1.8.16.custom.css";
+$tblName = $_GET["tblName"];
 
 $arrTable = $intra->getTableInfo($dbName, $tblName);
 
 switch($pane){
   case "Structure":
-        include commonStuffAbsolutePath.'eiseGrid2/inc_eiseGrid.php';
-        $arrJS[] = commonStuffRelativePath.'eiseGrid2/eiseGrid.jQuery.js';
-        $arrCSS[] = commonStuffRelativePath.'eiseGrid2/themes/default/screen.css';
+        
+        $intra->requireComponent('grid');
         
         $grid = new easyGrid($oSQL
                             ,"tbl"
@@ -83,8 +76,8 @@ switch($pane){
            , 'disabled' => true
         );
         $grid->Columns[] = Array(
-           'field'=>"Comments"
-           , 'title'=>"Comments"
+           'field'=>"Comment"
+           , 'title'=>"Comment"
            , 'type' => "text"
            , 'width' => '62%'
         );
@@ -96,13 +89,8 @@ switch($pane){
      break;
 case "Data":
         
-        $arrJS[] = commonStuffRelativePath."eiseList/eiseList.js";
-        $arrCSS[] = commonStuffRelativePath."eiseList/themes/default/screen.css";
-        include_once(commonStuffAbsolutePath."eiseList/inc_eiseList.php");
-        //echo "<pre>";
-        //echo implode(", ", $arrTable["PK"]);
-        //print_r($arrTable);
-        //die();
+        $intra->requireComponent('list');
+        
         $lst = new eiseList($oSQL, ($arrTable["prefix"] ? $arrTable["prefix"] : "lst"), Array('title'=>"Table {$tblName} @ {$dbName}"
         , 'sqlFrom' => "{$tblName}"
         , 'defaultOrderBy'=>"pk"
@@ -164,48 +152,58 @@ case "Data":
 
 
 $arrActions[]= Array ("title" => "Back to DB"
-	   , "action" => "database_form.php?dbName=$dbName"
-	   , "class"=> "ss_arrow_left"
+	    , "action" => "database_form.php?dbName=$dbName"
+	    , "class"=> "ss_arrow_left"
 	);
+
+$arrActions[]= Array ("title" => ($pane=='Structure' ? $intra->translate('Get CREATE') : $intra->translate('Dump'))
+     , "action" => "javascript:$(this).eiseIntraBatch('database_act.php?DataAction=dump&what=tables&strTables={$tblName}&dbName={$dbName}&flagDonwloadAsDBSV=0&flagNoData=".($pane=='Structure' ? '1' : '0')."')"
+     , "class"=> "ss_cog_edit"
+);
+$arrActions[]= Array ("title" => ($pane=='Structure' ? $intra->translate('CREATE as DBSV') : $intra->translate('Dump as DBSV'))
+     , "action" => "database_act.php?DataAction=dump&what=tables&strTables={$tblName}&dbName={$dbName}&flagDonwloadAsDBSV=1&flagNoData=".($pane=='Structure' ? '1' : '0')
+     , "class"=> "ss_cog_go"
+);
+
 if($arrTable['type']!='view'){
     $arrActions[]= Array ("title" => "INSERT...SELECT"
-           , "action" => "codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=INSERT%20SELECT"
-           , "class"=> "ss_script"
-        );
+        , "action" => "javascript:$(this).eiseIntraBatch('codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=INSERT%20SELECT')"
+        , "class"=> "ss_script"
+    );
     $arrActions[]= Array ("title" => "INSERT SIMPLE"
-           , "action" => "codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=INSERT"
-           , "class"=> "ss_script"
-        );
+          , "action" => "javascript:$(this).eiseIntraBatch('codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=INSERT')"
+          , "class"=> "ss_script"
+    );
     $arrActions[]= Array ("title" => "UPDATE"
-           , "action" => "codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=UPDATE"
-           , "class"=> "ss_script"
-        );    
+        , "action" => "javascript:$(this).eiseIntraBatch('codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=UPDATE')"
+        , "class"=> "ss_script"
+    );    
 }
-$arrActions[]= Array ("title" => "eiseGrid"
-	   , "action" => "codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=easyGrid"
-	   , "class"=> "ss_script"
-	);
-$arrActions[]= Array ("title" => "phpList"
-	   , "action" => "codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=phpList"
-	   , "class"=> "ss_script"
-	);
-$arrActions[]= Array ("title" => "eiseList"
-	   , "action" => "codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=eiseList"
-	   , "class"=> "ss_script"
-	);
+
+$arrActions[]= Array ("title" => "List"
+	  , "action" => "javascript:$(this).eiseIntraBatch('codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=eiseList')"
+    , "class"=> "ss_script"
+);
 
 if($arrTable['type']!='view'){
     $arrActions[]= Array ("title" => "Form"
-    	   , "action" => "codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=Form"
-    	   , "class"=> "ss_script"
-    	);
+        , "action" => "javascript:$(this).eiseIntraBatch('codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=Form')"
+        , "class"=> "ss_script"
+    );
 }
+$arrActions[]= Array ("title" => "Grid"
+    , "action" => "javascript:$(this).eiseIntraBatch('codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=easyGrid')"
+    , "class"=> "ss_script"
+);
 $arrActions[]= Array ("title" => "Description"
-	   , "action" => "codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=table_Description"
-	   , "class"=> "ss_script"
-	);
-    
-include eiseIntraAbsolutePath."inc-frame_top.php";
+	  , "action" => "javascript:$(this).eiseIntraBatch('codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=table_Description')"
+	  , "class"=> "ss_script"
+);
+
+$intra->requireComponent('batch');
+$intra->conf['flagBatchNoAutoclose'] = true;
+
+include eiseIntraAbsolutePath."inc_top.php";
 ?>
 
 
@@ -213,10 +211,9 @@ include eiseIntraAbsolutePath."inc-frame_top.php";
 <script>
 $(document).ready(function() {
     $( "#tabs" ).tabs(
-        {selected: <?php  echo ($pane=="Structure" ? "0" : "1") ; ?>
-        ,  select: function(event, ui) { 
-            //alert(ui.panel.id);
-            switch(ui.panel.id){
+        {active: <?php  echo ($pane=="Structure" ? "0" : "1") ; ?>
+        ,  beforeActivate: function(event, ui) { 
+            switch(ui.newPanel[0].id){
                 case "tabs-0":
                     location.href="<?php  echo $_SERVER['PHP_SELF']."?dbName=$dbName&tblName=$tblName&pane=Structure" ; ?>";
                     break;
@@ -301,5 +298,5 @@ endif;
 
 </style>
 <?php
-include eiseIntraAbsolutePath."inc-frame_bottom.php";
+include eiseIntraAbsolutePath."inc_bottom.php";
 ?>

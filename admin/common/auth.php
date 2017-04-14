@@ -6,12 +6,16 @@ ob_start();
 
 include "version.php";
 
+include ("../inc_intra.php");
 include ("config.php");
+include 'eiseAdmin.class.php';
 
-include (eiseIntraPath."inc_intra.php");
+$authmethod = "mysql";
 
-$intra = new eiseIntra( null, array('version'=>$version, 'hideSTBLs'=>true) );
+$intra = new eiseAdmin(array('version'=>$version, 'hideSTBLs'=>true));
 $intra->session_initialize();
+
+$dbName = $intra->getDBName();
 
 if (!$flagNoAuth){
 
@@ -29,8 +33,13 @@ if (!$flagNoAuth){
 
     try {
 
-        $intra->oSQL = new eiseSQL($_SESSION["DBHOST"], $intra->usrID, $_SESSION["DBPASS"], (!$_SESSION["DBNAME"] ? 'mysql' : $_SESSION["DBNAME"]));
+        $intra->oSQL = new eiseSQL( $_SESSION["DBHOST"], $intra->usrID, $_SESSION["DBPASS"], 'mysql' );
         $intra->oSQL->connect();
+
+        if(!$intra->oSQL->selectDB($dbName)){
+            $intra->redirect('ERROR: Database "'.$dbName.'" doesn\'t exist', 'database_form.php?dbName=mysql');
+            die();
+        }
         
     } catch(Exception $e) {
         
@@ -44,11 +53,13 @@ $oSQL = $intra->oSQL;
 
 $intra->arrUsrData["FlagWrite"] = true;
 
+$intra->requireComponent('jquery-ui');
+
 $intra->checkLanguage();
 if ($intra->local)
     @include "lang.php";
     
-$arrCSS[] = 'style.css';
+$arrCSS[] = 'eiseAdmin.css';
 $arrJS[] = 'eiseAdmin.js';
 
 $strLocal = $intra->local; //backward-compatibility stuff

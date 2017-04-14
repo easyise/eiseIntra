@@ -31,7 +31,7 @@ function generateALTER(){
     var colType = document.getElementsByName("Type[]");
     var colNull = document.getElementsByName("Null[]");
     var colDefault = document.getElementsByName("Default[]");
-    var colComment = document.getElementsByName("Comments[]");
+    var colComment = document.getElementsByName("Comment[]");
     for (var i=0;i<colInpUpdated.length;i++){
          if (colInpUpdated[i].value=="1"){
 

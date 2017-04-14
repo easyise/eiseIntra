@@ -1,0 +1,187 @@
+@import url(../../eiseGrid.css);
+
+.eiseGrid {
+    font-family: Tahoma;
+}
+
+.eg_table {
+    background: #ffffff;
+	font-size: 11px;
+	border-color: #eee;
+    width: 100%;
+}
+
+.eg_table th {
+    color: CaptionText;
+    background: #99b4d1;
+    border-color: #eee;
+    font-weight: normal; 
+    text-align: center;
+    padding: 0;
+    height:28px;
+    white-space: nowrap;
+}
+.eg_table tfoot td {
+    border-color: #eee;
+}
+.eg_body td {
+    border-color: #eee;
+    vertical-align: top;
+}
+
+.eg_body td div {
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+.eg_body tr.eg_selected {
+    background-color: #f0f0f0;
+}
+
+.eg_del{
+	width: 16px;
+	max-width: 16px;
+}
+th.eg_del {
+    padding: 5px;
+}
+td.eg_del {
+    background: transparent url(icon_delete.png) center no-repeat;
+    cursor: pointer;
+}
+
+td.eg_order {
+    text-align: center;
+}
+
+td.eg_date input, td.eg_datetime input{
+    background-image:url( icon_calendar.png );
+}
+
+td.eg_ajax_dropdown input{
+    background-image:url( icon_table_link.png );
+}
+
+td.eg_date input {
+     width: 80px !important;
+}
+
+td.eg_datetime input {
+     width: 90px !important;
+}
+
+td.eg_date div, td.eg_datetime div {
+    white-space: nowrap;
+}
+
+td.eg_numeric
+, td.eg_real
+, td.eg_money
+, td.eg_numeric
+, td.eg_number
+, td.eg_double
+, td.eg_float
+, td.eg_integer
+, td.eg_int {
+    text-align: right;
+    padding-right: 2px;
+    white-space: nowrap !important;
+}
+
+td.eg_numeric input
+, td.eg_real input
+, td.eg_money input
+, td.eg_numeric input
+, td.eg_number input
+, td.eg_double input
+, td.eg_float input
+, td.eg_integer input
+, td.eg_int input {
+    text-align: right;
+}
+
+td.eg_checkbox  {
+    text-align: center;
+}
+td.eg_checkbox input {
+    width: auto;
+}
+
+
+select.eg_floating_select {
+    font: inherit;
+}
+
+.eg_updated {
+    background-color: InfoBackground;
+}
+
+.eg_totals_caption {
+    text-align: right;
+    font-weight: normal !important;
+    border-top: 0 !important;
+}
+
+.eg_table tfoot td {
+    border-color: #eee;
+    font-weight: bold;
+    border-top: 1px solid #666;
+    height: 1.75em;
+
+}
+.eg_button {
+    width: 22px;
+    height: 22px;
+    border-left: 1px solid #f4f4f4;
+    border-top: 1px solid #f4f4f4;
+    border-right: 1px solid #d5d5d5;
+    border-bottom: 1px solid #d5d5d5;
+    border-radius: 2px;
+    background: #f0f0f0;
+}
+
+.eg_button_add {background: #f0f0f0 url(icon_add.png) center no-repeat;}
+.eg_button_delete {background: #f0f0f0 url(table_row_delete.png) center no-repeat;}
+.eg_button_edit {background: #f0f0f0 url(table_edit.png) center no-repeat;}
+.eg_button_insert {background: #f0f0f0 url(icon_row_insert.png) center no-repeat;}
+.eg_button_moveup {background: #f0f0f0 url(icon_arrow_up.png) center no-repeat;}
+.eg_button_movedown {background: #f0f0f0 url(icon_arrow_down.png) center no-repeat;}
+.eg_button_refresh {background: #f0f0f0 url(icon_arrow_refresh.png) center no-repeat;}
+.eg_button_save {background: #f0f0f0 url(icon_save.png) center no-repeat;}
+
+.eg_no_rows {
+    width: 100%;
+    text-align: center;
+    padding: 20px;
+    height: 60px;
+}
+.eg_spinner {
+    width: 100%;
+    min-height: 60px;
+    height: 60px;
+    text-align: center;
+    padding-top: 22px;
+    padding-bottom: 17px;
+    background: url("spinner.gif") no-repeat scroll center center transparent;
+    text-shadow: #fff -1px -1px 0px;
+    padding-left: 15px;
+    padding-right: 0px;
+}
+
+.eg_controlbar {
+    margin-bottom: -25px;
+    padding-top: 2px;
+    padding-left: 2px;
+    margin-left: 3px;
+}
+
+.eg_pseudotabs {
+    line-height: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.eg_3d {
+    display: none;
+}

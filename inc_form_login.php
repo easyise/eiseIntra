@@ -21,44 +21,29 @@ switch ($DataAction){
                 header("Location: {$_SERVER["PHP_SELF"]}?error=".urlencode($e->getMessage()));
             }
         }
-        
-        if ($intra->Authenticate($login, $password, $strError, (isset($authmethod) ? $authmethod : "LDAP"))){
-            
-            $intra->session_initialize();
-            
-            $_SESSION["last_login_time"] = Date("Y-m-d H:i:s");
-            if($authmethod=="mysql"){
-                $_SESSION["usrID"] = $login;
-                $_SESSION["DBHOST"] = $intra->oSQL->dbhost;
-                $_SESSION["DBPASS"] = $intra->oSQL->dbpass;
-                $_SESSION["DBNAME"] = $intra->oSQL->dbname;
-            } else {
-                $_SESSION["usrID"] = strtoupper($login);
-            }
-            SetCookie("last_succesfull_usrID", $login, eiseIntraCookieExpire, eiseIntraCookiePath);
-            header("HTTP/1.0 403 Access denied"); 
+
+        try {
+            $intra->Authenticate( $login, $password, (isset($authmethod) ? $authmethod : "LDAP") );
             header ("Location: ".(isset($_COOKIE["PageNoAuth"]) ? $_COOKIE["PageNoAuth"] : "index.php"));
             die();
-        } else {
-            header("HTTP/1.0 403 Access denied"); 
-            SetCookie("last_succesfull_usrID", "", eiseIntraCookieExpire, eiseIntraCookiePath);
-            header ("Location: login.php?error=".$strError);
+
+        } catch(eiseException $e){
+
+            header ("Location: login.php?error=".$intra->translate( $e->getMessage()) );
             die();
-        }
-        break;
-   case "logout":
-      session_start();
-      session_unset();
-      session_destroy();
-      header ("Location: login.php");
-      die();
-      break;
+
+        }        
+
+    case "logout":
+
+        $intra->logout();
+        header ("Location: login.php");
+        die();
 
 }
 
-session_start();
-session_unset();
-session_destroy();
+$intra->logout();
+
 ?><!DOCTYPE html>
 <html>
 <head>
@@ -68,14 +53,14 @@ session_destroy();
 <title><?php  echo $title ; ?></title>
 
 <?php
-$intra->loadJS();
 $intra->loadCSS();
+$intra->loadJS();
 ?>
 </head>
-<body>
+<body data-conf="<?php  echo htmlspecialchars(json_encode($intra->conf)) ; ?>">
 
 <?php
-$arrUsr = split("[\\]", $AUTH_USER);
+$arrUsr = explode("[\\]", $AUTH_USER);
 $usrID = strtoupper($arrUsr[count($arrUsr)-1]);
 
 if ($strMode == "LDAP"){
@@ -84,42 +69,11 @@ if ($strMode == "LDAP"){
 }
  ?>
 
-<div class="container">
-
-<?php 
-if ($_GET["error"]){
-?>
-<div class="eiseIntraError" style="text-align: center;width: 66%;margin: 0 auto;">ERROR: <?php  echo $_GET["error"] ; ?></div>
-<?php
-}
-
-echo $intra->form($_SERVER['PHP_SELF'], 'login' 
-    , $intra->fieldset(
-            $intra->translate('Welcome to ').$title
-            , $intra->field(null, 'authstring', '', array('type'=>'hidden'))
-                    .($flagShowHost 
-                        ? $intra->field($intra->translate('Host'), 'host', '')
-                        : ''
-                    )
-                    .$intra->field($intra->translate('Login Name'), 'login', $_COOKIE["last_succesfull_usrID"])
-                    .$intra->field($intra->translate('Password'), 'password', '', array('type'=>'password'))
-                    .$intra->field(' ', 'btnsubmit', $intra->translate('Log in'), array('type'=>'submit'))
-                    .'<div class="text-center"><small>'.$intra->translate(
-                        ($binding 
-                            ? 'Please enter Windows login/password.' 
-                            : 'Please enter MySQL login/password.'
-                            )
-                        ).'</small></div>'."\r\n"
-        )
-    , 'POST', array('id'=>'loginform'));
-
-
- ?>
-</div>
-
 <script>
 $(document).ready(function(){  
    
+    $('body').eiseIntra('cleanStorage');
+
     var host = document.getElementById("host");
     if(host!=null) {
        host.value="localhost";
@@ -140,5 +94,52 @@ $(document).ready(function(){
 });
 
 </script>
+
+<div style="margin: 0 auto;width:33%">
+
+<h1 style="text-align: center;">Welcome to <?php  echo $title ; ?></h1>
+
+<?php 
+if ($_GET["error"]){
+?>
+<div class="eiseIntraError" style="text-align: center;width: 66%;margin: 0 auto;">ERROR: <?php  echo $_GET["error"] ; ?></div>
+<?php
+}
+ ?>
+<form action="<?php echo $_SERVER["PHP_SELF"] ?>" id="loginform" method="POST" onsubmit="return LoginForm();" class="eiseIntraForm">
+<input type="hidden" id="DataAction" name="DataAction" value="login">
+<input type="hidden" id="authstring" name="authstring" value="">
+<fieldset class="eiseIntraMainForm">
+
+<?php 
+if ($flagShowHost) {?>
+<div>
+   <label class="eiseIntraField">Host:</label>
+   <input type="text" id="host" name="host" value="" class="eiseIntraValue">
+</div>
+<?php
+}
+?>
+<div class="eiseIntraField">
+	<label>Login:</label>
+	<input type="text" id="login" name="login" value="<?php echo $_COOKIE["last_succesfull_usrID"] ; ?>" class="eiseIntraValue">
+</div>
+
+<div class="eiseIntraField">
+	<label>Password:</label>
+	<input type="password" id="password" name="password" value="" class="eiseIntraValue">
+</div>
+
+<div class="eiseIntraField">
+	<label>&nbsp;</label>
+	<input type="submit" id="btnsubmit" name="btnsubmit" class="eiseIntraSubmit" value="<?php  echo $intra->translate("Login") ; ?>">
+</div>
+
+<div><label>&nbsp;</label><div>Please enter your <strong><?php echo ($binding ? "Windows" : "database"); ?></strong> login/password.</div>
+</div>
+
+</fieldset>
+</form>
+</div>
 </body>
 </html>

@@ -3,112 +3,70 @@
  *
  * eiseIntra core class
  *
- * Authentication, form elements display, data input/output handling routines, archive/restore functions
+ * Authentication, form elements display, data handling routines, archive/restore functions
  *
  *
  * @package eiseIntra
- * @version 2.0.0beta
+ * @version 2.0beta
  *
  */
 
-
 include "inc_config.php";
 include "inc_mysqli.php";
+include "inc_intra_data.php";
 
-class eiseIntra {
+class eiseIntra extends eiseIntraData {
 
-public static $arrPreloadCSS = array(
-    "{BootstrapPath}css/bootstrap.css"
-    , "{eiseIntraLibRelativePath}metisMenu/dist/metisMenu.css"
-    , "{eiseIntraLibRelativePath}font-awesome/css/font-awesome.css"
-    , "{eiseIntraCSSPath}themes/{eiseIntraCSSTheme}/style.css"
-    );
-public static $arrPreloadJS = array(
-    "{jQueryPath}jquery-1.11.3.js"
-    , "{BootstrapPath}js/bootstrap.js"
-    , "{jQueryUIPath}jquery-ui.js"
-    , "{eiseIntraLibRelativePath}metisMenu/dist/metisMenu.js"
-    , "{eiseIntraJSPath}intra.js"
-    , "{eiseIntraJSPath}intra_execute.js"
-    );
-
-const cachePreventorVar = 'nc';
-
-public $arrDataTypes = array("integer", "real", "boolean", "text", "binary", "date", "time", "datetime","FK","PK");
-
-public $arrAttributeTypes = array(
-    "integer" => 'integer'
-    , "real" => 'real'
-    , "boolean" => 'checkbox'
-    , "text" => 'text'
-    , "textarea" => 'text'
-//    , "binary" => 'file' #not supported yet for docflow apps
-    , "date" => 'date'
-    , "datetime" => 'datetime'
-//    , "time" => 'time'
-    , "combobox" => 'FK'
-    , "ajax_dropdown" => 'FK'
-    );
+public $conf = array('versionIntra'=>'2.0beta.022');
 
 private $arrHTML5AllowedInputTypes = 
     Array("color"
         #, "date", "datetime", "datetime-local", "time"
-        , "email", "month", "number", "range", "search", "tel", "url", "week", "password", "text");
+        , "email", "month", "number", "range", "search", "tel", "url", "week", "password", "text", "file");
 
 private $arrClassInputTypes = 
     Array("ajax_dropdown", "date", "datetime", "datetime-local", "time");
 
+const cachePreventorVar = 'nc';
+const dataActionKey = 'DataAction';
+const dataReadKey = 'DataAction';
 
 static $arrKeyboard = array(
         'EN' =>   'qwertyuiop[]asdfghjkl;\'\\zxcvbnm,./QWERTYUIOP{}ASDFGHJKL:"|ZXCVBNM<>?'
         , 'RU' => 'йцукенгшщзхъфывапролджэёячсмитьбю/ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЁЯЧСМИТЬБЮ?'
     );
-/**
- * eiseIntra class constructor
- *
- * @param $oSQL - eiseSQL object 
- * @param $conf - configuration array. Constructor merges specified values with $eiseIntraConf global array. 
- *  Full member list is the following:
- *  - dateFormat (default: "d.m.Y") date format, see PHP date() function reference
- *  - timeFormat (default: "H:i") time format, see PHP date() function reference
- *  - decimalPlaces (default: "2") default decimal places
- *  - decimalSeparator (default: ".") decimal separator
- *  - thousandsSeparator (default: ",") thousand separator
- *  - logofftimeout (default: 360) user log-off (session) timeout, default is 6 hours 
- *  - addEiseIntraValueClass (default: true) flag that allows to add eiseIntraValue class
- *  - keyboards (default: 'EN,RU') - available keyboard layouts
- *  - flagSetGlobalCookieOnRedirect - if true, eiseIntra::redirect() method will set user message cookie path to eiseIntraCookiePath constant value
- *  - localLanguage - local language according to ISO-639-1 standard (example: 'ru' for Russian)
- *  - localCountry - local country name ISO code (example: 'RU' for Russia)
- *  - localCurrency - local currency ISO code (example: 'RUB' for Russian roubles)
- *  - strSubTitle - system subtitle to warn user about non-production environment (example: 'DEVELOPMENT')
- *  - strSubTitleLocal - system subtitle to warn user about non-production environment, in local language (example: 'Версия разработчика')
- *  - flagCollectKeys - if true, system collects arguments passed to eiseIntra::translate() method when system work in local language mode
- *  - flagBuildLess - if true, system rebuilts style.css for selected theme using eiseIntra::buildLess() static function. Remember to turn it off on production!
- *  - strFrontEndSuffix - string value, recommended to be set to '.min' on production. This will force PHP to insert links to compressed versions of JS and CSS scripts. E.g. 300K jquery-1.11.3.js is more usable on development environment, but end-users should receive compressed to 100K jquery-1.11.3.min.js.
- */
+
 function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory anymore
 
-    GLOBAL $eiseIntraConf;
+    GLOBAL $eiseIntraCookiePath
+        , $eiseIntraCookieExpire
+        , $eiseIntraUserMessageCookieName
+        , $localLanguage;
 
-    $this->conf = array_merge(
-        (array)$eiseIntraConf
-        , Array(                    //defaults for intra
-            'dateFormat' => "d.m.Y" // date format, see PHP date() function reference
-            , 'timeFormat' => "H:i" // time format, see PHP date() function reference
-            , 'decimalPlaces' => "2" // default decimal places
-            , 'decimalSeparator' => "." // decimal separator
-            , 'thousandsSeparator' => "," // thousand separator
-            , 'logofftimeout' => 360 // user log-off timeout, default is 6 hours 
-            , 'addEiseIntraValueClass' => true // flag
+    $this->conf = array_merge($this->conf, 
+        Array(                    //defaults for intra
+            'dateFormat' => "d.m.Y" // 
+            , 'timeFormat' => "H:i" // 
+            , 'decimalPlaces' => "2"
+            , 'decimalSeparator' => "."
+            , 'thousandsSeparator' => ","
+            , 'language' => 'rus'
+            , 'logofftimeout' => 360 //6 hours
+            , 'addEiseIntraValueClass' => true
             , 'keyboards' => 'EN,RU'
-            , 'dataActionKey' => 'DataAction'
-            , 'dataReadKey' => 'DataAction'
+            , 'system' => ltrim(dirname($_SERVER['PHP_SELF']), '/')
+            , 'dataActionKey' => self::dataActionKey
+            , 'dataReadKey' => self::dataReadKey
+     //       , 'flagSetGlobalCookieOnRedirect' = false
+            , 'cookiePath' => (isset($eiseIntraCookiePath) ? $eiseIntraCookiePath : '/')
+            , 'cookieExpire' => (isset($eiseIntraCookieExpire) ? $eiseIntraCookieExpire : null)
+            , 'UserMessageCookieName' => ($eiseIntraUserMessageCookieName ? $eiseIntraUserMessageCookieName: 'eiMsg')
+            , 'selItemMenu' => null
+            , 'selItemTopLevelMenu' => null
         )
+        , $conf
     );
-    
-    $this->conf = array_merge($this->conf, $conf);
-    
+        
     
     $arrFind = Array();
     $arrReplace = Array();
@@ -133,15 +91,15 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
     $arrFind[] = "s"; $arrReplace[]="([0-9]{1,2})";
     $this->conf["prgTime"] = str_replace($arrFind, $arrReplace, $this->conf["timeFormat"]);
     
-    $this->conf['UserMessageCookieName'] = eiseIntraUserMessageCookieName ? eiseIntraUserMessageCookieName: 'UserMessage';
-
     $this->oSQL = $oSQL;
 
     if($this->conf['flagBuildLess']){
         
         self::buildLess();
+ 
+    }   
 
-    }
+    $this->requireComponent('base');
 
 }
 
@@ -153,7 +111,7 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
  * using current encoding algorithm 
  * (now base64).
  * 
- * @param string $authstring
+ * @param string $authstring Encoded string
  *
  * @return array {string $login, string $password}
  */
@@ -167,11 +125,27 @@ function decodeAuthString($authstring){
 }
 
 /**
+ * Function encodes authstring login:password
+ * using current encoding algorithm 
+ * (now base64).
+ * 
+ * @param string $login Login
+ * @param string $password Password
+ *
+ * @return string Encoded authentication string.
+ */
+function encodeAuthString($login, $password){
+
+    return base64_encode($login.':'.$password);
+
+}
+
+/**
  * Function that checks authentication with credentials database using selected $method.
  * Now it supports the following methods:
  * 1) LDAP - it checks credentials with specified GLOBAL $ldap_server with GLOBAL $ldap_domain
  * 2) database (or DB) - it checks credentials with database table stbl_user
- * 3) mysql - it checks credentials of MySQL database user supplied with $login and $password parameters
+ * 3) mysql - it checks credentials of MySQL database user supplied with $login and $password parameters. Together with authentication this 
  * Function returns true when authentication successfull, otherwise it returns false and $strError parameter 
  * variable becomes updated with authentication error message.
  *
@@ -179,12 +153,15 @@ function decodeAuthString($authstring){
  * 
  * @param string $login - login name
  * @param string $password - password
- * @param string $strError - error message will be set to this parameter passed by ref
  * @param string $method - authentication method. Can be 'LDAP', 'database'(equal to 'DB'), 'mysql'
+ * @param array $options - Array
+ *  ['flagNoSession'] boolean (optional) Use true when you need one-time authentication without $_SESSION modification.
+ *  ['dbhost'] string (optional) Database host, used only with 'mysql' authentication method.
+ *  ['dbname'] string (optional) Database name. Default database to be selected with 'mysql' authentication method.
  * 
  * @return boolean authentication result: true on success, otherwise false.
  */
-function Authenticate($login, $password, &$strError, $method="LDAP"){
+function Authenticate($login, $password, $method="LDAP", $options=array()){
     
     $oSQL = $this->oSQL;
     
@@ -207,57 +184,101 @@ function Authenticate($login, $password, &$strError, $method="LDAP"){
         $binding = @ldap_bind($ldap_conn, $ldap_anonymous_login, $ldap_anonymous_pass);
         
         if (!$binding){
-            $strError = $this->translate("Connnection attempt to server failed")." ({$ldap_server})";
             $method = "database";
         } else {
             $ldap_login = $login."@".$ldap_domain;
             $ldap_pass = $password;
             ldap_set_option($ldap_conn, LDAP_OPT_PROTOCOL_VERSION, 3);
             ldap_set_option($ldap_conn, LDAP_OPT_REFERRALS, 0);
-            $binding = ldap_bind($ldap_conn, $ldap_login, $ldap_pass);
 
-           if (!$binding){
-                $strError = $this->translate("Bad password or user name");
-                return false;
-           } else
-                return true;
+            if ( !($binding = ldap_bind($ldap_conn, $ldap_login, $ldap_pass)) ){
+                throw new eiseException("Bad Windows user name or password {$ldap_login}");
+            } else 
+                break;
         }
+
     case "database":
     case "DB":
+
         if(!$oSQL->connect()){
-            $strError = $this->translate("Unable to connect to database");
-            return false;
+            throw new eiseException("Unable to connect to database");
         }
         $sqlAuth = "SELECT usrID FROM stbl_user WHERE usrID='{$login}' AND usrPass='".md5($password)."'";
         $rsAuth = $oSQL->do_query($sqlAuth);
-        if ($oSQL->num_rows($rsAuth)==1)
-            return true;
-        else {
-            $strError = $this->translate("Bad password or user name");
-            return false;
-        }
+        if ($oSQL->num_rows($rsAuth)!=1)
+            throw new eiseException("Bad database user name or password");
+
         break;
     case "mysql":
         try {
-            $this->oSQL = new eiseSQL ($_POST["host"], $login, $password, (!$_POST["database"] ? 'mysql' : $_POST["database"]));
+            $this->oSQL = new eiseSQL (
+                (!$options['dbhost'] ? 'localhost' : $options['dbhost'])
+                , $login
+                , $password
+                , (!$options["dbname"] ? 'mysql' : $options["dbname"])
+                );
         } catch(Exception $e){
-            $strError = $e->getMessage();
-            return false;
+            throw new eiseException($e->getMessage());
         }
-        return true;
+        break;
+    } 
+
+    if($method=="mysql"){
+        $_SESSION["usrID"] = $login;
+        $_SESSION["DBHOST"] = $this->oSQL->dbhost;
+        $_SESSION["DBPASS"] = $this->oSQL->dbpass;
     }
 
-    
+    if($options['flagNoSession'])
+        return true;
+
+    $this->session_initialize();
+    session_regenerate_id();
+
+    $_SESSION["last_login_time"] = Date("Y-m-d H:i:s");
+    $_SESSION["usrID"] = $login;
+    $_SESSION["authstring"] = $this->encodeAuthString($login, $password);
+
+    $this->usrID = $_SESSION["usrID"];
+
+    SetCookie("last_succesfull_usrID", $login, $this->conf['cookieExpire'], $this->conf['cookiePath']);
+
+    return true;
+
 }
 
 /**
- * This function intialize session with session cookes placed at path set by eiseIntraCookiePath global constant.
+ * This function intialize session with session cookes placed at path set by $this->conf['cookiePath'] configuration variable.
  */
 function session_initialize(){
-   session_set_cookie_params(0, eiseIntraCookiePath);
+   session_set_cookie_params(0, $this->conf['cookiePath']);
    session_start();
    $this->usrID = $_SESSION["usrID"];
 } 
+ 
+/**
+ * This function quits user session.
+ */
+function logout(){
+
+    session_set_cookie_params(0, $this->conf['cookiePath']);
+
+    session_start();
+    session_unset();
+
+    $_SESSION = array();
+
+    $params = session_get_cookie_params();
+    setcookie(session_name(), '', time() - 42000,
+        $params["path"], $params["domain"],
+        $params["secure"], $params["httponly"]
+    );
+
+    session_destroy();
+
+    SetCookie("last_succesfull_usrID", $this->usrID, $this->conf['cookieExpire'], $this->conf['cookiePath']);
+
+}
 
 /**
  * This function checks current user's permissions on currently open script.
@@ -299,7 +320,7 @@ function checkPermissions(){
    
    // checking user timeout
    if ($_SESSION["last_login_time"]!="" && $strSubTitle != "DEVELOPMENT" ){
-      if (mktime() - strtotime($_SESSION["last_login_time"])>60*$this->conf['logofftimeout']) {
+      if (time() - strtotime($_SESSION["last_login_time"])>60*$this->conf['logofftimeout']) {
           $tt = Date("Y-m-d H:i:s", mktime())." - ".$_SESSION["last_login_time"];
           header("HTTP/1.0 403 Access denied");
           header ("Location: login.php?error=".urlencode($this->translate("Session timeout ($tt). Please re-login.")));
@@ -312,13 +333,11 @@ function checkPermissions(){
    $rwUser = $oSQL->fetch_array($rsUser);
    
    if (!$rwUser["usrID"]){
-        header("HTTP/1.0 403 Access denied"); 
         header ("Location: login.php?error=".urlencode($this->translate("Your User ID doesnt exist in master database. Contact system administrator.")));
         die();
    }
    
    if ($rwUser["usrFlagDeleted"]){
-        header("HTTP/1.0 403 Access denied");
         header ("Location: login.php?error=".urlencode($this->translate("Your User ID is blocked.")));
         die();
    }
@@ -327,30 +346,44 @@ function checkPermissions(){
    $script_name = preg_replace("/^(\/[^\/]+)/", "", $_SERVER["SCRIPT_NAME"]);
    $sqlCheckUser = "SELECT
              pagID
-           , PAG.pagTitle
-           , PAG.pagTitleLocal
-           , MAX(pgrFlagRead) as FlagRead
-           , MAX(pgrFlagCreate) as FlagCreate
-           , MAX(pgrFlagUpdate) as FlagUpdate
-           , MAX(pgrFlagDelete) as FlagDelete
-           , MAX(pgrFlagWrite) as FlagWrite
-           FROM stbl_page PAG
+            , pagTitle
+            , pagTitleLocal
+            , MAX(pgrFlagRead) as FlagRead
+            , MAX(pgrFlagCreate) as FlagCreate
+            , MAX(pgrFlagUpdate) as FlagUpdate
+            , MAX(pgrFlagDelete) as FlagDelete
+            , MAX(pgrFlagWrite) as FlagWrite
+           FROM 
+        (SELECT 
+             pagID
+            , pagTitle
+            , pagTitleLocal
+            , pgrFlagRead, pgrFlagCreate, pgrFlagUpdate, pgrFlagDelete, pgrFlagWrite
+            , rolID
+        FROM stbl_page PAG
            INNER JOIN stbl_page_role PGR ON PAG.pagID=PGR.pgrPageID
            INNER JOIN stbl_role ROL ON PGR.pgrRoleID=ROL.rolID
-           LEFT OUTER JOIN stbl_role_user RLU ON ROL.rolID=RLU.rluRoleID
-           WHERE PAG.pagFile='$script_name'
-               AND (
-               (RLU.rluUserID='".strtoupper($_SESSION["usrID"])."'  AND DATEDIFF(NOW(), rluInsertDate)>=0)
-               OR
-               ROL.rolFlagDefault=1
-               )
-           GROUP BY PAG.pagID, PAG.pagTitle;";
+           INNER JOIN stbl_role_user RLU ON ROL.rolID=RLU.rluRoleID
+           WHERE PAG.pagFile='$script_name' AND (RLU.rluUserID=".$oSQL->e($_SESSION["usrID"])." AND DATEDIFF(NOW(), rluInsertDate)>=0)
+        UNION 
+        SELECT 
+             pagID
+            , pagTitle
+            , pagTitleLocal
+            , pgrFlagRead, pgrFlagCreate, pgrFlagUpdate, pgrFlagDelete, pgrFlagWrite
+            , rolID
+        FROM stbl_page PAG
+           INNER JOIN stbl_page_role PGR ON PAG.pagID=PGR.pgrPageID
+           INNER JOIN stbl_role ROL ON PGR.pgrRoleID=ROL.rolID
+           WHERE pagFile='$script_name' AND rolFlagDefault=1
+           )
+        AS t1
+        GROUP BY pagID, pagTitle";
        //echo $sqlCheckUser;
     $rsChkPerms = $oSQL->do_query($sqlCheckUser);
     $rwPerms = $oSQL->fetch_array($rsChkPerms);
         
     if (!$rwPerms["FlagRead"]){
-        header("HTTP/1.0 403 Access denied");
         $errortext = "".$_SERVER["PHP_SELF"].": ".$this->translate("access denied");
         $this->redirect("ERROR: ".$errortext
             , (($_SERVER["HTTP_REFERER"]!="" && !strstr($_SERVER["HTTP_REFERER"], "login.php")) ? $_SERVER["HTTP_REFERER"] : "login.php?error=".urlencode($errortext)));
@@ -388,21 +421,337 @@ function checkPermissions(){
      
 }
 
+/**
+ * This method returns content of top-level "jumper" menu as drop-down list. "Jumper" menu content goes with an associative array passed as parameter to this function.
+ */
+public function topLevelMenu($arrItems = array(), $options = array()){
 
-function redirect($strMessage, $strLocation, $arrConfig = array()){
+    if(!$arrItems)
+        return '';
+
+    $defaultOptions = array('format' => 'html'
+        , 'element'=>'select'
+        , 'class'=>array('ei-top-level-menu')
+        , 'target' => null);
+
+    $options = array_merge_recursive($defaultOptions, (array)$options);
+
+    $retVal = '';
+
+    if(count($arrItems)>0 && strtolower($options['format'])=='html')
+        $retVal .= '<'.$options['element'].' class="'.implode(' ', $options['class']).'">';
+
+    foreach( (array)$arrItems as $itemID=>$item ){
+
+        $itemID_HTML = preg_replace('/[^a-z0-9]/i', '', $itemID);
+
+        switch( strtolower($options['element']) ){
+            case 'select':
+                $retVal .= "\r\n".'<option value="'.(is_array($item) && $item['value'] ? $item['value'] : $itemID).'"'
+                    .' class="menu-item' .'"'
+                    .' id="'.$options['class'][0].'-'.$itemID_HTML .'">'.(is_array($item) 
+                        ? $item['title']
+                        : $item).'</option>';
+                break;
+            case 'ul':
+            case 'ol':
+                $retVal .= "\r\n".'<li id="'.$options['class'][0].'-'.$itemID_HTML.'"'
+                    .' class="menu-item"'
+                    .'>'
+                    .(is_array($item) 
+                        ? ($item['href'] ? '<a href="'.$item['href'].'">' : '').$item['title'].($item['href'] ? '</a>' : '')
+                        : $item).'</li>';
+                break;
+            default:
+                throw new eiseException('Bad element for top-level menu: '.$options['element']);
+        }
+    }
+
+    if(count($arrItems)>0)
+        $retVal .= '</'.$options['element'].'>';
+
+
+    return $retVal;
+}
+
+/**
+ * This method returns system menu <ul> HTML for menu structure
+ *
+ * @param string $target - base target for all <a href="..."> inside menu
+ *
+ * @return string HTML with menu structure
+ */
+public function menu($target = null){
+
+    $target = ($target ? ' target="'.$target.'"' : '');
+
+    /*-----------------------------Standard menu from stbl_page table---------------------------------*/    
+    $sql = "SELECT PG1.*
+                , COUNT(DISTINCT PG2.pagID) as iLevelInside
+                , (SELECT COUNT(*) FROM stbl_page CH 
+                    WHERE CH.pagParentID=PG1.pagID AND CH.pagFlagShowInMenu=1) as nChildren
+                , MAX(PGR.pgrFlagRead) as FlagRead
+                , MAX(PGR.pgrFlagWrite) as FlagWrite
+        FROM stbl_page PG1
+                INNER JOIN stbl_page PG2 ON PG2.pagIdxLeft<=PG1.pagIdxLeft AND PG2.pagIdxRight>=PG1.pagIdxRight
+                INNER JOIN stbl_page PG3 ON PG3.pagIdxLeft BETWEEN PG1.pagIdxLeft AND PG1.pagIdxRight AND PG3.pagFlagShowInMenu=1
+                INNER JOIN stbl_page_role PGR ON PG1.pagID = PGR.pgrPageID
+                INNER JOIN stbl_role ROL ON PGR.pgrRoleID=ROL.rolID
+                LEFT JOIN stbl_role_user RLU ON PGR.pgrRoleID=RLU.rluRoleID
+        WHERE 
+         (RLU.rluUserID='{$this->usrID}' OR ROL.rolFlagDefault=1)
+         AND PG1.pagFlagShowInMenu=1
+        GROUP BY 
+                PG1.pagID
+                , PG1.pagParentID
+                , PG1.pagTitle{$this->local}
+                , PG1.pagFile
+                , PG1.pagIdxLeft
+                , PG1.pagIdxRight
+                , PG1.pagFlagShowInMenu
+        HAVING (MAX(PGR.pgrFlagRead)=1 OR MAX(PGR.pgrFlagWrite)=1) 
+        ORDER BY PG1.pagIdxLeft";
+        
+    $rs = $this->oSQL->do_query($sql);
+
+    $strRet = '<ul class="simpleTree ei-menu">'."\r\n";
+
+    $strRet .= '<li id="menu_root" class="root"><span><strong>Menu</strong></span>'."\r\n";
+
+    $rw_old["iLevelInside"] = 1;
+
+    while ($rw = $this->oSQL->fetch_array($rs)){
+        
+        $rw["pagFile"] = preg_replace("/^\//", "", $rw["pagFile"]);
+        
+        $hrefSuffix = "";
+        
+        for ($i=$rw_old["iLevelInside"]; $i>$rw["iLevelInside"]; $i--)
+           $strRet .= "</ul></li>\r\n\r\n";
+        
+        for ($i=$rw_old["iLevelInside"]; $i<$rw["iLevelInside"]; $i++)
+           $strRet .= "<ul>";
+        
+        if (preg_match("/list\.php$/", $rw["pagFile"]) && $rw["pagEntityID"]!=""){
+           $hrefSuffix = "?".$rw["pagEntityID"]."_staID=".($rw['pagFlagShowMyItems'] ? '&'.$rw["pagEntityID"].'_'.$rw["pagEntityID"].'FlagMyItems=' : '') ;
+           $rwEnt = $this->oSQL->f('SELECT * FROM stbl_entity WHERE entID='.$this->oSQL->e($rw["pagEntityID"]));
+        }
+        
+        $flagIsEntity = ($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent" ? true : false);
+        
+        $strRet .= "<li".($rw["pagParentID"]==1 && ($rw["FlagWrite"] || !$this->conf['menuCollapseAll'])
+                 ? " class='open'"
+                 : "")." id='".$rw["pagID"]."'>".
+          ($rw["pagFile"] && !$flagIsEntity && !($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent")
+            ? "<a{$target} href='".$rw["pagFile"].$hrefSuffix."'>"
+            : "")
+          ."<span>".$rw["pagTitle{$this->local}"]."</span>".
+          ($rw["pagFile"] && !$flagIsEntity
+            ? "</a>"
+            : ""
+            )
+            .($rw["nChildren"]==0 && !($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent") ? "</li>" : "")."\r\n";
+       
+        if ($hrefSuffix){
+
+            if($rw['pagFlagShowMyItems']){
+                $strRet .= '<li id="'.$rw["pagID"].'-my-items"><a target="pane" href="'
+                    .$rw["pagFile"].'?'.$rw["pagEntityID"].'_staID=&'.$rw["pagEntityID"].'_'.$rw["pagEntityID"].'FlagMyItems=1">'
+                    .($this->translate('My ').$rwEnt["entTitle{$this->local}Mul"])
+                    ."</a>\r\n";
+            }
+
+            $sqlSta = "SELECT * FROM stbl_status WHERE staEntityID='".$rw["pagEntityID"]."' AND staFlagDeleted=0";
+            $rsSta = $this->oSQL->do_query($sqlSta);
+            while ($rwSta = $this->oSQL->fetch_array($rsSta)){
+                $strRet .= "<li id='".$rw["pagID"]."_".$rwSta["staID"]."'><a{$target} href='"
+                    .$rw["pagFile"]."?".$rw["pagEntityID"]."_staID=".$rwSta["staID"]."'>"
+                    .($rwSta["staTitle{$this->local}Mul"] ? $rwSta["staTitle{$this->local}Mul"] : $rwSta["staTitle{$this->local}"])
+                    ."</a>\r\n";
+            }
+        }
+       
+       if ($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent"){
+          $strRet .= "<ul>\r\n";
+          $sqlEnt = "SELECT * FROM stbl_entity";
+          $rsEnt = $this->oSQL->do_query($sqlEnt);
+          while ($rwEnt = $this->oSQL->fetch_array($rsEnt)){
+             $strRet .= "<li id='".$rw["pagID"]."_".$rwEnt["entID"]."'><a{$target} href='".
+                $rw["pagFile"]."?entID=".$rwEnt["entID"]."'>".$rwEnt["entTitle{$this->local}"]."</a>\r\n";
+          }
+          $strRet .= "</ul></li>\r\n";
+       }
+       
+       $rw_old = $rw;
+    }
+    for ($i=$rw_old["iLevelInside"]; $i>1; $i--)
+       $strRet .= "</ul>\r\n\r\n";
+
+    $strRet .= '</ul>'."\r\n\r\n"; // /div.ei-menu
+
+    return $strRet;
+
+}
+
+/**
+ * This method returns HTML for "action menu" - the menu that displayed above the functional part of the screen. Menu content is set by $arrActions parameter, the set of associative arrays with menu items.
+ * Menu item definition array consists of the following properties:
+ * array[] - menu item set. No nested menu items, no dropdowns in this version.
+ *  ['title']   string Menu item title
+ *  ['action']  string Menu item HREF attribute content. If it starts with 'javascript:' JS call will be encapsulated under ONCLICK attribute.
+ *  ['targer']  string (optional) TARGET attribute content
+ *  ['class']   string (optional) CLASS attribute content
+ * All these attributes are related to A element that correspond to given menu item.
+ *
+ * @param array $arrActions (See above)
+ * @param boolean $flagShowLink The flag that defines is there a need to show 'Link' menu element on the right, in case when page opened within a frame. FALSE by default.
+ *
+ * @return string HTML for "action menu".  
+ */
+function actionMenu($arrActions = array(), $flagShowLink=false){
+
+    $strRet .= '<div class="menubar ei-action-menu" id="menubar">'."\r\n";
+    for ($i=0;$i<count($arrActions);$i++) {
+            $strRet .=  "<div class=\"menubutton\">";
+            $strClass = ($arrActions[$i]['class'] != "" ? " class='ss_sprite ".$arrActions[$i]['class']."'" : "");
+            $strTarget = (isset($arrActions[$i]["target"]) ? " target=\"{$arrActions[$i]["target"]}\"" : "");
+            $isJS = preg_match("/javascript\:(.+)$/", $arrActions[$i]['action'], $arrJSAction);
+            if (!$isJS){
+                 $strRet .=  "<a href=\"".$arrActions[$i]['action']."\"{$strClass}{$strTarget}>{$arrActions[$i]["title"]}</a>\r\n";
+            } else {
+                 $strRet .=  "<a href=\"".$arrActions[$i]['action']."\" onclick=\"".$arrJSAction[1]."; return false;\"{$strClass}>{$arrActions[$i]["title"]}</a>\r\n";
+            }
+            $strRet .=  "</div>\r\n";
+    }
+
+    if($flagShowLink){
+        $strRet .= '<div class="menubutton float_right no-title"><a target=_top href="index.php?pane='.urlencode($_SERVER["REQUEST_URI"])
+            .'" class="ss_sprite ss_link"></a></div>'."\r\n";
+    }
+
+    $strRet .= '</div>'."\r\n";
+
+    return $strRet;
+
+}
+
+/**
+ * This method includes specified $components into your PHP code by calling corresponding include() PHP functions and filling out $arrJS and $arrCSS arrays.
+ * @param variant $components Array or string with eiseIntra's component name. Name set can be the following:
+ * - base
+ * - list
+ * - grid
+ * - actions
+ * - 
+ */
+function requireComponent($components){
+
+    GLOBAL $arrJS, $arrCSS;
+
+    if(!is_array($components))
+        $components = func_get_args();
+
+    foreach($components as $componentName){
+        switch ($componentName) {
+            case 'base':
+                $arrJS[] = jQueryPath."jquery-1.6.1.min.js";
+                $arrJS[] = eiseIntraJSPath."intra.js";
+                $arrJS[] = eiseIntraJSPath."intra_execute.js";
+
+                GLOBAL $eiseIntraCSSTheme;
+                $arrCSS[] = eiseIntraCSSPath.'themes/'.$eiseIntraCSSTheme.'/style.css';
+                break;
+                
+            case 'simpleTree':
+                $arrJS[] = eiseIntraLibRelativePath."simpleTree/jquery.simple.tree.js";
+                $arrCSS[] = eiseIntraLibRelativePath."simpleTree/simpletree.css";
+                break;
+
+            case 'jquery-ui':
+                $arrJS[] = jQueryUIPath.'jquery-ui.min.js';
+                array_unshift($arrCSS, jQueryUIPath.'jquery-ui.min.css');
+                break;
+
+            case 'batch':
+                $arrJS[] = eiseIntraJSPath."eiseIntraBatch.jQuery.js";
+                break;
+
+            case 'list':
+                $this->requireComponent('jquery-ui');
+                include_once(eiseListAbsolutePath."inc_eiseList.php");
+                $arrJS[] = eiseListRelativePath."eiseList.jQuery.js";
+                $arrCSS[] = eiseListRelativePath."themes/default/screen.css";
+                
+                break;
+            case 'grid':
+                $this->requireComponent('jquery-ui');
+                include_once (dirname(__FILE__).'/grid/inc_eiseGrid.php');
+                $arrJS[] = eiseIntraRelativePath.'grid/eiseGrid.jQuery.js';
+                $arrCSS[] = eiseIntraRelativePath.'grid/themes/default/screen.css';
+                
+                break;
+
+            default:
+                # code...
+                break;
+        }
+    }
+
+}
+
+/**
+ * This function returns cookie path for given location. In case when flagSetGlobalCookieOnRedirect it returns $this->conf['cookiePath'] constant. Otherwise it returns path part of location URL.
+ * 
+ * @param string $strLocation header('Location: {}') parameter
+ * @param array $arrConfig Array with one usable boolean property: flagSetGlobalCookieOnRedirect. See above.
+ *
+ * @return string A cookie path.
+ */
+private function getCookiePath($strLocation, $arrConfig = array()){
 
     $conf = array_merge($this->conf, $arrConfig);
     
-    $cookiePath = (!$this->conf['flagSetGlobalCookieOnRedirect']
-        ? parse_url($strLocation, PHP_URL_PATH)
-        : eiseIntraCookiePath);
+    return ($conf['flagSetGlobalCookieOnRedirect']
+        ? $this->conf['cookiePath']
+        : parse_url($strLocation, PHP_URL_PATH) 
+    );
+}
 
-    setcookie ( $this->conf['UserMessageCookieName'], $strMessage, 0, $cookiePath );
+/**
+ * This method adds HTTP header "Location" that redirects user to URL/URI specified in $strLocation, with text message to be shown on this page, specified in $strMessage parameter.
+ * Message will be shown on eiseIntra enabled page, using $('body').eiseIntra('showMessage') function that will fire right after $('window').load() event. 
+ * Message will be saved for display using cookies. By default cookie path is the path part of $strLocation URL. If $intra->conf['flagSetGlobalCookieOnRedirect'] is TRUE, cookie path will be set by global constant $this->conf['cookiePath'].
+ * This property can be overriden for this function with the $arrConfig[] parameter member 'flagSetGlobalCookieOnRedirect' = TRUE|FALSE. It can be useful when you need to redirect user from project subdirectory to the script placed at the root one, for example:
+ * @example $intra->redirect('Operation successfull', '/myproject/item_form.php?itemID=12345'); // normal redirect within the project
+ * @example $intra->redirect('Bye-bye, see you later', '/byebye.php', array('flagSetGlobalCookieOnRedirect'=>true)); // when $this->conf['cookiePath']='/' and you redirect user to the root dir of your web server.
+ *
+ * @param string $strMessage Message content.
+ * @param string $strLocation header('Location: {}') parameter
+ * @param array $arrConfig Array with one usable boolean property: flagSetGlobalCookieOnRedirect. See above.
+ *
+ * @return nothing, script execution terminates.
+ */
+function redirect($strMessage, $strLocation, $arrConfig = array()){
+
+    $conf = array_merge($this->conf, $arrConfig);
+
+    setcookie ( $conf['UserMessageCookieName'], $strMessage, 0, $this->getCookiePath($strLocation,  $arrConfig) );
     header("Location: {$strLocation}");
     die();
 
 }
 
+/**
+ * This method returns proper 'Back' reference for this button in Action Menu. If $_SERVER['HTTP_REFERER'] doesn't contain current URI, it set a cookie with referring page.
+ * Otherwise, it use this cookie value, and if it's absent, it returns $urlIfNoReferer parameter.
+ * It works like this: when user arrives to given form via hyperlink in list or other form, or whatever that leaves HTTP_REFERER header, it returns this value and saves a cookie with that URL, with this form path. When user saves data on this form it appears back without this HTTP header and 'Back' button needs proper value. It takes it from cookie (if it exists) or from specified parameter.
+ *
+ * @example $arrActions[] = array('title'=>'Back', 'action'=>$intra->backref('myitems_list.php')); // it will return user to the item list by default
+ *
+ * @param string $urlIfNoReferer URL(URI) for 'Back' reference in case when there's no $_SERVER['HTTP_REFERER'] or $_SERVER['HTTP_REFERER'] leads from itself.
+ *
+ * @return string URL
+ */
 function backref($urlIfNoReferer){
     
     if (strpos($_SERVER["HTTP_REFERER"], $_SERVER["REQUEST_URI"])===false //if referer is not from itself
@@ -438,18 +787,53 @@ function json($status, $message, $data=null){
 
 }
 
-function hasUserMessage(){
-    if (isset($_COOKIE[$this->conf['UserMessageCookieName']])){
-        return true;
-    }
-    return false;
+/**
+ * This function outputs necessary stuff to start batch data operation script.
+ *
+ *
+ */
+function batchStart(){
+    
+    header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
+    header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
+    header("Content-type: text/html;charset=utf-8"); // HTML
+
+    ob_start();
+
+    for ($i = 0; $i < ob_get_level(); $i++) { ob_end_flush(); }
+    ob_implicit_flush(1);
+    echo str_repeat(" ", 256)."<pre>"; ob_flush();
+
+    set_time_limit(1200); // 20 minutes
 }
 
+/**
+ * This function outputs data at batch data operation script, adds htmlspecialchars() and flushes output buffer.
+ *
+ *
+ */
+
+function batchEcho($string){
+    $args = func_get_args();
+    echo htmlspecialchars( 
+        call_user_func_array( 
+            ($this->conf['auto_translate'] 
+                ? array($this, 'transate')
+                : 'sprintf'
+                )
+            , $args) 
+        );
+    ob_flush();
+    flush();
+}
+
+/**
+ * This function retrievs user message from the cookie and deletes the cookie itself.
+ */
 function getUserMessage(){
     $strRet = $_COOKIE[$this->conf['UserMessageCookieName']];
     if($strRet){
-        //setcookie($this->conf['UserMessageCookieName'], '', 0, $_SERVER['REQUEST_URI']);
-        setcookie($this->conf['UserMessageCookieName'], '', 0, $_SERVER['PHP_SELF']);
+        setcookie($this->conf['UserMessageCookieName'], '', 0, $this->getCookiePath($_SERVER['PHP_SELF']));
         setcookie($this->conf['UserMessageCookieName'], ''); // backward-compatibility
     }
     return $strRet;
@@ -467,24 +851,28 @@ function getRoleUsers($strRoleName) {
    return $arrRoleUsers;
 }
 
-/**
- * This function checks what language is used by client. Being executed before actual output, it defines what language to use on output: English or local one.
- */
 function checkLanguage(){
     
     if(isset($_GET["local"])){
+        $cookieSet = false;
         switch ($_GET["local"]){
             case "on":
                 SetCookie("l", "Local");
+                $cookieSet = true;
                 break;
             case "off":
                 SetCookie("l", "en");
+                $cookieSet = true;
                 break;
             default:
                 break;
         }
-        header("Location: ".$_SERVER["PHP_SELF"]);
-        die();
+        if($cookieSet){
+            $qs = preg_replace('/([\?\&]{0,1}local\=(on|off))/', '', $_SERVER['QUERY_STRING']);
+            header("Location: ".$_SERVER["PHP_SELF"].($qs ? '?'.$qs : '') );
+            die();  
+        }
+        
     } else 
     if (!isset($_COOKIE["l"]) && preg_match("/(ru|uk|be)/i", $_SERVER["HTTP_ACCEPT_LANGUAGE"])){
         SetCookie("l", "Local");
@@ -503,31 +891,23 @@ function checkLanguage(){
 
 }
 
-/**
- * This method translates simple sentences from English to local language by searching translation in lang.php using $key parameter as the key, in case when output language is local. Otherwise, it returns unchanged $key parameter.
- * If $intra->conf has 'collect_keys' flag and $key is missing in lang.php, it calls eiseIntra::addTranslationKey() method to add missing key to stbl_translation for further translation by the developer.
- * 
- * @param $key (string) input in English
- *
- * @return (string) output in local or English language
- */
-public function translate($key){
+function translate($key){
     
     $key = addslashes($key);
+
+    $args = func_get_args();
+    array_shift($args);
     
     if (!isset($this->lang[$key]) && $this->conf['collect_keys'] && $this->local){
         $this->addTranslationKey($key);
     }
-    
-    return stripslashes(isset($this->lang[$key]) ? $this->lang[$key] : $key);
+    $retVal = @vsprintf( (isset($this->lang[$key]) ? $this->lang[$key] : $key), $args );
+    return stripslashes(
+        ( $retVal ? $retVal : (isset($this->lang[$key]) ? $this->lang[$key] : $key) )
+        );
 }
 
-/**
- * This method adds missing key to stbl_translation table for further translation by the developer. 
- *
- * @param $key (string) - simple sentence in English, 255 chars max
- */
-protected function addTranslationKey($key){
+function addTranslationKey($key){
     $oSQL = $this->oSQL;
     $sqlSTR = "INSERT IGNORE INTO stbl_translation (
         strKey
@@ -538,19 +918,6 @@ protected function addTranslationKey($key){
     $oSQL->q($sqlSTR);
 }
 
-/**
- * This method returns current output language.
- * 
- * @return (string) language ISO code
- */
-public function getLanguage(){
-    return (
-        $this->local 
-            ? $this->conf['localLanguage']
-            : 'en'
-        );
-
-}
 
 function readSettings(){
     
@@ -609,25 +976,35 @@ function readSettings(){
  * If parameter $name is specified it returns HTML for input/text according to $value parameter
  * else it returns HTML specified in $value parameter.
  */
-public function field( $title, $name, $value, $conf=array() ){
+public function field( $title, $name=null, $value=null, $conf=array() ){
 
     $oSQL = $this->oSQL;
 
     
-    if( in_array($conf['type'], array('row_id', 'hidden')) )
+    if(in_array($conf['type'], array('row_id', 'hidden')) )
         return '<input type="hidden" name="'.$name.'" id="'.$name.'" value="'.htmlspecialchars($value).'">'."\r\n";
 
     $html = '';
 
     if($title!==null) {
 
-        $html .= "<div class=\"eiseIntraField eif-field\"".($name!='' ? " id=\"field-{$name}\"" : '').">";
+        $html .= "<div class=\"eiseIntraField eif-field field-{$name}".
+                ($name ? '' : " field-delimiter" ).
+                ($conf['fieldClass'] ? " {$conf['fieldClass']}" : '').
+                "\""
+            .($name 
+                ? " id=\"field_{$name}\"" 
+                : ($conf['id']
+                    ? ' id="'.$conf['id'].'"'
+                    : '')
+                ).">";
 
         $title = ($this->conf['auto_translate'] ? $this->translate($title) : $title);
 
-        if(!in_array($conf['type'], array('boolean', 'checkbox')) ) {
+        if(!in_array($conf['type'], array('boolean', 'checkbox', 'radio')) ) {
             if ($title!==''){
-                $html .= "<label".($name!='' ? ' id="title-'.$name.'" for="'.$name.'"' : '').'>'.htmlspecialchars($title).(
+                $labelClass = ($name ? 'title-'.$name : 'field-delimiter-label').($conf['labelClass'] ? ' '.$conf['labelClass'] : '');
+                $html .= "<label".($name ? " id=\"title_{$name}\"" : '')." class=\"{$labelClass}\">".htmlspecialchars($title).(
                     trim($title)!='' ? ':' : ''
                   )."</label>";
             }
@@ -638,6 +1015,14 @@ public function field( $title, $name, $value, $conf=array() ){
     }
 
     if($name){
+
+        $conf['id'] = ($conf['id'] 
+            ? $conf['id']
+            : ( (preg_match('/\[\]$/',$name) ||  $conf['type']==='radio')
+                    ? eiseIntra::idByValue($name, $value)
+                    : preg_replace('/([^a-z0-9\_\.]+)/i', '', $name)
+                    )
+            );
 
         switch($conf['type']){
 
@@ -654,13 +1039,26 @@ public function field( $title, $name, $value, $conf=array() ){
                 $defaultConf = array();
                 $conf  = array_merge($defaultConf, $conf);
 
-                $conf['source'] = self::confVariations($conf, array('source', 'arrValues', 'strTable'));
+                $conf['source'] = self::confVariations($conf, array('source', 'arrValues', 'strTable', 'options'));
                 $conf['source_prefix'] = self::confVariations($conf, array('source_prefix', 'prefix', 'prfx'));
-                if( ( $confVar = self::confVariations($conf, array('defaultText', 'textIfNull', 'strZeroOptnText')) )!==null )
-                    $conf['strZeroOptnText'] = $confVar;
 
-                if(!$conf['source'])
-                  $conf['source'] = array();
+                if(is_array($conf['source'])){
+                    $ds = $conf['source'];
+                } else {
+                    $ds = @json_decode($conf['source'], true);
+                    if(!$ds){
+                        @eval('$ds = '.$conf['source']);
+                        if(!$ds){
+                            $aDS = explode('|', $conf['source']);
+                            $ds = $aDS[0];
+                            $conf['source_prefix'] = ($conf['source_prefix'] 
+                                ? $conf['source_prefix']
+                                : $aDS[1]);        
+                        }
+                    }
+                }
+
+                $conf['source'] = ($ds ? $ds : array());
 
                 if (is_array($conf['source'])){
                     $opts = $conf['source'];
@@ -685,9 +1083,12 @@ public function field( $title, $name, $value, $conf=array() ){
 
             case "boolean":
             case "checkbox":
-                $html .= '<div class="eiseIntraValue eif-value eiseIntraCheckbox eif-checkbox">';
-                $html .= $this->showCheckBox($name, $value, $conf);
-                $html .= '<label for="'.$name.'">'.htmlspecialchars($title).'</label>';
+            case "radio":
+                $html .= '<div class="eiseIntraValue eiseIntraCheckbox">';
+                $html .= ($conf['type']==='radio' 
+                    ? $this->showRadio($name, $value, $conf) 
+                    : $this->showCheckBox($name, $value, $conf) );
+                $html .= '<label for="'.$conf['id'].'">'.htmlspecialchars($title).'</label>';
                 $html .= '</div>';
                 break;
 
@@ -710,7 +1111,7 @@ public function field( $title, $name, $value, $conf=array() ){
 
     } else {
 
-        $html .= '<div class="eiseIntraValue eif-value">'.$value.'</div>';
+        $html .= ($value ? '<div class="eiseIntraValue">'.$value.'</div>' : '');
 
     }
 
@@ -737,7 +1138,7 @@ public function field( $title, $name, $value, $conf=array() ){
  *  - attr_legend - string of extra attributes to be added to <fieldset><legend> tag
  */
 public function fieldset($legend=null, $fields='', $conf = array()){
-
+ 
     return '<fieldset'
         .($conf['id']!='' ? ' id="'.htmlspecialchars($conf['id']).'"' : '')
         .($conf['class']!='' ? ' class="'.htmlspecialchars($conf['class']).'"' : '')
@@ -749,14 +1150,24 @@ public function fieldset($legend=null, $fields='', $conf = array()){
         ."\r\n".$fields
         .'</fieldset>'
         ."\r\n\r\n";
-
+ 
 }
-
+ 
 /**
- * This function returns HTML for the form
+ * This function returns HTML for the form.
+ *
+ * @param $action - Stands for ACTION attribute of FORM tag
+ * @param $dataAction - value of DataAction form input
+ * @param $fields - form inner HTML
+ * @param $method - METHOD attribute of form tag
+ * @param $conf - form configuration data array, contains the following possible members:
+ *  - class - contents of CLASS attribute of FORM tag, all listed classes will be added to default class list (eiseIntraForm eif-form) on the right
+ *  - attr - extra attributes to be added to FORM element
+ *  - id - contents of ID attribute of FORM element
+ *  - flagDontClose - if set to TRUE, <FORM> tag is not closed in function output.
  */
 public function form($action, $dataAction, $fields, $method='POST', $conf=array()){
-
+ 
     return '<form action="'.htmlspecialchars($action).'"'
         .' method="'.htmlspecialchars($method).'"'
         .($conf['id']!='' ? ' id="'.htmlspecialchars($conf['id']).'"' : '')
@@ -765,15 +1176,19 @@ public function form($action, $dataAction, $fields, $method='POST', $conf=array(
         .'>'."\r\n"
         .$this->field(null, $this->conf['dataActionKey'], $dataAction, array('type'=>'hidden'))."\r\n"
         .$fields."\r\n"
-        .'</form>'."\r\n\r\n\r\n";
-
+        .($conf['flagDontClose']
+            ? ''
+            : '</form>'."\r\n\r\n")
+        ."\r\n";
+ 
 }
+
 
 private function handleClass(&$arrConfig){
 
     $arrClass = Array();
     if ($this->conf['addEiseIntraValueClass'])
-        $arrClass['eiseIntraValue'] = 'eiseIntraValue eif-value';
+        $arrClass['eiseIntraValue'] = 'eiseIntraValue';
     
     // get contents of 'class' attribute in strAttrib
     $prgClass = "/\s+class=[\"\']([^\"\']+)[\"\']/i";
@@ -807,7 +1222,7 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
     
-    $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
+    $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
     
     $strClass = $this->handleClass($arrConfig);
    
@@ -831,10 +1246,13 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
     } else {
         $strRet = "<div id=\"span_{$strName}\"".
         ($strAttrib ? " ".$strAttrib : "").
-        ($strClass ? ' class="'.$strClass.'"' : "").">".
-        htmlspecialchars($strValue)."</div>\r\n".
-        "<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\"".
-        " value=\"".htmlspecialchars($strValue)."\" />";
+        ($strClass ? ' class="'.$strClass.'"' : "").">"
+            .($arrConfig['href'] ? "<a href=\"{$arrConfig['href']}\"".($arrConfig["target"] ? " target=\"{$arrConfig["target"]}\"" : '').">" : '')
+            .htmlspecialchars($strValue)
+            .($arrConfig['href'] ? "</a>" : '')
+        ."</div>\r\n"
+        ."<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\""
+        ." value=\"".htmlspecialchars($strValue)."\" />";
     }
     
    return $strRet;
@@ -848,7 +1266,7 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
 
     $strAttrib = $arrConfig["strAttrib"];
     
-    $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
+    $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
     
     $strClass = $this->handleClass($arrConfig);
     
@@ -857,8 +1275,10 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
             ." id=\"".($arrConfig['id'] ? $arrConfig['id'] : $strName)."\""
             ." name=\"".$strName."\"";
         if($strAttrib) $strRet .= " ".$strAttrib;
-        $strRet .= ($strClass ? ' class="'.$strClass.'"' : "").
-            ($arrConfig["required"] ? " required=\"required\"" : "").">";
+        $strRet .= ($strClass ? ' class="'.$strClass.'"' : '').
+            ($arrConfig["required"] ? " required=\"required\"" : "").
+            ($arrConfig["placeholder"] ? ' placeholder="'.htmlspecialchars($arrConfig['placeholder']).'"' : '').
+            ">";
         $strRet .= htmlspecialchars($strValue);
         $strRet .= "</textarea>";
     } else {
@@ -887,7 +1307,7 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
  *      - delete - method will return <button class="eiseIntraDelete">
  *      - button (default) - <button> element will be returned
  */
-function showButton($strName, $strValue, $arrConfig=array()){
+function showButton($name, $value, $arrConfig=array()){
 
     if(!is_array($arrConfig)){
         $arrConfig = Array("strAttrib"=>$arrConfig);
@@ -895,70 +1315,98 @@ function showButton($strName, $strValue, $arrConfig=array()){
     
 
 
-    $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
+    $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
     
     $o = $this->conf['addEiseIntraValueClass'];
     $this->conf['addEiseIntraValueClass'] = false;
     $strClass = $this->handleClass($arrConfig);
     $this->conf['addEiseIntraValueClass'] = $o;
 
-    $value = ($this->conf['auto_translate'] ? $this->translate($strValue) : $strValue);
+    $value = ($this->conf['auto_translate'] ? $this->translate($value) : $value);
 
     if($arrConfig['type']=='submit'){
         $strRet = '<input type="submit"'
             .($strName!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
-            .' class="eiseIntraActionSubmit eif-submit'.($strClass!='' ? ' ' : '').$strClass.'"'
+            .' class="eiseIntraActionSubmit'.($strClass!='' ? ' ' : '').$strClass.'"'
             .(!$flagWrite ? ' disabled' : '')
             .' value="'.htmlspecialchars($value).'">';
     } else {
         if($arrConfig['type']=='delete')
-            $strClass = 'eiseIntraDelete eif-delete'.($strClass!='' ? ' ' : '').$strClass;
+            $strClass = 'eiseIntraDelete'.($strClass!='' ? ' ' : '').$strClass;
         $strRet = '<button'
-            .($strName!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
+            .($name!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
             .(!$flagWrite ? ' disabled' : '')
-            .'>'.$value.'</button>';
+            .'>'.htmlspecialchars($value).'</button>';
     }
 
     return $strRet;
 
 }
 
-function showCombo($strName, $strValue, $arrOptions, $arrConfig=Array()){
+/**
+ * This method returns HTML for <select> form control.
+ * Element id and name are set with $strName parameter. Selected element will be chosen accorging to $strValue. Option values and this variable will be converted being casted to strings.
+ * Empty element (with empty value) will be added if $confOptions['defaultText'] option is set. 
+ * $arrOptions array can have nested arrays. In this case <optgroup> tag will be added. Option group title can be set via $confOptions['optgroups'] option array. See below.
+ * $confOptions is configuration array, it can have the following options:
+ *  ['FlagWrite']   boolean If true, usable <select> element will be shown. Otherwise, it will be <div> with chosen option text and hidden <input> with existing value.
+ *  ['class']  string contents of <select class="{...}"> attribute. Specified classes will be added to the end of class list.
+ *  ['strAttrib']  string Additional <select> element attributes string, e.g. ' data-xx="YY" aria-role="nav" class="my-gorgeous-class"'. Classes will be merged with 'class' option content.
+ *  ['required']   boolean If TRUE, 'required' HTML attribute will be added for form validation.
+ *  ['defaultText'] string If specified, <option> with empty value will be added to the beginning of dropdown list, option text will be taken from this conf option value. If 'auto_translate' $intra option is TRUE, this value will be translated.
+ *  ['deletedOptions']  array Array of option values to be marked as deleted with <option class="deleted">
+ *  ['optgroups']   array Array of <optgroup> titles. If $arrOption array member is array, it will search for <optgroup> tag title in this conf option array by the same key.
+ *  ['indent']  array Array of integer values for options text indent. 
+ *  ['href']  string If you'd like to show hyperlink when combobox is read-only, this option value will be used as <a href="{...}"> 
+ *  ['target']  string HREF target. 
+ *
+ * @param string $strName Input name and id
+ * @param string $strValue Field falue
+ * @param array $arrOptions Options array where key is <option value=""> and array element value is option text
+ * @param variant $arrOptions (optional) Array with configuration options for <select> element. See above.
+ *
+ * @return string HTML
+ */
+function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
     
-    if(!is_array($arrConfig)){
-        $arrConfig = Array("strAttrib"=>$arrConfig);
+    if(!is_array($confOptions)){
+        $confOptions = Array("strAttrib"=>$confOptions);
     }
     
-    $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
+    $flagWrite = $this->isEditable($confOptions["FlagWrite"]);
     
     $retVal = "";
     
-    $strClass = $this->handleClass($arrConfig);
+    $strClass = $this->handleClass($confOptions);
     
-    $strAttrib = $arrConfig["strAttrib"];
+    $strAttrib = $confOptions["strAttrib"];
+
+    if( ( $confVar = self::confVariations($confOptions, array('defaultText', 'textIfNull', 'strZeroOptnText')) )!==null ) // backward-compatibility
+        $confOptions['defaultText'] = $confVar;
+
     if ($flagWrite){
 
         $retVal .= "<select id=\"".$strName."\" name=\"".$strName."\"".$strAttrib.
             ($strClass ? ' class="'.$strClass.'"' : "").
-            ($arrConfig["required"] ? " required=\"required\"" : "").">\r\n";
-        if ( isset($arrConfig["strZeroOptnText"]) ){
-            $retVal .= "<option value=\"\">".htmlspecialchars($arrConfig["strZeroOptnText"])."</option>\r\n" ;
+            ($confOptions["required"] ? " required=\"required\"" : "").">\r\n";
+        if ( isset($confOptions["defaultText"]) ){
+            $retVal .= "<option value=\"\">".htmlspecialchars($this->conf['auto_translate'] ? $this->translate($confOptions["defaultText"]) : $confOptions["defaultText"])."</option>\r\n" ;
         }
-        if (!isset($arrConfig['deletedOptions']))
-            $arrConfig['deletedOptions'] = array();
+        if (!isset($confOptions['deletedOptions']))
+            $confOptions['deletedOptions'] = array();
         foreach ($arrOptions as $key => $value){
             if (is_array($value)){ // if there's an optgoup
-                $retVal .= '<optgroup label="'.(isset($arrConfig['optgroups']) ? $arrConfig['optgroups'][$key] : $key).'">';
+                $retVal .= '<optgroup label="'.(isset($confOptions['optgroups']) ? $confOptions['optgroups'][$key] : $key).'">';
                 foreach($value as $optVal=>$optText){
                     $retVal .= "<option value='$optVal'".((string)$optVal==(string)$strValue ? " SELECTED " : "").
-                        (in_array($optVal, $arrConfig['deletedOptions']) ? ' class="deleted"' : '').
-                        ">".str_repeat('&nbsp;',5*$arrConfig["indent"][$key]).htmlspecialchars($optText)."</option>\r\n";
+                        (in_array($optVal, $confOptions['deletedOptions']) ? ' class="deleted"' : '').
+                        ">".str_repeat('&nbsp;',5*$confOptions["indent"][$key]).htmlspecialchars($optText)."</option>\r\n";
                 }
                 $retVal .= '</optgroup>';
             } else
                 $retVal .= "<option value='$key'".((string)$key==(string)$strValue ? " SELECTED " : "").
-                        (in_array($key, $arrConfig['deletedOptions']) ? ' class="deleted"' : '').
-                        ">".str_repeat('&nbsp;',5*$arrConfig["indent"][$key]).htmlspecialchars($value)."</option>\r\n";
+                        (in_array($key, $confOptions['deletedOptions']) ? ' class="deleted"' : '').
+                        ">".str_repeat('&nbsp;',5*$confOptions["indent"][$key]).htmlspecialchars($value)."</option>\r\n";
         }
         $retVal .= "</select>";
 
@@ -971,14 +1419,14 @@ function showCombo($strName, $strValue, $arrOptions, $arrConfig=Array()){
                break;
             }
         }
-        $valToShow=($valToShow!="" ? $valToShow : $arrConfig["strZeroOptnText"]);
+        $valToShow=($valToShow!="" ? $valToShow : $confOptions["defaultText"]);
         
-        $retVal = '<div id="span_{$strName}"'
+        $retVal = "<div id=\"span_{$strName}\""
             .($strClass ? ' class="'.$strClass.'"' : "")
             .'>'
-            .($arrConfig['href'] ? "<a href=\"{$arrConfig['href']}\"".($arrConfig["target"] ? " target=\"{$arrConfig["target"]}\"" : '').">" : '')
+            .($confOptions['href'] ? "<a href=\"{$confOptions['href']}\"".($confOptions["target"] ? " target=\"{$confOptions["target"]}\"" : '').">" : '')
             .htmlspecialchars($valToShow)
-            .($arrConfig['href'] ? '</a>' : '')
+            .($confOptions['href'] ? '</a>' : '')
             ."</div>\r\n".
         "<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\"".
         " value=\"".htmlspecialchars($textToShow)."\" />\r\n";
@@ -994,22 +1442,52 @@ function showCheckBox($strName, $strValue, $arrConfig=Array()){
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
 
-    $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
+    $flagWrite = $this->isEditable($arrConfig["FlagWrite"]) ;
     
     $strClass = $this->handleClass($arrConfig);
+
+    $id = ( $arrConfig['id'] ? $arrConfig['id'] : $strName );
+
+    $showValueAttr = preg_match('/\[\]$/', $strName);
     
     $strAttrib = $arrConfig["strAttrib"];
-    $retVal = "<input name=\"{$strName}\" id=\"{$strName}\" type=\"checkbox\"".
-    ($strValue ? " checked=\"checked\" " : "").
+    $retVal = "<input name=\"{$strName}\" id=\"{$id}\" type=\"checkbox\"".
+    ( ( $strValue && !$showValueAttr ) || $arrConfig['checked'] 
+        ? " checked=\"checked\" " 
+        : "").
+    ($showValueAttr ? ' value="'.htmlspecialchars($strValue).'"' : "").
+    ($strClass ? " class=\"{$strClass}\" " : "").
     (!$flagWrite ? " readonly=\"readonly\"" : "").
     ($strAttrib!="" ? $strAttrib : " style='width:auto;'" ).">";
 
     return $retVal;
 }
 
-function showRadio($strRadioName, $strValue, $arrConfig){
+function showRadio($strName, $strValue, $arrConfig=Array()){
+
+    if(!is_array($arrConfig)){
+        $arrConfig = Array("strAttrib"=>$arrConfig);
+    }
+
+    $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
     
-    $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
+    $strClass = $this->handleClass($arrConfig);
+
+    $id = ( $arrConfig['id'] ? $arrConfig['id'] : $strName );
+    
+    $strAttrib = $arrConfig["strAttrib"];
+    $retVal = "<input name=\"{$strName}\" id=\"{$id}\" type=\"radio\" value=\"".htmlspecialchars($strValue)."\"".
+    ($arrConfig['checked'] ? " checked=\"checked\" " : "").
+    ($strClass ? " class=\"{$strClass}\" " : "").
+    (!$flagWrite ? " readonly=\"readonly\"" : "").
+    ($strAttrib!="" ? $strAttrib : " style='width:auto;'" ).">";
+
+    return $retVal;
+}
+
+function showRadioByArray($strRadioName, $strValue, $arrConfig){
+    
+    $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
     
     $oSQL = $this->oSQL;
     
@@ -1055,7 +1533,7 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
         throw new Exception("AJAX drop-down box has no source specified", 1);
 
 
-    $flagWrite = isset($arrConfig["FlagWrite"]) ? $arrConfig["FlagWrite"] : $this->arrUsrData["FlagWrite"];
+    $flagWrite = $this->isEditable($arrConfig["FlagWrite"]) ;
     
     $oSQL = $this->oSQL;
     
@@ -1064,31 +1542,47 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
         $rw = $oSQL->fetch_array($rs);
         $txt = $rw["optText"];
     }
+
+    if($arrConfig['href'] && $strValue && !$flagWrite ){
+        $arrConfig['href'] = preg_replace('/\['.preg_quote($strFieldName, '/').'\]/', $strValue, $arrConfig['href']);
+    }
     
     $strOut = "";
     $strOut .= "<input type=\"hidden\" name=\"$strFieldName\" id=\"$strFieldName\" value=\"".htmlspecialchars($strValue)."\">\r\n";
-    
-    if ($flagWrite){
-        $strOut .= $this->showTextBox($strFieldName."_text", $txt
+
+    $attr = (preg_match('/\['.preg_quote($strFieldName, '/').'\]/', $arrConfig['href']) 
+                ? 'data-href="'.htmlspecialchars($arrConfig['href']).'" '
+                : '')
+        .$arrConfig["strAttrib"]." src=\"{table:'{$src}', prefix:'{$prf}'}\" autocomplete=\"off\"";
+
+    $strOut .= $this->showTextBox($strFieldName."_text", $txt
             , array_merge(
                 $arrConfig 
-                , Array("FlagWrite"=>true
-                    , "strAttrib" => $arrConfig["strAttrib"]." src=\"{table:'{$src}', prefix:'{$prf}'}\" autocomplete=\"off\""
+                , Array("strAttrib" => $attr
                     , 'type'=>"ajax_dropdown")
                 )
             );
-    } else {
-        $strOut .= "<div id=\"span_{$strFieldName}\""
-            .($strClass ? ' class="'.$strClass.'"' : "")
-            .">"
-            .($arrConfig['href'] ? "<a href=\"{$arrConfig['href']}\"".($arrConfig["target"] ? " target=\"{$arrConfig["target"]}\"" : '').">" : '')
-            .htmlspecialchars($txt)
-            .($arrConfig['href'] ? "</a>" : '')
-            ."</div>\r\n";
-    }
-    
+
     return $strOut;
     
+}
+
+/**
+ * This method returns True if user permissions allow to edit the data. It is possible either if FlagWrite is positive at current page or FlagCreate or FlagUpdate are too.
+ * Perissions may be forced to allow editing or deny it by setting $flagToForce parameter to True or Flase correspondingly. If it's not set or null it meaningless.
+ *
+ * @param bool $flagToForce Flag to force permissions.
+ *
+ * @return bool 
+ */
+public function isEditable($flagToForce = null){
+
+    return (
+        $flagToForce===null 
+            ? ( $this->arrUsrData["FlagWrite"] || $this->arrUsrData["FlagCreate"] || $this->arrUsrData["FlagUpdate"] ) 
+            : (boolean)$flagToForce
+        );
+
 }
 
 /**
@@ -1102,7 +1596,7 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
  * @example echo eiseIntra::confVariations(array('foo'=>'bar', 'foo1'=>'bar1'), array('fee', 'foo', 'fuu', 'fyy'));
  * output: bar
  */
-private static function confVariations($conf, $variations){
+public static function confVariations($conf, $variations){
     $retVal = null;
     foreach($variations as $variant){
         if(isset($conf[$variant])){
@@ -1111,6 +1605,10 @@ private static function confVariations($conf, $variations){
         }
     }
     return $retVal;
+}
+
+public static function idByValue($name, $value, $prefix=null){
+    return ($prefix ? $prefix.'-' : '').preg_replace('/([^a-z0-9\_\.]+)/i', '', $name).($value ? '-'.preg_replace('/[^a-z0-9]+/i', '', $value) : '');
 }
 
 /**
@@ -1126,23 +1624,38 @@ private static function confVariations($conf, $variations){
 function loadJS(){
 
     GLOBAL $js_path, $arrJS;
-        
-    $cachePreventor = self::cachePreventorVar.'='.preg_replace('/\D/', '', $this->conf['version']);
 
-    $arrJS = array_merge(self::$arrPreloadJS, (array)$arrJS);    
-
-    for ($i=0;$i<count($arrJS);$i++){
-        $js = self::parseConst($arrJS[$i]);
-        echo "<script type=\"text/javascript\" src=\"{$js}?{$cachePreventor}\"></script>\r\n";
-    }
-    unset ($i);
+    $cachePreventor = $this->getCachePreventor();
     
-    $arrScript = array_pop(explode("/",$_SERVER["PHP_SELF"]));
-    $arrScript = explode(".",$arrScript);
-    $strJS = (isset($js_path) ? $js_path : "js/").$arrScript[0].".js";
-    if (file_exists( $strJS)) 
-        echo "<script type=\"text/javascript\" src=\"{$strJS}\"></script>\r\n";
-        
+    //------------If there's a dedicated js file for form, we're gonna load it: js/*.js
+    $fn = pathinfo($_SERVER['PHP_SELF'], PATHINFO_FILENAME);
+    $absPath = dirname($_SERVER['DOCUMENT_ROOT'].str_replace('/', DIRECTORY_SEPARATOR, $_SERVER['PHP_SELF'])).DIRECTORY_SEPARATOR;
+    $relPath = dirname($_SERVER['PHP_SELF']).'/';
+    $subPath = (isset($js_path) ? $js_path : 'js/');
+    $jsScript[$relPath.$subPath."{$fn}.js"] = $absPath
+        .str_replace('/', DIRECTORY_SEPARATOR, $subPath)
+        .$fn.'.js';
+    $jsScript[$relPath."{$fn}.js"] = $absPath.$fn.'.js';
+    foreach($jsScript as $js=>$file){
+        if(file_exists($file))
+            $arrJS[] = $js;
+    }
+
+    foreach($arrJS as &$js){
+        if(dirname($js)==='.')
+            $js = $relPath.$js;
+    }
+
+    krsort($arrJS);
+    $arrJS = array_unique($arrJS);
+    ksort($arrJS);
+    
+    //-----------load each $arrJS
+    foreach ($arrJS as $jsHref){
+       echo "<script type=\"text/javascript\" src=\"{$jsHref}?{$cachePreventor}\"></script>\r\n";
+    }
+
+
 }
 
 /**
@@ -1152,29 +1665,26 @@ function loadJS(){
 function loadCSS(){
     GLOBAL $arrCSS;
 
-    $arrCSS = array_merge(self::$arrPreloadCSS, $arrCSS);
+    krsort($arrCSS);
+    $arrCSS = array_unique($arrCSS);
+    ksort($arrCSS);
     
-    $cachePreventor = self::cachePreventorVar.'='.preg_replace('/\D/', '', $this->conf['version']);
+    $cachePreventor = $this->getCachePreventor();
     
-    for($i=0; $i<count($arrCSS); $i++ ){
-        $css = self::parseConst($arrCSS[$i]);
-        echo "<link rel=\"STYLESHEET\" type=\"text/css\" href=\"{$css}?{$cachePreventor}\" media=\"screen\">\r\n";
+    foreach($arrCSS as $cssHref){
+        echo "<link rel=\"STYLESHEET\" type=\"text/css\" href=\"{$cssHref}?{$cachePreventor}\" media=\"screen\">\r\n";
     }
 
 }
 
-static function parseConst($str){
+/**
+ * This function returns GET URI query string for cache prevention of JS and CSS files. Consists of cache prevention parameter, equality sign and digits from versionIntra and version cofiguration parameters of eiseIntra.
+ * @return string The query string.
+ */
+private function getCachePreventor(){
 
-    $s = $str;
+    return self::cachePreventorVar.'='.preg_replace('/\D/', '', $this->conf['versionIntra'].$this->conf['version']);
 
-    if( preg_match_all('/\{([^\s\$\}]+)\}/', $str, $arrMatch) ){
-        foreach($arrMatch[1] as $mtch){
-            $s = str_replace('{'.$mtch.'}', constant($mtch), $s);
-        }
-        
-    }
-
-    return $s;
 }
 
 /**
@@ -1186,16 +1696,23 @@ static function parseConst($str){
  * 
  * @return variant value that return user function.
  */
-function dataAction($dataAction, $function){
+function dataAction($dataAction, $function=null){
     
     $newData = ($_SERVER['REQUEST_METHOD']=='POST' ? $_POST : $_GET);
 
+    if($function===null && is_string( $dataAction ) )
+        $function = $dataAction;
+
     $dataAction = (is_array($dataAction) ? $dataAction : array($dataAction));
 
-    if(in_array($newData[$this->conf['dataActionKey']], $dataAction)
-        && $this->arrUsrData['FlagWrite']
-        && is_callable($function))
-        return call_user_func($function, $newData);
+    if(in_array($newData[self::dataActionKey], $dataAction)
+        && ($this->arrUsrData['FlagWrite'] || $this->arrUsrData['FlagCreate'] || $this->arrUsrData['FlagUpdate'])
+        && is_callable($function)){
+            $arrParam = func_get_args();
+            array_shift($arrParam);
+            array_shift($arrParam);
+            return call_user_func_array($function, array_merge(Array($newData), $arrParam));
+}
 
 }
 
@@ -1210,429 +1727,21 @@ function dataAction($dataAction, $function){
  * 
  * @return variant value that return user function.
  */
-function dataRead($dataReadValues, $function, $query=null){
+function dataRead($dataReadValues, $function){
     
-    $query = (is_array($query) ? $query : $_GET);
+    $query = $_GET;
 
     $dataReadValues = (is_array($dataReadValues) ? $dataReadValues : array($dataReadValues));
 
-    if(in_array($query[$this->conf['dataReadKey']], $dataReadValues)
-        && is_callable($function))
-            return call_user_func($function, $query);
-
-}
-
-
-
-/**********************************
-   Database Routines
-/**********************************/
-/**
- * Funiction retrieves MySQL table information with eiseIntra's semantics
- *
- */
-function getTableInfo($dbName, $tblName){
-    
-    $oSQL = $this->oSQL;
-    
-    $arrPK = Array();
-
-    $rwTableStatus=$oSQL->f($oSQL->q("SHOW TABLE STATUS FROM $dbName LIKE '".$tblName."'"));
-    if($rwTableStatus['Comment']=='VIEW' && $rwTableStatus['Engine']==null){
-        $tableType = 'view';
-    } else {
-        $tableType = 'table';
+    if(in_array($query[self::dataReadKey], $dataReadValues)
+        && is_callable($function)){
+            $arrParam = func_get_args();
+            array_shift($arrParam);
+            array_shift($arrParam);
+            $arrArgs = $arrParam;
+            return call_user_func_array($function, $arrArgs );
     }
 
-    
-    $sqlCols = "SHOW FULL COLUMNS FROM `".$tblName."`";
-    $rsCols  = $oSQL->do_query($sqlCols);
-    $ii = 0;
-    while ($rwCol = $oSQL->fetch_array($rsCols)){
-        
-        if ($ii==0)
-            $firstCol = $rwCol["Field"];
-        
-        $strPrefix = (isset($strPrefix) && $strPrefix==substr($rwCol["Field"], 0, 3) 
-            ? substr($rwCol["Field"], 0, 3)
-            : (!isset($strPrefix) ? substr($rwCol["Field"], 0, 3) : "")
-            );
-        
-        if (preg_match("/int/i", $rwCol["Type"]))
-            $rwCol["DataType"] = "integer";
-        
-        if (preg_match("/float/i", $rwCol["Type"])
-           || preg_match("/double/i", $rwCol["Type"])
-           || preg_match("/decimal/i", $rwCol["Type"]))
-            $rwCol["DataType"] = "real";
-        
-        if (preg_match("/tinyint/i", $rwCol["Type"])
-            || preg_match("/bit/i", $rwCol["Type"]))
-            $rwCol["DataType"] = "boolean";
-        
-        if (preg_match("/char/i", $rwCol["Type"])
-           || preg_match("/text/i", $rwCol["Type"]))
-            $rwCol["DataType"] = "text";
-        
-        if (preg_match("/binary/i", $rwCol["Type"])
-           || preg_match("/blob/i", $rwCol["Type"]))
-            $rwCol["DataType"] = "binary";
-            
-        if (preg_match("/date/i", $rwCol["Type"])
-           || preg_match("/time/i", $rwCol["Type"]))
-            $rwCol["DataType"] = $rwCol["Type"];
-            
-        if (preg_match("/ID$/", $rwCol["Field"]) && $rwCol["Key"] != "PRI"){
-            $rwCol["FKDataType"] = $rwCol["DataType"];
-            $rwCol["DataType"] = "FK";
-        }
-        
-        if ($rwCol["Key"] == "PRI" 
-                || preg_match("/^$strPrefix(GU){0,1}ID$/i",$rwCol["Field"])
-            ){
-            $rwCol["PKDataType"] = $rwCol["DataType"];
-            $rwCol["DataType"] = "PK";
-        }
-        
-        if ($rwCol["Field"]==$strPrefix."InsertBy" 
-          || $rwCol["Field"]==$strPrefix."InsertDate" 
-          || $rwCol["Field"]==$strPrefix."EditBy" 
-          || $rwCol["Field"]==$strPrefix."EditDate" ) {
-            $rwCol["DataType"] = "activity_stamp"; 
-            $arrTable['hasActivityStamp'] = true;
-        }
-        $arrCols[$rwCol["Field"]] = $rwCol;
-        if ($rwCol["Key"] == "PRI"){
-            $arrPK[] = $rwCol["Field"];
-            if ($rwCol["Extra"]=="auto_increment")
-                $pkType = "auto_increment";
-            else 
-                if (preg_match("/GUID$/", $rwCol["Field"]) && preg_match("/^(varchar)|(char)/", $rwCol["Type"]))
-                    $pkType = "GUID";
-                else 
-                    $pkType = "user_defined";
-        }
-        $ii++;
-    }
-    
-    if (count($arrPK)==0)
-        $arrPK[] = $arrCols[$firstCol]['Field'];
-    
-    $sqlKeys = "SHOW KEYS FROM `".$tblName."`";
-    $rsKeys  = $oSQL->do_query($sqlKeys);
-    while ($rwKey = $oSQL->fetch_array($rsKeys)){
-      $arrKeys[] = $rwKey;
-    }
-    
-    //foreign key constraints
-    $rwCreate = $oSQL->fetch_array($oSQL->do_query("SHOW CREATE TABLE `{$tblName}`"));
-    $strCreate = $rwCreate["Create Table"];
-    $arrCreate = explode("\n", $strCreate);$arrCreateLen = count($arrCreate);
-    for($i=0;$i<$arrCreateLen;$i++){
-        // CONSTRAINT `FK_vhcTypeID` FOREIGN KEY (`vhcTypeID`) REFERENCES `tbl_vehicle_type` (`vhtID`)
-        if (preg_match("/^CONSTRAINT `([^`]+)` FOREIGN KEY \(`([^`]+)`\) REFERENCES `([^`]+)` \(`([^`]+)`\)/", trim($arrCreate[$i]), $arrConstraint)){
-            foreach($arrCols as $idx=>$col){
-                if ($col["Field"]==$arrConstraint[2]) { //if column equals to foreign key constraint
-                    $arrCols[$idx]["DataType"]="FK";
-                    $arrCols[$idx]["ref_table"] = $arrConstraint[3];
-                    $arrCols[$idx]["ref_column"] = $arrConstraint[4];
-                    break;
-                }
-            }
-            /*
-            echo "<pre>";
-            print_r($arrConstraint);
-            echo "</pre>";
-            //*/
-        }
-    }
-    
-    $arrColsIX = Array();
-    foreach($arrCols as $ix => $col){ $arrColsIX[$col["Field"]] = $col["Field"]; }
-    
-    $strPKVars = $strPKCond = $strPKURI = '';
-    foreach($arrPK as $pk){
-        $strPKVars .= "\${$pk}  = (isset(\$_POST['{$pk}']) ? \$_POST['{$pk}'] : \$_GET['{$pk}'] );\r\n";
-        $strPKCond .= ($strPKCond!="" ? " AND " : "")."`{$pk}` = \".".(
-                in_array($arrCols["DataType"], Array("integer", "boolean"))
-                ? "(int)(\${$pk})"
-                : "\$oSQL->e(\${$pk})"
-            ).".\"";
-        $strPKURI .= ($strPKURI!="" ? "&" : "")."{$pk}=\".urlencode(\${$pk}).\"";
-    }
-    
-    $arrTable['columns'] = $arrCols;
-    $arrTable['keys'] = $arrKeys;
-    $arrTable['PK'] = $arrPK;
-    $arrTable['PKtype'] = $pkType;
-    $arrTable['prefix'] = $strPrefix;
-    $arrTable['table'] = $tblName;
-    $arrTable['columns_index'] = $arrColsIX;
-    
-    $arrTable["PKVars"] = $strPKVars;
-    $arrTable["PKCond"] = $strPKCond;
-    $arrTable["PKURI"] = $strPKURI;
-
-    $arrTable['type'] = $tableType;
-
-    $arrTable['Comment'] = $rwTableStatus['Comment'];
-    
-    return $arrTable;
-}
-
-
-function getSQLValue($col, $flagForArray=false){
-    $strValue = "";
-    
-    $strPost = "\$_POST['".$col["Field"]."']".($flagForArray ? "[\$i]" : "");
-    
-    if (preg_match("/norder$/i", $col["Field"]))
-        $col["DataType"] = "nOrder";
-
-    if (preg_match("/ID$/", $col["Field"]))
-        $col["DataType"] = "FK";
-    
-    switch($col["DataType"]){
-      case "integer":
-        $strValue = "'\".(integer)\$intra->decPHP2SQL($strPost).\"'";
-        break;
-      case "nOrder":
-        $strValue = "'\".($strPost=='' ? \$i : $strPost).\"'";
-        break;
-      case "real":
-      case "numeric":
-      case "number":
-        $strValue = "'\".(double)\$intra->decPHP2SQL($strPost).\"'";
-        break;
-      case "boolean":
-        if (!$flagForArray)
-           $strValue = "'\".($strPost=='on' ? 1 : 0).\"'";
-        else
-           $strValue = "'\".(integer)\$_POST['".$col["Field"]."'][\$i].\"'";
-        break;
-      case "binary":
-        $strValue = "\".\$oSQL->e(\$".$col["Field"].").\"";
-        break;
-      case "datetime":
-        $strValue = "\".\$intra->datetimePHP2SQL($strPost).\"";
-        break;
-      case "date":
-        $strValue = "\".\$intra->datePHP2SQL($strPost).\"";
-        break;
-      case "activity_stamp":
-        if (preg_match("/By$/i", $col["Field"]))
-           $strValue .= "'\$intra->usrID'";
-        if (preg_match("/Date$/i", $col["Field"]))
-           $strValue .= "NOW()";
-        break;
-      case "FK":
-      case "combobox":
-      case "ajax_dropdown":
-        $strValue = "\".($strPost!=\"\" ? \$oSQL->e($strPost) : \"NULL\").\"";
-        break;
-      case "PK":
-      case "text":
-      case "varchar":
-      default:
-        $strValue = "\".\$oSQL->e($strPost).\"";
-        break;
-    }
-    return $strValue;
-}
-
-function getMultiPKCondition($arrPK, $strValue){
-    $arrValue = explode("##", $strValue);
-    $sql_ = "";
-    for($jj = 0; $jj < count($arrPK);$jj++)
-        $sql_ .= ($sql_!="" ? " AND " : "").$arrPK[$jj]."=".$this->oSQL->e($arrValue[$jj])."";
-    return $sql_;
-}
-
-
-function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $flagShowDeleted=false, $extra='', $flagNoLimits=false){
-    
-    $oSQL = $this->oSQL;
-
-    if ($strPrefix!=""){
-        $arrFields = Array(
-            "idField" => "{$strPrefix}ID"
-            , "textField" => "{$strPrefix}Title"
-            , "textFieldLocal" => "{$strPrefix}TitleLocal"
-            , "delField" => "{$strPrefix}FlagDeleted"
-            );
-    } else {
-        $arrFields = Array(
-            "idField" => "optValue"
-            , "textField" => "optText"
-            , "textFieldLocal" => "optTextLocal"
-            , "delField" => "optFlagDeleted"
-        );
-    }    
-    
-    $sql = "SELECT `".$arrFields["textField{$this->local}"]."` as optText, `{$arrFields["idField"]}` as optValue
-        FROM `{$strTable}`";
-    
-    if ($strValue!=""){ // key-based search
-        $sql .= "\r\nWHERE `{$arrFields["idField"]}`=".$oSQL->escape_string($strValue);
-    } else { //value-based search
-        $strExtra = '';
-        if ($extra!=''){
-            $arrExtra = explode("|", $extra);
-            foreach($arrExtra as $ix=>$ex){ 
-                $ex = trim($ex);
-                $strExtra .= ($ex!='' 
-                    ? ' AND extra'.($ix==0 ? '' : $ix).' = '.$oSQL->e($ex) 
-                    : ''); 
-            }
-        }
-
-        $arrVariations = self::getKeyboardVariations($strText);
-        $sqlVariations = '';
-        
-        foreach($arrVariations as $layout=>$variation){
-            $sqlVariations.= ($sqlVariations=='' ? '' : "\r\nOR")
-                ." `{$arrFields["textField"]}` LIKE ".$oSQL->escape_string($variation, "for_search")." COLLATE 'utf8_general_ci' "
-                ." OR `{$arrFields["textFieldLocal"]}` LIKE ".$oSQL->escape_string($variation, "for_search")." COLLATE 'utf8_general_ci'";
-        }
-
-        $sql .= "\r\nWHERE (\r\n{$sqlVariations}\r\n)"
-            .($flagShowDeleted==false ? " AND IFNULL(`{$arrFields["delField"]}`, 0)=0" : "")
-            .$strExtra;
-    }
-    if(!$flagNoLimits)
-        $sql .= "\r\nLIMIT 0, 30";
-    $rs = $oSQL->do_query($sql);
-    
-    return $rs;
-}
-
-function result2JSON($rs, $arrConf = array()){
-    $arrConf_default = array(
-        'flagAllowDeny' => 'allow'
-        , 'arrPermittedFields' => array() // if 'allow', it contains only closed fields and vice-versa
-        , 'arrHref' => array()
-        , 'fields' => array()
-        , 'flagEncode' => false
-        );
-    $arrConf = array_merge($arrConf_default, $arrConf);
-    $arrRet = array();
-    $oSQL = $this->oSQL;
-    $arrFields = $oSQL->ff($rs);
-
-    while ($rw = $oSQL->f($rs)){
-        $arrRW = array();
-        if(isset($arrConf['fieldPermittedFields']) && isset($rw[$arrConf['fieldPermittedFields']])){
-            $arrPermittedFields = explode(',', $rw[$arrConf['fieldPermittedFields']]);
-        } else {
-            $arrPermittedFields = is_array($arrConf['arrPermittedFields']) ? $arrConf['arrPermittedFields'] : array();
-        }
-
-        foreach($rw as $key=>$value){
-
-            $arrRW[$key]['v'] = eiseIntra::formatByType($this, $arrFields[$key]['type'], $value);
-
-            if (isset($rw[$key.'_text'])){
-                $arrRW[$key]['t'] = $rw[$key.'_text'];
-                unset($rw[$key.'_text']);
-            }
-
-            if (($arrConf['flagAllowDeny']=='allow' && in_array($key, $arrPermittedFields))
-                || ($arrConf['flagAllowDeny']=='deny' && !in_array($key, $arrPermittedFields))
-                || $arrConf['fields'][$key]['disabled'] || $arrConf['fields'][$key]['static']
-                || !$this->arrUsrData['FlagWrite']
-                ){
-
-                $arrRW[$key]['rw'] = 'r';
-
-            }
-
-            if (isset($arrConf['arrHref'][$key]) || $arrConf['fields'][$key]['href']){
-                $href = ($arrConf['arrHref'][$key] ? $arrConf['arrHref'][$key] : $arrConf['fields'][$key]['href']);
-                $target = $arrConf['fields'][$key]['target'];
-                foreach ($rw as $kkey => $vvalue){
-                    $href = str_replace("[".$kkey."]", (strpos($cell['href'], "[{$rowKey}]")==0 
-                                ? $vvalue // avoid urlencode() for first argument
-                                : urlencode($vvalue)), $href);
-                    $target = str_replace("[".$kkey."]", $vvalue, $target);
-                }
-                $arrRW[$key]['h'] = $href;
-                $arrRW[$key]['rw'] = 'r';
-                if ($target) {
-                    $arrRW[$key]['tr'] = $target;
-                }
-            }
-        }
-        $arrRW_ = $arrRW;
-        foreach($arrRW_ as $key=>$v){
-            if(isset($arrRW_[$key.'_text'])){
-                unset($arrRW[$key.'_text']);
-            }
-        }
-
-        $arrRet[] = $arrRW;
-    }
-    return ($arrConf['flagEncode'] ? json_encode($arrRet) : $arrRet);
-
-}
-
-function unq($sqlReadyValue){
-    return (strtoupper($sqlReadyValue)=='NULL' ? null : (string)preg_replace("/^(')(.*)(')$/", '\2', $sqlReadyValue));
-}
-
-function decPHP2SQL($val, $valueIfNull=null){
-    return ($val!=='' 
-        ? (double)str_replace($this->conf['decimalSeparator'], '.', str_replace($this->conf['thousandsSeparator'], '', $val))
-        : ($valueIfNull===null ? 'NULL' : $valueIfNull)
-        );
-}
-
-function decSQL2PHP($val, $decimalPlaces=null){
-    $decPlaces = ((is_int($var) && $decimalPlaces===null) 
-        ? 0 
-        : ($decimalPlaces!==null 
-            ? $decimalPlaces
-            : $intra->conf['decimalPlaces'])
-        );
-    return (!is_null($val) 
-            ? number_format((double)$val, $decimalPlaces, $intra->conf['decimalSeparator'], $intra->conf['thousandsSeparator'])
-            : '');
-}
-
-function dateSQL2PHP($dtVar, $precision='date'){
-$result =  $dtVar ? date($this->conf["dateFormat"].($precision!='date' ? " ".$this->conf["timeFormat"] : ''), strtotime($dtVar)) : "";
-return $result ;
-}
-
-function datetimeSQL2PHP($dtVar){
-$result =  $dtVar ? date($this->conf["dateFormat"]." ".$this->conf["timeFormat"], strtotime($dtVar)) : "";
-return $result ;
-}
-
-function datePHP2SQL($dtVar, $valueIfEmpty="NULL"){
-    $result =  (
-        preg_match("/^".$this->conf["prgDate"]."$/", $dtVar) 
-        ? "'".preg_replace("/".$this->conf["prgDate"]."/", $this->conf["prgDateReplaceTo"], $dtVar)."'" 
-        : (
-            preg_match('/^[12][0-9]{3}\-[0-9]{2}-[0-9]{2}( [0-9]{1,2}\:[0-9]{2}(\:[0-9]{2}){0,1}){0,1}$/', $dtVar)
-            ? "'".$dtVar."'"
-            : $valueIfEmpty 
-        )
-        );
-    return $result;
-}
-function datetimePHP2SQL($dtVar, $valueIfEmpty="NULL"){
-    $prg = "/^".$this->conf["prgDate"]."( ".$this->conf["prgTime"]."){0,1}$/";
-    $result =  (
-        preg_match($prg, $dtVar) 
-        ? preg_replace("/".$this->conf["prgDate"]."/", $this->conf["prgDateReplaceTo"], $dtVar) 
-        : (
-            preg_match('/^[12][0-9]{3}\-[0-9]{2}-[0-9]{2}( [0-9]{1,2}\:[0-9]{2}(\:[0-9]{2}){0,1}){0,1}$/', $dtVar)
-            ? $dtVar
-            : null 
-        )
-        );
-
-    return ($result!==null ? "'".date('Y-m-d H:i:s', strtotime($result))."'" : $valueIfEmpty);
 }
 
 function getDateTimeByOperationTime($operationDate, $time){
@@ -1701,46 +1810,6 @@ function getUserData_All($usrID, $strWhatData='all'){
    }
 }
 
-
-/******************************************************************************/
-/* static functions                                                           */
-/******************************************************************************/
-static function formatByType($intra, $type, $value){
-
-    $retVal = null;
-
-    switch($type){
-        case 'real':
-            $decPlaces = (isset($arrConf['fields'][$key]['decimalPlaces'])
-                ? $arrConf['fields'][$key]['decimalPlaces']
-                : ($arrFields[$key]['decimalPlaces']<6
-                    ? $arrFields[$key]['decimalPlaces']
-                    : $intra->conf['decimalPlaces'])
-                );
-            $retVal = $intra->decSQL2PHP($value, $decPlaces);
-            break;
-        case 'integer':
-        case 'boolean':
-            $retVal = (int)$value;
-            break;
-        case 'date':
-            $retVal = $intra->dateSQL2PHP($value);
-            break;
-        case 'datetime':
-            $retVal = $intra->datetimeSQL2PHP($value);
-            break;
-        case 'timestamp':
-            $retVal = $intra->datetimeSQL2PHP(date('Y-m-d H:i:s', $value));
-            break;
-        case 'time':
-        default:
-            $retVal = (string)$value;
-            break;
-    }
-
-    return $retVal;
-}
-
 static function getFullHREF($iframeHREF){
     $prjDir = dirname($_SERVER['REQUEST_URI']);
     $flagHTTPS = preg_match('/^HTTPS/', $_SERVER['SERVER_PROTOCOL']);
@@ -1752,6 +1821,18 @@ static function getFullHREF($iframeHREF){
         .$prjDir.'/'
         .'index.php?pane='.urlencode($iframeHREF);
     return $strURL;
+}
+
+static function getSlug(){
+    $slug = preg_replace('/[^a-z0-9]+/i', '-', 
+            preg_replace('/^[^a-z]+/i', '', dirname($_SERVER['PHP_SELF']))
+        )
+        .' '.preg_replace('/[^a-z0-9]+/i', '-',
+            preg_replace('/^[^a-z]+/i', '', 
+                preg_replace('/\.php$/i', '', $_SERVER['PHP_SELF'])
+                )
+            );
+    return $slug;
 }
 
 /**
@@ -1829,17 +1910,19 @@ static function buildLess(){
     
     require_once LessPHPPath.'Less.php';
 
-    $strThemePath = $_SERVER['DOCUMENT_ROOT'].str_replace('/', DIRECTORY_SEPARATOR, eiseIntraCSSPath.'themes/'.eiseIntraCSSTheme.'/');
-
+    GLOBAL $eiseIntraCSSTheme;
+ 
+    $strThemePath = $_SERVER['DOCUMENT_ROOT'].str_replace('/', DIRECTORY_SEPARATOR, eiseIntraCSSPath.'themes/'.$eiseIntraCSSTheme.'/');
+ 
     $parser = new Less_Parser();
     $parser->parseFile( $strThemePath.'style.less' );
     $css = $parser->getCss();
-
+ 
     file_put_contents($strThemePath.'style.css', $css);
-
+ 
 }
-
-
+ 
+ 
 /**
  * This function dumps specified $to_echo variable using var_export() or simply echoes it, with stack trace ahead
  *
@@ -1848,104 +1931,66 @@ static function buildLess(){
  */
 static function debug($to_echo){
 
+    $args = func_get_args();
+    $lastArgIx = func_num_args()-1;
+
+    $flagStackTrace = $args[$lastArgIx];
+
     echo '<pre>';
-    echo debug_print_backtrace();
-    if(is_array($to_echo) || is_object($to_echo)){
-        var_export($to_echo);
-    } else 
-        echo $to_echo;
-    echo "\r\n";
+    
+    foreach($args as $ix=>$to_echo){
+        if($ix===$lastArgIx && is_bool($ix)){
+            $flagStackTrace = true;
+            break;
+        }
+
+        if(is_array($to_echo) || is_object($to_echo)){
+            echo htmlspecialchars(var_export($to_echo, true));
+        } else 
+            echo htmlspecialchars($to_echo);
+        echo "\r\n";
+
+    }
+
+   
+
+    if($flagStackTrace){
+        $a =  debug_backtrace();
+
+        if($a[0]['function']=='debug' && $a[0]['class']=='eiseIntra'){
+            $a = array_reverse($a);
+            echo "eiseIntra debug called at [{$a[0]['file']}:{$a[0]['line']}]:\n";
+        }
+
+        array_pop($a);
+
+        foreach($a as $num=>$debug_data){
+            echo "#{$num} ".($debug_data['class'] ? $debug_data['class'].'::' : '')
+                           #.($debug_data['object'] ? $debug_data['object'].'->' : '')
+                           .$debug_data['function'].'( '.($debug_data['args'] ? var_export($debug_data['args'], true) : '').' ) '
+                           ."called at [{$debug_data['file']}:{$debug_data['line']}]\n";
+        }
+
+        /*
+        function    string  The current function name. See also __FUNCTION__.
+        line    integer The current line number. See also __LINE__.
+        file    string  The current file name. See also __FILE__.
+        class   string  The current class name. See also __CLASS__
+        object  object  The current object.
+        type    string  The current call type. If a method call, "->" is returned. If a static method call, "::" is returned. If a function call, nothing is returned.
+        args    array   If inside a function, this lists the functions arguments. If inside an included file, this lists the included file name(s).
+
+
+        #0  c() called at [/tmp/include.php:10]
+        #1  b() called at [/tmp/include.php:6]
+        #2  a() called at [/tmp/include.php:17]
+        #3  include(/tmp/include.php) called at [/tmp/test.php:3]
+        */
+    }
+
     echo '</pre>';
-
+ 
 }
-
-
-/******************************************************************************/
-/* ARCHIVE/RESTORE ROUTINES                                                   */
-/******************************************************************************/
-
-function getArchiveSQLObject(){
-    
-    if (!$this->conf["stpArchiveDB"])
-        throw new Exception("Archive database name is not set. Contact system administrator.");
-    
-    //same server, different DBs
-    $this->oSQL_arch = new sql($this->oSQL->dbhost, $this->oSQL->dbuser, $this->oSQL->dbpass, $this->conf["stpArchiveDB"], false, CP_UTF8);
-    $this->oSQL_arch->connect();
-    
-    return $this->oSQL_arch;
-    
-}
-
-
-function archiveTable($table, $criteria, $nodelete = false, $limit = ""){
-    
-    $oSQL = $this->oSQL;
-    
-    if (!isset($this->oSQL_arch))
-        $this->getArvhiceSQLObject();
-    
-    $oSQL_arch = $this->oSQL_arch;
-    $intra_arch = new eiseIntra($oSQL_arch);
-    
-    // 1. check table exists in archive DB
-    if(!$oSQL_arch->d("SHOW TABLES LIKE ".$oSQL->e($table))){
-        // if doesnt exists, we create it w/o indexes, on MyISAM engine
-        $sqlGetCreate = "SHOW CREATE TABLE `{$table}`";
-        $rsC = $oSQL->q($sqlGetCreate);
-        $rwC = $oSQL->f($rsC);
-        $sqlCR = $rwC["Create Table"];
-        //skip INDEXes and FKs
-        $arrS = preg_split("/(\r|\n|\r\n)/", $sqlCR);
-        $sqlCR = "";
-        foreach($arrS as $ix => $string){
-            if (preg_match("/^(INDEX|KEY|CONSTRAINT)/", trim($string))){
-                continue;
-            }
-            $string = preg_replace("/(ENGINE=InnoDB)/", "ENGINE=MyISAM", $string);
-            $string = preg_match("/^PRIMARY/", trim($string)) ? preg_replace("/\,$/", "", trim($string)) : $string;
-            $sqlCR .= ($sqlCR!="" ? "\r\n" : "").$string;
-        }
-        $oSQL_arch->q($sqlCR);
-        
-    }
-    
-    // if table exists, we check it for missing columns
-    $arrTable = $this->getTableInfo($oSQL->dbname, $table);
-    $arrTable_arch = $intra_arch->getTableInfo($oSQL_arch->dbname, $table);
-    $arrCol_arch = Array();
-    foreach($arrTable_arch["columns"] as $col) $arrCol_arch[] = $col["Field"];
-    $strFields = "";
-    foreach($arrTable["columns"] as $col){
-        //if column is missing, we add column
-        if (!in_array($col["Field"], $arrCol_arch)){
-            $sqlAlter = "ALTER TABLE `{$table}` ADD COLUMN `{$col["Field"]}` {$col["Type"]} ".
-                ($col["Null"]=="YES" ? "NULL" : "NOT NULL").
-                " DEFAULT ".($col["Null"]=="YES" ? "NULL" : $oSQL->e($col["Default"]) );
-            $oSQL_arch->q($sqlAlter);
-        }
-        
-        $strFields .= ($strFields!="" ? "\r\n, " : "")."`{$col["Field"]}`";
-        
-    }
-    
-    // 2. insert-select to archive from origin
-    // presume that origin and archive are on the same host, archive user can do SELECT from origin
-    $sqlIns = "INSERT IGNORE INTO `{$table}` ({$strFields})
-        SELECT {$strFields}
-        FROM `{$oSQL->dbname}`.`{$table}`
-        WHERE {$criteria}".
-        ($limit!="" ? " LIMIT {$limit}" : "");
-    $oSQL_arch->q($sqlIns);
-    $nAffected = $oSQL->a();
-    
-    // 3. delete from the origin
-    if (!$nodelete)
-        $oSQL->q("DELETE FROM `{$table}` WHERE {$criteria}".($limit!="" ? " LIMIT {$limit}" : ""));
-    
-    return $nAffected;
-}
-
 
 
 }
@@ -1957,10 +2002,3 @@ function __construct($msg, $level = 0){
 }
 }
 
-
-
-
-
-
-
-?>

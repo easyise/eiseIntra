@@ -109,7 +109,7 @@ $arrActions[]= Array ('title' => 'Add Row'
 	   , 'class'=> 'ss_add'
 	);
     
-include eiseIntraAbsolutePath."inc-frame_top.php";
+include eiseIntraAbsolutePath."inc_top.php";
 ?>
 <script>
 $(document).ready(function(){  
@@ -151,5 +151,5 @@ $gridENT->Execute();
 
 </form>
 <?php
-include eiseIntraAbsolutePath."inc-frame_bottom.php";
+include eiseIntraAbsolutePath."inc_bottom.php";
 ?>

@@ -1,0 +1,189 @@
+.eiseGrid {
+	position: relative;
+}
+
+.eg-table {
+	border-collapse: collapse;
+    border-spacing: 0 !important;
+    box-sizing: border-box;
+    -moz-box-sizing:  border-box;
+    -webkit-box-sizing: border-box;
+    table-layout: fixed;
+    width: 100%;
+}
+
+.eg-table > thead > tr > th {
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    text-align: center;
+    box-sizing: border-box;
+    -moz-box-sizing:  border-box;
+    -webkit-box-sizing: border-box;
+    overflow:hidden;
+    white-space: nowrap;
+}
+
+.eg-table th:last-of-type {
+    border-right-width: 0;
+    border-right-style: none;
+}
+
+.eg-table tfoot tr:first-of-type td {
+	border-top-width: 2px;
+	border-top-style: solid;
+}
+
+.eg-table tfoot td {
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+}
+.eg-table tfoot td:last-of-type {
+    border-right-width: 0;
+    border-right-style: none;
+}
+.eg-table tfoot tr:last-of-type td {
+	border-bottom-width: 0;
+}
+
+.eg-table.multiple-subrows tbody.eg-data tr:last-of-type td {
+	border-bottom-color: #999;
+    border-bottom-width: 1px;
+}
+
+.eg-container tbody:last-of-type tr:last-of-type td {
+	border-bottom-width: 0 !important;
+}
+
+.eg-template {
+	display: none;
+}
+
+.eg-container td {
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    overflow: hidden;
+}
+
+.eg-container td:last-of-type {
+    border-right-width: 0;
+    border-right-style: none;
+}
+
+.eg-table td > div {
+    white-space: nowrap;
+    position: relative;
+    overflow: hidden;
+}
+
+.eg-table td > input {
+    width: 100%;
+    border: 0;
+    margin: 0;
+    background: transparent;
+    font-size: inherit;
+    font-family: inherit;
+    text-align: inherit;
+    color: inherit;
+}
+
+.eg-table td.eg-date input
+, .eg-table td.eg-datetime input
+, .eg-table td.eg-ajax_dropdown input
+, .eg-table td.eg-has-icon input
+{
+    background-position: right top;
+    background-repeat:no-repeat;  
+}
+
+.eg-table td.eg_date div
+, .eg-table td.eg_datetime div {
+    white-space: nowrap;
+}
+
+select.eg-floating-select {
+    font: inherit;
+}
+
+td.eg-checkbox {
+    vertical-align: middle;
+    text-align: center;
+}
+
+td.eg-checkbox input {
+    width: auto;
+}
+
+td.eg-numeric
+, td.eg-real
+, td.eg-money
+, td.eg-numeric
+, td.eg-number
+, td.eg-double
+, td.eg-float
+, td.eg-integer
+, td.eg-int {
+    text-align: right;
+    white-space: nowrap !important;
+}
+
+select.eg-floating-select {
+    display: none;
+    position: absolute;
+    z-index: 100;
+}
+
+.eg-no-rows {
+    display: none;
+}
+
+.eg-no-rows tr td
+, .eg-spinner tr td {
+	border: none;
+}
+
+.eg-spinner {
+    display: none;
+}
+
+.eg-controlbar {
+    float: left;
+}
+
+.eg-3d {
+    display: none;
+}
+
+.eiseGrid col {
+    box-sizing: border-box !important;
+    -moz-box-sizing: border-box !important;
+     -webkit-box-sizing: border-box !important;
+     overflow:hidden;
+}
+
+.eg-totals-caption {
+	text-align: right;
+}
+
+.eg-button {
+    width: auto;
+    height: auto;
+    overflow: hidden;
+}
+
+.eg-pseudotabs {
+    line-height: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+tr.eg-tabs > td > div {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}

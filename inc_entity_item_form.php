@@ -941,7 +941,7 @@ public static function getBookmarks($arrDescr = array()){
 
             $description = $descr;
             foreach($o->item as $field=>$valRaw){
-                $val = eiseIntra::formatByType($intra, $o->conf['ATR'][$field]['atrType'], $valRaw);
+                $val = $intra->formatByType2PHP($o->conf['ATR'][$field]['atrType'], $valRaw);
                 $description = str_replace('##'.$field.'##', $val, $description);
             }
 

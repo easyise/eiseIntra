@@ -1,13 +1,5 @@
 <?php 
-include commonStuffAbsolutePath.'eiseGrid/inc_eiseGrid.php';
-$arrJS[] = commonStuffRelativePath.'eiseGrid/eiseGrid.js';
-$arrCSS[] = commonStuffRelativePath.'eiseGrid/eiseGrid.css';
-
-$dbName=(isset($_POST["dbName"]) ? $_POST["dbName"] : $_GET["dbName"]);
-$oSQL->select_db($dbName);
-
-$oSQL->dbName = $dbName;
-//$_DEBUG = true;
+$intra->requireComponent('jquery-ui', 'grid');
 
 $DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
 
@@ -17,15 +9,18 @@ $sqlEnt = "SELECT * FROM stbl_entity WHERE entID='".$entID."'";
 $rsEnt = $oSQL->do_query($sqlEnt);
 $rwEnt = $oSQL->fetch_array($rsEnt);
 
+$easyAdmin = ($authmethod==='mysql');
+$flagEiseIntra = (boolean) $oSQL->d("SHOW TABLES LIKE 'stbl_action_status'");
+
 $gridSTA = new eiseGrid($oSQL
         ,'sta'
         , Array(
-                'arrPermissions' => Array('FlagWrite'=>true)
+                'arrPermissions' => Array('FlagWrite'=>$flagEiseIntra)
                 , 'strTable' => 'stbl_status'
                 , 'strPrefix' => 'sta'
                 , 'flagStandAlone' => true
                 , 'showControlBar' => true
-                , 'controlBarButtons' => 'add'
+                , 'controlBarButtons' => 'add|delete'
                 )
         );
 
@@ -37,6 +32,7 @@ $gridSTA->Columns[] = Array(
         'title' => $intra->translate("ID")
         , 'field' => "staID"
         , 'mandatory' => true
+        , 'width' => '40px'
         , 'type' => "text"
 );
 $gridSTA->Columns[] = Array(
@@ -46,11 +42,11 @@ $gridSTA->Columns[] = Array(
         , 'type' => "text"
 );
 $gridSTA->Columns[] = Array(
-        'title' => $intra->translate("Title")
+        'title' => $intra->translate("Status Title")
         , 'field' => "staTitle{$strLocal}"
-        , 'width' => "50%"
+        , 'width' => "100%"
         , 'type' => "text"
-        , 'href' => "status_form.php?dbName=$dbName&staID=[staID]&entID=$entID"
+        , 'href' => ($flagEiseIntra ? "status_form.php?dbName=$dbName&staID=[staID]&entID=$entID" : null)
 );
 $gridSTA->Columns[] = Array(
         'title' => $intra->translate("Upd")
@@ -74,12 +70,12 @@ $gridSTA->Columns[] = Array(
 $gridATR = new eiseGrid($oSQL
         ,'atr'
         , Array(
-                'arrPermissions' => Array('FlagWrite'=>true, 'FlagDelete'=>(bool)$easyAdmin)
+                'arrPermissions' => Array('FlagWrite'=>$flagEiseIntra, 'FlagDelete'=>(bool)$easyAdmin)
                 , 'strTable' => 'stbl_attribute'
                 , 'strPrefix' => 'atr'
                 , 'flagStandAlone' => true
                 , 'showControlBar' => true
-                , 'controlBarButtons' => 'add|moveup|movedown'
+                , 'controlBarButtons' => 'add|moveup|movedown|delete'
                 )
         );
 
@@ -116,38 +112,32 @@ if($easyAdmin){
             , 'field' => "atrTitle{$strLocal}"
             , 'type' => "text"
             , 'width' => "30%"
-            , 'href' => "attribute_form.php?dbName=$dbName&atrID=[atrID]&atrEntityID=$entID"
+            , 'href' => ($flagEiseIntra ? "attribute_form.php?dbName=$dbName&atrID=[atrID]&atrEntityID=$entID" : null)
     );
-$gridATR->Columns[] = Array(
-        'title' => $intra->translate("Short Title")
-        , 'field' => "atrShortTitle{$strLocal}"
-        , 'type' => "text"
-);
+if($flagEiseIntra)
+    $gridATR->Columns[] = Array(
+            'title' => $intra->translate("Short Title")
+            , 'field' => "atrShortTitle{$strLocal}"
+            , 'type' => "text"
+            , 'width' => '60px'
+    );
 } else {
 
     $gridATR->Columns[] = Array(
             'title' => $intra->translate("Title")
-            , 'field' => "atrTitle"
+            , 'field' => "atrTitle{$intra->local}"
             , 'type' => "text"
-            , 'width' => "15%"
+            , 'width' => "100%"
             , 'mandatory' => true
     );
-    $gridATR->Columns[] = Array(
-            'title' => $intra->translate("Title (Loc)")
-            , 'field' => "atrTitleLocal"
-            , 'type' => "text"
-            , 'width' => "15%"
-    );
+
     $gridATR->Columns[] = Array(
         'title' => $intra->translate("Short Title")
-        , 'field' => "atrShortTitle"
+        , 'field' => "atrShortTitle{$intra->local}"
         , 'type' => "text"
+
     );
-    $gridATR->Columns[] = Array(
-        'title' => $intra->translate("Short Title (Loc)")
-        , 'field' => "atrShortTitleLocal"
-        , 'type' => "text"
-    );
+    
 
 }
 
@@ -160,12 +150,13 @@ foreach ($intra->arrAttributeTypes as $type => $dataType) {
 $gridATR->Columns[] = Array(
         'title' => $intra->translate("Type")
         , 'field' => "atrType"
-        , 'type' => "combobox"
+        , 'type' => ($flagEiseIntra ? "combobox" : 'text')
         , 'arrValues' => $arrAvailableTypes
         , 'defaultText' => '-'
         , 'default' => "text"
-        , "width" => "40px"
+        , "width" => "55px"
 );
+if($oSQL->d("SHOW TABLES LIKE 'stbl_uom'"))
 $gridATR->Columns[] = Array(
         'title' => $intra->translate("UOM")
         , 'field' => "atrUOMTypeID"
@@ -175,6 +166,7 @@ $gridATR->Columns[] = Array(
             FROM stbl_uom
             WHERE uomType=''
             ORDER BY uomOrder"
+        , 'width' => '25px'
 );
 
 if ($easyAdmin) {
@@ -182,31 +174,41 @@ if ($easyAdmin) {
         'title' => $intra->translate("Def")
         , 'field' => "atrDefault"
         , 'type' => "text"
+        , 'width' => '60px'
     );
+    /*
     $gridATR->Columns[] = Array(
             'title' => $intra->translate("IfNull")
             , 'field' => "atrTextIfNull"
             , 'type' => "text"
+            , 'width' => '60px'
     );
     $gridATR->Columns[] = Array(
             'title' => $intra->translate("Classes")
             , 'field' => "atrClasses"
             , 'type' => "text"
+            , 'width' => '40px'
     );
+    */
     $gridATR->Columns[] = Array(
             'title' => $intra->translate("Prg")
             , 'field' => "atrProgrammerReserved"
             , 'type' => "text"
+            , 'width' => ($flagEiseIntra ? '25px' : '80px')
     );
+    /*
     $gridATR->Columns[] = Array(
             'title' => $intra->translate("CheckMask")
             , 'field' => "atrCheckMask"
             , 'type' => "text"
+            , 'width' => '40px'
     );
+    */
     $gridATR->Columns[] = Array(
             'title' => $intra->translate("Data Source")
             , 'field' => "atrDataSource"
             , 'type' => "text"
+            , 'width' => '80px'
     );
 }
 
@@ -226,10 +228,10 @@ $gridATR->Columns[] = Array(
 $grdMX = new eiseGrid($oSQL
 					, "act"
                     , Array(
-                            'arrPermissions' => Array('FlagWrite'=>true)
+                            'arrPermissions' => Array('FlagWrite'=>$flagEiseIntra)
                             , 'strTable' => 'stbl_action'
                             , 'showControlBar' => true
-                            , 'controlBarButtons' => 'add|moveup|movedown'
+                            , 'controlBarButtons' => 'add|moveup|movedown|delete'
                             )
                     );
 /*
@@ -266,9 +268,16 @@ $grdMX->Columns[] = Array(
 );
 
 $grdMX->Columns[] = Array(
+   'title' => 'ID'
+   , 'field' => "actID_"
+   , 'type' => "number"
+   , 'width' => '30px'
+);
+
+$grdMX->Columns[] = Array(
    'title'=>$intra->translate("Title")
    , 'field' => "actTitle"
-   , 'href' => "action_form.php?dbName=$dbName&actID=[actID]"
+   , 'href' => ($flagEiseIntra ? "action_form.php?dbName=$dbName&actID=[actID]" : null)
    , 'type' => "text"
    , 'mandatory' => true
    , 'width' => "50%"
@@ -317,18 +326,21 @@ $grdMX->Columns[] = Array(
    , 'type'=>"text"
    , 'width'=>"30"
 );
-$sqlRol = "SELECT * FROM stbl_role";
-$rsRol = $oSQL->do_query($sqlRol);
-while ($rwRol = $oSQL->fetch_array($rsRol)){
-   $fld = "rlaID_".$rwRol["rolID"];
-   $grdMX->Columns[] = Array(
-         'title'=>$rwRol["rolID"]
-         , 'field'=>$fld
-         , 'type'=>"checkbox"
-      );
-   $tbl = "RLA_".$rwRol["rolID"];
-   $roleFields .= ", (CASE WHEN $tbl.rlaID IS NULL THEN 0 ELSE 1 END) as ".$fld;
-   $roleJoins .=" LEFT OUTER JOIN stbl_role_action $tbl ON $tbl.rlaActionID=actID AND $tbl.rlaRoleID='".$rwRol["rolID"]."'";
+
+if($oSQL->d("SHOW TABLES LIKE 'stbl_role_action'")){
+    $sqlRol = "SELECT * FROM stbl_role";
+    $rsRol = $oSQL->do_query($sqlRol);
+    while ($rwRol = $oSQL->fetch_array($rsRol)){
+       $fld = "rlaID_".$rwRol["rolID"];
+       $grdMX->Columns[] = Array(
+             'title'=>$rwRol["rolID"]
+             , 'field'=>$fld
+             , 'type'=>"checkbox"
+          );
+       $tbl = "RLA_".$rwRol["rolID"];
+       $roleFields .= ", (CASE WHEN $tbl.rlaID IS NULL THEN 0 ELSE 1 END) as ".$fld;
+       $roleJoins .=" LEFT OUTER JOIN stbl_role_action $tbl ON $tbl.rlaActionID=actID AND $tbl.rlaRoleID='".$rwRol["rolID"]."'";
+    }
 }
 
 $grdMX->Columns[] = Array(
@@ -346,16 +358,15 @@ $grdMX->Columns[] = Array(
 );
 */
 $grdMX->Columns[] = Array(
-   'title'=>$intra->translate("Cmnt?")
+   'title'=>$intra->translate("Cmnt")
    , 'field'=>"actFlagComment"
    , 'type'=>"checkbox"
-   , 'width'=>"16"
+   , 'width'=>"30px"
 );
 $grdMX->Columns[] = Array(
    'title'=>"X"
    , 'field'=>"actFlagDeleted"
    , 'type'=>"checkbox"
-   , 'width'=>"16"
 );
 
 
@@ -366,6 +377,8 @@ switch ($DataAction){
         $sql = Array();
         
         $oSQL->q("START TRANSACTION");
+
+        $oSQL->startProfiling();
 
         $gridSTA->Update();
         $arrSTAToDelete = explode("|", $_POST["inp_sta_deleted"]);
@@ -389,7 +402,7 @@ switch ($DataAction){
         $ent = new eiseEntity($oSQL, $intra, $entID);
 
         $atrTableName = $ent->conf['entTable'];
-        $arrTableInfo = $intra->getTableInfo($oSQL->dbName, $atrTableName);
+        $arrTableInfo = $intra->getTableInfo($intra->getDBName(), $atrTableName);
 
         $arrSQLAlter = array();
         $lastAddedColumn = '';
@@ -400,7 +413,10 @@ switch ($DataAction){
 
             if ($_POST['atrID_id'][$ix]=='') { // if new one
 
-                $atrID = $entID.preg_replace('/([^a-z0-9]+)/i', '', $_POST['atrTitle'][$ix]);
+                $atrID = (!$easyAdmin 
+                    ? $entID.preg_replace('/([^a-z0-9]+)/i', '', $_POST['atrTitle'][$ix]) 
+                    : $_POST['atrID'][$ix] 
+                    );
                 $_POST['atrID'][$ix] = $atrID;
                 $sqlA = $ent->getEntityTableALTER($atrID, $_POST['atrType'][$ix], 'add');
                 if ($sqlA){
@@ -549,18 +565,21 @@ switch ($DataAction){
         echo "</pre>";
         die();
 //        */
-        
+
         for ($i=0; $i<count($sql); $i++)
              $rs = $oSQL->do_query($sql[$i]);
+
+       // $intra->debug($_POST);
+       // $oSQL->showProfileInfo();die();
             
         $oSQL->q("COMMIT");
 
-       SetCookie("UserMessage", $entID."  updated");
-       header("Location: ".$_SERVER["PHP_SELF"]."?dbName=$dbName&entID=".urlencode($entID));
-    
+        SetCookie("UserMessage", $entID."  updated");
+        header("Location: ".$_SERVER["PHP_SELF"]."?dbName=$dbName&entID=".urlencode($entID));
         
         die();
         break;
+
     default:
         break;
 }
@@ -570,23 +589,19 @@ if ($easyAdmin){
 	   , "action" => "database_form.php?dbName=$dbName"
 	   , "class"=> "ss_arrow_left"
 	);
-    $arrActions[]= Array ("title" => "Entity-related tables"
-	   , "action" => "codegen_form.php?entID=$entID&dbName=$dbName&tblName=".$rwEnt["entTable"]."&toGen=EntTables"
-	   , "class"=> "ss_table_multiple"
-	);
+    if($flagEiseIntra)
+        $arrActions[]= Array ("title" => "Entity-related tables"
+    	   , "action" => "codegen_form.php?entID=$entID&dbName=$dbName&tblName=".$rwEnt["entTable"]."&toGen=EntTables"
+    	   , "class"=> "ss_table_multiple"
+    	);
     $arrActions[]= Array ("title" => "Entity Report"
 	   , "action" => "codegen_form.php?entID=$entID&dbName=$dbName&tblName=".$rwEnt["entTable"]."&toGen=EntityReport"
 	   , "class"=> "ss_page_white_word"
 	);
-	/*
-    $arrActions[]= Array ("title" => "Check Status Log"
-	   , "action" => "codegen_form.php?entID=$entID&dbName=$dbName&tblName=".$rwEnt["entTable"]."&toGen=StatusLogCheck"
-	   , "class"=> "script"
-	);
-	*/
+	
 }
 
-include eiseIntraAbsolutePath."inc-frame_top.php";
+include eiseIntraAbsolutePath."inc_top.php";
 ?>
 
 <style>
@@ -596,43 +611,93 @@ include eiseIntraAbsolutePath."inc-frame_top.php";
     padding-top: 3px;
 }
 
-.eg_controlbar {
-    margin: 0;
+#flds-sta, #flds-atr {
+    display: inline-block;
+    vertical-align: top;
+}
+#flds-sta {
+    width: 29%;
+}
+#flds-atr {
+    width: 69%;
+}
+
+#atr .eg-controlbar {
+    margin-left: 135px;
+}
+
+#act .eg-controlbar {
+    margin-left: 135px;
+}
+
+#atr th.atr-atrTitle {
+    text-align: right;
+    padding-right: 5px;
+}
+#sta th.sta-staTitle {
+    text-align: right;
+    padding-right: 5px;
+}
+
+#div-button {
+    text-align: center;
 }
 </style>
 
 <script>
 $(document).ready(function(){  
-	easyGridInitialize();
+    $('.eiseGrid').eiseGrid();
+
+
+    var delta = $(document).height()-$(window).height()
+        , paneHeight = $('body').eiseIntra('getPaneHeight')
+        , proportion = [62, 38]
+        , btnH = $('#div-button').outerHeight(true)
+        , h1 = (paneHeight-btnH-40)*(proportion[0]/100)
+        , h2 = (paneHeight-btnH-40)*(proportion[1]/100);
+    if(delta > 0 ){
+        $('#sta').eiseGrid('height', h1)
+        $('#atr').eiseGrid('height', h1)
+        $('#act').eiseGrid('height', h2)
+    }
+
+    $('#frm-entity').submit(function(){
+        var retval = $('.eiseGrid').eiseGrid('validate');
+        /*
+        $('input[name="atrID[]"]').each(function(){
+            console.log($(this).val());
+        })
+        */
+        return retval;
+    })
 });
 </script>
 
-<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" class="eiseIntraForm">
+<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" class="eiseIntraForm" id="frm-entity">
 <input type="hidden" name="DataAction" value="update">
 <input type="hidden" name="dbName" value="<?php  echo $dbName ; ?>">
 <input type="hidden" name="entID" value="<?php  echo $entID ; ?>">
 
-<fieldset>
-<legend><?php  echo $rwEnt["entTitle{$intra->local}"] ; ?></legend>
-<table width="100%" style="display:inline;">
-
-<tr>
-<td width="30%"><div class="field_title_top"><?php echo $intra->translate("Statuses") ?>:</div>
+<fieldset id="flds-sta">
+<legend><?php  echo $rwEnt["entTitle{$intra->local}"].' ('.$rwEnt['entID'].')' ; ?></legend>
 <?php 
-$sqlSta = "SELECT * FROM stbl_status WHERE staEntityID='".$entID."' ORDER BY staID";
-$rsSta = $oSQL->do_query($sqlSta);
-while($rwSta = $oSQL->fetch_array($rsSta)){
-   $rwSta['staID_id'] = $rwSta['staID']."##".$entID;
-   $gridSTA->Rows[] = $rwSta;
+
+if($oSQL->d("SHOW TABLES LIKE 'stbl_status'")){
+    $sqlSta = "SELECT * FROM stbl_status WHERE staEntityID='".$entID."' ORDER BY staID";
+    $rsSta = $oSQL->do_query($sqlSta);
+    while($rwSta = $oSQL->fetch_array($rsSta)){
+       $rwSta['staID_id'] = $rwSta['staID']."##".$entID;
+       $gridSTA->Rows[] = $rwSta;
+    }
+    $gridSTA->Execute();
 }
-$gridSTA->Execute();
+
  ?>
+</fieldset>
 
-</td>
+<fieldset id="flds-atr">
 
-
-<td width="70%">
-<div class="field_title_top"><?php echo $intra->translate("Attributes") ?>:</div>
+<legend><?php echo $intra->translate("Attributes") ?>:</legend>
 <?php 
 $sqlATR = "SELECT * FROM stbl_attribute WHERE atrEntityID='$entID' ORDER BY atrOrder";
 $rsATR = $oSQL->do_query($sqlATR);
@@ -644,54 +709,53 @@ while ($rwATR = $oSQL->fetch_array($rsATR)){
 
 $gridATR->Execute();
  ?>
-</td>
 
-</tr>
+</fieldset>
 
-<tr>
-<td colspan="2"><div class="field_title_top"><?php echo $intra->translate('Action matrix') ?>:</div>
+<fieldset id="flds-act"><legend><?php echo $intra->translate('Action matrix') ?>:</legend>
 <?php 
 $sqlAct = "SELECT actID
     , actTitle{$strLocal} as actTitle
     , actTitlePast{$strLocal} as actTitlePast
-    , actPriority
     , actFlagComment
     , actFlagDeleted
-	, actFlagAutocomplete
-  , actFlagHasEstimates
-	, actFlagDepartureEqArrival
     ".$roleFields."
- , (SELECT GROUP_CONCAT(DISTINCT staTitle SEPARATOR ', ') FROM stbl_action_status INNER JOIN stbl_status ON staEntityID='$entID' AND staID=atsOldStatusID WHERE atsActionID=actID) as actOldStatusIDs
- , (SELECT GROUP_CONCAT(DISTINCT staTitle SEPARATOR ', ') FROM stbl_action_status INNER JOIN stbl_status ON staEntityID='$entID' AND staID=atsNewStatusID WHERE atsActionID=actID) as actNewStatusIDs
- , (SELECT MIN(staID) FROM stbl_action_status INNER JOIN stbl_status ON staEntityID='$entID' AND staID=atsOldStatusID WHERE atsActionID=actID) as minStaID
+".(
+$flagEiseIntra
+? "
+  , actPriority
+  , actFlagAutocomplete
+  , actFlagHasEstimates
+    , actFlagDepartureEqArrival
+  , (SELECT GROUP_CONCAT(DISTINCT staTitle SEPARATOR ', ') FROM stbl_action_status INNER JOIN stbl_status ON staEntityID='$entID' AND staID=atsOldStatusID WHERE atsActionID=actID) as actOldStatusIDs
+  , (SELECT GROUP_CONCAT(DISTINCT staTitle SEPARATOR ', ') FROM stbl_action_status INNER JOIN stbl_status ON staEntityID='$entID' AND staID=atsNewStatusID WHERE atsActionID=actID) as actNewStatusIDs
+  , (SELECT MIN(staID) FROM stbl_action_status INNER JOIN stbl_status ON staEntityID='$entID' AND staID=atsOldStatusID WHERE atsActionID=actID) as minStaID
+  "
+: "
+  , (SELECT staTitle FROM stbl_status WHERE staEntityID='$entID' AND staID=actOldStatusID) as actOldStatusIDs
+  , (SELECT staTitle FROM stbl_status WHERE staEntityID='$entID' AND staID=actNewStatusID) as actNewStatusIDs
+  , actOldStatusID as minStaID
+  "
+  )."
  FROM stbl_action ".$roleJoins." 
- WHERE actEntityID='$entID' ORDER BY minStaID, actPriority";
+ WHERE actEntityID='$entID' ORDER BY minStaID".($flagEiseIntra ? ', actPriority' : '');
 $rsAct = $oSQL->do_query($sqlAct);
 while ($rwAct = $oSQL->fetch_array($rsAct)){
-   $grdMX->Rows[] = $rwAct;
+    $rwAct['actID_'] = $rwAct['actID'];
+    $grdMX->Rows[] = $rwAct;
 }
-
 $grdMX->Execute();
  ?>
-</td>
-</tr>
-
-<tr>
-<td colspan="2" align="center">
-<input type="submit" class="eiseIntraSubmit" value="<?php echo $intra->translate('Save') ?>" onclick="return checkForm();" style="margin:20px;">
-</td>
-<tr>
-</table>
 </fieldset>
+
+<?php if ($flagEiseIntra): ?>
+<div id="div-button">
+<input type="submit" class="eiseIntraSubmit" value="<?php echo $intra->translate('Save') ?>" style="margin:20px;">
+</div>
+<?php endif ?>
 
 </form>
 
-<script>
-function checkForm(){
-   return true;
-}
-</script>
-
 <?php
-include eiseIntraAbsolutePath."inc-frame_bottom.php";
+include eiseIntraAbsolutePath."inc_bottom.php";
  ?>

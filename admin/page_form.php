@@ -135,7 +135,8 @@ if (isset($DataAction)){
 			 , pagTitleLocal
              , pagFlagShowInMenu
 			 , pagFlagSystem
-			 , pagFlagHierarchy
+       , pagFlagHierarchy
+			 , pagFlagShowMyItems
 			 , pagTable
 			 , pagEntityID
              , pagIdxLeft
@@ -151,7 +152,8 @@ if (isset($DataAction)){
 			 , ".$oSQL->escape_string($_POST["pagTitleLocal"])."
              , ".($_POST["pagFlagShowInMenu"]=="on" ? "1" : "0")."
 			 , ".($_POST["pagFlagSystem"]=="on" ? "1" : "0")."
-			 , ".($_POST["pagFlagHierarchy"]=="on" ? "1" : "0")."
+       , ".($_POST["pagFlagHierarchy"]=="on" ? "1" : "0")."
+			 , ".($_POST["pagFlagShowMyItems"]=="on" ? "1" : "0")."
 			 , ".$oSQL->escape_string($_POST["pagTable"])."
              , ".$oSQL->escape_string($_POST["pagEntityID"])."
              , @pagIdxLeft
@@ -226,7 +228,8 @@ if (isset($DataAction)){
 			
             $sqlUpdateNode .= ", pagFlagShowInMenu=".($_POST["pagFlagShowInMenu"]=="on" ? "1" : "0")."
 				, pagFlagSystem = ".($_POST["pagFlagSystem"]=="on" ? "1" : "0")."
-				, pagFlagHierarchy = ".($_POST["pagFlagHierarchy"]=="on" ? "1" : "0")."
+        , pagFlagHierarchy = ".($_POST["pagFlagHierarchy"]=="on" ? "1" : "0")."
+				, pagFlagShowMyItems = ".($_POST["pagFlagShowMyItems"]=="on" ? "1" : "0")."
                 , pagTable = ".$oSQL->escape_string($_POST["pagTable"])."
                 , pagEntityID = ".$oSQL->escape_string($_POST["pagEntityID"])."
                , pagEditBy='$usrID'
@@ -366,69 +369,58 @@ $arrActions[]= Array ("title" => "New sibling"
 }
 
 
-/*
-if ($arrUsrData["FlagUpdate"]){
-	$arrActions[]= Array ("title" => "Save"
-	   , "action" => "javascript:document.getElementById('pageForm').submit()"
-	   , "class" => "save"
-	);
-	if ($rwPAG["pagID"]){
-    	$arrActions[]= Array ("title" => "Delete"
-    	   , "action" => "javascript:deletePage();"
-    	   , "class" => "delete"
-    	);
-	}
-}
-$arrActions[]= Array ("title" => "Close"
-	   , "action" => "page_list.php?dbName=$dbName"
-	   , "class" => "exit"
-);
-*/
-
 if (!isset($_GET["pagID"]) && isset($_GET["pagParentID"]))
    $rwPAG["pagParentID"] = $_GET["pagParentID"];
 
-include eiseIntraAbsolutePath."inc-frame_top.php";
+include eiseIntraAbsolutePath."inc_top.php";
 ?>
+
+<style type="text/css">
+#flds-general, #flds-privileges {
+    display: inline-block;
+    vertical-align: top;
+}
+
+#flds-general {
+    width: 37%;
+}
+
+#flds-privileges {
+  width: 61%;
+}
+
+#div-buttons {
+  text-align: center;
+}
+</style>
 
 <script>
 $(document).ready(function(){  
+    var $frm = $('form#pageForm');
 	$('.eiseGrid').eiseGrid();
+    $('#btn-del').click(function(){
+        if(deletePage()){
+            $frm.find('input,textarea,select').filter('[required]:visible').each(function(){
+                $(this).removeAttr('required');
+            });
+            $frm.submit();
+        }
+    })
 });
 </script>
 
 
-<h1>Page properties</h1>
-
-<div class="panel">
-
-<form id="pageForm" name="pageForm" method="POST" action="<?php echo $_SERVER["PHP_SELF"] ; ?>">
-<input type="hidden" name="DataAction" value="update">
-<input type="hidden" name="dbName" value="<?php echo $dbName; ?>">
+<form id="pageForm" name="pageForm" class="eiseIntraForm" method="POST" action="<?php echo $_SERVER["PHP_SELF"] ; ?>">
+<input type="hidden" name="DataAction" id="DataAction" value="update">
 <input type="hidden" name="pagID" value="<?php echo $rwPAG["pagID"] ; ?>">
 <input type="hidden" name="pagOldParentID" value="<?php echo $rwPAG["pagParentID"] ; ?>">
-<input type="hidden" name="pagIdxLeft" value="<?php echo $rwPAG["pagIdxLeft"] ; ?>">
-<input type="hidden" name="pagIdxRight" value="<?php echo $rwPAG["pagIdxRight"] ; ?>">
 
-<table>
+<fieldset id="flds-general"><legend><?php echo $intra->translate('Page').': '.$rwPAG["pagTitle{$intra->local}"]; ?></legend>
+<?php 
+echo $intra->field('Title', 'pagTitle', $rwPAG["pagTitle"]);
 
-<tr><td>
+echo $intra->field('Наименование', 'pagTitleLocal', $rwPAG["pagTitleLocal"]);
 
-<fieldset class="formlist"><legend>General</legend>
-<table>
-<tr>
-<td class="field_title">Title</td>
-<td><?php echo $intra->showTextBox("pagTitle", $rwPAG["pagTitle"]); ?></td>
-</tr>
-
-<tr>
-<td class="field_title">Наименование</td>
-<td><?php echo $intra->showTextBox("pagTitleLocal", $rwPAG["pagTitleLocal"]); ?></td>
-</tr>
-
-<tr>
-<td class="field_title">Parent</td>
-<td><?php
 $sqlPages = "SELECT PG1.pagID as optValue
         , PG1.pagTitle as optText
         , COUNT(PG2.pagID) as optLevelInside
@@ -440,63 +432,38 @@ PG1.pagID
 , PG1.pagIdxLeft
 ORDER BY PG1.pagIdxLeft";
     $rsPages = $oSQL->q($sqlPages);
-    while($rw = $oSQL->f($rsPages)){
-        $arrOptions[$rw["optValue"]] = $rw["optText"];
-        $arrIndent[$rw["optValue"]] = $rw["optLevelInside"];
-    }
-    echo $intra->showCombo("pagParentID", $rwPAG["pagParentID"]
-            , $arrOptions
-            , Array(
-            "indent" => $arrIndent
-            , "strAttrib" => " style='width:286px;'"
-        )
-    ); 
-    ?></td>
-</tr>
+while($rw = $oSQL->f($rsPages)){
+    $arrOptions[$rw["optValue"]] = $rw["optText"];
+    $arrIndent[$rw["optValue"]] = $rw["optLevelInside"];
+}
 
-<tr>
-<td class="field_title">File name</td>
-<td><?php echo $intra->showTextBox("pagFile", $rwPAG["pagFile"], " style='width:280px;'"); ?></td>
-</tr>
+echo $intra->field($intra->translate('Parent'), 'pagParentID', $rwPAG["pagParentID"], array('type'=>'select', 'source'=>$arrOptions, 'indent'=>$arrIndent));
 
-<tr>
-<td class="field_title">Show in menu</td>
-<td><?php echo $intra->showCheckBox("pagFlagShowInMenu", $rwPAG["pagFlagShowInMenu"]==1, " style='width:auto;'"); ?></td>
-</tr>
+echo $intra->field($intra->translate('PHP script'), 'pagFile', $rwPAG["pagFile"]);
 
-<tr>
-<td class="field_title">Entity</td>
-<td><?php echo $intra->showTextBox("pagEntityID", $rwPAG["pagEntityID"], " maxlength=3 style='width:auto;'"); ?></td>
-</tr>
+echo $intra->field($intra->translate('Show in menu'), 'pagFlagShowInMenu', $rwPAG["pagFlagShowInMenu"], array('type'=>'boolean'));
 
-</table>
+echo $intra->field($intra->translate('Entity'), 'pagEntityID', $rwPAG["pagEntityID"], array('type'=>'text'));
 
-</fieldset>
+echo $intra->field($intra->translate('Show "My Items"'), 'pagFlagShowMyItems', $rwPAG["pagFlagShowMyItems"], array('type'=>'boolean'));
 
-</td>
-<td>
-<fieldset><legend>Privileges</legend>
-<div><?php $grid->Execute(); ?></div></fieldset>
-</td>
-</tr>
-
-<tr>
-<td colspan="2" style="text-align:center;">
-<input type="submit" value="Save" onclick="return CheckForm();">
+ ?>
+<div id="div-buttons">
+<input type="submit" value="Save" class="eiseIntraSubmit">
 <?php 
 if ($pagID) {
  ?>
-<input type="button" value="Delete" style="width:auto;" onclick='if (confirm("Are you ready you want to delete this page?")){
-      location.href="<?php echo $_SERVER["PHP_SELF"]."?dbName=$dbName&pagID=$pagID&DataAction=delete" ; ?>";
-  }'>
+<input type="submit" value="Delete" id="btn-del">
 <?php 
 }
  ?>
-<input type="button" value="Back to list" style="width:auto;" onclick='location.href="page_list.php?dbName=<?php  echo $dbName ; ?>"'>
-</td>
-</tr>
+</div>
+</fieldset>
 
-</table>
+<fieldset id="flds-privileges"><legend>Privileges</legend>
+<div><?php $grid->Execute(); ?></div></fieldset>
+
+
 </form>
 
 
@@ -508,17 +475,14 @@ function CheckForm(){
    return true;
 }
 
-function SelectFileName(){
-  window.open("popup_filemanager.php?dbName=<?php echo $dbName ; ?>","_blank","height=400,width=400,menubar=0,scrollbars=yes,status=yes,toolbar=0,titlebar=0");
-}
-
 function deletePage(){
   if (confirm("Are you ready you want to delete this page?")){
-      location.href="<?php echo $_SERVER["PHP_SELF"]."?dbName=$dbName&pagID=$pagID&DataAction=delete" ; ?>";
+      $('#DataAction').val('delete');
+      return true;
   }
 }
 </script>
 
 <?php
-include eiseIntraAbsolutePath."inc-frame_bottom.php";
+include eiseIntraAbsolutePath."inc_bottom.php";
 ?>

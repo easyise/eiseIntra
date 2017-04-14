@@ -66,8 +66,8 @@ class eiseSQL extends mysqli{
         
     }
     
-    // Connect to the database
-    function connect(){
+    // DUMMY connect to the database
+    function connect($host = NULL, $user = NULL, $password = NULL, $database = NULL, $port = NULL, $socket = NULL){
         return true;
     }
     
@@ -294,6 +294,156 @@ class eiseSQL extends mysqli{
             , 'time'=>$this->arrMicroseconds[$ii]);
       }
       return $arrRet;
+    }
+
+    function getTableInfo($tblName, $dbName=null){
+        
+        $oSQL = $this;
+        $dbName = ($dbName ? $dbName : $this->dbname);
+        
+        $arrPK = Array();
+
+        $rwTableStatus=$oSQL->f($oSQL->q("SHOW TABLE STATUS FROM $dbName LIKE '".$tblName."'"));
+        if($rwTableStatus['Comment']=='VIEW' && $rwTableStatus['Engine']==null){
+            $tableType = 'view';
+        } else {
+            $tableType = 'table';
+        }
+
+        
+        $sqlCols = "SHOW FULL COLUMNS FROM `".$tblName."`";
+        $rsCols  = $oSQL->do_query($sqlCols);
+        $ii = 0;
+        while ($rwCol = $oSQL->fetch_array($rsCols)){
+            
+            if ($ii==0)
+                $firstCol = $rwCol["Field"];
+            
+            $strPrefix = (isset($strPrefix) && $strPrefix==substr($rwCol["Field"], 0, 3) 
+                ? substr($rwCol["Field"], 0, 3)
+                : (!isset($strPrefix) ? substr($rwCol["Field"], 0, 3) : "")
+                );
+            
+            if (preg_match("/int/i", $rwCol["Type"]))
+                $rwCol["DataType"] = "integer";
+            
+            if (preg_match("/float/i", $rwCol["Type"])
+               || preg_match("/double/i", $rwCol["Type"])
+               || preg_match("/decimal/i", $rwCol["Type"]))
+                $rwCol["DataType"] = "real";
+            
+            if (preg_match("/tinyint/i", $rwCol["Type"])
+                || preg_match("/bit/i", $rwCol["Type"]))
+                $rwCol["DataType"] = "boolean";
+            
+            if (preg_match("/char/i", $rwCol["Type"])
+               || preg_match("/text/i", $rwCol["Type"]))
+                $rwCol["DataType"] = "text";
+            
+            if (preg_match("/binary/i", $rwCol["Type"])
+               || preg_match("/blob/i", $rwCol["Type"]))
+                $rwCol["DataType"] = "binary";
+                
+            if (preg_match("/date/i", $rwCol["Type"])
+               || preg_match("/time/i", $rwCol["Type"]))
+                $rwCol["DataType"] = $rwCol["Type"];
+                
+            if (preg_match("/ID$/", $rwCol["Field"]) && $rwCol["Key"] != "PRI"){
+                $rwCol["FKDataType"] = $rwCol["DataType"];
+                $rwCol["DataType"] = "FK";
+            }
+            
+            if ($rwCol["Key"] == "PRI" 
+                    || preg_match("/^$strPrefix(GU){0,1}ID$/i",$rwCol["Field"])
+                ){
+                $rwCol["PKDataType"] = $rwCol["DataType"];
+                $rwCol["DataType"] = "PK";
+            }
+            
+            if ($rwCol["Field"]==$strPrefix."InsertBy" 
+              || $rwCol["Field"]==$strPrefix."InsertDate" 
+              || $rwCol["Field"]==$strPrefix."EditBy" 
+              || $rwCol["Field"]==$strPrefix."EditDate" ) {
+                $rwCol["DataType"] = "activity_stamp"; 
+                $arrTable['hasActivityStamp'] = true;
+            }
+            $arrCols[$rwCol["Field"]] = $rwCol;
+            if ($rwCol["Key"] == "PRI"){
+                $arrPK[] = $rwCol["Field"];
+                if ($rwCol["Extra"]=="auto_increment")
+                    $pkType = "auto_increment";
+                else 
+                    if (preg_match("/GUID$/", $rwCol["Field"]) && preg_match("/^(varchar)|(char)/", $rwCol["Type"]))
+                        $pkType = "GUID";
+                    else 
+                        $pkType = "user_defined";
+            }
+            $ii++;
+        }
+        
+        if (count($arrPK)==0)
+            $arrPK[] = $arrCols[$firstCol]['Field'];
+        
+        $sqlKeys = "SHOW KEYS FROM `".$tblName."`";
+        $rsKeys  = $oSQL->do_query($sqlKeys);
+        while ($rwKey = $oSQL->fetch_array($rsKeys)){
+          $arrKeys[] = $rwKey;
+        }
+        
+        //foreign key constraints
+        $rwCreate = $oSQL->fetch_array($oSQL->do_query("SHOW CREATE TABLE `{$tblName}`"));
+        $strCreate = $rwCreate["Create Table"];
+        $arrCreate = explode("\n", $strCreate);$arrCreateLen = count($arrCreate);
+        for($i=0;$i<$arrCreateLen;$i++){
+            // CONSTRAINT `FK_vhcTypeID` FOREIGN KEY (`vhcTypeID`) REFERENCES `tbl_vehicle_type` (`vhtID`)
+            if (preg_match("/^CONSTRAINT `([^`]+)` FOREIGN KEY \(`([^`]+)`\) REFERENCES `([^`]+)` \(`([^`]+)`\)/", trim($arrCreate[$i]), $arrConstraint)){
+                foreach($arrCols as $idx=>$col){
+                    if ($col["Field"]==$arrConstraint[2]) { //if column equals to foreign key constraint
+                        $arrCols[$idx]["DataType"]="FK";
+                        $arrCols[$idx]["ref_table"] = $arrConstraint[3];
+                        $arrCols[$idx]["ref_column"] = $arrConstraint[4];
+                        break;
+                    }
+                }
+                /*
+                echo "<pre>";
+                print_r($arrConstraint);
+                echo "</pre>";
+                //*/
+            }
+        }
+        
+        $arrColsIX = Array();
+        foreach($arrCols as $ix => $col){ $arrColsIX[$col["Field"]] = $col["Field"]; }
+        
+        $strPKVars = $strPKCond = $strPKURI = '';
+        foreach($arrPK as $pk){
+            $strPKVars .= "\${$pk}  = (isset(\$_POST['{$pk}']) ? \$_POST['{$pk}'] : \$_GET['{$pk}'] );\r\n";
+            $strPKCond .= ($strPKCond!="" ? " AND " : "")."`{$pk}` = \".".(
+                    in_array($arrCols["DataType"], Array("integer", "boolean"))
+                    ? "(int)(\${$pk})"
+                    : "\$oSQL->e(\${$pk})"
+                ).".\"";
+            $strPKURI .= ($strPKURI!="" ? "&" : "")."{$pk}=\".urlencode(\${$pk}).\"";
+        }
+        
+        $arrTable['columns'] = $arrCols;
+        $arrTable['keys'] = $arrKeys;
+        $arrTable['PK'] = $arrPK;
+        $arrTable['PKtype'] = $pkType;
+        $arrTable['prefix'] = $strPrefix;
+        $arrTable['table'] = $tblName;
+        $arrTable['columns_index'] = $arrColsIX;
+        
+        $arrTable["PKVars"] = $strPKVars;
+        $arrTable["PKCond"] = $strPKCond;
+        $arrTable["PKURI"] = $strPKURI;
+
+        $arrTable['type'] = $tableType;
+
+        $arrTable['Comment'] = $rwTableStatus['Comment'];
+        
+        return $arrTable;
     }
 
 }

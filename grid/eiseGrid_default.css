@@ -1,0 +1,154 @@
+.eiseGrid {
+    
+    position: relative;
+    font-family: Tahoma;
+    box-sizing: border-box;
+    -moz-box-sizing:  border-box;
+    -webkit-box-sizing: border-box;
+}
+
+.eiseGrid table {
+    background: Window;
+	border-collapse: collapse;
+	font-size: 11px;
+	border: 1px solid ActiveBorder;
+    box-sizing: border-box;
+    -moz-box-sizing:  border-box;
+    -webkit-box-sizing: border-box;
+    width: 100%;
+}
+
+.eiseGrid th {
+    color: CaptionText;
+    background: ActiveCaption;
+    white-space: nowrap;
+    border: 1px solid ActiveBorder;
+    font-weight: normal; 
+    text-align: center;
+    padding: 5px 10px;
+}
+
+.eiseGrid td {
+    border: 1px solid ActiveBorder;
+    background: transparent;
+    vertical-align: top;
+}
+
+.eiseGrid tr.eg_selected {
+    background-color: ButtonFace;
+}
+
+.eiseGrid td input {
+    width: 100%;
+    border: 0;
+    margin: 0;
+    background: transparent;
+    font-size: inherit;
+    font-family: inherit;
+    text-align: inherit;
+}
+
+.eiseGrid .eg_template {
+    display: none;
+}
+
+.eg_del{
+	width: 16px;
+	max-width: 16px;
+}
+th.eg_del {
+    padding: 5px;
+}
+td.eg_del {
+    background: Window url(icon_delete.png) center no-repeat;
+    cursor: pointer;
+}
+
+td.eg_order {
+    text-align: center;
+}
+
+td.eg_date input, td.eg_datetime input{
+    box-sizing: content-box !important;
+    -moz-box-sizing: content-box !important;
+     -webkit-box-sizing: content-box !important;
+    background-position: right top;
+    background-repeat:no-repeat;  
+    background-image:url( icon_calendar.png );
+    padding-right: 18px;
+}
+
+td.eg_ajax_dropdown input{
+    background-position: right top;
+    background-repeat:no-repeat;  
+    background-image:url( icon_table_link.png );
+}
+
+td.eg_date input {
+     width: 60px !important;
+}
+
+td.eg_datetime input {
+     width: 90px !important;
+}
+
+td.eg_date div, td.eg_datetime div {
+    white-space: nowrap;
+}
+
+td.eg_numeric
+, td.eg_money
+, td.eg_double
+, td.eg_float
+, td.eg_integer
+, td.eg_int {
+    text-align: right;
+    padding-right: 5px;
+    white-space: nowrap !important;
+}
+
+td.eg_checkbox  {
+    text-align: center;
+}
+td.eg_checkbox input {
+    width: auto;
+}
+
+
+select.eg_floating_select {
+    display: none;
+    position: absolute;
+    z-index: 100;
+    font: inherit;
+}
+
+.eg_updated {
+    background-color: InfoBackground;
+}
+
+.eg_totals_caption {
+    text-align: right;
+}
+
+.eg_button {
+    width: 22px;
+    height: 22px;
+    border-left: 1px solid ThreeDHighlight;
+    border-top: 1px solid ThreeDHighlight;
+    border-right: 1px solid ThreeDShadow;
+    border-bottom: 1px solid ThreeDShadow;
+    border-radius: 2px;
+    background: ThreeDFace;
+}
+
+.eg_button_add {background: ThreeDFace url(icon_add.png) center no-repeat;}
+.eg_button_insert {background: ThreeDFace url(icon_row_insert.png) center no-repeat;}
+.eg_button_moveup {background: ThreeDFace url(icon_arrow_up.png) center no-repeat;}
+.eg_button_movedown {background: ThreeDFace url(icon_arrow_down.png) center no-repeat;}
+.eg_button_save {background: ThreeDFace url(icon_save.png) center no-repeat;}
+
+.eg_no_rows {
+    width: 100%;
+    text-align: center;
+    padding: 20px;
+}

@@ -52,7 +52,7 @@ function __construct( $oSQL, $intra, $entID, $entItemID, $conf = array() ){
             $this->staID = null;
         }
     } else 
-        throw new Exception ("Entity ID not set");
+        throw new Exception ("Entity item ID not set");
     
     
     
@@ -91,7 +91,7 @@ function getEntityItemData(){
 
     $rsEnt = $oSQL->q($sqlEnt);
     if ($oSQL->n($rsEnt)==0)
-        throw new Exception("Entity Item not found".": ".$entID."/".$entItemID);
+        throw new Exception("Entity Item not found".": ".$entID."/".$entItemID, 404);
     
     $rwItem = $oSQL->f($rsEnt);
 
@@ -282,10 +282,20 @@ public function update($arrNewData, $flagUpdateMultiple = false, $flagFullEdit =
 }
 
 // executes action over entity item
-public function doAction($arrNewData = null){
+public function doAction($arrNewData = null, $aclOldStatusID = null, $aclNewStatusID = null){
     
     if ($arrNewData!==null){
         $this->refresh(array('Master', 'ACL'));
+        if(!is_array($arrNewData) && is_numeric($arrNewData)){
+            $actID = $arrNewData;
+            $arrNewData = array("actID"=>$actID // update if aclGUID specified
+                , "aclOldStatusID"=>($aclOldStatusID!==null ? $aclOldStatusID : $this->staID)
+                , "aclNewStatusID"=>is_array($this->conf['ACT'][$actID]['actNewStatusID']) 
+                    ?  ($aclNewStatusID!==null ? $aclNewStatusID : $this->conf['ACT'][$actID]['actNewStatusID'][0])
+                    : $this->conf['ACT'][$actID]['actNewStatusID']
+            );
+        }
+
         $this->arrNewData = $arrNewData;
     }
     
@@ -533,8 +543,8 @@ public function findAction($aclOldStatusID, $aclNewStatusID, $aclActionID, $aclA
 function finishAction(){
     $usrID = $this->intra->usrID;
     $oSQL = $this->oSQL;
-       
-    if ($this->arrAction["aclActionPhase"]=="0"){
+    
+    if (!$this->arrAction["aclActionPhase"]){
         $this->onActionStart($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
     }
     
@@ -550,13 +560,20 @@ function finishAction(){
     $oSQL->do_query($sqlUpdACL);
     
     if ($this->arrAction["actID"]!="2") {
-        $sqlUpdEntTable = "UPDATE {$this->conf["entTable"]} SET
-            {$this->entID}ActionLogID='{$this->arrAction["aclGUID"]}'
+        $sqlUpdEntTable = "UPDATE {$this->conf["entTable"]} LEFT OUTER JOIN stbl_action_log ON aclGUID='{$this->arrAction['aclGUID']}' SET
+            {$this->entID}ActionLogID=aclGUID
             , {$this->entID}EditBy='{$this->intra->usrID}', {$this->entID}EditDate=NOW()";
 
         // update tracked attributes
         foreach( (array)$this->arrAction["aatFlagToTrack"] as $atrID=>$xx ){
             $sqlUpdEntTable .= "\r\n, {$atrID} = (SELECT l{$atrID} FROM {$this->conf["entTable"]}_log WHERE l{$this->entID}GUID='{$this->arrAction["aclGUID"]}')";
+        }
+
+        // update timestamps
+        foreach ( (array)$this->arrAction["aatFlagTimestamp"] as $timestamp => $atrID ) {
+            if(!array_key_exists($atrID, (array)$this->conf["ATR"]))
+                continue;
+            $sqlUpdEntTable .= "\r\n, {$atrID} = acl{$timestamp}";
         }
 
         // update userstamps
@@ -659,6 +676,8 @@ function finishAction(){
         $this->onStatusArrival($this->arrAction['aclNewStatusID']);
 
     }
+
+    $this->staID = $this->arrAction['aclNewStatusID'];
     
 }
 
@@ -765,7 +784,7 @@ public function attachFile($fileNameOriginal, $fileContents, $fileMIME="Applicat
         
     //saving the file
     if(!file_exists($arrSetup["stpFilesPath"].Date("Y/m")))
-        mkdir($arrSetup["stpFilesPath"].Date("Y/m"), "0777", true);
+        mkdir($arrSetup["stpFilesPath"].Date("Y/m"), 0777, true);
     //echo $arrSetup["stpFilesPath"].$filename;
     $fh = fopen($arrSetup["stpFilesPath"].$filename, "w");
     fwrite($fh, $fileContents, strlen($fileContents));
@@ -1035,8 +1054,11 @@ function checkMandatoryFields(){
             $oldValue = $this->item[$atrID];
             
             if ($this->arrAction["aclGUID"]==""){
+                $flagIsMissingOnForm = (int)($this->arrAction['actFlagAutocomplete'] && !isset($this->arrNewData[$atrID]));
                 $sqlCheckMandatory = "SELECT 
-                    CASE WHEN IFNULL({$atrID}, '')='' THEN 0 ELSE 1 END as mandatoryOK 
+                    CASE WHEN IFNULL({$atrID}, '')='' 
+                    AND NOT ".(int)$flagIsMissingOnForm." 
+                    THEN 0 ELSE 1 END as mandatoryOK 
                     FROM {$entTable} WHERE {$entID}ID='{$entItemID}'";
                 $sqlCheckChanges = "SELECT 
                     CASE WHEN IFNULL({$atrID}, '')='{$rwEnt[$atrID]}' THEN 0 ELSE 1 END as changedOK 
@@ -1131,15 +1153,6 @@ function startAction(){
 
     $this->onActionStart($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
 
-    if (((string)$this->arrAction["aclOldStatusID"]!=(string)$this->arrAction["aclNewStatusID"] 
-          && (string)$this->arrAction["aclNewStatusID"]!=""
-        )
-        || $this->arrAction["actFlagInterruptStatusStay"]){
-
-        $this->onStatusDeparture($this->arrAction['aclOldStatusID']);
-
-    }
-    
 }
 
 
@@ -1252,8 +1265,10 @@ function whoRunAction($actID){
  * @package eiseIntra
  */
 function whoLeadToStatus($staID){
+    
     if(!$this->item['STL'])
         $this->getEntityItemAllData(array('STL'));
+
     foreach($this->item['STL'] as $stlGUID=>$arrSTL){
         if($arrSTL['stlStatusID']==$staID){
             return $arrSTL['stlInsertBy'];
@@ -1538,8 +1553,17 @@ static function sendMessages($conf){
 
         }
 
-        $msg = array('mail_from'=> ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : '')
-            , 'rcpt_to' => ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\"  <".$rwUsr_To['usrEmail'].">" : '')
+        if( $conf['login']){
+            $dd = 'acme.com';
+            $a1 = imap_rfc822_parse_adrlist($conf['login'], $dd);
+            $a2 = imap_rfc822_parse_adrlist($rwUsr_From['usrID'], $dd);
+            $o1 = $a1[0]; $o2 = $a2[0];
+            if(strtolower($o1->mailbox)!=strtolower($o2->mailbox))
+                continue;
+        } 
+
+        $msg = array('From'=> ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : '')
+            , 'To' => ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\"  <".$rwUsr_To['usrEmail'].">" : '')
             , 'Text' => $rwMsg['msgText']
             );
         if ($rwMsg['msgCCUserID'])
@@ -1559,7 +1583,7 @@ static function sendMessages($conf){
     }
 
 
-    foreach($arrMessages as $msg){
+    foreach((array)$arrMessages as $msg){
         $sqlMarkSent = "UPDATE stbl_message SET msgSendDate=".($msg['send_time'] ? "'".date('Y-m-d H:i:s', $msg['send_time'])."'" : 'NULL' )."
             , msgStatus=".($msg['error'] ? $oSQL->e($msg['error']) : $oSQL->e('Sent'))."
             , msgEditDate=NOW()
@@ -2121,15 +2145,22 @@ function onActionPlan($actID, $oldStatusID, $newStatusID){
 function onActionStart($actID, $oldStatusID, $newStatusID){
     
     //parent::onActionStart($actID, $oldStatusID, $newStatusID);
-    
+
     if ($actID<=4) 
         return true;
     
     if ($oldStatusID!=$this->item['staID'])
         throw new Exception("Action {$this->arrAction["actTitle"]} cannot be started for {$entItemID} because of its status ({$this->item[$entID."StatusID"]})");
-    
-    $this->onStatusDeparture($oldStatusID);
 
+    if (($oldStatusID!==$newStatusID 
+          && $newStatusID!==""
+        )
+        || $this->arrAction["actFlagInterruptStatusStay"]){
+
+        $this->onStatusDeparture($this->arrAction['aclOldStatusID']);
+
+    }
+    
     return true;
 }
 function onActionFinish($actID, $oldStatusID, $newStatusID){

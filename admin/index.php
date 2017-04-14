@@ -1,378 +1,291 @@
-<?php
+<?php 
 include "common/auth.php";
-/*
-$defaultPaneSrc = "server_form.php";
-$toc_generator = dirname(__FILE__)."inc_toc_generator.php";
-$extraHTML = '<div id="header_version_info">'.$intra->translate('Version').' '.$version.'</div>';
-include eiseIntraAbsolutePath."inc_index.php";
-*/
-?><!DOCTYPE html>
-<html lang="<?php echo $intra->getLanguage(); ?>">
 
-<head>
+function explainQuery($db, $q){
+	GLOBAL $intra, $oSQL;
+	$oSQL->q('USE `'.$db.'`');
+	if(!preg_match('/^select/i', $q))
+		return (array('status'=>'error', 'message'=>'Unable to explain non-SELECT queries. Leave only SELECT part and click "Explain" button.'));
 
-<meta charset="utf-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="">
-<meta name="author" content="">
+	try {
+		$rsE = $oSQL->q('EXPLAIN EXTENDED '.$q);
+	} catch(Exception $e){
+		return (array('status'=>'error', 'message'=>$e->getMessage()));
+	}
+		
 
-<title><?php echo htmlspecialchars($title) ?></title>
+	$arrRet = array();
+
+	while($rwE = $oSQL->f($rsE)){
+		$arrRet[] = $rwE;
+	}
+
+	return array('status'=>'ok', 'data'=>$arrRet);
+}
+
+
+$DataAction = $_POST['DataAction'] ? $_POST['DataAction'] : $_GET['DataAction'];
+
+switch($DataAction){
+	case 'getProcInfo':
+
+		header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
+    	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
+    	header("Content-type: application/json"); // Date in the past
+
+		$sqlQ = "SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST WHERE ID=".$oSQL->e($_GET['procID']);
+		$rsQ = $oSQL->q($sqlQ);
+		$rwQ = $oSQL->f($rsQ);
+
+		if ($oSQL->n($rsQ)==0 || !$rwQ['INFO']){
+			echo json_encode(array('status'=>'error', 'message'=>'Process not found', 'code'=>'404'));die();
+		}
+
+		$arrExpl = @explainQuery($rwQ['DB'], $rwQ['INFO']);
+
+		echo json_encode(array('DB'=>$rwQ['DB'], 'INFO'=>$rwQ['INFO'], 'explain'=>$arrExpl, 'sql'=>$sqlQ));
+
+		die();
+
+	case 'explainQuery':
+
+		header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
+    	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
+    	header("Content-type: application/json"); // Date in the past
+
+		$arrExpl = @explainQuery($_GET['db'], $_GET['q']);
+
+		echo json_encode($arrExpl);
+
+		die();
+
+	case 'killProc':
+
+		die();
+
+}
+
+$intra->requireComponent(array('jquery-ui', 'grid'));
+
+$arrActions[]= Array ("title" => $intra->translate("New database")
+	   , "action" => 'database_form.php?'.eiseIntra::dataActionKey.'=new'
+	   , "class"=> "ss_add"
+	);
+$arrActions[]= Array ("title" => $intra->translate("Refresh")
+	   , "action" => "javascript:location.reload()"
+	   , "class"=> "ss_arrow_refresh"
+	);
+
+
+$arrJS[] = 'server_form.js';
+
+include eiseIntraAbsolutePath."inc_top.php";
+?>
+
+<div class="eiseIntraForm" id="server_form">
+
+<fieldset id="fldsStatus"><legend><?php echo $intra->translate('Welcome to').' '.$oSQL->dbhost.'!' ?></legend>
 
 <?php 
-$intra->loadCSS();
+
+$sqlStatus = "SHOW GLOBAL STATUS";
+$rsStatus = $oSQL->q($sqlStatus);
+
+while($rwSt = $oSQL->f($rsStatus)){
+	$arrStatus[$rwSt['Variable_name']] = $rwSt['Value'];
+	if(preg_match('/^Com\_/', $rwSt['Variable_name'])){
+		$command = preg_replace('/^Com_/', '', $rwSt['Variable_name']);
+		$arrComStats[$command] = $rwSt['Value'];
+	}
+		
+}
+
+arsort($arrComStats);
+
+?>
+
+<div class="eiseIntraField">
+	<label><?php echo $intra->translate('Uptime') ?>:</label>
+	<div class="eiseIntraValue"><?php echo date('d\d H\h i\m s\s', $arrStatus['Uptime']) ?></div>
+</div>
+<?php
+
+$gridStatus = new eiseGrid($oSQL
+        , 'sta'
+        , array('arrPermissions' => Array('FlagWrite'=>false))
+        );
+
+
+$gridStatus->Columns[] = Array(
+        'title' => $intra->translate("Command")
+        , 'field' => "Command"
+        , 'type' => "text"
+);
+$gridStatus->Columns[] = Array(
+        'title' => $intra->translate("Count")
+        , 'field' => "Count"
+        , 'type' => "integer"
+);
+
+
+foreach($arrComStats as $com=>$count){
+	if ($count==0)
+		continue;
+	$gridStatus->Rows[] = array('Command'=>$com, 'Count'=>$count);
+}
+
+$gridStatus->Execute();
  ?>
 
-    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-    <!--[if lt IE 9]>
-        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-    <![endif]-->
+</fieldset>
+<fieldset id="fldsProcs"><legend><?php echo $intra->translate('Processes') ?></legend><?php 
 
-</head>
-<body>
+$sqlProcs = "SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST ORDER BY COMMAND, TIME DESC";
+$rsProcs = $oSQL->q($sqlProcs);
 
-<div id="wrapper">
+$gridProcs = new eiseGrid($oSQL
+        , 'prc'
+        , array('arrPermissions' => Array('FlagWrite'=>false))
+        );
 
-<nav style="margin-bottom: 0" role="navigation" class="navbar navbar-default navbar-static-top">
-    <div class="navbar-header">
-        <button data-target=".navbar-collapse" data-toggle="collapse" class="navbar-toggle" type="button">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-        </button>
-        <a href="index.html" class="navbar-brand">eiseAdmin</a>
-    </div>
-    <!-- /.navbar-header -->
+$gridProcs->Columns[] = Array(
+        'title'=>'ID'
+        , 'field'=>'ID'
+        , 'width'=>'40px'
+);
+$gridProcs->Columns[] = Array(
+        'title'=>'User'
+        , 'field'=>'USER'
+        , 'width'=>'60px'
+);
+$gridProcs->Columns[] = Array(
+        'title'=>'Database'
+        , 'field'=>'DB'
+        , 'width'=>'60px'
+);
+$gridProcs->Columns[] = Array(
+        'title'=>'Cmnd'
+        , 'field'=>'COMMAND'
+        , 'width'=>'40px'
+);
+$gridProcs->Columns[] = Array(
+        'title'=>'Time'
+        , 'field'=>'TIME'
+        , 'type' => 'integer'
+        , 'width'=>'60px'
+);
+$gridProcs->Columns[] = Array(
+        'title'=>'State'
+        , 'field'=>'STATE'
+        , 'width'=>'60px'
+);
+$gridProcs->Columns[] = Array(
+        'title'=>'Info'
+        , 'field'=>'INFO'
+        , 'width' => '100%'
+);
 
-    <ul class="nav navbar-top-links navbar-right">
-        <li class="dropdown">
-            <a href="#" data-toggle="dropdown" class="dropdown-toggle">
-                <i class="fa fa-envelope fa-fw"></i>  <i class="fa fa-caret-down"></i>
-            </a>
-            <ul class="dropdown-menu dropdown-messages">
-                <li>
-                    <a href="#">
-                        <div>
-                            <strong>John Smith</strong>
-                            <span class="pull-right text-muted">
-                                <em>Yesterday</em>
-                            </span>
-                        </div>
-                        <div>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque eleifend...</div>
-                    </a>
-                </li>
-                <li class="divider"></li>
-                <li>
-                    <a href="#">
-                        <div>
-                            <strong>John Smith</strong>
-                            <span class="pull-right text-muted">
-                                <em>Yesterday</em>
-                            </span>
-                        </div>
-                        <div>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque eleifend...</div>
-                    </a>
-                </li>
-                <li class="divider"></li>
-                <li>
-                    <a href="#">
-                        <div>
-                            <strong>John Smith</strong>
-                            <span class="pull-right text-muted">
-                                <em>Yesterday</em>
-                            </span>
-                        </div>
-                        <div>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque eleifend...</div>
-                    </a>
-                </li>
-                <li class="divider"></li>
-                <li>
-                    <a href="#" class="text-center">
-                        <strong>Read All Messages</strong>
-                        <i class="fa fa-angle-right"></i>
-                    </a>
-                </li>
-            </ul>
-            <!-- /.dropdown-messages -->
-        </li>
-        <!-- /.dropdown -->
-        <li class="dropdown">
-            <a href="#" data-toggle="dropdown" class="dropdown-toggle">
-                <i class="fa fa-tasks fa-fw"></i>  <i class="fa fa-caret-down"></i>
-            </a>
-            <ul class="dropdown-menu dropdown-tasks">
-                <li>
-                    <a href="#">
-                        <div>
-                            <p>
-                                <strong>Task 1</strong>
-                                <span class="pull-right text-muted">40% Complete</span>
-                            </p>
-                            <div class="progress progress-striped active">
-                                <div style="width: 40%" aria-valuemax="100" aria-valuemin="0" aria-valuenow="40" role="progressbar" class="progress-bar progress-bar-success">
-                                    <span class="sr-only">40% Complete (success)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-                </li>
-                <li class="divider"></li>
-                <li>
-                    <a href="#">
-                        <div>
-                            <p>
-                                <strong>Task 2</strong>
-                                <span class="pull-right text-muted">20% Complete</span>
-                            </p>
-                            <div class="progress progress-striped active">
-                                <div style="width: 20%" aria-valuemax="100" aria-valuemin="0" aria-valuenow="20" role="progressbar" class="progress-bar progress-bar-info">
-                                    <span class="sr-only">20% Complete</span>
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-                </li>
-                <li class="divider"></li>
-                <li>
-                    <a href="#">
-                        <div>
-                            <p>
-                                <strong>Task 3</strong>
-                                <span class="pull-right text-muted">60% Complete</span>
-                            </p>
-                            <div class="progress progress-striped active">
-                                <div style="width: 60%" aria-valuemax="100" aria-valuemin="0" aria-valuenow="60" role="progressbar" class="progress-bar progress-bar-warning">
-                                    <span class="sr-only">60% Complete (warning)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-                </li>
-                <li class="divider"></li>
-                <li>
-                    <a href="#">
-                        <div>
-                            <p>
-                                <strong>Task 4</strong>
-                                <span class="pull-right text-muted">80% Complete</span>
-                            </p>
-                            <div class="progress progress-striped active">
-                                <div style="width: 80%" aria-valuemax="100" aria-valuemin="0" aria-valuenow="80" role="progressbar" class="progress-bar progress-bar-danger">
-                                    <span class="sr-only">80% Complete (danger)</span>
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-                </li>
-                <li class="divider"></li>
-                <li>
-                    <a href="#" class="text-center">
-                        <strong>See All Tasks</strong>
-                        <i class="fa fa-angle-right"></i>
-                    </a>
-                </li>
-            </ul>
-            <!-- /.dropdown-tasks -->
-        </li>
-        <!-- /.dropdown -->
-        <li class="dropdown">
-            <a href="#" data-toggle="dropdown" class="dropdown-toggle">
-                <i class="fa fa-bell fa-fw"></i>  <i class="fa fa-caret-down"></i>
-            </a>
-            <ul class="dropdown-menu dropdown-alerts">
-                <li>
-                    <a href="#">
-                        <div>
-                            <i class="fa fa-comment fa-fw"></i> New Comment
-                            <span class="pull-right text-muted small">4 minutes ago</span>
-                        </div>
-                    </a>
-                </li>
-                <li class="divider"></li>
-                <li>
-                    <a href="#">
-                        <div>
-                            <i class="fa fa-twitter fa-fw"></i> 3 New Followers
-                            <span class="pull-right text-muted small">12 minutes ago</span>
-                        </div>
-                    </a>
-                </li>
-                <li class="divider"></li>
-                <li>
-                    <a href="#">
-                        <div>
-                            <i class="fa fa-envelope fa-fw"></i> Message Sent
-                            <span class="pull-right text-muted small">4 minutes ago</span>
-                        </div>
-                    </a>
-                </li>
-                <li class="divider"></li>
-                <li>
-                    <a href="#">
-                        <div>
-                            <i class="fa fa-tasks fa-fw"></i> New Task
-                            <span class="pull-right text-muted small">4 minutes ago</span>
-                        </div>
-                    </a>
-                </li>
-                <li class="divider"></li>
-                <li>
-                    <a href="#">
-                        <div>
-                            <i class="fa fa-upload fa-fw"></i> Server Rebooted
-                            <span class="pull-right text-muted small">4 minutes ago</span>
-                        </div>
-                    </a>
-                </li>
-                <li class="divider"></li>
-                <li>
-                    <a href="#" class="text-center">
-                        <strong>See All Alerts</strong>
-                        <i class="fa fa-angle-right"></i>
-                    </a>
-                </li>
-            </ul>
-            <!-- /.dropdown-alerts -->
-        </li>
-        <!-- /.dropdown -->
-        <li class="dropdown">
-            <a href="#" data-toggle="dropdown" class="dropdown-toggle">
-                <i class="fa fa-user fa-fw"></i>  <i class="fa fa-caret-down"></i>
-            </a>
-            <ul class="dropdown-menu dropdown-user">
-                <li><a href="#"><i class="fa fa-user fa-fw"></i> User Profile</a>
-                </li>
-                <li><a href="#"><i class="fa fa-gear fa-fw"></i> Settings</a>
-                </li>
-                <li class="divider"></li>
-                <li><a href="login.html"><i class="fa fa-sign-out fa-fw"></i> Logout</a>
-                </li>
-            </ul>
-            <!-- /.dropdown-user -->
-        </li>
-        <!-- /.dropdown -->
-    </ul>
-    <!-- /.navbar-top-links -->
+while($rwProcs = $oSQL->f($rsProcs)){
+	$gridProcs->Rows[] = $rwProcs;
+}
 
-    <div role="navigation" class="navbar-default sidebar">
-        <div class="sidebar-nav navbar-collapse">
-            <ul id="side-menu" class="nav in">
-                <li class="sidebar-search">
-                    <div class="input-group custom-search-form">
-                        <input type="text" placeholder="Search..." class="form-control">
-                        <span class="input-group-btn">
-                        <button type="button" class="btn btn-default">
-                            <i class="fa fa-search"></i>
-                        </button>
-                    </span>
-                    </div>
-                    <!-- /input-group -->
-                </li>
-                <li>
-                    <a href="index.html" class="active"><i class="fa fa-dashboard fa-fw"></i> Dashboard</a>
-                </li>
-                <li>
-                    <a href="#"><i class="fa fa-bar-chart-o fa-fw"></i> Charts<span class="fa arrow"></span></a>
-                    <ul class="nav nav-second-level collapse">
-                        <li>
-                            <a href="flot.html">Flot Charts</a>
-                        </li>
-                        <li>
-                            <a href="morris.html">Morris.js Charts</a>
-                        </li>
-                    </ul>
-                    <!-- /.nav-second-level -->
-                </li>
-                <li>
-                    <a href="tables.html"><i class="fa fa-table fa-fw"></i> Tables</a>
-                </li>
-                <li>
-                    <a href="forms.html"><i class="fa fa-edit fa-fw"></i> Forms</a>
-                </li>
-                <li>
-                    <a href="#"><i class="fa fa-wrench fa-fw"></i> UI Elements<span class="fa arrow"></span></a>
-                    <ul class="nav nav-second-level collapse">
-                        <li>
-                            <a href="panels-wells.html">Panels and Wells</a>
-                        </li>
-                        <li>
-                            <a href="buttons.html">Buttons</a>
-                        </li>
-                        <li>
-                            <a href="notifications.html">Notifications</a>
-                        </li>
-                        <li>
-                            <a href="typography.html">Typography</a>
-                        </li>
-                        <li>
-                            <a href="icons.html"> Icons</a>
-                        </li>
-                        <li>
-                            <a href="grid.html">Grid</a>
-                        </li>
-                    </ul>
-                    <!-- /.nav-second-level -->
-                </li>
-                <li>
-                    <a href="#"><i class="fa fa-sitemap fa-fw"></i> Multi-Level Dropdown<span class="fa arrow"></span></a>
-                    <ul class="nav nav-second-level collapse">
-                        <li>
-                            <a href="#">Second Level Item</a>
-                        </li>
-                        <li>
-                            <a href="#">Second Level Item</a>
-                        </li>
-                        <li>
-                            <a href="#">Third Level <span class="fa arrow"></span></a>
-                            <ul class="nav nav-third-level collapse">
-                                <li>
-                                    <a href="#">Third Level Item</a>
-                                </li>
-                                <li>
-                                    <a href="#">Third Level Item</a>
-                                </li>
-                                <li>
-                                    <a href="#">Third Level Item</a>
-                                </li>
-                                <li>
-                                    <a href="#">Third Level Item</a>
-                                </li>
-                            </ul>
-                            <!-- /.nav-third-level -->
-                        </li>
-                    </ul>
-                    <!-- /.nav-second-level -->
-                </li>
-                <li class="">
-                    <a href="#"><i class="fa fa-files-o fa-fw"></i> Sample Pages<span class="fa arrow"></span></a>
-                    <ul class="nav nav-second-level collapse" aria-expanded="false" style="height: 0px;">
-                        <li>
-                            <a href="blank.html">Blank Page</a>
-                        </li>
-                        <li>
-                            <a href="login.html">Login Page</a>
-                        </li>
-                    </ul>
-                    <!-- /.nav-second-level -->
-                </li>
-            </ul>
-        </div>
-        <!-- /.sidebar-collapse -->
-    </div>
-    <!-- /.navbar-static-side -->
-</nav>
 
-<div id="page-wrapper">
+$gridProcs->Execute();
 
+ ?></fieldset>
+
+
+</div>
+
+<div id="query_explainer" class="eiseIntraForm">
+
+<div class="eiseIntraField">
+<label><?php echo $intra->translate('Query'); ?>:</label>
+	<textarea rows=4 class="eiseIntraValue" id="Info"></textarea>
+</div>
+<div class="eiseIntraField">
+<label><?php echo $intra->translate('DB'); ?>:</label>
+	<div class="eiseIntraValue" id="DB"></div>
+</div>
+<div class="eiseIntraField">
+<label><?php echo $intra->translate('Process ID'); ?>:</label>
+	<div class="eiseIntraValue" id="ID"></div>
+</div>
+<div class="eiseIntraField">
+<label><?php echo $intra->translate('Exec. time'); ?>:</label>
+	<div class="eiseIntraValue" id="Time"></div>
+</div>
+	<?php 
+$gridExplain = new eiseGrid($oSQL
+        , 'expl'
+        , array('arrPermissions' => Array('FlagWrite'=>false))
+        );
+
+$gridExplain->Columns[] = Array(
+        'title'=>'id'
+        , 'field'=>'id'
+        , 'width'=>'40px'
+);
+$gridExplain->Columns[] = Array(
+        'title'=>'select_type'
+        , 'field'=>'select_type'
+        , 'width'=>'60px'
+);
+$gridExplain->Columns[] = Array(
+        'title'=>'table'
+        , 'field'=>'table'
+        , 'width'=>'120px'
+);
+$gridExplain->Columns[] = Array(
+        'title'=>'type'
+        , 'field'=>'type'
+        , 'width'=>'40px'
+);
+$gridExplain->Columns[] = Array(
+        'title'=>'possible_keys'
+        , 'field'=>'possible_keys'
+        , 'width'=>'40%'
+);
+$gridExplain->Columns[] = Array(
+        'title'=>'key'
+        , 'field'=>'key'
+        , 'width'=>'30%'
+);
+$gridExplain->Columns[] = Array(
+        'title'=>'key_len'
+        , 'field'=>'key_len'
+        , 'width'=>'40px'
+);
+$gridExplain->Columns[] = Array(
+        'title'=>'ref'
+        , 'field'=>'ref'
+        , 'width'=>'40px'
+);
+$gridExplain->Columns[] = Array(
+        'title'=>'rows'
+        , 'field'=>'rows'
+        , 'width'=>'40px'
+);
+$gridExplain->Columns[] = Array(
+        'title'=>'filtered'
+        , 'field'=>'filtered'
+        , 'width'=>'40px'
+);
+$gridExplain->Columns[] = Array(
+        'title'=>'Extra'
+        , 'field'=>'Extra'
+        , 'width'=>'30%'
+);
+
+
+$gridExplain->Execute();
+
+?>
 </div>
 
 
 </div>
 
-<?php 
-$intra->loadJS();
- ?>
-</body>
+<?php
+include eiseIntraAbsolutePath."inc_bottom.php";
+?>

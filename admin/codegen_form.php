@@ -1,9 +1,6 @@
 <?php
 include "common/auth.php";
 
-$oSQL->dbname=$_GET["dbName"];
-$oSQL->select_db($oSQL->dbname);
-$dbName = $oSQL->dbname;
 $tblName = $_GET["tblName"];
 
 define('CODE_INDENT', '    ');
@@ -976,25 +973,9 @@ if ($strHTML){
    die();
 }
 
-include eiseIntraAbsolutePath."inc-frame_top.php";
-?>
+header("Content-Type: text/plain; charset=UTF-8");
+header("Expires: 0");
+header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
 
-<h1><?php  echo $_GET["toGen"] ; ?> code for <?php  echo $tblName ; ?></h1>
+echo $strCode;
 
-<div class="panel">
-<?php 
-if ($strCode!=""){
- ?>
-<textarea name='code' style="width:100%;height:600px;font-family:Courier New;font-size:12px;"><?php  echo htmlspecialchars($strCode) ; ?></textarea>
-<?php 
-} 
- ?>
-</div>
-
-<?php echo $strHTML ?>
-
-<?php
-
-include eiseIntraAbsolutePath."inc-frame_bottom.php";
-
-?>

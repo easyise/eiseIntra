@@ -2,12 +2,6 @@
 //$_DEBUG = true;
 include "common/auth.php";
 
-$dbName = $_POST["dbName"] ? $_POST["dbName"] : $_GET["dbName"];
-
-$oSQL->select_db($dbName);
-
-//include "common/inc_project.php";
-
 //-----------------------for debug
 //$rolID = 2;
 
@@ -61,24 +55,21 @@ $arrActions[]= Array ("title" => "New script"
 $arrActions[]= Array ("title" => "Repair"
      , "action" => "page_form.php?dbName=$dbName&DataAction=repair"
      , "class"=> "ss_wrench"
-  );  
+);  
 
 $arrActions[]= Array ("title" => "Get dump"
-     , "action" => "database_act.php?DataAction=dump&what=security&dbName={$dbName}&flagDonwloadAsDBSV=0"
+     , "action" => "javascript:$(this).eiseIntraBatch('database_act.php?DataAction=dump&what=security&dbName={$dbName}&flagDonwloadAsDBSV=0')"
      , "class"=> "ss_cog_edit"
-  );
+);
 $arrActions[]= Array ("title" => "Download dump"
 	   , "action" => "database_act.php?DataAction=dump&what=security&dbName={$dbName}&flagDonwloadAsDBSV=1"
 	   , "class"=> "ss_cog_go"
-	);
+);
 
+$intra->requireComponent('simpleTree', 'batch');
+$intra->conf['flagBatchNoAutoclose'] = true;
 
-
-
-$arrJS[] = jQueryRelativePath."simpleTree/jquery.simple.tree.js";
-$arrCSS[] = jQueryRelativePath."simpleTree/simpletree.css";
-
-include eiseIntraAbsolutePath."inc-frame_top.php";
+include eiseIntraAbsolutePath."inc_top.php";
 
 ?>
 
@@ -119,7 +110,7 @@ $rsPages = $oSQL->do_query($sqlPages);
 <?php
 	$iLevelInstide_old = 1;
 ?>
-<ul class="simpleTree" id="matrix">
+<ul class="simpleTree" id="tree">
 <?php
    	
 while ($rw = $oSQL->fetch_array($rsPages)){
@@ -151,5 +142,5 @@ while ($rw = $oSQL->fetch_array($rsPages)){
 
 
 <?php
-include eiseIntraAbsolutePath."inc-frame_bottom.php";
+include eiseIntraAbsolutePath."inc_bottom.php";
 ?>
