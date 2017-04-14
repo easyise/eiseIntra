@@ -1252,6 +1252,8 @@ function whoRunAction($actID){
  * @package eiseIntra
  */
 function whoLeadToStatus($staID){
+    if(!$this->item['STL'])
+        $this->getEntityItemAllData(array('STL'));
     foreach($this->item['STL'] as $stlGUID=>$arrSTL){
         if($arrSTL['stlStatusID']==$staID){
             return $arrSTL['stlInsertBy'];
