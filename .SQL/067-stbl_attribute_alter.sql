@@ -1,3 +1,5 @@
+SET FOREIGN_KEY_CHECKS=0;
+
 ALTER TABLE `stbl_attribute`
 	ALTER `atrID` DROP DEFAULT;
 ALTER TABLE `stbl_attribute`
@@ -21,3 +23,5 @@ ALTER TABLE `stbl_attribute`
 	CHANGE COLUMN `atrInsertBy` `atrInsertBy` VARCHAR(50) NULL DEFAULT NULL AFTER `atrFlagDeleted`,
 	CHANGE COLUMN `atrEditBy` `atrEditBy` VARCHAR(50) NULL DEFAULT NULL AFTER `atrInsertDate`,
 	DROP COLUMN `atrFieldName`;
+
+SET FOREIGN_KEY_CHECKS=1;

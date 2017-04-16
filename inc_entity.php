@@ -66,6 +66,7 @@ private function init(){
     $sqlAtr = "SELECT * 
         FROM stbl_attribute 
         WHERE atrEntityID=".$oSQL->e($this->entID)."
+             AND atrFlagDeleted=0
         ORDER BY atrOrder";
     $rsAtr = $oSQL->q($sqlAtr);
     while($rwAtr = $oSQL->f($rsAtr)){
@@ -77,7 +78,7 @@ private function init(){
     $sqlSat = "SELECT stbl_status.*,stbl_status_attribute.*  
             FROM stbl_status_attribute 
                 INNER JOIN stbl_status ON staID=satStatusID AND satEntityID=staEntityID
-                INNER JOIN stbl_attribute ON atrID=satAttributeID
+                INNER JOIN stbl_attribute ON atrID=satAttributeID AND atrFlagDeleted=0
         WHERE staEntityID=".$oSQL->e($this->entID)."
         ORDER BY staID, atrOrder";
     $rsSat = $oSQL->q($sqlSat);
@@ -937,7 +938,7 @@ function checkArchiveTable (){
     $arrCol = $arrTable["columns_index"];
     
     // get attributes
-    $sqlATR = "SELECT * FROM stbl_attribute WHERE atrEntityID='{$this->entID}' ORDER BY atrOrder";
+    $sqlATR = "SELECT * FROM stbl_attribute WHERE atrEntityID='{$this->entID}' AND atrFlagDeleted=0 ORDER BY atrOrder";
     $rsATR = $oSQL->do_query($sqlATR);
     
     $predField = "{$this->entID}StatusATA";

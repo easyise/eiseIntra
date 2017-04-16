@@ -88,30 +88,18 @@ $(document).ready(function(){
 	
     $('.eiseGrid').eiseGrid();
     
-    $("th.sat_satFlagShowInForm, th.sat_satFlagEditable, th.sat_satFlagShowInList").css("cursor", "pointer");
+    $("th.sat-satFlagShowInForm, th.sat-satFlagEditable, th.sat-satFlagShowInList")
+        .css("cursor", "pointer")
+        .click(function(){
+            var tdClass = ($(this).attr('class').split(/\s+/)[0]),
+                $grid = $(this).parents('.eiseGrid').first(),
+                $checkBoxes = $grid.find('.eg-data .'+tdClass+' input[type=checkbox]');
+            $checkBoxes.each(function(){
+                this.click();
+            })
+        });
     
-    $("th.sat_satFlagShowInForm").click(function(){
-        
-        eiseGrid_find('sat').tbody.find("tr:not(.eg_template)").each(function(){
-            $(this).find('input[name^=satFlagShowInForm_chk]').change().click();
-        });
-        
-    })
-    $("th.sat_satFlagEditable").click(function(){
-        
-        eiseGrid_find('sat').tbody.find("tr:not(.eg_template)").each(function(){
-            $(this).find('input[name^=satFlagEditable_chk]').change().click();
-        });
-        
-    })
-    $("th.sat_satFlagShowInList").click(function(){
-        
-        eiseGrid_find('sat').tbody.find("tr:not(.eg_template)").each(function(){
-            //$(this).find('input[name="satFlagShowInList[]"]').val(1);
-            $(this).find('input[name^=satFlagShowInList_chk]').change().click();
-        });
-        
-    })
+    
     
 });
 </script>

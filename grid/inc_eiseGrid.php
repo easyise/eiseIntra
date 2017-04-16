@@ -26,8 +26,8 @@ static $defaultWidthsByType = array(
         , 'date' => '80px'
         , 'datetime' => '120px'
 
-        , 'boolean' => '25px'
-        , 'checkbox' => '25px'
+        , 'boolean' => '30px'
+        , 'checkbox' => '30px'
         
         , 'order' => '25px'
 
