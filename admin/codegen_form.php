@@ -175,7 +175,7 @@ switch ($_GET["toGen"]){
         break;
     case "easyGrid":
         
-        include commonStuffAbsolutePath.'eiseGrid2/inc_eiseGrid_codegen.php';
+        include_once('../grid/inc_eiseGrid_codegen.php');
         $strCode = eiseGrid_codegen::code(array('tableName'=>$tblName, 'arrTable'=>$arrTable));
         break;
       

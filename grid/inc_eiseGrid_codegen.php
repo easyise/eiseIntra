@@ -26,17 +26,7 @@ static public function code($arrConfig){
         
         $strCode .= "include 'common/auth.php';\r\n\r\n";
         
-        $strCode .= 'include commonStuffAbsolutePath.\'eiseGrid2/inc_eiseGrid.php\';
-
-$arrJS[] = commonStuffRelativePath.\'eiseGrid2/eiseGrid.jQuery.js\';
-$arrCSS[] = commonStuffRelativePath.\'eiseGrid2/themes/default/screen.css\';
-
-$arrJS[] = jQueryUIRelativePath.\'js/jquery-ui-1.8.16.custom.min.js\';
-$arrCSS[] = jQueryUIRelativePath.\'css/\'.jQueryUITheme.\'/jquery-ui-1.8.16.custom.css\';
-
-';
-    } else {
-        $strCode .= "<?php\r\n\r\n";
+        $strCode .= '$intra->requireComponent(\'grid\');'."\r\n\r\n";
     }
 
     $strCode .= "\$DataAction  = (isset(\$_POST['DataAction']) ? \$_POST['DataAction'] : \$_GET['DataAction'] );\r\n\r\n";
@@ -63,11 +53,22 @@ $arrCSS[] = jQueryUIRelativePath.\'css/\'.jQueryUITheme.\'/jquery-ui-1.8.16.cust
         if ($col["DataType"]=="activity_stamp" && $col["Field"]!=$gridName."EditDate")
            continue;
            
-        $strCode .= "\$grid".strtoupper($gridName)."->Columns[] = Array(\r\n";    
+        $strCode .= "\$grid".strtoupper($gridName)."->Columns[] = Array(\r\n"; 
+
+        $title = ($conf['flagIntra'] 
+            ? ($col["Comment"]!="" 
+                ? $col["Comment"] 
+                : (preg_match('/FlagDeleted$/', $col['Field']) 
+                    ? 'Del' 
+                    : preg_replace('/^('.preg_quote($arrTable['prefix'], '/').')/', '', $col["Field"])
+                    )
+                ) 
+            : $col["Title"]
+            );
        
-        $strCode .= "        'title' => ".($conf['flagIntra']
-            ? "\$intra->translate(\"".($col["Comment"]!="" ? $col["Comment"] : $col["Field"])."\")"
-            : $col["Title"])."\r\n";
+        $strCode .= "        'title' => ".(preg_match('%^[ -~]+$%', $title)
+            ? "\$intra->translate(\"{$title}\")"
+            : "'{$title}'")."\r\n";
         $strCode .= "        , 'field' => \"".$col["Field"]."\"\r\n";
         $strCode .= "        , 'type' => \"";
         switch($col["DataType"]){
