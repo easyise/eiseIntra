@@ -13,10 +13,7 @@ $pagParentID = $_GET["pagParentID"] ? $_GET["pagParentID"] : $_POST["pagParentID
 $dbName = $_GET["dbName"] ? $_GET["dbName"] : $_POST["dbName"];
 $oSQL->select_db($dbName);
 
-/*----------------------------------------- PAGE-ROLE matrix definition -----------------------------------------------*/
-include commonStuffAbsolutePath.'eiseGrid2/inc_eiseGrid.php';
-$arrJS[] = commonStuffRelativePath.'eiseGrid2/eiseGrid.jQuery.js';
-$arrCSS[] = commonStuffRelativePath.'eiseGrid2/themes/default/screen.css';
+$intra->requireComponent('grid');
 
 $grid = new easyGrid($oSQL
 					, "page_role"
