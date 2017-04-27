@@ -188,6 +188,9 @@ div.menubutton  {
     clear: right;
     width: 73%;
 }
+input[type=checkbox].eiseIntraValue {
+    width: auto;
+}
 .eiseIntraForm .eiseIntra_hasUOM{
     clear: none !important;
     width: auto !important;
