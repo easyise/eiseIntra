@@ -954,11 +954,14 @@ eiseGrid.prototype.updateRow = function(oTr){
 eiseGrid.prototype.recalcOrder = function(){
     var oThis = this;
     var iCounter = 1;
-    this.tableContainer.find('.eg-order').each(function (){
-        if($(this).parent('.eg-template').html()==null){
-            $(this).find('div span').html(iCounter).parent('div').prev('input').val(iCounter);
-            iCounter++;
-        }
+
+    this.tbodies = this.tableContainer.find('tbody.eg-data');
+
+    this.tbodies.find('.eg-order').each(function (){
+
+        $(this).find('div span').html(iCounter).parent('div').prev('input').val(iCounter);
+        //console.log(iCounter, $(this).find('div span').html())
+        iCounter++;
     })
 }
 
