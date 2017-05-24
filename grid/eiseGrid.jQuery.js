@@ -965,17 +965,19 @@ eiseGrid.prototype.recalcOrder = function(){
     })
 }
 
-eiseGrid.prototype.moveUp = function(){
+eiseGrid.prototype.moveUp = function(flagDontUpdateRows){
 
     var grid = this;
 
     $.each(grid.activeRow, function(ix, $rw){
         if ($rw){
-            if ($rw.prev().hasClass('eg_template'))
+            if ($rw.prev().hasClass('eg-template'))
                 return false; // break, nothing to move, upper limit reached 
             $rw.insertBefore($rw.prev());
-            grid.updateRow($rw);
-            grid.updateRow($rw.next());
+            if(!flagDontUpdateRows){
+                grid.updateRow($rw);
+                grid.updateRow($rw.next());
+            }
             
         }
     });
@@ -983,7 +985,7 @@ eiseGrid.prototype.moveUp = function(){
     this.recalcOrder();
 
 }
-eiseGrid.prototype.moveDown = function(){
+eiseGrid.prototype.moveDown = function(flagDontUpdateRows){
 
     var grid = this;
 
@@ -993,8 +995,10 @@ eiseGrid.prototype.moveDown = function(){
             if ($rw.next().html()==null)
                 return false; // break, nothing to move, upper limit reached 
             $rw.insertAfter($rw.next());
-            grid.updateRow($rw);
-            grid.updateRow($rw.prev());
+            if(!flagDontUpdateRows){
+                grid.updateRow($rw);
+                grid.updateRow($rw.prev());
+            }
 
         }
     }
@@ -1660,21 +1664,21 @@ recalcOrder: function(){
     return this;
 },
 
-moveUp: function(){
+moveUp: function(flagDontUpdateRows){
     //Moves selected row up by 1 step, if possible
     this.each(function(){
         var grid = $(this).data('eiseGrid').eiseGrid;
-        grid.moveUp();
+        grid.moveUp(flagDontUpdateRows);
 
     });
     return this;
 },
 
-moveDown: function(){
+moveDown: function(flagDontUpdateRows){
     //Moves selected row down by 1 step, if possible
     this.each(function(){
         var grid = $(this).data('eiseGrid').eiseGrid;
-        grid.moveDown();
+        grid.moveDown(flagDontUpdateRows);
 
     });
     return this;
