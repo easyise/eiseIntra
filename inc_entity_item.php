@@ -917,7 +917,7 @@ function updateActionLogItem($aclGUID, $arrACL = null){
         $arrACL = $this->getActionData($aclGUID);
     }
     
-    foreach ($arrACL["AAT"] as $atrID => $arrAAT){
+    foreach ((array)$arrACL["AAT"] as $atrID => $arrAAT){
         
         $newValue = null;
         $strACLInputID = $atrID."_".$aclGUID;
@@ -2149,8 +2149,8 @@ function onActionStart($actID, $oldStatusID, $newStatusID){
     if ($actID<=4) 
         return true;
     
-    if ($oldStatusID!=$this->item['staID'])
-        throw new Exception("Action {$this->arrAction["actTitle"]} cannot be started for {$entItemID} because of its status ({$this->item[$entID."StatusID"]})");
+    if ($oldStatusID!=$this->item[$this->entID."StatusID"])
+        throw new Exception("Action {$this->arrAction["actTitle"]} cannot be started for {$this->entItemID} because of its status (".$this->item[$this->entID."StatusID"].")");
 
     if (($oldStatusID!==$newStatusID 
           && $newStatusID!==""
