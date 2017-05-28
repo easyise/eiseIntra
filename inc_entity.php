@@ -886,7 +886,7 @@ function newItem($entItemID){
         , {$this->conf["entID"]}InsertBy, {$this->conf["entID"]}InsertDate, {$this->conf["entID"]}EditBy, {$this->conf["entID"]}EditDate
         ) VALUES (
         ".$oSQL->e($entItemID)."
-        , NULL
+        , 0
         , '{$this->intra->usrID}', NOW(), '{$this->intra->usrID}', NOW());";
       
     $oSQL->do_query($sqlIns);
