@@ -665,7 +665,7 @@ function finishAction(){
         $sql[] = "UPDATE {$this->conf["entTable"]} SET
             {$this->entID}ActionLogID='{$this->arrAction["aclGUID"]}'
             , {$this->entID}StatusActionLogID='{$this->arrAction["aclGUID"]}'
-            , {$this->entID}StatusID='{$this->arrAction["aclNewStatusID"]}'
+            , {$this->entID}StatusID=".(int)$this->arrAction["aclNewStatusID"]."
             , {$this->entID}EditBy='{$this->intra->usrID}', {$this->entID}EditDate=NOW()
             WHERE {$this->entID}ID='{$this->entItemID}'";
         
