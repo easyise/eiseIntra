@@ -988,8 +988,13 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
 
     if($title!==null) {
 
-        $html .= "<div class=\"eiseIntraField eif-field field-{$name}".
-                ($name ? '' : " field-delimiter" ).
+        $flagFieldDelimiter = ($name===null && $value===null);
+
+        $html .= "<div class=\"eiseIntraField eif-field".
+                ($name 
+                    ? " field-{$name}" 
+                    : ($flagFieldDelimiter ? " field-delimiter" : '' )
+                    ).
                 ($conf['fieldClass'] ? " {$conf['fieldClass']}" : '').
                 "\""
             .($name 
@@ -1003,7 +1008,7 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
 
         if(!in_array($conf['type'], array('boolean', 'checkbox', 'radio')) ) {
             if ($title!==''){
-                $labelClass = ($name ? 'title-'.$name : 'field-delimiter-label').($conf['labelClass'] ? ' '.$conf['labelClass'] : '');
+                $labelClass = ($flagFieldDelimiter ? 'field-delimiter-label' : 'title-'.$name).($conf['labelClass'] ? ' '.$conf['labelClass'] : '');
                 $html .= "<label".($name ? " id=\"title_{$name}\"" : '')." class=\"{$labelClass}\">".htmlspecialchars($title).(
                     trim($title)!='' ? ':' : ''
                   )."</label>";
