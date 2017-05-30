@@ -103,7 +103,7 @@ include eiseIntraAbsolutePath.'inc_top.php';
     clear: none;
     font-size: 15px;
 }
-td.pgr_pagFullTitle div {
+td.pgr-pagFullTitle > div {
     white-space: pre;
 }
 </style>
@@ -169,7 +169,7 @@ PG1.pagID
 ORDER BY PG1.pagIdxLeft";
 $rsPGR = $oSQL->do_query($sqlPGR);
 while ($rwPGR = $oSQL->fetch_array($rsPGR)){
-    $rwPGR['pagFullTitle'] = str_repeat('    ', $rwPGR['iLevelInside']).$rwPGR['pagTitle'.$intra->local]
+    $rwPGR['pagFullTitle'] = str_repeat('    ', $rwPGR['iLevelInside']).($rwPGR['pagTitle'.$intra->local] ? $rwPGR['pagTitle'.$intra->local] : $rwPGR['pagTitle'])
         .($rwPGR['pagTitle'.$intra->local] && $rwPGR['pagFile'] ? " ({$rwPGR['pagFile']})" : $rwPGR['pagFile']);
     $gridPGR->Rows[] = $rwPGR;
 }
@@ -179,6 +179,8 @@ $gridPGR->Execute();
 </fieldset>
 </div><?php
 include eiseIntraAbsolutePath.'inc_bottom.php';
+die();
+
 ?>
 
 <?php
