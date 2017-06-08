@@ -51,7 +51,7 @@ class eiseSQL extends mysqli{
         @parent::__construct(($flagPersistent ? 'p:' : '').$dbhost, $dbuser, $dbpass, $dbname);
         
         if ($this->connect_errno) {
-            throw new Exception("Unable to connect to database: {$this->connect_error} ({$this->connect_errno})");
+            throw new eiseSQLException("Unable to connect to database: {$this->connect_error} ({$this->connect_errno})");
         }
         
         $this->dbhost = $dbhost;
@@ -138,7 +138,7 @@ class eiseSQL extends mysqli{
             $mysqli_result = $this->q($sql);
             return $this->f($mysqli_result);
         } else
-            throw new Exception('Wront variable type passed to eiseSQL::get_data() function: '.gettype($variant));
+            throw new eiseSQLException('Wront variable type passed to eiseSQL::f() function: '.gettype($variant));
     }
     function fa($mysqli_result){ //fetch_ix_array
         return $mysqli_result->fetch_array();
@@ -163,7 +163,7 @@ class eiseSQL extends mysqli{
             $mysqli_result = $this->q($sql);
             return $this->d($mysqli_result);
         } else
-            throw new Exception('Wront variable type passed to eiseSQL::get_data() function: '.gettype($variant));
+            throw new eiseSQLException('Wront variable type passed to eiseSQL::d() function: '.gettype($variant));
     }
     
     function fetch_fields($mysqli_result){
@@ -260,7 +260,7 @@ class eiseSQL extends mysqli{
     function not_right($error="MySQL error") {
         if ($this->flagProfiling)
             $this->showProfileInfo();
-        throw new Exception("{$this->errno}: {$this->error},\r\n{$error}\r\n", $this->errno);
+        throw new eiseSQLException("{$this->errno}: {$this->error},\r\n{$error}\r\n", $this->errno);
     }
     
     function startProfiling(){
@@ -447,4 +447,8 @@ class eiseSQL extends mysqli{
     }
 
 }
-?>
+
+class eiseSQLException extends Exception{
+
+
+}
