@@ -1,5 +1,19 @@
 @import (less) url("../../../list/eiseList.css");
 
+
+@header-background-color: #06183D;
+@header-color: #FF6D10;
+@border-color: #646464;
+@background-color: #ccc;
+@selected-row-color: rgba(255,176,128,1);
+
+/*
+@header-background-color: #3BACEE;
+@header-color: #06183D;
+@border-color: #646464;
+@background-color: #ccc;
+@selected-row-color: rgba(255,176,128,1);
+*/
 .eiseList h1 {
     font-size: 20px;
     font-weight: bold;
@@ -17,7 +31,7 @@
 }
 
 .el_body {
-    background: #999 !important;
+    background: @background-color !important;
 }
 
 .el_table table {
@@ -47,8 +61,8 @@
 
 .eiseList thead th
 , .eiseList thead td {
-    background-color: #000066;
-    border-right: 1px solid #006;
+    background-color: @header-background-color;
+    border-right: 1px solid @border-color;
 }
 
 .eiseList thead input 
@@ -70,22 +84,22 @@ input.el_filter {   padding: 0 5px !important;}
 }
 
 .eiseList th {
-    color: #FFFFFF;
+    color: @header-color;
     text-align: center;
-    padding: 5px 10px !important;
-    font-family: Tahoma,sans-serif;
-    font-size: 11px;
-    font-weight: bold;
-    text-shadow: #000 1px 1px 0px;
+    padding: 4px 10px !important;
+    font-family: Arial,sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    /*text-shadow: #000 1px 1px 0px;*/
 }
 
 .el_tr0 { background-color: #F0F0F0; }
 .el_tr1 { background-color: #FFFFFF; }
-.el_tr_selected { background-color: InfoBackground; }
+.el_tr_selected { background-color: @selected-row-color; }
 
 .el_data td {
-    border-right: 1px solid #000;
-    border-bottom: 1px solid #000;
+    border-right: 1px solid @border-color;
+    border-bottom: 1px solid @border-color;
     background: transparent;
     padding-left: 4px;
     padding-top: 2px;
@@ -97,7 +111,7 @@ input.el_filter {   padding: 0 5px !important;}
 }
 
 tr.el_selected {
-    background-color: #ffc !important;
+    background-color: @selected-row-color !important;
 }
 
 .el_checkbox  { text-align: center; }
