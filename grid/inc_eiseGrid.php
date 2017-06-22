@@ -194,7 +194,7 @@ function get_html($allowEdit=true){
         $strControlBar = "<div class=\"eg-controlbar\">";
         
         foreach ($arrButtons as $btn){
-            $strControlBar .= "<input type=\"button\" class=\"eg-button eg-button-{$btn}\" value=\"{$intra->translate($btn)}\">\r\n";
+            $strControlBar .= "<button class=\"eg-button eg-button-{$btn}\" type=\"button\"><i></i></button>\r\n";
         }
         
         $strControlBar .= "</div>";

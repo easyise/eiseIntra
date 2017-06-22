@@ -1,0 +1,155 @@
+.eiseList {
+    width: 100%;
+}
+
+.el_header {
+    width: 100%;
+    overflow: hidden;
+}
+
+.eiseList h1 {
+    float: left;
+    margin: 0;
+}
+
+.el_foundRows {
+    float: left;
+    display: none;
+}
+
+.el_controlBar {
+    float: right;
+}
+
+.el_controlBar input
+, .el_controlBar select {
+    width: auto;
+}
+
+.el_table {
+    max-width: 100%;
+    overflow: visible;
+    overflow-x: auto;
+    overflow-y: hidden;
+    clear: both;  
+}
+
+td.el_tdBody {
+    padding: 0 !important;
+    border: 0 !important;
+    white-space: normal !important;
+    overflow: hidden;
+    width: 100%;
+}
+
+div.el_body {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.el_table > table {
+    border-bottom: 1px solid #336;
+    table-layout: fixed;
+}
+
+.el_body > table {
+    table-layout: fixed;
+}
+
+.el_spinner {
+    float: left;
+    display: none;
+}
+.el_notfound {
+    float: left;
+    display: none;
+}
+
+.eiseList thead th
+, .eiseList thead td {
+    padding: 0;
+}
+
+.el_sortable {
+    cursor: pointer;
+}
+
+.eiseList thead input 
+, .eiseList thead select
+{
+    padding: 0;
+    border: 0;
+    margin: 0;
+    border-radius: 0;
+}
+
+.eiseList td, .eiseList th {
+    box-sizing: border-box !important;  
+    -moz-box-sizing: border-box !important;  
+    -webkit-box-sizing: border-box !important;
+}
+
+.eiseList th {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.eiseList thead input 
+, .eiseList thead select 
+{
+    width: 100%;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+tr.el_template {
+    display: none;
+}
+
+.el_data td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.el_ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.el_faux_scrollbar-wrap {
+    position: fixed;
+    z-index: 10;
+    right: 0;
+    top: 0;
+    margin: 0 -1px -1px -1px;
+}
+
+.el_faux_scrollbar-wrap {opacity:0.95; border: 0!important;}
+.el_faux_scrollbar-wrap  .ui-slider { background: none; border:0; height: 2em; margin: auto 0; }
+.el_faux_scrollbar-wrap .ui-handle-helper-parent { position: relative; width: 100%; height: 100%; margin: 0 auto; }
+.el_faux_scrollbar-wrap .ui-slider-handle {margin: 0 !important;left:0 !important; opacity: 1;}
+.el_faux_scrollbar-wrap .ui-slider-handle .ui-icon {     margin-top: -6px;    position: relative;    top: 50%; }
+
+.el_cellInput {
+    display: none;
+    border: 0 !important;
+    text-align: inherit;
+}
+
+.el_pseudotabs {
+    line-height: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.el_div_filter {
+    display: none;
+}
+
+.el_dialog_notitle .ui-dialog-titlebar {
+    display:none;
+}

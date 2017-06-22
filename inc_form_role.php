@@ -1,8 +1,6 @@
 <?php
 
-include_once(commonStuffAbsolutePath."eiseGrid2/inc_eiseGrid.php");
-$arrJS[] = commonStuffRelativePath.'eiseGrid2/eiseGrid.jQuery.js';
-$arrCSS[] = commonStuffRelativePath.'eiseGrid2/themes/default/screen.css';
+$intra->requireComponent('grid');
 
 
 if ($_POST["DataAction"]=="update"){

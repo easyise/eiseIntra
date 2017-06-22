@@ -1,5 +1,9 @@
 
-@import url(../../eiseGrid.css);
+@import (less) url("../../../grid/eiseGrid.css");
+@import (less) "../../../../images/sprites/sprite.css";
+
+@th-height: 28px;
+@table-border-radius: 6px;
 
 .eiseGrid {
     font-family: Tahoma;
@@ -9,6 +13,9 @@
     background: #ffffff;
 	font-size: 12px;
 	border-color: #eee;
+    border: 1px solid #ccc;
+    border-radius: @table-border-radius;
+    border-collapse:separate;
 }
 
 .eg-table > thead > tr > th {
@@ -18,9 +25,18 @@
     font-weight: 300; 
     text-align: center;
     padding: 0;
-    height:28px;
+    height:@th-height;
     padding-left: 2px;
     padding-right: 2px;
+
+    &:first-of-type {
+        border-top: none;
+        border-radius: @table-border-radius - 2px 0 0 0;
+    }
+    &:last-of-type {
+        border-top: none;
+        border-radius: 0 @table-border-radius - 2px 0 0;
+    }
 }
 
 .eg-container tbody.eg-data td
@@ -96,7 +112,7 @@ td.eg-ajax_dropdown input{
     text-align: center;
     padding-top: 22px;
     padding-bottom: 17px;
-    background: url("spinner.gif") no-repeat scroll center center transparent;
+    background: url("images/spinner54x55.gif") no-repeat scroll center center transparent;
     color: #000;
     text-shadow: #fff -1px -1px 0px;
     padding-left: 15px;
@@ -104,8 +120,8 @@ td.eg-ajax_dropdown input{
 }
 
 .eg-controlbar {
-    margin-bottom: -25px;
-    padding-top: 2px;
+    margin-bottom: -1 * @th-height;
+    padding-top: 3px;
     padding-left: 2px;
     margin-left: 3px;
 }
@@ -113,16 +129,15 @@ td.eg-ajax_dropdown input{
 .eg-button {
     width: 22px;
     height: 22px;
-    border-left: 1px solid #f4f4f4;
-    border-top: 1px solid #f4f4f4;
-    border-right: 1px solid #d5d5d5;
-    border-bottom: 1px solid #d5d5d5;
     border-radius: 2px;
+    border-width: 1px;
+    border-style: outset;
     background: #f0f0f0;
     color: transparent;
     overflow: hidden;
+    padding: 1px;
 }
-
+/*
 .eg-button-add {background: #f0f0f0 url(icon_add.png) center no-repeat;}
 .eg-button-delete {background: #f0f0f0 url(table_row_delete.png) center no-repeat;}
 .eg-button-edit {background: #f0f0f0 url(table_edit.png) center no-repeat;}
@@ -132,6 +147,21 @@ td.eg-ajax_dropdown input{
 .eg-button-refresh {background: #f0f0f0 url(icon_arrow_refresh.png) center no-repeat;}
 .eg-button-save {background: #f0f0f0 url(icon_save.png) center no-repeat;}
 .eg-button-refresh {background: #f0f0f0 url(icon_table_refresh.png) center no-repeat;}
+*/
+.eg-button i {
+    .ss_sprite;
+    display: block;
+}
+
+.eg-button-add i { .ss_add; }
+.eg-button-delete i { .ss_table_row_delete; }
+.eg-button-edit i { .ss_table_edit; }
+.eg-button-insert i { .ss_table_row_insert; }
+.eg-button-moveup i { .ss_arrow_up; }
+.eg-button-movedown i { .ss_arrow_down; }
+.eg-button-refresh i { .ss_arrow_refresh; }
+.eg-button-save i { .ss_table_save;}
+.eg-button-refresh i { .ss_table_refresh; }
 
 .eg-pseudotabs {
     line-height: 0 !important;

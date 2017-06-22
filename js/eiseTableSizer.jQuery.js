@@ -123,7 +123,6 @@ init: function(arg) {
 			$innerDiv = $newTBody.find('div.eits-overflow-y')
 				.css('overflow-x', 'hidden')
 				.css('overflow-y', 'scroll'); // as we cannot handle overflow event, overwlow-y should be set to SCROLL always.
-
 		}
 
 		var hBefore = $this.outerHeight();
@@ -141,6 +140,9 @@ init: function(arg) {
 
     	        	if(typeof arg.callback==='function')
     			     	arg.callback.call($this);
+
+    			    $innerDiv.css('overflow-x', 'hidden')
+						.css('overflow-y', 'scroll');
 
     			})
 	        } else {

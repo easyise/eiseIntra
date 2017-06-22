@@ -116,9 +116,6 @@ div.menubutton  {
 
 /********************************************************************/
 .eiseIntraForm  fieldset{
-    margin-left: 0.5%;
-    margin-top: 1.5em;
-    padding: 0.25% 0.25%;
     position: relative;
     z-index: 0;
 }

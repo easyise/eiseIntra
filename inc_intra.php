@@ -93,11 +93,7 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
     
     $this->oSQL = $oSQL;
 
-    if($this->conf['flagBuildLess']){
-        
-        self::buildLess();
- 
-    }   
+    self::buildLess();
 
     $this->requireComponent('base');
 
@@ -646,7 +642,7 @@ function actionMenu($arrActions = array(), $flagShowLink=false){
  */
 function requireComponent($components){
 
-    GLOBAL $arrJS, $arrCSS;
+    GLOBAL $arrJS, $arrCSS, $eiseIntraCSSTheme;
 
     if(!is_array($components))
         $components = func_get_args();
@@ -655,10 +651,9 @@ function requireComponent($components){
         switch ($componentName) {
             case 'base':
                 $arrJS[] = jQueryPath."jquery-1.6.1.min.js";
+                $arrJS[] = jQueryUIPath.'jquery-ui.min.js';
                 $arrJS[] = eiseIntraJSPath."intra.js";
                 $arrJS[] = eiseIntraJSPath."intra_execute.js";
-
-                GLOBAL $eiseIntraCSSTheme;
                 $arrCSS[] = eiseIntraCSSPath.'themes/'.$eiseIntraCSSTheme.'/style.css';
                 break;
                 
@@ -668,8 +663,6 @@ function requireComponent($components){
                 break;
 
             case 'jquery-ui':
-                $arrJS[] = jQueryUIPath.'jquery-ui.min.js';
-                array_unshift($arrCSS, jQueryUIPath.'jquery-ui.min.css');
                 break;
 
             case 'batch':
@@ -678,17 +671,14 @@ function requireComponent($components){
 
             case 'list':
                 $this->requireComponent('jquery-ui');
-                include_once(eiseListAbsolutePath."inc_eiseList.php");
-                $arrJS[] = eiseListRelativePath."eiseList.jQuery.js";
-                $arrCSS[] = eiseListRelativePath."themes/default/screen.css";
+                include_once(dirname(__FILE__)."/list/inc_eiseList.php");
+                $arrJS[] = eiseIntraRelativePath."list/eiseList.jQuery.js";
                 
                 break;
             case 'grid':
                 $this->requireComponent('jquery-ui');
                 include_once (dirname(__FILE__).'/grid/inc_eiseGrid.php');
                 $arrJS[] = eiseIntraRelativePath.'grid/eiseGrid.jQuery.js';
-                $arrCSS[] = eiseIntraRelativePath.'grid/themes/default/screen.css';
-                
                 break;
 
             default:
@@ -1912,18 +1902,31 @@ static function getKeyboardVariations($src){
  * REMEMBER TO chmod a+w to this folder!
  */
 static function buildLess(){
-    
-    require_once LessPHPPath.'Less.php';
 
-    GLOBAL $eiseIntraCSSTheme;
+    GLOBAL $eiseIntraCSSTheme, $eiseIntraFlagBuildLess;
+
+    if(!$eiseIntraFlagBuildLess)
+        return;
+    
+    require_once eiseIntraLibAbsolutePath.'less.php/Less.php';
+
+    try {
+        $strThemePath = $_SERVER['DOCUMENT_ROOT'].str_replace('/', DIRECTORY_SEPARATOR, eiseIntraCSSPath.'themes/'.$eiseIntraCSSTheme.'/');
  
-    $strThemePath = $_SERVER['DOCUMENT_ROOT'].str_replace('/', DIRECTORY_SEPARATOR, eiseIntraCSSPath.'themes/'.$eiseIntraCSSTheme.'/');
+        foreach(array('grid', 'list', 'style') as $stylesheet){
+            $parser = new Less_Parser( array( 'compress' => true ) );
+            $parser->parseFile( $strThemePath.$stylesheet.'.less' );
+            $css = $parser->getCss();
+            file_put_contents($strThemePath.$stylesheet.'.css', $css);
+        }
+
+    } catch (Exception $e) {
+        echo '<pre>';
+        echo $e->getMessage();
+        die();
+    }
  
-    $parser = new Less_Parser();
-    $parser->parseFile( $strThemePath.'style.less' );
-    $css = $parser->getCss();
- 
-    file_put_contents($strThemePath.'style.css', $css);
+    
  
 }
  
