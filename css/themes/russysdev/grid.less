@@ -1,0 +1,175 @@
+
+@import (less) url("../../../grid/eiseGrid.css");
+@import (less) "../../../../images/sprites/sprite.css";
+
+@th-height: 28px;
+@table-border-radius: 6px;
+
+.eiseGrid {
+    font-family: Tahoma;
+}
+
+.eg-table {
+    background: #ffffff;
+	font-size: 12px;
+	border-color: #eee;
+    border: 1px solid #ccc;
+    border-radius: @table-border-radius;
+    border-collapse:separate;
+}
+
+.eg-table > thead > tr > th {
+    color: #000;
+    background: #99b4d1;
+    border-color: #ccc;
+    font-weight: 300; 
+    text-align: center;
+    padding: 0;
+    height:@th-height;
+    padding-left: 2px;
+    padding-right: 2px;
+
+    &:first-of-type {
+        border-top: none;
+        border-radius: @table-border-radius - 2px 0 0 0;
+    }
+    &:last-of-type {
+        border-top: none;
+        border-radius: 0 @table-border-radius - 2px 0 0;
+    }
+}
+
+.eg-container tbody.eg-data td
+, .eg-table tfoot td
+{
+	color: #333;
+	border-color: #ddd;
+	line-height: 20px;
+}
+
+.eg-totals-caption {
+	padding-right: 2px;
+}
+
+.eg-container td > input 
+{
+	padding-left: 4px;
+	padding-right: 4px;
+}
+.eg-container tbody.eg-data td > div
+, .eg-table tfoot td
+{
+	padding-left: 4px;
+	padding-right: 4px;
+}
+
+td.eg-numeric
+, td.eg-real
+, td.eg-money
+, td.eg-numeric
+, td.eg-number
+, td.eg-double
+, td.eg-float
+, td.eg-integer
+, td.eg-int {
+    padding-right: 2px;
+}
+
+.eg-table td.eg-date input
+, .eg-table td.eg-datetime input
+, .eg-table td.eg-ajax_dropdown input
+, .eg-table td.eg-has-icon input
+{
+    padding-right: 20px; 
+}
+
+td.eg-date input, td.eg-datetime input{
+    background-image:url( "images/icon_calendar.png" );
+}
+
+td.eg-ajax_dropdown input{
+    background-image:url( "images/icon_table_link.png" );
+}
+
+.eg-selected tr {
+    background-color: rgba(128, 128, 128, 0.1);
+}
+
+.eg-updated tr td {
+    background-color: rgba(255, 255, 190, 0.5);
+}
+
+.eg-no-rows td {
+    width: 100%;
+    text-align: center;
+    padding: 20px;
+    height: 60px;
+}
+.eg-spinner td {
+    width: 100%;
+    min-height: 60px;
+    height: 60px;
+    text-align: center;
+    padding-top: 22px;
+    padding-bottom: 17px;
+    background: url("images/spinner54x55.gif") no-repeat scroll center center transparent;
+    color: #000;
+    text-shadow: #fff -1px -1px 0px;
+    padding-left: 15px;
+    padding-right: 0px;
+}
+
+.eg-controlbar {
+    margin-bottom: -1 * @th-height;
+    padding-top: 3px;
+    padding-left: 2px;
+    margin-left: 3px;
+}
+
+.eg-button {
+    width: 22px;
+    height: 22px;
+    border-radius: 2px;
+    border-width: 1px;
+    border-style: outset;
+    background: #f0f0f0;
+    color: transparent;
+    overflow: hidden;
+    padding: 1px;
+}
+/*
+.eg-button-add {background: #f0f0f0 url(icon_add.png) center no-repeat;}
+.eg-button-delete {background: #f0f0f0 url(table_row_delete.png) center no-repeat;}
+.eg-button-edit {background: #f0f0f0 url(table_edit.png) center no-repeat;}
+.eg-button-insert {background: #f0f0f0 url(icon_row_insert.png) center no-repeat;}
+.eg-button-moveup {background: #f0f0f0 url(icon_arrow_up.png) center no-repeat;}
+.eg-button-movedown {background: #f0f0f0 url(icon_arrow_down.png) center no-repeat;}
+.eg-button-refresh {background: #f0f0f0 url(icon_arrow_refresh.png) center no-repeat;}
+.eg-button-save {background: #f0f0f0 url(icon_save.png) center no-repeat;}
+.eg-button-refresh {background: #f0f0f0 url(icon_table_refresh.png) center no-repeat;}
+*/
+.eg-button i {
+    .ss_sprite;
+    display: block;
+}
+
+.eg-button-add i { .ss_add; }
+.eg-button-delete i { .ss_table_row_delete; }
+.eg-button-edit i { .ss_table_edit; }
+.eg-button-insert i { .ss_table_row_insert; }
+.eg-button-moveup i { .ss_arrow_up; }
+.eg-button-movedown i { .ss_arrow_down; }
+.eg-button-refresh i { .ss_arrow_refresh; }
+.eg-button-save i { .ss_table_save;}
+.eg-button-refresh i { .ss_table_refresh; }
+
+.eg-pseudotabs {
+    line-height: 0 !important;
+    height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.eg-3d {
+    display: none;
+}

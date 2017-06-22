@@ -1,26 +1,28 @@
 @import url(../../intra.css);
-@import url(../../../../images/sprites/sprite.css);
+@import url(../../../lib/sprites/sprite.css);
 
 body{
     font-family: Lucida Grande, Tahoma, Helvetica, sans-serif;
-    font-size: 12px;
+    font-size: 8pt;
     color: #000;
 }
 
-.ei-sidebar-menu-content {
+#toc {
     padding-top: 2px;
     padding-right: 20px;
+    font-size: 8pt;
 }
 
-.ei-sidebar-menu-content li::first-letter {
+#toc li::first-letter {
     text-transform: uppercase;
 }
 
 /********************************************************************/
 /* Header stuff                                                     */
 #corner_logo{
-	background-image: url(/common/images/yusen-logo_intra.png);
+	background-image: url("img/logo.png");
 	background-repeat: no-repeat;
+    background-size: 170px 64px;
 	height: 64px;
 	width: 170px;
 	font-size: 0;
@@ -28,22 +30,22 @@ body{
 	margin-right: 20px;
 }
 #app_title{
-    color: #006699;
-    font-family: "Arial Black",Arial,sans-serif;
-    font-size: 31px;
-    font-weight: 900;
+        color: #003300;
+    font-family: Helvetica Neue,Arial,sans-serif;
+    font-size: 50px;
+    font-weight: 100;
     height: 50px;
     left: 50%;
-    letter-spacing: 7px;
-    line-height: 27px;
-    margin: 0 -300px;
+    letter-spacing: 0;
+    line-height: 30px;
+    margin: 0 -150px;
     overflow: visible;
-    padding: 12px 0px 7px 0px;
+    padding: 12px 0 7px;
     position: absolute;
     text-align: center;
-    text-transform: uppercase;
+    text-shadow: 1px 1px 0 #9c9;
     top: 0;
-    width: 600px;
+    width: 300px;
 }
 #app_warning {
     color: #f30;
@@ -86,7 +88,7 @@ body{
 	padding-left: 18px;
     height: 18px;
     text-indent: 0;
-    color: #006699;
+    color: #363;
 }
 #languages a:link{
 	text-decoration: none;
@@ -109,15 +111,15 @@ body{
 }
 
 .lang-en {
-	background: url(/common/images/flags/PNG/gb.png) no-repeat;
+	background: url("img/gb.png") no-repeat;
 }
 
 .lang-ru {
-	background: url(/common/images/flags/PNG/ru.png) no-repeat;
+	background: url("img/ru.png") no-repeat;
 }
 
 #header {
-   background: White url(/common/images/yusen-bg_intra.png) repeat-x top;
+   background: White url("img/bg.png") repeat-x top;
 }
 /* /Header stuff                                                    */
 /********************************************************************/
@@ -138,17 +140,16 @@ body{
 /********************************************************************/
 /* Menubar stuff                                                    */
 .menubar{
-    background-color: #fff;
-    border-bottom: #fff;
+    background-color: ButtonFace;
+    border-bottom: ButtonShadow;
     font-family: Verdana, Helvetica, sans-serif;
 }
 
 div.menubutton  {
-    border-left: 1px solid #666;
-    border-top: 1px solid #666;
-    border-right: 1px solid #666;
-    border-bottom: 1px solid #666;
-    border-radius: 2px;
+    border-left: 1px solid ButtonShadow;
+    border-top: 1px solid ButtonFace;
+    border-right: 1px solid ButtonFace;
+    border-bottom: 1px solid ButtonFace;
     margin: 2px;
     min-width: 100px;
 }
@@ -163,18 +164,18 @@ div.menubutton:hover{
 
 .menubutton a {
     color: #000000;
+    font-size: 11px;
+    line-height: 16px;
+    height: 16px;
+    margin: 2px;
+    padding: 0 10px 0 24px;
+    text-decoration: none;
+    display: block;
 }
 
 .menubutton a:hover {
     color: #000000;
     text-decoration: underline;
-}
-
-.menubutton a.ei-spinner {
-    color: #999;
-    text-decoration: none;
-    background-image: url("img/spinner16x16.gif") !important;
-    background-position: 0 0;
 }
 
 .menubar div.float_right {
@@ -249,23 +250,13 @@ div.menubutton:hover{
 
 .eiseIntraForm  label{
     font-weight: bold;
-    font-size: 10px;
-    margin-top: 1px;
-    line-height: 18px;
+    font-size: 0.9em;
+    margin-top: 0.2em;
     text-align: right;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .eiseIntraForm  .eiseIntraValue{
-    font-size: 12px;
-    line-height: 20px;
-}
-
-.eiseIntraForm  .eiseIntraValue input
-, .eiseIntraForm  input.eiseIntraValue{
-    line-height: 15px;
+    font-size: 1.1em;
 }
 
 fieldset.eiseIntraSubForm  {
@@ -315,7 +306,8 @@ fieldset.eiseIntraSubForm  {
 
 div.eiseIntraField {
     background-color: #eee;
-    padding-bottom: 1px;
+    padding-top: 2px;
+    padding-bottom: 2px;
 }
 
 .eiseIntraLogStatus {
@@ -370,25 +362,17 @@ div.eiseIntraField {
 }
 
 input.eiseIntra_date, input.eiseIntra_datetime {
-    background: #fff url("/common/images/sprites/sprites.png") no-repeat right -2899px;
+    background: #fff url("../../../lib/sprites/sprites.png") no-repeat right -2899px;
     padding-right: 5px;
     padding-right: 20px;
 }
 
 .eiseIntra_ajax_dropdown {
-    background-image: url("/common/images/sprites/sprites.png");
+    background-image: url("../../../lib/sprites/sprites.png");
     background-position: right -17947px;
     background-repeat: no-repeat;
     padding-right: 20px;
 }
-
-.ei-autocomplete-href {
-    display: none;
-    width: 20px;
-    height: 20px;
-    margin-left: -40px;
-    background: transparent url('img/application_form.png') no-repeat center center;
-} 
 
 .eiseIntra_date {width: 8em !important;}   .eiseIntra_datetime {width: 14em !important;}
 
@@ -556,7 +540,7 @@ option.deleted {
 }
 
 .ei-sidebar-menu {
-    padding-top: 64px !important;
+    margin-top: 68px !important;
     font-size: 12px !important;
     font-family: Tahoma, Arial, Helvetica, sans-serif;
 }
