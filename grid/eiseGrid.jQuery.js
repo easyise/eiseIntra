@@ -1372,17 +1372,22 @@ eiseGrid.prototype.height = function(nHeight, callback){
 
     var grid = this;
 
-    var hBefore = this.div.outerHeight();
+    var hBefore = this.div.outerHeight(),
+        hBodies = 0;
 
-    if(!nHeight)
+    $.each(grid.tbodies, function(ix, tbody){
+        hBodies += $(tbody).outerHeight();
+    })
+
+    if(!nHeight || nHeight < (hBodies/grid.tbodies.length)*3 ) // if nHeight is not specified or height is less than height of 3 rows, we do nothing
         return hBefore;
 
     if(typeof($.fn.eiseTableSizer)=='undefined'){
         $.getScript(this.conf.eiseIntraRelativePath+'js/eiseTableSizer.jQuery.js', function(data, textStatus, jqxhr){
 
-                grid.height(nHeight, callback);
+            grid.height(nHeight, callback);
 
-            });
+        });
 
     } else {
 
