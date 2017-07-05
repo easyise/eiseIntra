@@ -433,6 +433,8 @@ var __attachFloatingSelect = function( $tbody ){
         var oSelect = oGrid.tbodyTemplate.find(oSelectSelector).clone();
         var oInp = $(this);
         var oInpValue = $(this).prev('input');
+        var opts = oSelect[0].options;
+
         $(this).parent('td').append(oSelect);
         
         oSelect.css('display', 'block');
@@ -442,15 +444,18 @@ var __attachFloatingSelect = function( $tbody ){
             });
 
         oSelect.width($(this).outerWidth(true)+$(this).outerHeight(true));
-        
-        oSelect.find('option').each(function(ix, option){
+
+        for(var ix=0;ix<opts.length;ix++){
+            var option = opts[ix];
             if (option.value == $(oInpValue).val())
-                oSelect[0].selectedIndex = ix;
-        });
-        
+                opts.selectedIndex = ix;
+        }
+
         oSelect.bind('change', function(){
             oInpValue.val($(this).val());
-            oInp.val($(this)[0].options[$(this)[0].options.selectedIndex].text);
+            var si = opts.selectedIndex ? opts.selectedIndex : 0;
+            if(opts[si])
+                oInp.val(opts[si].text);
             oGrid.updateRow( $tbody );
             oInp.change();
             oInpValue.change();
@@ -458,7 +463,9 @@ var __attachFloatingSelect = function( $tbody ){
          
         oSelect.bind('blur', function(){
             oInpValue.val($(this).val());
-            oInp.val($(this)[0].options[$(this)[0].options.selectedIndex].text);
+            var si = opts.selectedIndex ? opts.selectedIndex : 0;
+            if(opts[si])
+                oInp.val(opts[si].text);
             $(this).css('display', 'none');
             $(this).remove();
         });
