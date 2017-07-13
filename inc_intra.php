@@ -788,6 +788,8 @@ function batchStart(){
     header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
     header("Content-type: text/html;charset=utf-8"); // HTML
 
+    $this->flagBatch = true;
+
     ob_start();
 
     for ($i = 0; $i < ob_get_level(); $i++) { ob_end_flush(); }
@@ -1687,27 +1689,67 @@ private function getCachePreventor(){
  * user function $function_name will be called and contents of $_POST or $_GET will be passed as parameters.
  *
  * @param variant $dataAction - string or array of possible <input name=DataAction> values that $function should handle.
- * @param string $function - callback function name.
+ * @param variant $funcOrObj - callback function name or object which method should be invoked. Function should get $_POST or $_GET as first parameter.
  * 
  * @return variant value that return user function.
  */
-function dataAction($dataAction, $function=null){
+function dataAction($dataAction, $funcOrObj=null){
     
-    $newData = ($_SERVER['REQUEST_METHOD']=='POST' ? $_POST : $_GET);
+    $newData = ($_SERVER['REQUEST_METHOD']=='POST' ? $_POST : (array)$_GET);
+    $flagIsAJAX = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest');
 
-    if($function===null && is_string( $dataAction ) )
-        $function = $dataAction;
+    if($funcOrObj===null && is_string( $dataAction ) )
+        $funcOrObj = $dataAction;
 
     $dataAction = (is_array($dataAction) ? $dataAction : array($dataAction));
 
     if(in_array($newData[self::dataActionKey], $dataAction)
         && ($this->arrUsrData['FlagWrite'] || $this->arrUsrData['FlagCreate'] || $this->arrUsrData['FlagUpdate'])
-        && is_callable($function)){
-            $arrParam = func_get_args();
-            array_shift($arrParam);
-            array_shift($arrParam);
-            return call_user_func_array($function, array_merge(Array($newData), $arrParam));
-}
+        ){
+        
+        $arrParam = func_get_args();
+        array_shift($arrParam);
+        array_shift($arrParam);
+
+        if(is_callable($funcOrObj)){
+            
+            return call_user_func_array($funcOrObj, array_merge(Array($newData), $arrParam));
+
+        } elseif(is_object($funcOrObj)){
+
+            $obj = $funcOrObj;
+            $method = $newData[self::dataActionKey];
+            $ret = array();
+
+            try {
+
+                $ret = call_user_func_array(array($obj, $method), array_merge(Array($newData), $arrParam));
+                $status = ($ret===False ? '500' : 'ok');
+                $message = $obj->msgToUser;
+                $data = (array)$ret;
+                
+            } catch (Exception $e) {
+                $status = '500';
+                $message = $e->getMessage();
+                $data = array();
+            }
+
+            $message = ($status=='ok' ? '' : 'ERROR:').( $message ? $message : ($status=='ok' ? 'Data processed' : 'Error occured').sprintf(": object: %s, method: %s()", get_class($obj), $method) );
+            $redirect = $obj->redirectTo;
+
+            if($flagIsAJAX)
+                $this->json($status, $message, $data);
+
+            if($redirect)
+                $this->redirect($message, $redirect);
+            else {
+                if(!$this->flagBatch)
+                    $this->batchStart();
+                $this->batchEcho($message);
+                die();
+            }
+        }
+    }
 
 }
 
