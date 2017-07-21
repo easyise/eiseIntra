@@ -1345,11 +1345,20 @@ $.fn.eiseIntraForm = function( method ) {
 var displayMode='block';
 var $template;
 
+var _clear = function($body){
+
+    $body.find('.eif_loaded').remove();
+
+}
+
 var _fill = function($body, data, conf){
 
     $body.find('.eif_spinner').css("display", 'none');
 
     var $template = $body.find('.eif_template');
+
+    if(conf && conf['flagClear'])
+        _clear($body);
 
     if(!data || data.length==0){
         $body.find('.eif_notfound').css("display", displayMode);
@@ -1530,6 +1539,123 @@ fillTable: function(URLorObj, conf){
     }
 
     
+},
+
+initFileUpload: function(){
+
+    var $dropzone = this.find('.eif-file-dropzone')
+        , $inpFile = this.find('.eif-attachment')
+        , inpName = $inpFile.attr('name')
+        , $form = $inpFile.parents('form').first()
+        , $btnSubmit = $form.find('input[type=submit],button')
+        , $tbody = this.find('tbody')
+        , $hrefFileDelete = $tbody.find('.eif_filUnattach')
+        , formData = new FormData($form[0]);
+
+    if(!$dropzone[0] || !formData || !('draggable' in $dropzone[0]) || !('ondragstart' in $dropzone[0] && 'ondrop' in $dropzone[0]) ) {
+        $dropzone.css('display', 'none');
+        $inpFile.css('display', 'block');
+        $btnSubmit.css('display', 'block');
+        return this;
+    } else 
+        $btnSubmit.css('display', 'none');
+
+    $dropzone.click(function(){
+        $inpFile.click();
+    });
+
+    $inpFile.change (function(e) {
+        for(var i=0;i<this.files.length;i++){
+            formData.append( inpName, this.files[i] );
+        }
+        console.log(this.files);
+        _do_upload();
+    });
+
+    $dropzone[0].addEventListener('dragenter', function(e){e.preventDefault();});
+    $dropzone[0].addEventListener('dragover', function(e){e.preventDefault();});
+    $dropzone[0].addEventListener('drop', _dropped);
+
+    _init_delete();
+
+    function _dropped(e){
+        e.preventDefault();
+        var files = e.dataTransfer.files;
+
+        for(var i=0;i<files.length;i++){
+            formData.append( inpName, files[i] );
+        }
+
+        _do_upload();
+    }
+
+    function _form_reset(){
+        formData.delete( inpName );
+    }
+
+    function _init_delete(){
+        $hrefFileDelete.click(function(){
+            var $idField = $(this).find('.eif_filGUID');
+
+            if($idField[0] && confirm('Are you sure you\'d like to delete?')){
+                $.getJSON(location.pathname+'?DataAction=deleteFile&filGUID='+encodeURIComponent($idField.val())
+                    , function(response){
+                        $('body').eiseIntra('showMessage', response.message);
+                        $tbody.eiseIntraAJAX('fillTable', response.data, {flagClear: true});
+                        _init_delete();
+                    });
+            }
+        })
+    }
+
+    function _do_upload(){
+
+        $dropzone.addClass('uploading');
+
+        $.ajax({
+            url: location.pathname,  //server script to process data
+            type: 'POST',
+            xhr: function() {  // custom xhr
+                myXhr = $.ajaxSettings.xhr();
+                if(myXhr.upload){ // if upload property exists
+                    myXhr.upload.addEventListener('progress', _fileUploadProgress, false); // progressbar
+                }
+                return myXhr;
+            },
+            // Ajax events
+            success: completeHandler = function(response) {
+
+                $dropzone.removeClass('uploading');
+
+                if($tbody[0] && response.status=='ok'){
+                    $tbody.eiseIntraAJAX('fillTable', response.data, {flagClear: true});
+                    _init_delete();
+                }
+
+                $('body').eiseIntra('showMessage', response.message);
+
+                _form_reset();
+
+            },
+            error: errorHandler = function(xhr, status, text) {
+                $dropzone.removeClass('uploading');
+                $('body').eiseIntra('showMessage', status+text);
+                _form_reset();
+            },
+            // Form data
+            data: formData,
+            // Options to tell jQuery not to process data or worry about the content-type
+            cache: false,
+            contentType: false,
+            processData: false
+        }, 'json');
+    }
+
+    function _fileUploadProgress(){
+
+    }
+
+    return this;
 }
 
 }

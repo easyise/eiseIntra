@@ -581,6 +581,11 @@ div.eiseIntraComment {
     y-overflow: auto;
 }
 
+.eif-file-dropzone {
+    display: block;
+    height: 4em;
+}
+
 /**
  * /Single page classes
  */ 

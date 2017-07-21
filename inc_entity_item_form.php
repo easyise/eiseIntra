@@ -708,42 +708,7 @@ foreach($arrFil as $ix=>$rwFile){
 
 }
 
-public function getFiles(){
 
-    $oSQL = $this->oSQL;
-    $entID = $this->entID;
-    $entItemID = $this->entItemID;
-    $intra = $this->intra;
-
-    $sqlFile = "SELECT * FROM stbl_file WHERE filEntityID='$entID' AND filEntityItemID='{$entItemID}'
-    ORDER BY filInsertDate DESC";
-    $rsFile = $oSQL->do_query($sqlFile);
-
-    $arrFIL = array();
-
-    $rs = $this->oSQL->do_query($sqlFile);
-    while ($rw = $this->oSQL->fetch_array($rs)) {
-        if(!$rw['usrID']) $rw['usrName'] = $rw['filInsertBy'];
-        $fil = array(
-            'filGUID' => $rw['filGUID']
-            , 'filName' => array(
-                    'h'=>"popup_file.php?filGUID=".urlencode($rw["filGUID"])
-                    , 'v'=>$rw['filName']
-                    )
-            , 'filContentType' => $rw['filContentType']
-            , 'filLength' => $rw['filLength']
-            , 'filEditBy' => $this->intra->translate('by ').$this->intra->getUserData($rw['filInsertBy'])
-            , 'filEditDate' => date("{$this->intra->conf['dateFormat']} {$this->intra->conf['timeFormat']}"
-                , strtotime($rw["filInsertDate"]))
-            );
-        $arrFIL[] = $fil;  
-    }
-        
-    $this->oSQL->free_result($rs);
-
-    return $arrFIL;
-
-}
 
 function showFileAttachForm(){
     $entID = $this->entID;
@@ -766,7 +731,8 @@ function showFileAttachForm(){
     $strDiv .= '<input type="hidden" name="entID_Attach" id="entItemID_Attach" value="'.$this->entID.'">'."\r\n";
     $strDiv .= '<input type="hidden" name="entItemID_Attach" id="entItemID_Attach" value="'.$entItemID.'">'."\r\n";
     //$strDiv .= '<label>'.$this->intra->translate('Choose file').': </label>'."\r\n";
-    $strDiv .= '<input type="file" id="eif_attachment" name="attachment" title="'.$this->intra->translate('Choose file').'">'."\r\n";
+    $strDiv .= '<div class="eif-file-dropzone"><div class="eif-file-dropzone-title">'.$this->intra->translate('Drop files here or click to choose').'<i> </i></div><i class="eif-file-dropzone-spinner"> </i></div>';
+    $strDiv .= '<input type="file" id="eif_attachment" class="eif-attachment" name="attachment[]" multiple style="display: none;">'."\r\n";
     $strDiv .= '<input type="submit" value="Upload" id="eif_btnUpload">'."\r\n";
     $strDiv .= '</form>'."\r\n";
 
@@ -775,7 +741,7 @@ function showFileAttachForm(){
 
 function showFileList_skeleton(){
 
-    $strRes = "<div id=\"eiseIntraFileList\" title=\"".$this->intra->translate('Files')."\">\r\n";
+    $strRes = "<div id=\"eiseIntraFileList\" class=\"eif-file-dialog\" title=\"".$this->intra->translate('Files')."\">\r\n";
     
     if ($this->intra->arrUsrData['FlagWrite']){
         $strRes .= $this->showFileAttachForm();

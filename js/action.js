@@ -107,14 +107,18 @@ var fillFileListAJAX = function($form){
     var entItemID = $form.data('eiseIntraForm').entItemID;
 
     var strURL = "ajax_details.php?DataAction=getFiles&entItemID="+encodeURIComponent(entItemID)+
-        "&entID="+encodeURIComponent(entID);
+        "&entID="+encodeURIComponent(entID)
+        , fl = $('.eif-file-dialog')[0];
 
-    $('#eiseIntraFileList').dialog({
-                modal: true
-                , width: '40%'
-            })
-    .find('tbody')
-    .eiseIntraAJAX('fillTable', strURL);   
+    if( fl ){
+        $(fl.outerHTML).dialog({
+                    modal: true
+                    , width: '40%'
+                })
+        .eiseIntraAJAX('initFileUpload')
+        .find('tbody')
+        .eiseIntraAJAX('fillTable', strURL)
+    } 
 
 }
 
