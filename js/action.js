@@ -4,11 +4,17 @@ var ajaxActionURL = "ajax_details.php";
 
 var actionChoosen = function($initiator, fnCallback){
 
-    var entID = $initiator.parents('form').first().eiseIntraForm('value', 'entID');
+    var $form = $initiator.parents('form').first(),
+        entID = $form.eiseIntraForm('value', 'entID'),
+        entItemID_field = entID+'ID',
+        entItemID = $form.eiseIntraForm('value', entItemID_field)
+
         
     var actID = ( $initiator.attr('type')=='radio' ? $initiator.val() : $initiator.attr('act_id') );
 
-    var strURL = ajaxActionURL+"?DataAction=getActionDetails&actID="+encodeURIComponent(actID)+'&entID='+encodeURIComponent(entID);
+    var strURL = ajaxActionURL+"?DataAction=getActionDetails&actID="+encodeURIComponent(actID)
+        +'&entID='+encodeURIComponent(entID)
+        +'&'+entItemID_field+'='+encodeURIComponent(entItemID);
     
     var flagAutocomplete = $initiator.attr('autocomplete')==undefined ? true : false;
     
