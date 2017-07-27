@@ -29,8 +29,6 @@ static public function code($arrConfig){
         $strCode .= '$intra->requireComponent(\'grid\');'."\r\n\r\n";
     }
 
-    $strCode .= "\$DataAction  = (isset(\$_POST['DataAction']) ? \$_POST['DataAction'] : \$_GET['DataAction'] );\r\n\r\n";
-
     $strCode .= "\$grid".strtoupper($gridName)." = new eiseGrid(".($conf['flagIntra'] ? '$oSQL' : 'null')."
         , '".$gridName."'
         , array('arrPermissions' => Array('FlagWrite'=>".($conf['flagIntra'] ? "\$intra->arrUsrData['FlagWrite'])" : "true")."
@@ -101,15 +99,16 @@ static public function code($arrConfig){
         $strCode .= ");\r\n";
        
     }
-        
-        $strCode .= "\r\nswitch(\$DataAction){
-    case \"update\":
-        ";
+    
+
     if ($conf['tableName']){
-        $strCode .= "\$grid".strtoupper($gridName)."->Update();
-        ";
-    } else {
-        $strCode .= "
+        $strCode .= "\r\n\$grid".strtoupper($gridName)."".strtoupper($gridName)."->msgToUser = \$intra->translate('Data is updated');";
+        $strCode .= "\r\n\$grid".strtoupper($gridName)."->redirectTo = \$_SERVER[\"PHP_SELF\"];\r\n";
+        $strCode .= "\r\n\$intra->dataAction('update', \$grid".strtoupper($gridName).");\r\n";
+    } else
+        $strCode .= "\r\n\$DataAction = (isset(\$_POST['DataAction']) ? \$_POST['DataAction'] : \$_GET['DataAction'] );".
+        "\r\nswitch(\$DataAction){
+    case \"update\":
         foreach (\$_POST['inp_{$gridName}_updated'] as \$ix => \$flagUpdated) {
             if(!\$flagUpdated) continue;
             if (\$_POST['myGridID'][\$ix]===''){
@@ -119,9 +118,7 @@ static public function code($arrConfig){
             }
         }
 
-        ";
-    }
-    $strCode .= ($conf['flagIntra'] 
+        ".($conf['flagIntra'] 
             ? "\$intra->redirect(\"Data is updated\", \$_SERVER[\"PHP_SELF\"]);"
             : 'header("Location: {$_SERVER[\'PHP_SELF\']}"); die();'
             )."
