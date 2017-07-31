@@ -77,7 +77,7 @@ function menu($target = null){
 
     if ($arrFlags["hasEntity"]){
 
-        $strRet .= '<li id="'. 'ent-'.$dbName. '" class="open"><span class="bold">'.$this->translate('Entities').'</span>'."\r\n";
+        $strRet .= '<li id="'. 'ent-'.$dbName. '" class="open"><a href="entity_list.php"><span class="bold">'.$this->translate('Entities').'</span></a>'."\r\n";
 
         $strRet .= '<ul>'."\r\n";
     

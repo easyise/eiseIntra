@@ -272,6 +272,7 @@ $grdMX->Columns[] = Array(
    , 'field' => "actID_"
    , 'type' => "number"
    , 'width' => '30px'
+   , 'static' => true
 );
 
 $grdMX->Columns[] = Array(

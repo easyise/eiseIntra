@@ -1,15 +1,7 @@
 <?php
 include 'common/auth.php';
 
-$DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['DataAction'] );
-
-include commonStuffAbsolutePath.'eiseGrid2/inc_eiseGrid.php';
-$arrJS[] = commonStuffRelativePath.'eiseGrid2/eiseGrid.jQuery.js';
-$arrCSS[] = commonStuffRelativePath.'eiseGrid2/themes/default/screen.css';
-
-$oSQL->dbname=(isset($_POST["dbName"]) ? $_POST["dbName"] : $_GET["dbName"]);
-$oSQL->select_db($oSQL->dbname);
-$dbName = $oSQL->dbname;
+$intra->requireComponent('grid');
 
 $gridENT = new easyGrid($oSQL
         ,'ent'
@@ -33,7 +25,7 @@ $gridENT->Columns[] = Array(
         , 'type' => "text"
         , 'mandatory' => true
 //        , 'disabled' => true
-//        , 'href' => "entity_form.php?dbName=$dbName&entID=[entID]"
+        , 'href' => "entity_form.php?entID=[entID]"
 );        
 /*
 $gridENT->Columns[] = Array(
@@ -47,6 +39,7 @@ $gridENT->Columns[] = Array(
         'title' => "Title"
         , 'field' => "entTitle"
         , 'type' => "text"
+        , 'href' => "entity_form.php?entID=[entID]"
 );$gridENT->Columns[] = Array(
         'title' => "Title (Mul)"
         , 'field' => "entTitleMul"
@@ -93,15 +86,10 @@ $gridENT->Columns[] = Array(
         , 'type' => "text"
 );
 
-switch($DataAction){
-    case "update":
-        $gridENT->Update();
-        //die();
-        header("Location: ".$_SERVER["PHP_SELF"]."?dbName=$dbName");
-        break;
-    default:
-        break;
-}
+$gridENT->redirectTo = $_SERVER['PHP_SELF'];
+$gridENT->msgToUser = $intra->translate('Entities are updated');
+
+$intra->dataAction('update', $gridENT);
 
 
 $arrActions[]= Array ('title' => 'Add Row'
@@ -116,21 +104,17 @@ $(document).ready(function(){
 	$('.eiseGrid').eiseGrid();
     $('a[href=#add]').click(function(){
         $('#ent').eiseGrid('addRow');
+        return false;
     })
 });
 </script>
 
-<h1>Entities</h1>
 
-<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST">
+<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" class="eiseIntraForm">
 <input type="hidden" name="DataAction" value="update">
-<input type="hidden" name="dbName" value="<?php  echo $dbName ; ?>">
+<input type="hidden" name="dbName" value="<?php  echo $oSQL->dbname ; ?>">
 
-<div class="panel">
-<table width="100%">
-<tr>
-<td>
-
+<fieldset><legend><?php echo $intra->translate('Entities') ?></legend>
 <?php
 $sqlENT = "SELECT * FROM stbl_entity";
 $rsENT = $oSQL->do_query($sqlENT);
@@ -141,13 +125,9 @@ while ($rwENT = $oSQL->fetch_array($rsENT)){
 
 $gridENT->Execute();
 ?>
-</td>
-</tr>
-<tr>
-<td align="center"><input type="submit" value="Save"></td>
-</tr>
-</table>
-</div>
+<div style="text-align: center;"><input type="submit" value="Save" class="eiseIntraSubmit"></div>
+
+</fieldset>
 
 </form>
 <?php
