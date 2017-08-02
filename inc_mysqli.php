@@ -57,7 +57,7 @@ class eiseSQL extends mysqli{
         $this->dbhost = $dbhost;
         $this->dbuser = $dbuser;
         $this->dbpass = $dbpass;
-        $this->dbname = $dbname;
+        $this->dbname = $this->d('SELECT DATABASE()');
         $this->flagPersistent = $flagPersistent;
         $this->flagProfiling = false;
         $this->dbtype="MySQL5";

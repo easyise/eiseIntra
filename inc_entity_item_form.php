@@ -28,7 +28,7 @@ function form($arrConfig=Array()){
 <form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" id="entForm" class="eiseIntraForm">
 <input type="hidden" name="DataAction" id="DataAction" value="update">
 <input type="hidden" name="entID" id="entID" value="<?php  echo $entID ; ?>">
-<input type="hidden" name="<?php echo "{$entID}"; ?>ID" id="<?php echo "{$entID}"; ?>ID" value="<?php  echo $item["{$entID}ID"] ; ?>">
+<input type="hidden" name="<?php echo "{$entID}"; ?>ID" id="<?php echo "{$entID}"; ?>ID" value="<?php  echo $item[$this->entItemIDField] ; ?>">
 <input type="hidden" name="aclOldStatusID" id="aclOldStatusID" value="<?php  echo $item["{$entID}StatusID"] ; ?>">
 <input type="hidden" name="aclNewStatusID" id="aclNewStatusID" value="">
 <input type="hidden" name="actID" id="actID" value="">
@@ -45,7 +45,7 @@ function form($arrConfig=Array()){
 <tr>
 <td width="50%">
 
-<h1><?php  echo $item["entTitle{$this->intra->local}"]." ".$item["{$entID}ID"] ; ?>
+<h1><?php  echo $item["entTitle{$this->intra->local}"]." ".$item[$this->entItemIDField] ; ?>
 <?php  echo ($this->flagArchive ? " (".$this->intra->translate("Archive").")" : "") ; ?></h1>
 
 <?php 
@@ -484,7 +484,7 @@ function getActionLog($arrConfig = array()){
         LEFT OUTER JOIN stbl_status STA_OLD ON STA_OLD.staID=aclOldStatusID AND STA_OLD.staEntityID=actEntityID
         LEFT OUTER JOIN stbl_status STA_NEW ON STA_NEW.staID=aclOldStatusID AND STA_NEW.staEntityID=actEntityID
         LEFT OUTER JOIN stbl_user ON usrID=aclInsertBy
-      WHERE aclEntityItemID='".$this->entItemID."'".
+      WHERE aclEntityItemID='{$this->entItemID}' AND actEntityID='{$this->entID}'".
       (!$arrConfig['flagIncludeUpdate'] ? " AND aclActionID<>2" : "")
       ."
       ORDER BY aclInsertDate DESC, aclNewStatusID DESC";
@@ -897,7 +897,7 @@ public static function getBookmarks($arrDescr = array()){
                 $rwE = $oSQL->fetch_array($rsE);
                 $entID = $rwE['entID'];
                 $table = $rwE['entTable'];
-                $descr = ($arrDescr[$entID] ? $arrDescr[$entID] : "##{$entID}ID##");
+                $descr = ($arrDescr[$entID] ? $arrDescr[$entID] : "##{$this->entItemIDField}##");
                 $form = preg_replace('/^(tbl_)/', '', $table).'_form.php';
                 ?><h3><a href='#'><?php echo $rwE["entTitle{$intra->local}Mul"];?></a></h3>
                 <div>

@@ -26,6 +26,8 @@ function __construct ($oSQL, $intra, $entID) {
     $this->entID = $entID;
 
     $this->init();
+
+    $this->entItemIDField = self::getItemIDField($this->conf);
     
 }
 
@@ -77,8 +79,8 @@ private function init(){
     $this->conf['STA'] = array();
     $sqlSat = "SELECT stbl_status.*,stbl_status_attribute.*  
             FROM stbl_status_attribute 
-                INNER JOIN stbl_status ON staID=satStatusID AND satEntityID=staEntityID
-                INNER JOIN stbl_attribute ON atrID=satAttributeID AND atrFlagDeleted=0
+                RIGHT OUTER JOIN stbl_status ON staID=satStatusID AND satEntityID=staEntityID
+                LEFT OUTER JOIN stbl_attribute ON atrID=satAttributeID AND atrFlagDeleted=0
         WHERE staEntityID=".$oSQL->e($this->entID)."
         ORDER BY staID, atrOrder";
     $rsSat = $oSQL->q($sqlSat);
@@ -199,7 +201,7 @@ private function init(){
 }
 
 public static function getItemIDField($ent){
-    return $ent['entID'].'ID';
+    return ($ent['entPrefix'] ?  $ent['entPrefix'] : $ent['entID']).'ID';
 }
 
 public static function getScriptPrefix($ent){
@@ -833,7 +835,7 @@ function showActionButtons(){
         if(is_array($this->conf['STA'][$this->staID]['ACT'])){
             foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
 
-                if(count(array_intersect($this->intra->arrUsrData['roleIDs'], $rwAct['RLA']))==0)
+                if(count(array_intersect($this->intra->arrUsrData['roleIDs'], (array)$rwAct['RLA']))==0)
                     continue;
 
                 $title = $rwAct["actTitle{$this->intra->local}"];

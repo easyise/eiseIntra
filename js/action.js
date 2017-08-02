@@ -90,9 +90,9 @@ var actionButtonClick = function (oBtn, fnCallback){
     
 }
 
-var fillActionLogAJAX = function($form){
+var fillActionLogAJAX = function($form, extra_entID){
     
-    var entID = $form.data('eiseIntraForm').entID;
+    var entID = (extra_entID ?  extra_entID : $form.data('eiseIntraForm').entID);
     var entItemID = $form.data('eiseIntraForm').entItemID;
 
     var strURL = ajaxActionURL+"?DataAction=getActionLog&entItemID="+encodeURIComponent(entItemID)+
@@ -339,7 +339,8 @@ init: function( options ) {
         
         //current status title: clickable and shows history by AJAX
         $this.find('.eif_curStatusTitle').click(function(){
-            fillActionLogAJAX($this);
+            console.log(this.dataset.entID);
+            fillActionLogAJAX($this, this.dataset.entID);
         });
 
         //comments
