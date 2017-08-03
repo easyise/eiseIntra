@@ -592,7 +592,7 @@ private function showTableHeader(){
                             $sqlCombo = (
                                 preg_match("/^(svw_|vw_|tbl_|stbl_)/", $col['source'])
                                 ? ($col['source_prefix']!=""
-                                    ? "SELECT `{$col['source_prefix']}Title{$this->conf['strLocal']}` as optText, `{$col['source_prefix']}ID` as optValue FROM `{$col['source']}`"
+                                    ? "SELECT `{$col['source_prefix']}Title{$this->conf['strLocal']}` as optText{$this->conf['strLocal']}, `{$col['source_prefix']}ID` as optValue FROM `{$col['source']}`"
                                     : "SELECT * FROM `{$col['source']}`"
                                     )
                                 : $col['source']
@@ -600,7 +600,7 @@ private function showTableHeader(){
                             //echo $col['title']."\r\n";
                             $rsCombo = $oSQL->do_query($sqlCombo);
                             while ($rwCombo = $oSQL->fetch_array($rsCombo)) {
-                                $arrCombo[$rwCombo['optValue']] = $rwCombo['optText'];
+                                $arrCombo[$rwCombo['optValue']] = $rwCombo["optText{$this->conf['strLocal']}"];
                             }
                         }
                         $strTDFilter .= "<select id='cb_".$col["filter"]."' name='".$this->name."_".$col["filter"]."' class='el_filter'>\r\n";

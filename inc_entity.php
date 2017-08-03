@@ -394,44 +394,49 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
                     : "")
         ));
 
-    $lst->Columns[] = array('title' => ""
+    $lst->addColumn(array('title' => ""
             , 'field' => $entID."ID"
             , 'PK' => true
-            );
+            )
+    );
 
-    $lst->Columns[] = array('title' => "##"
+    $lst->addColumn(array('title' => "##"
             , 'field' => "phpLNums"
             , 'type' => "num"
-            );
+            )
+        );
 
     if($hasBookmarks){
         // we add hidden column
         $fieldMyItems = $lst->name."FlagMyItems";
-        $lst->Columns[] = array('field' => $fieldMyItems
+        $lst->addColumn(array('field' => $fieldMyItems
             , 'filter' => $fieldMyItems
             , 'type' => 'boolean'
             , 'sql'=> "bkmUserID='{$intra->usrID}' OR {$entID}InsertBy='{$intra->usrID}'"
-            );
+            )
+        );
     }
 
     if ( $this->intra->arrUsrData["FlagWrite"] && !in_array("ID_to_proceed", $arrExcludeCols) ){
-        $lst->Columns[] = array('title' => "sel"
+        $lst->addColumn(array('title' => "sel"
                  , 'field' => "ID_to_proceed"
                  , 'sql' => $entID."ID"
                  , "checkbox" => true
-                 );   
+                 )
+        );   
     }
          
-    $lst->Columns[] = array('title' => "Number"
+    $lst->addColumn(array('title' => "Number"
             , 'type'=>"text"
             , 'field' => $entID."Number"
             , 'sql' => $entID."ID"
             , 'filter' => $entID."ID"
             , 'order_field' => $entID."Number"
             , 'href'=> $conf["entScriptPrefix"]."_form.php?".$entID."ID=[".$entID."ID]"
-            );
+            )
+        );
     if (!in_array("staTitle", $arrExcludeCols))
-    $lst->Columns[] = array('title' => "Status"
+        $lst->addColumn(array('title' => "Status"
             , 'type'=>"combobox"
             , 'source'=>"SELECT staID AS optValue, staTitle{$strLocal} AS optText FROM stbl_status WHERE staEntityID='$entID'"
             , 'defaultText' => "All"
@@ -440,24 +445,27 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
             , 'order_field' => "staID"
             , 'width' => "100px"
             , 'nowrap' => true
-            );
+            )
+        );
     if (!in_array("aclATA", $arrExcludeCols))
-    $lst->Columns[] = array('title' => "ATA"
+        $lst->addColumn(array('title' => "ATA"
             , 'type'=>"date"
             , 'field' => "aclATA"
             , 'sql' => "IFNULL(SAC.aclATA, SAC.aclInsertDate)"
             , 'filter' => "aclATA"
             , 'order_field' => "aclATA"
-            );
+            )
+        );
     if (!in_array("actTitle", $arrExcludeCols))
-    $lst->Columns[] = array('title' => "Action"
+        $lst->addColumn(array('title' => "Action"
             , 'type'=>"text"
             , 'field' => "actTitle{$strLocal}"
             , 'sql' => "CASE WHEN LAC.aclActionPhase=1 THEN CONCAT('Started \"', actTitle, '\"') ELSE actTitlePast END"
             , 'filter' => "actTitle{$strLocal}"
             , 'order_field' => "actTitlePast{$strLocal}"
             , 'nowrap' => true
-            );
+            )
+        );
             
     
     $strFrom = "";
@@ -470,8 +478,8 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
         $lst->Columns[] = $arrAdditionalCols[$iStartAddCol];
         $iStartAddCol=$ii;
     }
-    
-    foreach($this->conf['ATR'] as $rwAtr){
+
+    foreach($this->conf['ATR'] as $atrID=>$rwAtr){
         
         if ($rwAtr["atrID"]==$entID."ID") // ID field to skip
             continue;
@@ -533,21 +541,33 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
         } else 
             $arr['type'] = "text";
        
-       $lst->Columns[] = $arr;
+        $lst->Columns[$atrID] = $arr;
        
-        // check column-after
-        for ($ii=$iStartAddCol;$ii<count($arrAdditionalCols);$ii++){
-            if ($arrAdditionalCols[$ii]['columnAfter']==$rwAtr['atrID']){
-                $lst->Columns[] = $arrAdditionalCols[$ii];
-                
-                while(isset($arrAdditionalCols[$ii+1]) && $arrAdditionalCols[$ii+1]['columnAfter']==""){
-                    $ii++;
-                    $lst->Columns[] = $arrAdditionalCols[$ii];
-                }
-            }
-            
+    }
+
+    $cols = array_keys($lst->Columns);
+    foreach($arrAdditionalCols as $col){
+        $fld = $col['field'];
+        $colAfter = $col['columnAfter'] ? $col['columnAfter'] : $fld;
+        if(!$colAfter){
+            $col['fieldInsertBefore'] = $cols[0];
+        } else {
+            $col['fieldInsertAfter'] = $colAfter;
         }
-           
+        $lst->addColumn($col);
+    }
+
+    // check column-after
+    for ($ii=$iStartAddCol;$ii<count($arrAdditionalCols);$ii++){
+        if ($arrAdditionalCols[$ii]['columnAfter']==$rwAtr['atrID']){
+            $lst->Columns[] = $arrAdditionalCols[$ii];
+            
+            while(isset($arrAdditionalCols[$ii+1]) && $arrAdditionalCols[$ii+1]['columnAfter']==""){
+                $ii++;
+                $lst->Columns[] = $arrAdditionalCols[$ii];
+            }
+        }
+        
     }
         
 
