@@ -891,9 +891,13 @@ function datePHP2SQL($dtVar, $valueIfEmpty="NULL"){
 }
 
 
-function Update($arrNewData = array(), $flagExecute = true){
+function Update($arrNewData = array(), $conf = array()){
     
     GLOBAL $usrID;
+
+    $defaultConf = array('flagOnDuplicateKeyUpdate'=>false);
+
+    $conf = array_merge($defaultConf, $conf);
 
     if (count($arrNewData)==0){
         $arrNewData = $_POST;        
@@ -931,7 +935,7 @@ function Update($arrNewData = array(), $flagExecute = true){
         
         foreach($arrTable["columns"] as $j=>$tCol) 
             if ((!$col['disabled'] || ($col['disabled'] && in_array($col['field'], $arrTable['PK'])))
-                && $col['type']!="row_id"
+                && !($col['type']=="row_id" && !$conf['flagOnDuplicateKeyUpdate'])
                 && $col['field'] == $arrTable["columns"][$j]["Field"]
                 ){
                 $arrFields[] = $col['field'];
@@ -939,7 +943,8 @@ function Update($arrNewData = array(), $flagExecute = true){
                     ? "combobox" 
                     : $arrTable["columns"][$j]['DataType']);
                 $arrValues[] = $this->getSQLValue($arrTable["columns"][$j], true);
-                $arrFieldsValues[] = $col['field'] ." = ".$this->getSQLValue($arrTable["columns"][$j], true);
+                if($col['type']!="row_id")
+                    $arrFieldsValues[] = $col['field'] ." = ".$this->getSQLValue($arrTable["columns"][$j], true);
             }
     }
     
@@ -972,32 +977,32 @@ function Update($arrNewData = array(), $flagExecute = true){
     // running thru updated
     for($i=1;$i<count($arrNewData[$pkColName]);$i++)
         if ($arrNewData["inp_".$this->name."_updated"][$i] && $arrNewData[$mndFieldName][$i]!=""){
-            if ($arrNewData[$pkColName][$i]=="") { //if inserted
-                eval("\$sql[] = \"INSERT INTO $tblName (\r\n".
+
+            eval ("\$sqlIns = \"INSERT INTO $tblName (\r\n".
                      "              ".implode("\r\n              , ", $arrFields)."\r\n".
                      "           ) VALUES (\r\n".
                      "              ".implode("\r\n              , ", $arrValues)."
-                  )\";");
-            } else { //if updated
-                eval("\$sql[] = \"UPDATE $tblName SET
+                  )".($conf['flagOnDuplicateKeyUpdate']
+                      ? "\r\nON DUPLICATE KEY UPDATE\r\n".implode("\r\n                  , ", $arrFieldsValues)
+                      : '')
+                  ."\";");
+
+            eval ("\$sqlUpd = \"UPDATE $tblName SET
                   ".implode("\r\n                  , ", $arrFieldsValues)."\r\n".
                   "           WHERE ".$this->getMultiPKCondition($arrTable['PK'], $arrNewData[$pkColName][$i])."\";");
+
+            if ($arrNewData[$pkColName][$i]=="" || $conf['flagOnDuplicateKeyUpdate']) { //if inserted
+                $sql[] = $sqlIns;
+            } else { //if updated
+                $sql[] = $sqlUpd;
             }
         }
     
-    
     for ($i=0;$i<count($sql);$i++){
-       if ($flagExecute)
-          $oSQL->do_query($sql[$i]);
-       else {
-          echo "<pre>";
-          echo $sql[$i];
-          echo "</pre>";
-       }
+        $oSQL->do_query($sql[$i]);
     }
     
-    
-    return(true);
+    return true;
 }
 
 
