@@ -1386,8 +1386,20 @@ eiseGrid.prototype.height = function(nHeight, callback){
         hBodies += $(tbody).outerHeight();
     })
 
-    if(!nHeight || nHeight < (hBodies/grid.tbodies.length)*3 ) // if nHeight is not specified or height is less than height of 3 rows, we do nothing
+    if(!nHeight)
         return hBefore;
+
+    if(typeof nHeight==='object'){
+        var obj = nHeight
+            , offsetTop = grid.div.offset().top
+            , margin = offsetTop - grid.div.parents().first().offset().top;
+        nHeight = (obj===window ? window.innerHeight : $(obj).outerHeight(true)) - offsetTop - 2*margin;
+    }
+
+    if( nHeight < (hBodies/grid.tbodies.length)*3 ) // if nHeight is not specified or height is less than height of 3 rows, we do nothing
+        return hBefore;
+
+    
 
     if(typeof($.fn.eiseTableSizer)=='undefined'){
         $.getScript(this.conf.eiseIntraRelativePath+'js/eiseTableSizer.jQuery.js', function(data, textStatus, jqxhr){
