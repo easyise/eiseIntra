@@ -897,7 +897,8 @@ public static function getBookmarks($arrDescr = array()){
                 $rwE = $oSQL->fetch_array($rsE);
                 $entID = $rwE['entID'];
                 $table = $rwE['entTable'];
-                $descr = ($arrDescr[$entID] ? $arrDescr[$entID] : "##{$this->entItemIDField}##");
+                $entItemIDField = eiseEntity::getItemIDField($rwE);
+                $descr = ($arrDescr[$entID] ? $arrDescr[$entID] : "##{$entItemIDField}##");
                 $form = preg_replace('/^(tbl_)/', '', $table).'_form.php';
                 ?><h3><a href='#'><?php echo $rwE["entTitle{$intra->local}Mul"];?></a></h3>
                 <div>
