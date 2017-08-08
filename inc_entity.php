@@ -438,7 +438,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     if (!in_array("staTitle", $arrExcludeCols))
         $lst->addColumn(array('title' => "Status"
             , 'type'=>"combobox"
-            , 'source'=>"SELECT staID AS optValue, staTitle{$strLocal} AS optText FROM stbl_status WHERE staEntityID='$entID'"
+            , 'source'=>"SELECT staID AS optValue, staTitle{$strLocal} AS optText, staTitle{$strLocal} AS optTextLocal, staFlagDeleted as optFlagDeleted FROM stbl_status WHERE staEntityID='$entID'"
             , 'defaultText' => "All"
             , 'field' => "staTitle{$strLocal}"
             , 'filter' => "staID"
