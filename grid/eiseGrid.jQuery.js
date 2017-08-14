@@ -1248,8 +1248,17 @@ eiseGrid.prototype.focus = function(oTr, strFieldName){
 eiseGrid.prototype.verifyInput = function (oTr, strFieldName) {
     
     var selector = '.'+this.id+'-'+strFieldName+' input[name="'+strFieldName+'[]"]';
-    var strValue = oTr.find(selector).first().val();
+    var $inp = oTr.find(selector).first(),
+        strValue = $inp.val();
     if (strValue!=undefined){ //input mask compliance
+
+        if(this.conf.validators){
+            var validator = this.conf.validators[strFieldName];
+            if(validator)
+                return validator.call($inp[0], strValue);
+
+        }
+        
         switch (this.conf.fields[strFieldName].type){
             case "money":
             case "numeric":
@@ -1303,10 +1312,12 @@ eiseGrid.prototype.verifyInput = function (oTr, strFieldName) {
     
 }
 
-eiseGrid.prototype.verify = function(){
+eiseGrid.prototype.verify = function( options ){
     
     var oGrid = this;
     var flagError = false;
+
+    $.extend(oGrid.conf, options);
     
     this.tableContainer.find('.eg-data').each(function(){ // y-iterations
         var oTr = $(this);
@@ -1771,13 +1782,13 @@ validateInput: function ($tr, strField){
     return this;
 },
 
-validate: function(){
+validate: function( options ){
     //Validates entire contents of eiseGrids matching selectors. Returns true if all data in all grids is valid
     var flagOK = true;
     this.each(function(){
 
         var grid = $(this).data('eiseGrid').eiseGrid;
-        flagOK = flagOK && grid.verify();
+        flagOK = flagOK && grid.verify( options );
 
     });
 

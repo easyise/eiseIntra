@@ -692,21 +692,26 @@ init: function( options ) {
     });
 },
 
-validate: function( ) {
+/** 
+ * options can bu used here to set validation callback functions (validators)
+ */
+validate: function( options ) {
     
     if ($(this).find('#DataAction')=='delete')
         return true;
     
     var canSubmit = true,
-        conf = $(this).data('eiseIntraForm').conf,
+        conf = $.extend( $(this).data('eiseIntraForm').conf, options ),
         $this = $(this);
     
     getAllInputs($this).each(function() {
 
         var strValue = $(this).val()
-            ,strType = getInputType($(this))
-            ,strRegExDateToUse = ''
-            ,$inpToCheck=$(this);
+            , strType = getInputType($(this))
+            , strRegExDateToUse = ''
+            , $inpToCheck=$(this)
+            , inpName = this.id
+            , validator = conf.validators[inpName];
 
         if ($inpToCheck.attr('required')==='required'){
             if ($inpToCheck.val()===""){
@@ -715,6 +720,10 @@ validate: function( ) {
                 canSubmit = false;
                 return false; //break;
             }
+        }
+
+        if(validator){
+            canSubmit = validator.call(this, strValue)
         }
         
         switch (strType){
