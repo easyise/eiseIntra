@@ -711,7 +711,7 @@ validate: function( options ) {
             , strRegExDateToUse = ''
             , $inpToCheck=$(this)
             , inpName = this.id
-            , validator = conf.validators[inpName];
+            , validator = (conf.validators ? conf.validators[inpName] : null);
 
         if ($inpToCheck.attr('required')==='required'){
             if ($inpToCheck.val()===""){
