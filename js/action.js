@@ -107,27 +107,6 @@ var fillActionLogAJAX = function($form, extra_entID){
 
 }
 
-var fillFileListAJAX = function($form){
-
-    var entID = $form.data('eiseIntraForm').entID;
-    var entItemID = $form.data('eiseIntraForm').entItemID;
-
-    var strURL = "ajax_details.php?DataAction=getFiles&entItemID="+encodeURIComponent(entItemID)+
-        "&entID="+encodeURIComponent(entID)
-        , fl = $('.eif-file-dialog')[0];
-
-    if( fl ){
-        $(fl.outerHTML).dialog({
-                    modal: true
-                    , width: '40%'
-                })
-        .eiseIntraAJAX('initFileUpload')
-        .find('tbody')
-        .eiseIntraAJAX('fillTable', strURL)
-    } 
-
-}
-
 var showMessages = function($form){
 
     var entID = $form.data('eiseIntraForm').entID;
@@ -546,8 +525,26 @@ commentRemove: function(options){
     });
 },
 
-fillFileListAJAX: function(){
-    return fillFileListAJAX(this);
+fillFileListAJAX: function(conf){
+
+    var $form = this, 
+        entID = $form.data('eiseIntraForm').entID,
+        entItemID = $form.data('eiseIntraForm').entItemID;
+
+    var strURL = "ajax_details.php?DataAction=getFiles&entItemID="+encodeURIComponent(entItemID)+
+        "&entID="+encodeURIComponent(entID)
+        , fl = $('.eif-file-dialog')[0];
+
+    if( fl ){
+        $(fl.outerHTML).dialog({
+                    modal: true
+                    , width: (conf && conf.width ? conf.width : '500px')
+                })
+        .eiseIntraAJAX('initFileUpload')
+        .find('tbody')
+        .eiseIntraAJAX('fillTable', strURL, conf)
+    }
+
 },
 
 showMessages: function(){

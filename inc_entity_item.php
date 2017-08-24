@@ -1514,6 +1514,10 @@ public function getFiles(){
     $arrFIL = array();
 
     $rs = $this->oSQL->do_query($sqlFile);
+
+    return $this->intra->result2JSON($rs, array('arrHref'=>array('filName'=>'popup_file.php?filGUID=[filGUID]')));
+
+
     while ($rw = $this->oSQL->fetch_array($rs)) {
         if(!$rw['usrID']) $rw['usrName'] = $rw['filInsertBy'];
         $fil = array(

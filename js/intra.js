@@ -1386,7 +1386,8 @@ var _fill = function($body, data, conf){
             $.each(rw, function (field, value){
 
                 // set data
-                var v = (value && typeof(value.v)!='undefined' ? value.v : value);
+                var v = (value && typeof(value.v)!='undefined' ? value.v : value),
+                    t = (value && typeof(value.t)!='undefined' ? value.t : v);
 
                 var $elem = $subItem.find('.eif_'+field);
                 if (!$elem[0])
@@ -1411,7 +1412,9 @@ var _fill = function($body, data, conf){
                         break;
                     default:
                         if(!$elem.hasClass('eif_nofill'))
-                            $elem.html(v);
+                            $elem.html(t);
+                        if(t!=v)
+                            $elem[0].dataset['v'] = (v===null ? '' : v);
                         break;
                 }
                 
@@ -1448,7 +1451,7 @@ var _fill = function($body, data, conf){
     });
 
     if(conf && conf.afterFill)
-        conf.afterFill(data);
+        conf.afterFill.call($body[0], data);
     
 }
 
@@ -1514,6 +1517,16 @@ showSpinner: function(){
 
 }, 
 
+/**
+ * This method fills the table with data obtained from the URL as JSON or passed as array/object.
+ * Configuration object (conf) may contain callbacks to be run before fill and after it. It might be usable when you need to modify received data and/or apply CSS styles after data is filled.
+ * 
+ * @param variant URLorObj Data source URL or data as object or array.
+ * @param object conf The object that may contain two callbacks:
+ * * beforeFill(response) - this function is to be called after data is received with AJAX and before table fill. Data could be modified in any way. Parameter response is full response object according to eiseIntraAJAX specification.
+ * * afterFill(data) - this function is called after table is filled. Data parameter contains response.data object/array.
+ */
+
 fillTable: function(URLorObj, conf){
     
     var $body = this;
@@ -1532,7 +1545,7 @@ fillTable: function(URLorObj, conf){
             function(response){
 
                 if(conf && conf.beforeFill)
-                    conf.beforeFill(data);
+                    conf.beforeFill.call($body, response);
 
                 if ((response.status && response.status!='ok')
                     || response.ERROR // backward-compatibility
