@@ -580,6 +580,11 @@ div.eiseIntraComment {
     x-overflow: hidden;
     y-overflow: auto;
 }
+.ei-pane-frame {
+    height: 100%;
+    y-overflow: auto;
+    position: relative;
+}
 
 .eif-file-dropzone {
     display: block;

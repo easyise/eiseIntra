@@ -22,4 +22,4 @@ if (!$flagNoMenu) {
     echo $intra->actionMenu($arrActions, true);
 }
 ?>
-<div id="frameContent">
+<div id="frameContent" class="ei-pane-frame">

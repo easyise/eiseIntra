@@ -77,10 +77,6 @@ function eiseList(divEiseList){
         return retVal;
     }
     
-    // adjust contents div height
-    list.adjustHeight();
-    
-    
     //attach onResize event handling
     $(window).resize(function(){
         
@@ -153,7 +149,36 @@ function eiseList(divEiseList){
     });
 
     //tabs
-    var selectedTab = '';
+    this.div.find('#'+list.id+'_tabs').tabs({
+            activate: function(event, ui){
+                var href = ui.newTab.find('a').attr('href');
+                var ValKey = href.replace('#'+list.id+'_tabs_', '');
+                list.filterByTab(ValKey);
+            }
+        });
+
+
+
+    var selectedTab = this.initTabs();
+    
+
+    // set minimal list column width while data not loaded
+    this.setMinimalColumnWidth();
+
+    // aquire data
+    if(selectedTab=='')
+        this.getData(0,null,true);
+
+}
+
+/**
+ * In addidiion to $.ui.tabs() initialization, this method looks for any occurance of tab-based keys in the list filters. In case when it's foud it returns selected tab title.
+ */
+eiseList.prototype.initTabs = function(){
+    
+    var selectedTab = '',
+        list = this;
+
     this.div.find('#'+list.id+'_tabs').each(function(){
         
         var $tabs = $(this);
@@ -189,27 +214,14 @@ function eiseList(divEiseList){
         if(selectedTab=='')
             selectedTabIx = tabAnyIx;
 
-        $(this).tabs({
-            active: selectedTabIx
-            , activate: function(event, ui){
-                var href = ui.newTab.find('a').attr('href');
-                var ValKey = href.replace('#'+list.id+'_tabs_', '');
-                list.filterByTab(ValKey);
-            }
-        });
+        $(this).tabs({ active: selectedTabIx });
 
         if(selectedTab!='')
             list.filterByTab(selectedTab);
 
     });
 
-    // set minimal list column width while data not loaded
-    this.setMinimalColumnWidth();
-
-    // aquire data
-    if(selectedTab=='')
-        this.getData(0,null,true);
-
+    return selectedTab;
 }
 
 eiseList.prototype.filterByTab = function(IDfilter){
@@ -236,18 +248,25 @@ eiseList.prototype.filterByTab = function(IDfilter){
 
 }
 
+/**
+ * This method adjusts list height in the following way: it takes all the rest of parent element including its bottom padding (and in case of "box-model: border-box", the border)
+ * So in perfect condition the parent element should be the container that holds the list entirely, without any other elements. Existance of any block elements after $list->Execute() call will break its display.
+ */
 eiseList.prototype.adjustHeight = function(){
 
-    var offsetTop = this.div.offset().top;
-    var initialListHeight = this.div.outerHeight(true);
-    var offsetBottom = $(document).height() - initialListHeight - offsetTop;
+    var offsetTop = this.div.offset().top,
+        $parent = this.div.parent(),
+        parentHeight = $parent.outerHeight(),
+        initialListH = this.div.height(),
+        initialTableH = this.divTable.height(),
+        initialListHeight = this.div.outerHeight(true),
+        initialTableHeight = this.divTable.outerHeight(true),
+        newListH = parentHeight-offsetTop,
+        deltaH = newListH-initialListH,
+        newTableH = initialTableH + deltaH;
 
-    // we need to shrink/stretch list table (this.divTable) to fit viewport size
-    var viewportDelta = $(window).height() - ($(document).height()-offsetBottom); // if negative - shrink , positive - stretch
-
-    //console.log(this.divTable.height(),' + (',viewportDelta,'=', $(window).height(), ' - ', $(document).height(), '), offsetBottom=', offsetBottom)
-
-    this.divTableHeight = this.divTable.height() + viewportDelta;
+    //this.div.height(newListH);
+    this.divTableHeight = newTableH;
     this.divTable.height(this.divTableHeight);
 
     this.bodyHeight = this.divTableHeight - this.thead.outerHeight(true) - this.tfoot.outerHeight(true);
