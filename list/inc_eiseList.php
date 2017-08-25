@@ -626,7 +626,7 @@ private function showTableHeader(){
                                     $strFilterBoxHTML = '<div class="el_textarea"><textarea></textarea></div>';
                                     break;
                             }
-                            $strFilterBoxHTML = '<div id="flt_'.$this->name.'_'.$col['field'].'" class="el_div_filter_'.$fltType.' el_div_filter">'
+                            $strFilterBoxHTML = '<div id="flt_'.$this->name.'_'.$col['filter'].'" class="el_div_filter_'.$fltType.' el_div_filter">'
                                 .'<span class="ui-helper-hidden-accessible"><input type="text"></span>'
                                 .$strFilterBoxHTML
                                 .'<div class="el_filter_buttons">'
@@ -700,9 +700,8 @@ private function showFieldChooser(){
     $jj=1;
     
     $nElementsInColumn = $this->nCols/2;
-    for ($i=0; $i<Count($this->Columns); $i++)
-        if (!in_array($this->Columns[$i]["title"], Array("", "##")) && $this->Columns[$i]["href"]==""){
-            $cl = $this->Columns[$i];
+    foreach($this->Columns as $cl){
+        if ( !in_array($cl["title"], Array("", "##")) && $cl["href"]=="" ){
             $id = "flc_".$this->name."_".$cl["field"]."";
             $strOut .= "<input type=\"checkbox\" name=\"{$id}\" id=\"{$id}\" style=\"width:auto;\"".
                 (in_array($cl["field"], $this->arrHiddenCols) ? "" : " checked").">";
@@ -711,7 +710,8 @@ private function showFieldChooser(){
                 $strOut .= "</td><td>\r\n";
             $jj++;
         }
-    
+    }
+
     $strOut = "<div><table><tbody><tr><td>{$strOut}</td></tr></tbody></table></div>";
     
     return $strOut;

@@ -274,6 +274,11 @@ eiseList.prototype.adjustHeight = function(){
 
 }
 
+/**
+ * Returns system scrollbar width. If there're no constant scrollbars in the system it returns 0.
+ *
+ * @return int
+ */
 eiseList.prototype.getScrollWidth = function(){
     
     if (this.systemScrollWidth==null){
@@ -294,6 +299,11 @@ eiseList.prototype.getScrollWidth = function(){
     return   this.systemScrollWidth;
 }
 
+/**
+ * This method makes query string basing on filter/sort inputs in the upper 'form' section of the list. Difference from serizalize() is that it skips some elements like DataAction, button, checkboxes, etc
+ *
+ * @return string 
+ */ 
 eiseList.prototype.getQueryString = function(){
     
     var strARG = "";
@@ -318,6 +328,15 @@ eiseList.prototype.getQueryString = function(){
     return strARG;
 }
 
+/**
+ * One of the basic internal methods of list. It queries data JSON from the server and fills in the table. For performance optimization eiseList caches query on the server side in the $_SESSION. When it retrieves next portion of data on scroll it queries only data offset and number of records to be retrieved. In order to avoid multiple queries it sets list property transferInProgress in True state.
+ * 
+ * @param int iOffset Offset of the first record to be obtained (0 for the first record)
+ * @param int recordCount Number of records to be retrieved
+ * @param boolean flagResetCache If true it says to the server side to drop cached data and prevents client side caching.
+ * @param callback The function to be called after data is retrieved and placed.
+ *
+ */
 eiseList.prototype.getData = function(iOffset, recordCount, flagResetCache, callback){
     
     var list = this;
@@ -436,6 +455,9 @@ eiseList.prototype.getData = function(iOffset, recordCount, flagResetCache, call
     
 }
 
+/**
+ * This method updates on the screen total number of rows found by the query.
+ */
 eiseList.prototype.showFoundRows = function(){
     var list = this;
     if(list.nTotalRows){
@@ -758,8 +780,7 @@ eiseList.prototype.reset = function (){
     
     var list = this;
 
-    // requires jQuery!
-    this.form.find(".el_filter").each( function(idx, oInp){
+     this.form.find(".el_filter").each( function(idx, oInp){
         switch(oInp.nodeName){
             case "SELECT":
                 if (oInp.name.replace(list.id+"_", "")=="staID"){
@@ -936,7 +957,7 @@ eiseList.prototype.initSpecialFilter = function(initiator) {
     var field = $initiator.attr('name').replace(list.id+'_', '');
     var $divFilterDropdown = $('div#flt_'+$initiator.attr('name'));
 
-    if(typeof($divFilterDropdown)=='undefined')
+    if(!$divFilterDropdown[0])
         return;
 
     var dialogOptions = {
@@ -1050,18 +1071,24 @@ eiseList.prototype.initSpecialFilter = function(initiator) {
             break;
     }
 
-    $initiator.click(function(){
-        if ( $divFilterDropdown.dialog('isOpen') )
-            $divFilterDropdown.dialog('close');
-        else {
-            $.each(list.divFilterDropdowns, function(k, $d){ 
-                $d.dialog('close'); }); // close all open lists
-            $divFilterDropdown.dialog('open');
-            if($textarea){
-                $textarea.height( $divFilterDropdown.height() - $divFilterDropdown.find('.el_btn_filter_apply').height() );
+
+    $initiator
+        .attr('autocomplete', 'off')
+        .click(function(ev){
+            if ( $divFilterDropdown.dialog('isOpen') )
+                $divFilterDropdown.dialog('close');
+            else {
+                if(ev.shiftKey){
+                    $.each(list.divFilterDropdowns, function(k, $d){ 
+                        $d.dialog('close'); }); // close all open lists
+                    $divFilterDropdown.dialog('open');
+                    if($textarea){
+                        $textarea.height( $divFilterDropdown.height() - $divFilterDropdown.find('.el_btn_filter_apply').height() );
+                    }    
+                }
+                
             }
-        }
-    })
+        })
 
 
     $divFilterDropdown.find('.el_btn_filter_clear').click(function(){
