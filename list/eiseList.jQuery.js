@@ -1052,7 +1052,9 @@ eiseList.prototype.initSpecialFilter = function(initiator) {
 
             $textarea.val(valToSet);
 
-            $divFilterDropdown.dialog($.extend(dialogOptions, {height: 200}));
+            $divFilterDropdown.dialog($.extend(dialogOptions, {height: 'auto'}));
+
+            console.log($.extend(dialogOptions, {height: 220}))
 
             $divFilterDropdown.find('.el_btn_filter_apply').click(function(){
                 
