@@ -71,22 +71,12 @@ function eiseGrid(gridDIV){
 
     this.initLinesStructure();
 
-    return;
-
-    
-    
-    
-
-    
-
-    
-
     //tabs 3d
     this.div.find('#'+this.id+'-tabs3d').each(function(){
         oGrid.selectedTab = document.cookie.replace(new RegExp("(?:(?:^|.*;\\s*)"+oGrid.conf.Tabs3DCookieName+"\\s*\\=\\s*([^;]*).*$)|^.*$"), "$1");
 
         $(this).find('a').each(function(ix, obj){
-            var tabID = $(obj).attr('href').replace('#'+oGrid.id+'_tabs3d_', '');
+            var tabID = $(obj).attr('href').replace('#'+oGrid.id+'-tabs3d-', '');
             oGrid.arrTabs[ix] = tabID;
             if (tabID==oGrid.selectedTab){
                 oGrid.selectedTabIx = ix;
@@ -99,11 +89,11 @@ function eiseGrid(gridDIV){
             active: oGrid.selectedTabIx
             , selected: oGrid.selectedTabIx
             , activate: function(event, ui){
-                var ID = ui.newPanel[0].id.replace(oGrid.id+'_tabs3d_', '');
+                var ID = ui.newPanel[0].id.replace(oGrid.id+'-tabs3d-', '');
                 oGrid.sliceByTab3d(ID);
             }
             , select: function(event, ui){
-                var ID = ui.panel.id.replace(oGrid.id+'_tabs3d_', '');
+                var ID = ui.panel.id.replace(oGrid.id+'-tabs3d-', '');
                 oGrid.sliceByTab3d(ID);
             }
         });
@@ -1381,8 +1371,8 @@ eiseGrid.prototype.sliceByTab3d = function(ID){
     })
 
     //eg_3d eg_3d_20DC
-    this.tbody.find('td .eg_3d').css('display', 'none');
-    this.tbody.find('td .eg_3d_'+ID).css('display', 'block');
+    this.tableContainer.find('td .eg-3d').css('display', 'none');
+    this.tableContainer.find('td .eg-3d-'+ID).css('display', 'block');
 
 }
 

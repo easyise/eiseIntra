@@ -212,8 +212,9 @@ function get_html($allowEdit=true){
         }
         $htmlTabs .= "</ul>\r\n";
         foreach($this->Tabs3D as $ix=>$tab){
-            $htmlTabs .= "<div id=\"{$this->name}-tabs3d_{$tab['ID']}\" class=\"eg_pseudotabs\"></div>\r\n"; 
+            $htmlTabs .= "<div id=\"{$this->name}-tabs3d-{$tab['ID']}\" class=\"eg-pseudotabs\"></div>\r\n"; 
         }
+        $htmlTabs .= "</div>\r\n";
     }
 
     /**
@@ -399,7 +400,7 @@ function get_html($allowEdit=true){
     $strRet .= '<colgroup>'.$strCols.'</colgroup>'."\r\n";
 
     $strRet .= '<thead>'
-        .($htmlTabs ? '<tr class="eg_tabs"><td colspan="'.count($this->visibleColumns).'">'.$htmlTabs.'</td></td></tr>' : '')
+        .($htmlTabs ? '<tr class="eg_tabs"><td colspan="'.count($this->visibleColumns).'">'.$htmlTabs.'</td></tr>' : '')
         .$strHead
         ."</thead>\r\n";
 
@@ -507,11 +508,6 @@ function get_html($allowEdit=true){
         , 'spans' => $this->arrSpans)
     ));
     $strRet .= "<input type=\"hidden\" id=\"inp_".$this->name."_config\" value=\"".htmlspecialchars($jsonConfig)."\">";
-    
-    if(count($this->Tabs3D)>0){
-        $strRet .= "</div>\r\n";        
-    }
-
     
     $strRet .= "</div>\r\n";
     
@@ -642,7 +638,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
         $_field = ($suffix ? $field."[{$suffix}]" : $field);
         $_textfield = ($suffix ? $field."_text[{$suffix}]" : $field.'_text');
         $_checkfield = ($suffix ? $field."_chk[{$suffix}]" : $field.'_chk');
-        $classStr = ($suffix ? "eg_3d eg_3d_{$suffix}" : '');
+        $classStr = ($suffix ? "eg-3d eg-3d-{$suffix}" : '');
         $classAttr = ($suffix ? ' class="'.$classStr.'"' : '');
 
         //pre-format value
