@@ -254,16 +254,19 @@ eiseList.prototype.filterByTab = function(IDfilter){
  */
 eiseList.prototype.adjustHeight = function(){
 
-    var offsetTop = this.div.offset().top,
+    var offsetTop = this.div.position().top,
         $parent = this.div.parent(),
         parentHeight = $parent.outerHeight(),
         initialListH = this.div.height(),
         initialTableH = this.divTable.height(),
         initialListHeight = this.div.outerHeight(true),
         initialTableHeight = this.divTable.outerHeight(true),
-        newListH = parentHeight-offsetTop,
+        parentPaddingBottom = parseFloat($parent.css('padding-bottom').replace('px', ''))
+        newListH = parentHeight-offsetTop-parentPaddingBottom,
         deltaH = newListH-initialListH,
         newTableH = initialTableH + deltaH;
+
+    //return;
 
     //this.div.height(newListH);
     this.divTableHeight = newTableH;
@@ -1053,8 +1056,6 @@ eiseList.prototype.initSpecialFilter = function(initiator) {
             $textarea.val(valToSet);
 
             $divFilterDropdown.dialog($.extend(dialogOptions, {height: 'auto'}));
-
-            console.log($.extend(dialogOptions, {height: 220}))
 
             $divFilterDropdown.find('.el_btn_filter_apply').click(function(){
                 
