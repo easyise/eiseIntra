@@ -14,6 +14,7 @@
 include "inc_config.php";
 include "inc_mysqli.php";
 include "inc_intra_data.php";
+include "inc_item.php";
 
 class eiseIntra extends eiseIntraData {
 
@@ -1324,7 +1325,7 @@ function showButton($name, $value, $arrConfig=array()){
     if($arrConfig['type']=='submit'){
         $strRet = '<input type="submit"'
             .($strName!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
-            .' class="eiseIntraActionSubmit'.($strClass!='' ? ' ' : '').$strClass.'"'
+            .' class="eiseIntraSubmit'.($strClass!='' ? ' ' : '').$strClass.'"'
             .(!$flagWrite ? ' disabled' : '')
             .' value="'.htmlspecialchars($value).'">';
     } else {
