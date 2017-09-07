@@ -420,7 +420,7 @@ class eiseSQL extends mysqli{
         foreach($arrPK as $pk){
             $strPKVars .= "\${$pk}  = (isset(\$_POST['{$pk}']) ? \$_POST['{$pk}'] : \$_GET['{$pk}'] );\r\n";
             $strPKCond .= ($strPKCond!="" ? " AND " : "")."`{$pk}` = \".".(
-                    in_array($arrCols["DataType"], Array("integer", "boolean"))
+                    in_array($arrCols[$pk]["PKDataType"], Array("integer", "boolean"))
                     ? "(int)(\${$pk})"
                     : "\$oSQL->e(\${$pk})"
                 ).".\"";
