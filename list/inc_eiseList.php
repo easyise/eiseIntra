@@ -439,7 +439,11 @@ foreach ($this->Columns as $col) {
  ?>
 
 <div class="el_header">
-<h1><?php echo htmlspecialchars($this->conf["title"]); ?></h1>
+<h1><?php echo htmlspecialchars($this->conf["title"]); ?>
+<?php if ($this->conf['subtitle']): ?>
+<small><?php echo htmlspecialchars($this->conf['subtitle']) ?></small>
+<?php endif ?>
+</h1>
 <div class="el_foundRows">(<span class="el_span_foundRows"></span>)</div>
 <div class="el_controlBar">
 
@@ -452,27 +456,7 @@ if (in_array('btnOpenInExcel', $arrButtons) && !$this->conf["flagNoExcel"] ){ ?>
 if (in_array('btnReset', $arrButtons)) {?><input type="button" value="Reset" id="btnReset"><?php } ?>
 </div>
 </div>
-<?php 
-$strTabs = '';
-if (count($this->Tabs) > 0){
-    $strTabs .= "<div id=\"{$this->name}_tabs\">\n";
-    $strTabs .= "<ul>\n";
-    $strPseudoTabs = '';
-    foreach($this->Tabs as $ix=>$tab){
 
-        $tabId = "{$this->name}_tabs_".urlencode(
-            $tab['value'] === null
-            ? $this->conf['isNullFilterValue']
-            : $tab['value']
-            )."|{$tab['filter']}";
-        $strTabs .= "<li><a href=\"#{$tabId}\">{$tab['title']}</a></li>\r\n"; 
-        $strPseudoTabs .=  "<div id=\"{$tabId}\" class=\"el_pseudotabs\"></div>\r\n"; 
-    }
-    $strTabs .= "</ul>\r\n";
-    $strTabs .= $strPseudoTabs;
-}
-echo $strTabs;
- ?>
 <div class="el_table">
 <table>
 <?php  echo $this->showTableHeader(); ?>
@@ -515,7 +499,8 @@ if ($this->flagHasAggregate) {
  ?>
 </table>
 <?php 
-if (count($this->Tabs) > 0){
+if(false){
+//if (count($this->Tabs) > 0){
     echo '</div>';
 }
  ?>
@@ -537,7 +522,26 @@ private function showTableHeader(){
     
     $oSQL = $this->oSQL;
     
-    $strOut = "<thead>";
+    $htmlTabs = '';
+    if (count($this->Tabs) > 0){
+        $htmlTabs .= "<div id=\"{$this->name}_tabs\" class=\"el-tabs\">\n";
+        $htmlTabs .= "<ul>\n";
+        $strPseudoTabs = '';
+        foreach($this->Tabs as $ix=>$tab){
+
+            $tabId = "{$this->name}_tabs_".urlencode(
+                $tab['value'] === null
+                ? $this->conf['isNullFilterValue']
+                : $tab['value']
+                )."|{$tab['filter']}";
+            $htmlTabs .= "<li><a href=\"#{$tabId}\">{$tab['title']}</a></li>\r\n"; 
+            $strPseudoTabs .=  "<div id=\"{$tabId}\" class=\"el_pseudotabs\"></div>\r\n"; 
+        }
+        $htmlTabs .= "</ul>\r\n";
+        $htmlTabs .= $strPseudoTabs;
+        $htmlTabs .= '</div>';
+
+    }
     
     $this->nCols = 0;
 
@@ -659,8 +663,13 @@ private function showTableHeader(){
         $this->nCols++;
         
     }
+
+    $htmlTabs = ($htmlTabs ? '<tr class="el-tr-tabs"><td class="el-tabs-container" colspan="'.(int)$this->nCols.'">'.$htmlTabs.'</td></tr>'."\n" : '');
     
-    $strOut = "\n<colgroup>{$this->cols}</colgroup><thead>\n<tr>{$firstRow}</tr>\n<tr>{$secondRow}</tr>\n</thead>";
+    $strOut .= "\n<colgroup>{$this->cols}</colgroup>\n".
+        "<thead>\n"
+        .$htmlTabs
+        ."<tr class=\"el-tr-titles\">{$firstRow}</tr>\n<tr class=\"el-tr-filters\">{$secondRow}</tr>\n</thead>";
     
     return $strOut;
 
@@ -798,11 +807,14 @@ private function handleInput(){
         if ($col["filter"]) {
 
             foreach((array)$this->Tabs as $ix=>$tab){
-                if($tab['filter']==$col['filter'])
+                if($tab['filter']==$col['filter']){
                     $col['exactMatch'] = true;
+                    $col['tabsFilter'] = true;
+                    break;
+                }
             }
 
-            if( ($filterValue = $this->getFilterValue($col['filter']))!=='' ){
+            if( ($filterValue = $this->getFilterValue($col['filter']))!=='' || ($col['exactMatch'] && !$col['tabsFilter']) ){
                 $col['filterValue'] = $filterValue;
                 $this->flagFiltersSet = true;
             }
@@ -936,7 +948,7 @@ private function composeSQL(){
                     $col['tableAlias'] = "t_{$col['field']}";
                     $sqlJoin = " LEFT OUTER JOIN {$col['source']} {$col['tableAlias']} ON {$col['field']}={$col['tableAlias']}.{$col['idField']}\r\n";
 
-                    if(!($col["filterValue"]=="" && !$col['exactMatch'])){
+                    if(!($col["filterValue"]=="" && !($col['exactMatch'] && !$col['tabsFilter']) ) ){
                         $this->sqlFrom .= $sqlJoin;
                         $this->sqlFromAggregate.= $sqlJoin;
                         $sqlTextField = "{$col['tableAlias']}.{$col['textField']}";
@@ -1053,9 +1065,10 @@ private function composeSQL(){
 private function getSearchCondition(&$col){
      
     $oSQL = $this->oSQL;
-    
+
     // if filter value is empty and column is not 'exact match' filter
-    if ($col["filterValue"]=="" && !$col['exactMatch'])
+    if ( $col["filterValue"]=="" 
+        && !($col['exactMatch'] && !$col['tabsFilter']) )
         return "";
 
     $col['searchExpression'] = ($col['filter'] == $col['field']
@@ -1169,9 +1182,9 @@ private function getSearchCondition(&$col){
         default:
             $strCondition = " ".$col['searchExpression']." = ".$this->oSQL->escape_string($strFlt);
             break;
-     }
+    }
 
-     return $strCondition;
+    return $strCondition;
 
 }
 

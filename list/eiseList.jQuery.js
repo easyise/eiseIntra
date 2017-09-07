@@ -35,6 +35,7 @@ function eiseList(divEiseList){
     
     list.div = divEiseList;
     list.form = divEiseList.find('form');
+    list.parent = this.div.parent();
     list.header = list.div.find('.el_header');
     list.divTable = list.div.find('.el_table');
     list.mainTable = list.div.find('.el_table > table');
@@ -65,34 +66,22 @@ function eiseList(divEiseList){
     list.currentOffset = 0;
     
     list.transferInProgress = false;
-    
-    list.getFieldName = function(cell){
-        var arrClass = $(cell).attr('class').split(/\s+/)
-            , retVal = false;
-        $.each(arrClass, function(ix, strClass){
-            if(strClass.match(new RegExp('^'+list.id+'\_')) ) {
-                retVal = strClass.replace(list.id+'_', '');
+
+    // Init tabs, if any
+    this.div.find('#'+list.id+'_tabs').tabs({
+            activate: function(event, ui){
+                var href = ui.newTab.find('a').attr('href');
+                var ValKey = href.replace('#'+list.id+'_tabs_', '');
+                list.filterByTab(ValKey);
             }
-        })
-        return retVal;
-    }
-    
+        });
+
+    // Fitting the list inside the container
+    list.fitContainer();
     //attach onResize event handling
     $(window).resize(function(){
         
-        //avoid stupid resource consuming by IE!11
-        var windowHeight = $(window).height();
-        var windowWidth = $(window).width();
-     
-        if (list.currentHeight == undefined || list.currentHeight != windowHeight
-            || list.currentWidth == undefined || list.currentWidth != windowWidth) {
-     
-            list.adjustColumnsWidth();
-            list.adjustHeight();
-     
-            list.currentHeight = windowHeight;
-            list.currentWidth = windowWidth;
-       }
+        list.fitContainer();
         
     });
     
@@ -148,28 +137,32 @@ function eiseList(divEiseList){
         list.toggleRowSelection(this);
     });
 
-    //tabs
-    this.div.find('#'+list.id+'_tabs').tabs({
-            activate: function(event, ui){
-                var href = ui.newTab.find('a').attr('href');
-                var ValKey = href.replace('#'+list.id+'_tabs_', '');
-                list.filterByTab(ValKey);
-            }
-        });
-
-
-
-    var selectedTab = this.initTabs();
-    
-
     // set minimal list column width while data not loaded
     this.setMinimalColumnWidth();
+
+    // "click" active tab
+    var selectedTab = this.initTabs();
 
     // aquire data
     if(selectedTab=='')
         this.getData(0,null,true);
 
 }
+
+/**
+ * This function returns cell field name basing on its class.
+ */
+eiseList.prototype.getFieldName = function(cell){
+        var arrClass = $(cell).attr('class').split(/\s+/)
+            , retVal = false;
+        $.each(arrClass, function(ix, strClass){
+            if(strClass.match(new RegExp('^'+list.id+'\_')) ) {
+                retVal = strClass.replace(list.id+'_', '');
+            }
+        })
+        return retVal;
+    }
+
 
 /**
  * In addidiion to $.ui.tabs() initialization, this method looks for any occurance of tab-based keys in the list filters. In case when it's foud it returns selected tab title.
@@ -249,30 +242,21 @@ eiseList.prototype.filterByTab = function(IDfilter){
 }
 
 /**
- * This method adjusts list height in the following way: it takes all the rest of parent element including its bottom padding (and in case of "box-model: border-box", the border)
- * So in perfect condition the parent element should be the container that holds the list entirely, without any other elements. Existance of any block elements after $list->Execute() call will break its display.
+ * This function fits list to the container
  */
-eiseList.prototype.adjustHeight = function(){
+ eiseList.prototype.fitContainer = function() {
+    var list = this,
+        offsetTop = list.div.position().top,
+        parentHeight = list.parent.outerHeight(),
+        parentPaddingBottom = parseInt(this.parent.css('padding-bottom').replace('px', ''));
 
-    var offsetTop = this.div.position().top,
-        $parent = this.div.parent(),
-        parentHeight = $parent.outerHeight(),
-        initialListH = this.div.height(),
-        initialTableH = this.divTable.height(),
-        initialListHeight = this.div.outerHeight(true),
-        initialTableHeight = this.divTable.outerHeight(true),
-        parentPaddingBottom = parseFloat($parent.css('padding-bottom').replace('px', ''))
-        newListH = parentHeight-offsetTop-parentPaddingBottom,
-        deltaH = newListH-initialListH,
-        newTableH = initialTableH + deltaH;
+    this.h = parentHeight-offsetTop-parentPaddingBottom;
+    this.div.height(this.h);
 
-    //return;
+    this.divTableHeight = this.h - this.header.outerHeight(true);
+    this.bodyHeight = this.divTableHeight - this.thead.outerHeight(true) - (this.tfoot[0] ? this.tfoot.outerHeight(true) : 0);
 
-    //this.div.height(newListH);
-    this.divTableHeight = newTableH;
     this.divTable.height(this.divTableHeight);
-
-    this.bodyHeight = this.divTableHeight - this.thead.outerHeight(true) - this.tfoot.outerHeight(true);
     this.body.height(this.bodyHeight);
 
 }
@@ -410,7 +394,6 @@ eiseList.prototype.getData = function(iOffset, recordCount, flagResetCache, call
             }
             
             list.adjustColumnsWidth();
-            list.adjustHeight();
 
             if (iOffset == 0 && list.conf.calcFoundRows!=false){
                 if(data.nTotalRows<list.conf.rowsFirstPage){
@@ -1234,7 +1217,7 @@ $.extend($.fn.eiseList, {
 })( jQuery );
 
 $(window).load(function(){
-    
+
     $('.eiseList').eiseList();
 
 });
