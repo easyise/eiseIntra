@@ -685,8 +685,8 @@ eiseList.prototype.selectRow = function(oTr){
 }
 
 
-eiseList.prototype.getFieldName = function ( oField ){
-    var arrClasses = oField.attr("class").split(/\s+/);
+eiseList.prototype.getFieldName = function ( field ){
+    var arrClasses = $(field).attr("class").split(/\s+/);
     var colID = arrClasses[0].replace(this.id+"_", "");
     return colID;
 }
@@ -836,6 +836,7 @@ eiseList.prototype.getRowSelection = function(){
 eiseList.prototype.showInput = function(cell, conf){
 
     var inpID = this.id+'_'+this.getFieldName(cell);
+
     var cellText = $(cell).text();
     
     var list = this;
