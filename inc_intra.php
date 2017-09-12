@@ -1523,11 +1523,17 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
 
-    $src = eiseIntra::confVariations($arrConfig, array('source', 'strTable'));
-    $prf = eiseIntra::confVariations($arrConfig, array('source_prefix', 'prefix', 'strPrefix'));
+    $aSource = array(
+        'table'=> eiseIntra::confVariations($arrConfig, array('source', 'strTable')),
+        'prefix'=> eiseIntra::confVariations($arrConfig, array('source_prefix', 'prefix', 'strPrefix'))
+        );
+
+    if(isset($arrConfig['extra']))
+        $aSource['extra'] = $arrConfig['extra'];
+    
     $txt = eiseIntra::confVariations($arrConfig, array('text', 'strText'));
 
-    if(!$src)
+    if(!$aSource['table'])
         throw new Exception("AJAX drop-down box has no source specified", 1);
 
 
@@ -1536,7 +1542,7 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
     $oSQL = $this->oSQL;
     
     if ($strValue!="" && $txt==""){
-        $rs = $this->getDataFromCommonViews($strValue, "", $src, $prf);
+        $rs = $this->getDataFromCommonViews($strValue, "", $aSource['table'], $aSource['prefix']);
         $rw = $oSQL->fetch_array($rs);
         $txt = $rw["optText"];
     }
@@ -1551,7 +1557,8 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
     $attr = (preg_match('/\['.preg_quote($strFieldName, '/').'\]/', $arrConfig['href']) 
                 ? 'data-href="'.htmlspecialchars($arrConfig['href']).'" '
                 : '')
-        .$arrConfig["strAttrib"]." src=\"{table:'{$src}', prefix:'{$prf}'}\" autocomplete=\"off\"";
+        .' data-source="'.htmlspecialchars(json_encode($aSource)).'"'
+        .$arrConfig["strAttrib"];
 
     $strOut .= $this->showTextBox($strFieldName."_text", $txt
             , array_merge(

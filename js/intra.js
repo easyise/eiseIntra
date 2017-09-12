@@ -598,18 +598,20 @@ init: function( options ) {
         $this.find('input.eiseIntra_ajax_dropdown').each(function(){
 
             $(this).attr('autocomplete', 'off');
+            var initComplete,
+                inp = this,
+                $inp = $(this),
+                $inpVal = $inp.prev("input"),
+                source = $.parseJSON(inp.dataset['source']),
+                href = inp.dataset['href'],
+                url = (source.scriptURL 
+                    ? source.scriptURL
+                    : 'ajax_dropdownlist.php')+
+                    '?'+
+                    'table='+(source.table ? encodeURIComponent( source.table ) : '')+
+                    (source.prefix ? '&prefix='+encodeURIComponent( source.prefix ) : '')+
+                    (source.showDeleted ? '&d='+source.showDeleted : '');
             
-            var data = $(this).attr('src');
-    		eval ("var arrData="+data+";");
-    		var table = arrData.table;
-    		var prefix = arrData.prefix;
-            var href = this.dataset.href;
-    		var url = 'ajax_dropdownlist.php?table='+table+"&prefix="+prefix+(arrData.showDeleted!=undefined ? '&d=1' : '');
-
-            var initComplete
-                , inp = this;
-            var $inpVal = $(inp).prev("input");
-
             __ajaxDropdownHref(inp, $inpVal, href);
 
             setTimeout(function(){initComplete=true;}, 1000);
@@ -627,8 +629,8 @@ init: function( options ) {
                         return;
                     }
 
-                    var extra = $(inp).attr('extra');
-                    var urlFull = url+"&q="+encodeURIComponent(request.term)+(extra!=undefined ? '&e='+encodeURIComponent(extra) : '');
+                    var extra = ($inp.attr('extra') ? $inp.attr('extra') : $.parseJSON(inp.dataset['source'])['extra']);
+                    var urlFull = url+"&q="+encodeURIComponent(request.term)+(typeof extra!== 'undefined' ? '&e='+encodeURIComponent(extra) : '');
                     
                     $.getJSON(urlFull, function(response_json){
                         
