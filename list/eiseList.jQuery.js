@@ -1,24 +1,21 @@
-/********************************************************/
-/*  
-eiseList jQuery wrapper
-
-requires jQuery UI 1.8: 
-http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js
-
-
-Published under GPL version 2 license
-(c)2005-2015 Ilya S. Eliseev ie@e-ise.com, easyise@gmail.com
-
-Contributors:
-Pencho Belneiski
-Dmitry Zakharov
-Igor Zhuravlev
-
-eiseList reference:
-http://e-ise.com/eiseList/
-
-*/
-/********************************************************/
+/**
+ * eiseList jQuery wrapper
+ * ===
+ *
+ * requires jQuery UI 1.8: 
+ * http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js
+ *
+ *
+ * Published under GPL version 2 license
+ * (c)2005-2015 Ilya S. Eliseev ie@e-ise.com, easyise@gmail.com
+ *
+ * Contributors:
+ *  - Pencho Belneiski
+ *  - Dmitry Zakharov
+ *  - Igor Zhuravlev
+ *
+ *  eiseList reference [http://russysdev.com/eiseIntra/docs/list/]()
+ */
 var eiseLists = [];
 
 (function( $ ) {
@@ -130,7 +127,10 @@ function eiseList(divEiseList){
     });
     
     this.div.find('#btnReset').click(function (){
-        list.reset();
+        var activeTabField = (list.tabsContainer[0] 
+            ? list.getActiveTab().split('|')[1] 
+            : null)
+        list.reset((activeTabField ? {'keepFilters':[activeTabField]} : {}));
     });
     
     this.div.find('.sel_'+list.id+'_all').click(function (){
@@ -154,6 +154,7 @@ function eiseList(divEiseList){
  */
 eiseList.prototype.getFieldName = function(cell){
         var arrClass = $(cell).attr('class').split(/\s+/)
+            , list = this
             , retVal = false;
         $.each(arrClass, function(ix, strClass){
             if(strClass.match(new RegExp('^'+list.id+'\_')) ) {
@@ -172,7 +173,9 @@ eiseList.prototype.initTabs = function(){
     var selectedTab = '',
         list = this;
 
-    this.div.find('#'+list.id+'_tabs').each(function(){
+    list.tabsContainer = this.div.find('#'+list.id+'_tabs')
+
+    list.tabsContainer.each(function(){
         
         var $tabs = $(this);
 
@@ -197,15 +200,18 @@ eiseList.prototype.initTabs = function(){
             if(selectedTab!=''){
                 return false; //break
             }
-                
             
-            if(tabValue=='')
+            if(tabValue==''){
                 tabAnyIx = ix;
+                tabAny = tabKeyValue
+            }
 
         });
 
-        if(selectedTab=='')
+        if(selectedTab==''){
             selectedTabIx = tabAnyIx;
+            selectedTab = tabAny;
+        }
 
         $(this).tabs({ active: selectedTabIx });
 
@@ -215,6 +221,18 @@ eiseList.prototype.initTabs = function(){
     });
 
     return selectedTab;
+}
+
+/**
+ * This method returns pipe-delimited key value and key name for tab-based field. E.g.: 123|prfTabID
+ */
+eiseList.prototype.getActiveTab = function(){
+    var list = this
+    if(list.tabsContainer[0]){
+        var ixTab = list.tabsContainer.tabs('option', 'active'),
+            a = list.tabsContainer.find('li:nth-of-type('+(ixTab+1)+') > a')
+        return a.attr('href').replace(new RegExp('^\#'+list.id+'_tabs_'), '')
+    } 
 }
 
 eiseList.prototype.filterByTab = function(IDfilter){
@@ -237,7 +255,7 @@ eiseList.prototype.filterByTab = function(IDfilter){
     } else 
         $inp.val(key); 
 
-    this.form.submit();
+    this.reset({'sort': false, 'keepFilters':[filter]})
 
 }
 
@@ -684,13 +702,6 @@ eiseList.prototype.selectRow = function(oTr){
     this.activeRow = oTr;
 }
 
-
-eiseList.prototype.getFieldName = function ( field ){
-    var arrClasses = $(field).attr("class").split(/\s+/);
-    var colID = arrClasses[0].replace(this.id+"_", "");
-    return colID;
-}
-
 eiseList.prototype.sort = function(oTHClicked){
 
     var colID = this.getFieldName(oTHClicked);
@@ -762,27 +773,48 @@ eiseList.prototype.fieldsChosen = function(){
     this.form.submit();
 }
 
-eiseList.prototype.reset = function (){
-    
-    var list = this;
+/** 
+ * This method resets list filters and/or sort order, but keeps initial selecton set by query string and tabs
+ * 
+ * @param object options - The dictionary that contains the following options:
+ * - 'sort': when true, sort field and order are subject to reset also
+ * - 'keepQueryStringFilters': when true, all fields from initial query string of this list are kept. Default: true
+ * - 'keepFilters': list (array) of field names to keep
+ * - 'reloadPage': when true, list form submits to itself. Default: false
+ */
+eiseList.prototype.reset = function (options){
 
-     this.form.find(".el_filter").each( function(idx, oInp){
-        switch(oInp.nodeName){
-            case "SELECT":
-                if (oInp.name.replace(list.id+"_", "")=="staID"){
-                    //INTRA2's staID exception
-                    break;
-                }
-                oInp.selectedIndex=0;
-                break;
-            case "INPUT":
-            default:
-                oInp.value = "";
-                break;
-        }
+    var defaults = {'sort': true,
+            'keepQueryStringFilters': true,
+            'keepFilters': [],
+            'reloadPage': false
+        },
+        list = this;
+
+    options = $.extend(defaults, options)
+
+    if(options.sort){
+        list.form.find('input[name='+list.id+'OB]').val('')
+        list.form.find('input[name='+list.id+'ASC_DESC]').val('')
+    }
+
+    if(options.keepQueryStringFilters){
+        var aFlt = location.search.replace(/^\?/, '').split('&')
+        for (var i = aFlt.length - 1; i >= 0; i--) {
+            options.keepFilters.push(aFlt[i].split('=')[0].replace(list.id+'_', ''))
+        };
+    }
+
+    this.form.find(".el_filter").each( function(idx, oInp){
+        if(options.keepFilters.indexOf(oInp.name.replace(list.id+'_', ''))==-1){
+            $(oInp).val('')
+        } 
     });
 
-    list.conf.doNotSubmitForm = false;
+
+    if(options.reloadPage)
+        list.conf.doNotSubmitForm = false;
+
     list.form.submit();
       
 }
