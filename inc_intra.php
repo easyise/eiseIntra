@@ -18,7 +18,7 @@ include "inc_item.php";
 
 class eiseIntra extends eiseIntraData {
 
-public $conf = array('versionIntra'=>'2.0beta.041');
+public $conf = array('versionIntra'=>'2.0beta.042');
 
 private $arrHTML5AllowedInputTypes = 
     Array("color"

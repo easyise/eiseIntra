@@ -408,13 +408,15 @@ public function handleDataRequest(){ // handle requests and return them with Aja
 public function show(){ // draws the wrapper
 
     $this->handleInput();
-    
+
+    /*
     if ($this->conf["cacheSQL"]){
         
         $this->composeSQL();
         $this->cacheSQL();
         
     }
+    */
     
 ?>    
 <div class="eiseList" id="<?php  echo $this->name ; ?>">
@@ -432,7 +434,7 @@ foreach ($_GET as $key => $value) {
     }
 }
 foreach ($this->Columns as $col) {
-    if (!$col['title'] && $col['filter'] && $col["filterValue"]){
+    if (!$col['title'] && $col['filter']){
         echo "<input type=hidden id=\"".$this->name.'_'.$col['filter']."\" name=\"".$this->name.'_'.$col['filter']."\" value=\"".urlencode($col["filterValue"])."\" class=\"el_filter\">\r\n";
     }
 }
@@ -524,8 +526,8 @@ private function showTableHeader(){
     
     $htmlTabs = '';
     if (count($this->Tabs) > 0){
-        $htmlTabs .= "<div id=\"{$this->name}_tabs\" class=\"el-tabs\">\n";
-        $htmlTabs .= "<ul>\n";
+        $htmlTabs .= "<div id=\"{$this->name}_tabs\" class=\"el-tabs ui-tabs ui-widget ui-widget-content ui-corner-all\">\n";
+        $htmlTabs .= "<ul class=\"ui-tabs-nav ui-helper-reset ui-helper-clearfix ui-widget-header ui-corner-all\">\n";
         $strPseudoTabs = '';
         foreach($this->Tabs as $ix=>$tab){
 
@@ -533,8 +535,8 @@ private function showTableHeader(){
                 $tab['value'] === null
                 ? $this->conf['isNullFilterValue']
                 : $tab['value']
-                )."|{$tab['filter']}";
-            $htmlTabs .= "<li><a href=\"#{$tabId}\">{$tab['title']}</a></li>\r\n"; 
+                )."|{$this->name}_{$tab['filter']}";
+            $htmlTabs .= "<li class=\"ui-state-default ui-corner-top\"><a href=\"#{$tabId}\" class=\"ui-tabs-anchor\">{$tab['title']}</a></li>\r\n"; 
             $strPseudoTabs .=  "<div id=\"{$tabId}\" class=\"el_pseudotabs\"></div>\r\n"; 
         }
         $htmlTabs .= "</ul>\r\n";
@@ -767,7 +769,6 @@ private function handleInput(){
 
    $this->arrHiddenCols = Array();
    $this->arrCookieToSet = Array();
-   $this->arrSessionToSet = Array();
 
    $this->getCookie();
    $this->getSession();
@@ -775,27 +776,26 @@ private function handleInput(){
    $hiddenCols = (isset($_GET[$this->name."HiddenCols"]) ? $_GET[$this->name."HiddenCols"] : $this->arrCookie["HiddenCols"]);
    //print_r($hiddenCols);
    $this->arrHiddenCols = explode(",", $hiddenCols);
-   $this->iMaxRows = (int)(isset($_GET[$this->name."MaxRows"])
-        ? $_GET[$this->name."MaxRows"]
-        : (isset($this->arrCookie["MaxRows"])
-           ? $this->arrCookie["MaxRows"]
-           : $this->iMaxRows));
+  $this->iMaxRows = (int)(isset($_GET[$this->name."MaxRows"])
+           ? $_GET[$this->name."MaxRows"]
+           : $this->iMaxRows
+        );
    $this->orderBy =  (isset($_GET[$this->name."OB"])
         ? $_GET[$this->name."OB"]
-        : (isset($this->arrCookie["OB"]) ? $this->arrCookie["OB"] : $this->defaultOrderBy)
+        : $this->defaultOrderBy
         );
    $this->sortOrder = (isset($_GET[$this->name."ASC_DESC"])
         ? $_GET[$this->name."ASC_DESC"]
-        : (isset($this->arrCookie["ASC_DESC"])
-             ? $this->arrCookie["ASC_DESC"]
-             : ($this->defaultSortOrder=="" ? "ASC" : $this->defaultSortOrder ))
+        : ($this->defaultSortOrder=="" 
+            ? (in_array($this->Columns[$this->orderBy]['type'], array('date', 'datetime ')) 
+                ? 'DESC'
+                : 'ASC'
+                )
+            : $this->defaultSortOrder )
         );
     $this->sortOrderAlt = ($this->sortOrder=="ASC" ? "DESC" : "ASC");
 
     $this->arrCookieToSet["HiddenCols"] = $hiddenCols;
-    $this->arrCookieToSet["MaxRows"] = $this->iMaxRows;
-    $this->arrCookieToSet["OB"] = $this->orderBy;
-    $this->arrCookieToSet["ASC_DESC"] = $this->sortOrder;
 
     $this->arrOrderByCols = Array();
 
@@ -823,12 +823,6 @@ private function handleInput(){
 
         }
     }
-
-    foreach ($this->arrSessionToSet as $param => $val) {
-        $_SESSION[$this->conf["cookieName"]][$param] = $val;
-    }
-
-    SetCookie($this->conf["cookieName"], serialize($this->arrCookieToSet), $this->conf["cookieExpire"], $_SERVER["PHP_SELF"]);
     
     if ($this->flagExcel)
         $this->iMaxRows = 0;
@@ -871,43 +865,23 @@ public function getSession(){
 }
 
 /**
- * This function obtains filter value for $field parameter from $_GET, $_COOKIE or $_SESSION.
- * See more info in the description of eiseList::handleInput() method.
+ * This function obtains filter value for $field parameter from $_GET.
  * 
  * @param $field string - field name to get filter value for.
  * @return string - filter value. If filter's not set, it returns NULL.
  */
 public function getFilterValue( $field ){
 
-    if (!$this->arrSession)
-        $this->getSession();
-    if (!$this->arrCookie)
-        $this->getCookie();
 
     $filterValue = '';
 
     $strColInputName = $this->getFilterParameterName( $field );
 
-    if (isset($this->arrCookie[$strColInputName]) || isset($_GET[$strColInputName]) || isset($this->arrSession[$strColInputName])){
-        $filterValue = (isset($_GET[$strColInputName]) 
+    return (
+        isset($_GET[$strColInputName]) 
             ? $_GET[$strColInputName] 
-            : (isset($this->arrCookie[$strColInputName]) 
-                ? $this->arrCookie[$strColInputName]
-                : $this->arrSession[$strColInputName]
-                )
+            : null 
             );
-
-        if($filterValue!=='')
-            if ($col['filterType']=='multiline'){
-                $this->arrSessionToSet[$strColInputName] = $filterValue;
-            } else {
-                $this->arrCookieToSet[$strColInputName] = $filterValue;
-            }
-        
-    } else 
-        return null;
-
-    return $filterValue;
 
 }
 

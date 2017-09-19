@@ -64,12 +64,16 @@ function eiseList(divEiseList){
     
     list.transferInProgress = false;
 
+    list.filters_default = {field: null,
+            value: null,
+            filters: {},
+        }
+
     // Init tabs, if any
-    this.div.find('#'+list.id+'_tabs').tabs({
+    list.tabsInitialized = false
+    this.tabs = this.div.find('#'+list.id+'_tabs').tabs({
             activate: function(event, ui){
-                var href = ui.newTab.find('a').attr('href');
-                var ValKey = href.replace('#'+list.id+'_tabs_', '');
-                list.filterByTab(ValKey);
+                list.filterByTab(ui.newTab.find('a')[0]);
             }
         });
 
@@ -112,6 +116,7 @@ function eiseList(divEiseList){
     });
 
     this.form.submit(function(){
+        list.saveFilters();
         if (list.conf.doNotSubmitForm==true){
             list.refreshList();
             return false;
@@ -126,11 +131,8 @@ function eiseList(divEiseList){
         list.openInExcel();
     });
     
-    this.div.find('#btnReset').click(function (){
-        var activeTabField = (list.tabsContainer[0] 
-            ? list.getActiveTab().split('|')[1] 
-            : null)
-        list.reset((activeTabField ? {'keepFilters':[activeTabField]} : {}));
+    this.div.find('#btnReset').click(function (ev){
+        list.reset(ev)
     });
     
     this.div.find('.sel_'+list.id+'_all').click(function (){
@@ -140,13 +142,223 @@ function eiseList(divEiseList){
     // set minimal list column width while data not loaded
     this.setMinimalColumnWidth();
 
-    // "click" active tab
+    this.initFilters();
+
     var selectedTab = this.initTabs();
 
-    // aquire data
-    if(selectedTab=='')
+    if(!selectedTab){
         this.getData(0,null,true);
+    }
 
+    
+
+}
+
+/**
+ * This function reads local storage for last filters used on this list and set filters keeping in mind tab settings
+ *
+ */
+eiseList.prototype.initFilters = function(){
+
+    var list = this
+    
+    var filters = list.getFilters()
+        , defaultFilters = filters[0]
+        , getFilters = list._qs2obj( location.search.replace('?', '') )
+        , filtersToApply = {};
+
+    // merge LS filters with GET filters, only GET can override LS filters
+    defaultFilters.filters = $.extend(defaultFilters.filters, getFilters)
+
+    // if there's a tab to be selected accoring to storage - get all filters saved for this tab
+    var tabData = null
+    $.each(defaultFilters.filters, function(field, value) {
+        list.tabs.find('a').each(function(tabIx){
+            tabData = list._getTabData(this)
+            if(tabData.field==field && tabData.value==value){
+                return false //break
+            }
+            tabData = null
+        });
+        if(tabData)
+            return false;
+    });
+
+    filtersToApply = defaultFilters.filters
+
+    if(tabData)  { // if we found a tab
+        filtersForTab = list.getFiltersForTab(tabData, filters)
+        filtersToApply = $.extend(filtersForTab, getFilters)
+    }
+
+    list.setFilters(filtersToApply)
+
+}
+
+/**
+ * This function returns filters object for given **tabData** {field: , value: } from **filters** filter set of the list
+ */
+eiseList.prototype.getFiltersForTab = function(tabData, filters){
+    for (var i = filters.length - 1; i >= 0; i--) {
+        var oTabFilters = filters[i]
+        if(oTabFilters.field==tabData.field && oTabFilters.value==tabData.value){
+            return oTabFilters.filters
+        }
+    }
+    return filters[0].filters
+}
+
+/**
+ * This method sets filter values according to object supplied as parameter
+ */
+eiseList.prototype.setFilters = function(filtersToApply){
+    var list = this
+
+    $.each(filtersToApply, function(field, value){
+        
+        if(!field)
+            return true // continue
+
+        var selectorInp = '[name='+field+']',
+            $inp = list.form.find(selectorInp)
+        if( $inp[0] ){
+            if(list.checkFilterVisible(field,value))
+                $inp.val(value)
+            else 
+                $inp.val('')
+        }
+        if(field==list.id+'OB'){
+            list.thead.find('th').removeClass('el_sorted_asc').removeClass('el_sorted_desc')
+            var $th = list.thead.find('.'+list.id+'_'+value)
+            if($th[0])
+                if(filtersToApply[list.id+'ASC_DESC']=='DECS')
+                    $th.addClass('el_sorted_desc')
+                else
+                    $th.addClass('el_sorted_asc')
+        }
+    })
+
+}
+
+/**
+ * To avoid unobvious filters it checks whether filter field presents in filter fields, tabs or query string. 
+ * It may happen when the list with same name (id) serves various statuses with various tab sets
+ *
+ */
+eiseList.prototype.checkFilterVisible = function(field, value){
+    var list = this,
+        flagFound = false
+
+    // check visible fields
+    var $inp = list.form.find('[name='+field+']');
+    if ($inp[0] && $inp.attr('type') && $inp.attr('type').toLowerCase()!='hidden') return true
+
+    // check location.search
+    $.each(list._qs2obj( location.search.replace(/^\?/, '') ), function(f,v){
+        if(f==field){
+            flagFound = true
+            return false // break
+        }
+    } )
+    if(flagFound) return true
+
+    // check tabs
+    if(list.tabs[0])
+        list.tabs.find('a').each(function(){
+            var tabData = list._getTabData(this)
+            if(tabData.field==field && tabData.value==value){
+                flagFound = true
+                return false
+            }
+        })
+    return flagFound
+
+}
+
+
+/**
+ * This function returns object from query string like "a=b&c=d" => {a: 'b', c: 'd'}
+ * @category Filters
+ */
+eiseList.prototype._qs2obj = function(qs){
+    var aqs = qs.split('&'), ret = {};
+    for (var i = aqs.length - 1; i >= 0; i--) {
+        var arg = aqs[i].split('=');
+        ret[arg[0]] = decodeURIComponent(arg[1]).replace(/\+/g, ' ');
+    }
+    return ret
+}
+
+/**
+ * This function returns array of current filters
+ * @category Filters
+ * @return array with filters data
+ */
+eiseList.prototype.getFilters = function(){
+    
+    var list = this
+        , lsFiltersKey = this.conf.cookieName
+        , jsonFilters = localStorage[lsFiltersKey];
+
+    return (jsonFilters ? JSON.parse(jsonFilters) : [list.filters_default])
+
+}
+
+/**
+ * This function saves filters
+ */
+eiseList.prototype.saveFilters = function(){
+
+    var list = this
+
+    list.queryString = list.getQueryString();
+
+    var oFilters = list._qs2obj(list.queryString),
+        oActiveTab = list._getTabData( list.getActiveTab() ),
+        filters = list.getFilters(),
+        ixFilter = 0
+
+    if(oActiveTab && oActiveTab.field && oActiveTab.value){
+        for (var i = filters.length - 1; i >= 0; i--) {
+            var flt = filters[i]
+            if(oActiveTab.field==flt.field && oActiveTab.value==flt.value){
+                ixFilter = i
+                break
+            }
+        }
+        if(ixFilter==0){
+            ixFilter = filters.length;
+            filters.push( $.extend(list.filters_default, oActiveTab) );
+        }
+    }
+
+    if(oActiveTab)
+        filters[0].filters[oActiveTab.field] = oActiveTab.value
+    filters[ixFilter].filters = oFilters
+
+    localStorage[this.conf.cookieName] = JSON.stringify(filters)
+
+}
+
+/**
+ * This functions returns object with field name and field value for given tab, supports both LI and A DOM objects
+ * @category tabs
+ * @param DOMobject obj - LI or A element of tab
+ * @return object {field: listID+fieldName, value: filter value}
+ */
+eiseList.prototype._getTabData = function(obj){
+
+    if(!obj)
+        return null;
+
+    var list = this
+    
+    var $a = (obj.nodeName=='A' ? $(obj) : $(obj).find('a').first()),
+        tabKeyValue = ($a[0] ? $a.attr('href').replace('#'+list.id+'_tabs_', '') : null);
+
+    return (tabKeyValue 
+        ? {field: tabKeyValue.split('|')[1], value: decodeURIComponent(tabKeyValue.split('|')[0]).replace(/\+/g, ' ')} 
+        : null)
 }
 
 /**
@@ -170,92 +382,101 @@ eiseList.prototype.getFieldName = function(cell){
  */
 eiseList.prototype.initTabs = function(){
     
-    var selectedTab = '',
+    var selectedTab = null,
         list = this;
 
-    list.tabsContainer = this.div.find('#'+list.id+'_tabs')
-
-    list.tabsContainer.each(function(){
+    if( list.tabs[0] ) {
         
-        var $tabs = $(this);
-
-        var selectedTabIx = 0;
-        var tabAnyIx = 0;
+        var $tabs = list.tabs,
+            selectedTabIx = 0,
+            tabAnyIx = 0,
+            tabAny = null;
 
         $tabs.find('a').each(function(ix, obj){ // looking for matching tabs
-            var tabKeyValue = $(obj).attr('href').replace('#'+list.id+'_tabs_', '');
-            var tabKey = tabKeyValue.split('|')[1];
-            var tabValue = tabKeyValue.split('|')[0];
+            var tabData = list._getTabData(this),
+                selectorFilter = '[name='+tabData.field+']',
+                $filter = list.form.find(selectorFilter);
 
-            //looking for hidden inputs
-            list.form.find('input.el_filter[type=hidden]').each(function(){
-                var val = $(this).val();
-                var key = this.id.replace(list.id+'_', '');
-                if(tabKey==key && tabValue==val){
-                    selectedTab = val+'|'+key;
-                    selectedTabIx = ix;
-                    return false; //break;
-                }
-            });
-            if(selectedTab!=''){
+            if($filter[0] && $filter.val()==tabData.value){
+                selectedTab = this;
+                selectedTabIx = ix;
+            }
+            
+            if(selectedTab){
                 return false; //break
             }
             
-            if(tabValue==''){
+            if(tabData.value==''){
                 tabAnyIx = ix;
-                tabAny = tabKeyValue
+                tabAny = this
             }
 
         });
 
-        if(selectedTab==''){
+        if(!selectedTab){
             selectedTabIx = tabAnyIx;
             selectedTab = tabAny;
         }
 
-        $(this).tabs({ active: selectedTabIx });
+        if(selectedTab){
+            if(selectedTabIx>0)
+                list.tabs.tabs({ active: selectedTabIx });
+            else 
+                list.filterByTab(selectedTab);
+        }
 
-        if(selectedTab!='')
-            list.filterByTab(selectedTab);
+    }
 
-    });
+    list.tabsInitialized = true
 
     return selectedTab;
+
 }
 
 /**
- * This method returns pipe-delimited key value and key name for tab-based field. E.g.: 123|prfTabID
+ * This method returns A element of active tab
  */
 eiseList.prototype.getActiveTab = function(){
     var list = this
-    if(list.tabsContainer[0]){
-        var ixTab = list.tabsContainer.tabs('option', 'active'),
-            a = list.tabsContainer.find('li:nth-of-type('+(ixTab+1)+') > a')
-        return a.attr('href').replace(new RegExp('^\#'+list.id+'_tabs_'), '')
-    } 
+    if(list.tabs[0]){
+        var ixTab = list.tabs.tabs('option', 'active'),
+            a = list.tabs.find('li:nth-of-type('+(ixTab+1)+') > a')
+        return a[0]
+    } else {
+        return null
+    }
 }
 
-eiseList.prototype.filterByTab = function(IDfilter){
+/**
+ * This method filters by tab {field: XX, value: YY} specified in **tab** parameter 
+ */
+
+eiseList.prototype.filterByTab = function(tab, conf){
+
+    var list = this
     
-    var filter = IDfilter.split('|')[1];
-    var key = IDfilter.split('|')[0];
+    if(tab){
+        var tabData = this._getTabData(tab)
 
-    if(!filter)
-        this.form.find('input.el_filter[type=hidden]').remove();
+        var $inp = this.form.find('[name='+tabData.field+']');
 
-    var inpID = this.id+'_'+filter;
-    var $inp = this.form.find('input#'+inpID);
+        if (!$inp[0]){
+            
+            $inp = this.form.append('<input type=hidden id="'+tabData.field+'" value="'+tabData.value+'" name="'+tabData.field+'" class="el_filter">');
 
-    key = decodeURIComponent(key).replace(/\+/g, ' ');
-
-    if (!$inp[0]){
+        } 
         
-        $inp = this.form.append('<input type=hidden id="'+inpID+'" value="'+key+'" name="'+inpID+'" class="el_filter">');
+        $inp.val(tabData.value);  
 
-    } else 
-        $inp.val(key); 
+        if(list.tabsInitialized){
+            var tabFilters = this.getFiltersForTab(tabData, list.getFilters())
+            tabFilters[tabData.field] = tabData.value
+            list.setFilters(tabFilters)
+        }
 
-    this.reset({'sort': false, 'keepFilters':[filter]})
+    }
+    
+    this.form.submit()
 
 }
 
@@ -368,7 +589,7 @@ eiseList.prototype.getData = function(iOffset, recordCount, flagResetCache, call
     if (list.conf.cacheSQL!=true || flagResetCache==true){
         
         strARG = list.getQueryString();
-    
+
     }
     
     strARG = "DataAction=json&offset="+iOffset+(recordCount!=undefined ? "&recordCount="+recordCount : "")+
@@ -443,8 +664,6 @@ eiseList.prototype.getData = function(iOffset, recordCount, flagResetCache, call
                 list.onLoadComplete();
             }
 
-
-            
         }
         , error: function(o, error, errorThrown){
             alert (list.conf['titleERRORBadResponse']+'\r\n'+list.conf['titleTryReload']+'\r\n'+errorThrown+'\r\n'+strARG);
@@ -731,7 +950,6 @@ eiseList.prototype.sort = function(oTHClicked){
     
     this.form.submit();
     
-    
 }
 
 eiseList.prototype.fieldChooser = function(){
@@ -782,16 +1000,21 @@ eiseList.prototype.fieldsChosen = function(){
  * - 'keepFilters': list (array) of field names to keep
  * - 'reloadPage': when true, list form submits to itself. Default: false
  */
-eiseList.prototype.reset = function (options){
+eiseList.prototype.reset = function (ev, options){
 
     var defaults = {'sort': true,
+            'keepAllFilters': false,
             'keepQueryStringFilters': true,
             'keepFilters': [],
-            'reloadPage': false
+            'reloadPage': false,
+            'clearAllStorage': false
         },
         list = this;
 
     options = $.extend(defaults, options)
+
+    if(ev.shiftKey)
+        options.clearAllStorage = true
 
     if(options.sort){
         list.form.find('input[name='+list.id+'OB]').val('')
@@ -799,21 +1022,23 @@ eiseList.prototype.reset = function (options){
     }
 
     if(options.keepQueryStringFilters){
-        var aFlt = location.search.replace(/^\?/, '').split('&')
-        for (var i = aFlt.length - 1; i >= 0; i--) {
-            options.keepFilters.push(aFlt[i].split('=')[0].replace(list.id+'_', ''))
-        };
+        var oFlt = list._qs2obj(location.search.replace(/^\?/, ''))
+        $.each(oFlt, function(field, value){
+            options.keepFilters.push(field);
+        })
     }
 
     this.form.find(".el_filter").each( function(idx, oInp){
-        if(options.keepFilters.indexOf(oInp.name.replace(list.id+'_', ''))==-1){
+        if(options.keepFilters.indexOf(oInp.name)==-1){
             $(oInp).val('')
         } 
     });
 
-
     if(options.reloadPage)
         list.conf.doNotSubmitForm = false;
+
+    if(options.clearAllStorage)
+        localStorage.removeItem(list.conf.cookieName)
 
     list.form.submit();
       
