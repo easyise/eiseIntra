@@ -1009,9 +1009,15 @@ eiseList.prototype.reset = function (ev, options){
             'reloadPage': false,
             'clearAllStorage': false
         },
-        list = this;
+        list = this,
+        activeTabField = (list.tabs[0] 
+            ? list._getTabData( list.getActiveTab() ).field
+            : null);
 
     options = $.extend(defaults, options)
+
+    if (activeTabField )
+        options.keepFilters.push(activeTabField)
 
     if(ev.shiftKey)
         options.clearAllStorage = true
