@@ -189,6 +189,7 @@ eiseList.prototype.initFilters = function(){
     if(tabData)  { // if we found a tab
         filtersForTab = list.getFiltersForTab(tabData, filters)
         filtersToApply = $.extend(filtersForTab, getFilters)
+        filtersToApply[tabData.field] = tabData.value
     }
 
     list.setFilters(filtersToApply)
@@ -280,10 +281,29 @@ eiseList.prototype.checkFilterVisible = function(field, value){
  * This function returns object from query string like "a=b&c=d" => {a: 'b', c: 'd'}
  * @category Filters
  */
-eiseList.prototype._qs2obj = function(qs){
-    var aqs = qs.split('&'), ret = {};
+eiseList.prototype._qs2obj = function(qs, options){
+
+    var defaultOptions = {
+            removeNonNative: false
+        },
+        list = this
+
+    var aqs = qs.split('&'),
+        ret = {};
+
+    options = $.extend(defaultOptions, (options ? options: {}) )
+
     for (var i = aqs.length - 1; i >= 0; i--) {
-        var arg = aqs[i].split('=');
+        var arg = aqs[i].split('='),
+            field = arg[0],
+            value = arg[1];
+
+            if(!field)
+                continue;
+
+            if(options.removeNonNative && !field.match(new RegExp('/^'+list.id+'/')))
+                continue;
+
         ret[arg[0]] = decodeURIComponent(arg[1]).replace(/\+/g, ' ');
     }
     return ret
@@ -313,7 +333,7 @@ eiseList.prototype.saveFilters = function(){
 
     list.queryString = list.getQueryString();
 
-    var oFilters = list._qs2obj(list.queryString),
+    var oFilters = list._qs2obj(list.queryString, {removeNonNative: true}),
         oActiveTab = list._getTabData( list.getActiveTab() ),
         filters = list.getFilters(),
         ixFilter = 0
@@ -335,6 +355,8 @@ eiseList.prototype.saveFilters = function(){
     if(oActiveTab)
         filters[0].filters[oActiveTab.field] = oActiveTab.value
     filters[ixFilter].filters = oFilters
+
+    console.log(this.conf.cookieName)
 
     localStorage[this.conf.cookieName] = JSON.stringify(filters)
 
