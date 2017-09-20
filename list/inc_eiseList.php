@@ -714,6 +714,9 @@ protected function breakDownByTabs(){
 
     $oSQL = $this->oSQL;
 
+    if(!$this->conf['tabsFilterColumn'])
+        return;
+
     $col = $this->getColumn($this->conf['tabsFilterColumn']);
 
     if(!$col)
