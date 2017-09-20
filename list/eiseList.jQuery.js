@@ -223,9 +223,12 @@ eiseList.prototype.setFilters = function(filtersToApply){
         var selectorInp = '[name='+field+']',
             $inp = list.form.find(selectorInp)
         if( $inp[0] ){
-            if(list.checkFilterVisible(field,value))
+            if(list.checkFilterVisible(field,value)){
                 $inp.val(value)
-            else 
+                if(value!='' && value!=$inp.val() && $inp[0].nodeName=='SELECT'){
+                    $inp.append('<option value='+value+' selected>'+value)
+                }
+            } else 
                 $inp.val('')
         }
         if(field==list.id+'OB'){
@@ -355,8 +358,6 @@ eiseList.prototype.saveFilters = function(){
     if(oActiveTab)
         filters[0].filters[oActiveTab.field] = oActiveTab.value
     filters[ixFilter].filters = oFilters
-
-    console.log(this.conf.cookieName)
 
     localStorage[this.conf.cookieName] = JSON.stringify(filters)
 

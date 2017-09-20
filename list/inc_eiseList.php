@@ -57,6 +57,8 @@ public $conf = Array(
     , 'hiddenColsExcel' =>  array() // array of columns to be hidden on Excel output
 
     , 'debug' => false
+
+    , 'tabsFilterColumn' => null // if set, list will try to breakdown data into tabs with titles from column source
 );
 
 private $oSQL;
@@ -233,6 +235,23 @@ public function setColumnOrder($arrColFields){
 
 }
 
+/**
+ * This function returns column array and updates the key it could be accessed from $lst->Columns list
+ */
+public function getColumn($field, &$key=''){
+    if($this->Columns[$field]){
+        $key = $field;
+        return $this->Columns[$field];
+    }
+    foreach($this->Columns as $ix=>&$col){
+        if($this->Columns['field']==$field){
+            $key = $ix;
+            return $col;
+        }
+    }
+    return null;
+}
+
 public function handleDataRequest(){ // handle requests and return them with Ajax, Excel, XML, PDF, whatsoever user can ask
     
     $DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
@@ -405,19 +424,14 @@ public function handleDataRequest(){ // handle requests and return them with Aja
     
 }
 
+
+/**
+ * This function directly outputs list contents in HTML.
+ */
 public function show(){ // draws the wrapper
 
     $this->handleInput();
 
-    /*
-    if ($this->conf["cacheSQL"]){
-        
-        $this->composeSQL();
-        $this->cacheSQL();
-        
-    }
-    */
-    
 ?>    
 <div class="eiseList" id="<?php  echo $this->name ; ?>">
 
@@ -523,34 +537,13 @@ if(false){
 private function showTableHeader(){
     
     $oSQL = $this->oSQL;
-    
-    $htmlTabs = '';
-    if (count($this->Tabs) > 0){
-        $htmlTabs .= "<div id=\"{$this->name}_tabs\" class=\"el-tabs ui-tabs ui-widget ui-widget-content ui-corner-all\">\n";
-        $htmlTabs .= "<ul class=\"ui-tabs-nav ui-helper-reset ui-helper-clearfix ui-widget-header ui-corner-all\">\n";
-        $strPseudoTabs = '';
-        foreach($this->Tabs as $ix=>$tab){
 
-            $tabId = "{$this->name}_tabs_".urlencode(
-                $tab['value'] === null
-                ? $this->conf['isNullFilterValue']
-                : $tab['value']
-                )."|{$this->name}_{$tab['filter']}";
-            $htmlTabs .= "<li class=\"ui-state-default ui-corner-top\"><a href=\"#{$tabId}\" class=\"ui-tabs-anchor\">{$tab['title']}</a></li>\r\n"; 
-            $strPseudoTabs .=  "<div id=\"{$tabId}\" class=\"el_pseudotabs\"></div>\r\n"; 
-        }
-        $htmlTabs .= "</ul>\r\n";
-        $htmlTabs .= $strPseudoTabs;
-        $htmlTabs .= '</div>';
-
-    }
-    
     $this->nCols = 0;
 
     $this->cols = '';
 
     /* first and second rows - titles and filter inputs */
-    foreach($this->Columns as $col) {
+    foreach($this->Columns as &$col) {
 
         if ($col["title"]=="" || in_array($col["field"], $this->arrHiddenCols)) {
             continue;
@@ -591,24 +584,8 @@ private function showTableHeader(){
             if ($col['filter']) {
                 switch ($col['type']) {
                     case "combobox":
-                        $arrCombo = Array();
-                        if ( is_array($col['source']) || ($arrCombo=@json_decode($col['source'], true)) ) {
-                            $arrCombo = ( count($arrCombo)>0 ? $arrCombo : $col['source'] );
-                        } else {
-                            $sqlCombo = (
-                                preg_match("/^(svw_|vw_|tbl_|stbl_)/", $col['source'])
-                                ? ($col['source_prefix']!=""
-                                    ? "SELECT `{$col['source_prefix']}Title{$this->conf['strLocal']}` as optText{$this->conf['strLocal']}, `{$col['source_prefix']}ID` as optValue FROM `{$col['source']}`"
-                                    : "SELECT * FROM `{$col['source']}`"
-                                    )
-                                : $col['source']
-                            );
-                            //echo $col['title']."\r\n";
-                            $rsCombo = $oSQL->do_query($sqlCombo);
-                            while ($rwCombo = $oSQL->fetch_array($rsCombo)) {
-                                $arrCombo[$rwCombo['optValue']] = $rwCombo["optText{$this->conf['strLocal']}"];
-                            }
-                        }
+                        $arrCombo = $this->getComboboxSource($col);
+                        $col['source_raw'] = $arrCombo;
                         $strTDFilter .= "<select id='cb_".$col["filter"]."' name='".$this->name."_".$col["filter"]."' class='el_filter'>\r\n";
                         $strTDFilter .= "<option value=''>\r\n";
                         while (list($value, $text) = each($arrCombo)){
@@ -666,6 +643,28 @@ private function showTableHeader(){
         
     }
 
+    $htmlTabs = '';
+    $this->breakDownByTabs();
+    if (count($this->Tabs) > 0){
+        $htmlTabs .= "<div id=\"{$this->name}_tabs\" class=\"el-tabs ui-tabs ui-widget ui-widget-content ui-corner-all\">\n";
+        $htmlTabs .= "<ul class=\"ui-tabs-nav ui-helper-reset ui-helper-clearfix ui-widget-header ui-corner-all\">\n";
+        $strPseudoTabs = '';
+        foreach($this->Tabs as $ix=>$tab){
+
+            $tabId = "{$this->name}_tabs_".urlencode(
+                $tab['value'] === null
+                ? $this->conf['isNullFilterValue']
+                : $tab['value']
+                )."|{$this->name}_{$tab['filter']}";
+            $htmlTabs .= "<li class=\"ui-state-default ui-corner-top\"><a href=\"#{$tabId}\" class=\"ui-tabs-anchor\">{$tab['title']}</a></li>\r\n"; 
+            $strPseudoTabs .=  "<div id=\"{$tabId}\" class=\"el_pseudotabs\"></div>\r\n"; 
+        }
+        $htmlTabs .= "</ul>\r\n";
+        $htmlTabs .= $strPseudoTabs;
+        $htmlTabs .= '</div>';
+
+    }
+
     $htmlTabs = ($htmlTabs ? '<tr class="el-tr-tabs"><td class="el-tabs-container" colspan="'.(int)$this->nCols.'">'.$htmlTabs.'</td></tr>'."\n" : '');
     
     $strOut .= "\n<colgroup>{$this->cols}</colgroup>\n".
@@ -674,6 +673,118 @@ private function showTableHeader(){
         ."<tr class=\"el-tr-titles\">{$firstRow}</tr>\n<tr class=\"el-tr-filters\">{$secondRow}</tr>\n</thead>";
     
     return $strOut;
+
+}
+
+/**
+ * This function returns combobox source basnig for column passes as **$col** parameter
+ * @param array $col List column with $col['source'] and $col['source_prefix'] specified
+ * @return array of value=>text pairs to fill in the combobox
+ */
+protected function getComboboxSource($col){
+
+    $oSQL = $this->oSQL;
+    $arrCombo = Array();
+    if ( is_array($col['source']) || ($arrCombo=@json_decode($col['source'], true)) ) {
+        $arrCombo = ( count($arrCombo)>0 ? $arrCombo : $col['source'] );
+    } else {
+        $sqlCombo = (
+            preg_match("/^(svw_|vw_|tbl_|stbl_)/", $col['source'])
+            ? ($col['source_prefix']!=""
+                ? "SELECT `{$col['source_prefix']}Title{$this->conf['strLocal']}` as optText{$this->conf['strLocal']}, `{$col['source_prefix']}ID` as optValue FROM `{$col['source']}`"
+                : "SELECT * FROM `{$col['source']}`"
+                )
+            : $col['source']
+        );
+        //echo $col['title']."\r\n";
+        $rsCombo = $oSQL->do_query($sqlCombo);
+        while ($rwCombo = $oSQL->fetch_array($rsCombo)) {
+            $arrCombo[$rwCombo['optValue']] = $rwCombo["optText{$this->conf['strLocal']}"];
+        }
+    }
+
+    return $arrCombo;
+}
+
+/**
+ * This function appends tabs to $list->Tabs array if there's required to break down list by tabs with setting $list->conf['tabsFilterColumn'] option. List developer can assign the name of list column to it and this function will query list table for quantitative breakdown on this field. This field should have 'combobox' property and $col['source_raw'] should be filled as associative array.
+ * Tabs will be ordered according to this combobox order.
+ */
+protected function breakDownByTabs(){
+
+    $oSQL = $this->oSQL;
+
+    $col = $this->getColumn($this->conf['tabsFilterColumn']);
+
+    if(!$col)
+        return;
+
+    if(!$col['source_raw']){
+        $col['source_raw'] = $this->getComboboxSource($col);
+    }
+
+    $this->composeSQL();
+
+    $filter = ($col['filter'] 
+        ? $col['filter'] 
+        : ($col['sql'] 
+            ? $col['sql'] 
+            : $col['field'])
+        );
+
+    $aBreakdown = array();
+    $nullTab = array();
+    $totalCount = 0;
+    $where = ($this->sqlWhere ? "WHERE {$this->sqlWhere}" : '');
+    $sqlTabs = "SELECT {$filter} AS optValue, COUNT(*) as optCount FROM {$this->sqlFrom} 
+        {$where}
+        GROUP BY {$filter}
+        HAVING optCount>0";
+    $rsTabs = $oSQL->q($sqlTabs);
+    while ($rwTabs = $oSQL->f($rsTabs)) {
+        $totalCount += $rwTabs['optCount'];
+        if($rwTabs['optValue']===null){
+            $nullTab = $rwTabs;
+            continue;
+        }
+        $aBreakdown[] = $rwTabs;
+    }
+    
+    if( $nullTab ){
+        $this->Tabs[] = array(
+                    'title' => ($col['defaultText'] 
+                        ? $col['defaultText']
+                        : ($this->intra 
+                            ? $this->intra->translate('- not set -')
+                            : '- not set -' )
+                        )." ({$nullTab['optCount']})"
+                    , 'filter' => $col['field']
+                    , 'value' => null
+              );
+    }
+    foreach ($col['source_raw'] as $optValue => $optText) {
+        foreach ($aBreakdown as $valcount) {
+            if($valcount['optValue']==$optValue){
+                $this->Tabs[] = array(
+                    'title' => $optText." ({$valcount['optCount']})"
+                    , 'filter' => $filter
+                    , 'value' => $optValue
+                );
+                break;
+            }
+        }        
+    }
+
+    if($totalCount > 0){
+        $this->Tabs[] = array(
+                    'title' => ($this->intra 
+                            ? $this->intra->translate('Any %', $col['title'])
+                            : sprintf('Any %s', $col['title']) 
+                        )." ({$totalCount})"
+                    , 'filter' => $col['field']
+                    , 'value' => ''
+              );
+    }
 
 }
 
@@ -812,6 +923,11 @@ private function handleInput(){
                     $col['tabsFilter'] = true;
                     break;
                 }
+            }
+
+            if($this->conf['tabsFilterColumn']==$col['field']){
+                $col['exactMatch'] = true;
+                $col['tabsFilter'] = true;
             }
 
             if( ($filterValue = $this->getFilterValue($col['filter']))!=='' || ($col['exactMatch'] && !$col['tabsFilter']) ){
