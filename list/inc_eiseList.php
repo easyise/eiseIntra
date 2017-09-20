@@ -441,9 +441,9 @@ foreach ($this->Columns as $col) {
  ?>
 
 <div class="el_header">
-<h1><?php echo htmlspecialchars($this->conf["title"]); ?>
+<h1><?php echo $this->conf["title"]; ?>
 <?php if ($this->conf['subtitle']): ?>
-<small><?php echo htmlspecialchars($this->conf['subtitle']) ?></small>
+<small><?php echo $this->conf['subtitle'] ?></small>
 <?php endif ?>
 </h1>
 <div class="el_foundRows">(<span class="el_span_foundRows"></span>)</div>
