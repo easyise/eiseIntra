@@ -304,10 +304,11 @@ eiseList.prototype._qs2obj = function(qs, options){
             if(!field)
                 continue;
 
-            if(options.removeNonNative && !field.match(new RegExp('/^'+list.id+'/')))
+            if(options.removeNonNative && !field.match(new RegExp('^'+list.id))){
                 continue;
+            }
 
-        ret[arg[0]] = decodeURIComponent(arg[1]).replace(/\+/g, ' ');
+        ret[field] = decodeURIComponent(value).replace(/\+/g, ' ');
     }
     return ret
 }
