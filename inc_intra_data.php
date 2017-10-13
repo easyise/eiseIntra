@@ -1,7 +1,7 @@
 <?php
 /**
  *
- * eiseIntraData class that encapsulates data handling routines
+ * eiseIntraData is the class that encapsulates data handling routines
  *
  * Data types definition and conversion
  * SQL <-> PHP output data conversions
@@ -35,6 +35,7 @@ public $arrAttributeTypes = array(
  * $arrBasicDataTypes is used to convert data from user input locale (e.g. en_US) into SQL-friendly values.
  * It provides unique match from any possible type name (values) into basic type (key) that data will be converted to.
  * This array is used in eiseIntraData::getBasicDataType() function.
+ * @ignore
  */
 public static $arrBasicDataTypes = array(
     'integer'=>array('integer', 'int', 'number', 'smallint', 'mediumint', 'bigint')
@@ -116,11 +117,14 @@ public static function getIntraDataType($type, $field = ''){
 /**
  * This function formats data for user-friendly output according to user data type provided in $type parameter.
  *
+ * @category Data formatting
+ *
  * @param string $type - data type, according to eiseIntra::$arrUserDataType
  * @param variant $value - data as it's been returned from the database or calculated in PHP
  * @param int $decPlaces - number of decimal places
+ *
+ * @return string
  */
-
 public function formatByType2PHP($type, $value, $decPlaces = null){
 
     $retVal = null;
@@ -157,6 +161,17 @@ public function formatByType2PHP($type, $value, $decPlaces = null){
     return $retVal;
 }
 
+/**
+ * This function formats data to SQL-query friendly value, not escaped, without quotes.
+ *
+ * @category Data formatting
+ *
+ * @param string $type - any data type supperted by SQL server
+ * @param variant $value - value to be formatted
+ * @param string $thisType - detected eiseIntra data type from [$arrIntraDataTypes](#eiseintradata_arrintradatatypes), this parameter is set by ref.
+ *
+ * @return string - The value formatted.
+ */ 
 public function formatByType2SQL($type, $value, &$thisType = ''){
 
     $retVal = null;
@@ -195,7 +210,27 @@ public function formatByType2SQL($type, $value, &$thisType = ''){
     return $retVal;
 }
 
-
+/**
+ * This function returns SQL result as JSON string or array, in format that can be understood by eiseIntra's JavaScript fill() methods. Output format is a bit more complex than just list of rows as dictionaries. It also contains some features that scipt interpret for data display:
+ * - read/write permissions for given field in given tuple
+ * - text representation for field if it's foregn key value with reference to some disctionary
+ * - HREF for a field, if any.
+ * For example, we have a following result: [{a: b, c: d, e: f, e_text: f_text}, {a: b1, c: d1, e: f1, e_text: f_text1}]. In the simiplest case, by default, it will be formatted in the following way: 
+ * [{a: {v: b }, c: {v: d}, e: {v: f, t: f_text} }, {a: {v: b1 },{c: {v: d1}}, e: {v: f1, t: f_text1} }] - as you can see data value is places under "v" key, and text represntation that originally comes with "_text" suffix is placed under "t" key for field "e".
+ * More through output cofiguration can be set with $arrConf parameter of this function.
+ * 
+ * @category Data read
+ *
+ * @param resource $rs - SQL server resource handle
+ * @param array $arrConf - confiration array. Here is detailed description of each feature:
+ * - 'flagAllowDeny' (string) - when set to 'deny', 'arrPermittedFields' contains only editable fields, and vice-versa when it's set to 'allow' (default)
+ * - 'arrPermittedFields' (array) - this function can add 'rw' property with values 'rw' or 'r' property for each field in a record and it will force JavaScript function fill() to make correcspoding fields editable or not. If this array is empty and 'flagAllowDeny' is set to 'allow' this property is omitted. For example, if `$arrConf['arrPermittedFields'] == ['c']` and `$arrConf['flagAllowDeny'] == 'allow'` 'c' field will be prenected in the following way: {c: {v: 'd', rw: 'r'}}.
+ * - 'fields' (array) - the array with fields configuration data. Developer can customize output of decimal fields by setting 'decimalPlaces' or 'minDecimalPlaces' values. Also user can specify href 'href' asnd its 'target' for this fields. HREFs can be formed dynamically with data from the same record. To proceed with is you need to specify field name in square brackets. Example: if `$arrConf['fields']['c']['href'] == '/page.php?a=[a]' and $arrConf['fields']['c']['target'] == '_blank'` it will return `{c: {v: d, h: '/page.php?a=b', tr: '_blank'}}`
+ * - 'flagEncode' (boolean) - When true, function returns JSON-encoded string, otherwise it returns an array.
+ *
+ * @return array (default) or string when $arrConf['flagEncode']==True
+ *
+ */
 function result2JSON($rs, $arrConf = array()){
     $arrConf_default = array(
         'flagAllowDeny' => 'allow'
@@ -286,6 +321,8 @@ function result2JSON($rs, $arrConf = array()){
 /**
  * This function unquotes SQL value previously prepared to be added into SQL code by functions like $oSQL->e(). Same exists in eiseSQL class.
  *
+ * @category Data formatting
+ *
  * @param string $sqlReadyValue 
  * 
  * @return string $sqlReadyValue without quotes, or NULL if source string is 'NULL' (case-insensitive)
@@ -297,6 +334,9 @@ function unq($sqlReadyValue){
 
 /**
  * eiseIntra::getDecimalPlaces() gets actual number of digits beyond decimal separator. It reads original float or string value with "." (period symbol) as delimiter and returns actual number of decimal places skipping end zeros.
+ * 
+ * 
+ * @category Data formatting
  * 
  * @param string or float $val - origin number
  * 
@@ -319,6 +359,8 @@ public static function getDecimalPlaces($val, $minPlaces = 0){
  * This function converts decimal value from user input locale into SQL-friendly value.
  * If $val is empty string it returns $valueIfNull string or 'NULL' string.
  *
+ * @category Data formatting
+ *
  * @param string $val - user data.
  * 
  * @return variant - double value converted from original one or $valueIfNull if it's set or 'NULL' string otherwise.
@@ -332,6 +374,8 @@ function decPHP2SQL($val, $valueIfNull=null){
 
 /**
  * This function converts data fetched from SQL query to string, according to $intra locale settings.
+ *
+ * @category Data formatting
  * 
  * @param variant $val - Can be either integer, double or string (anyway it will be converted to 'double') as it's been obtained from SQL or calculated in PHP.
  * @param integer $decimalPlaces - if not set, $intra->conf['decimalPlaces'] value will be used.
@@ -347,6 +391,8 @@ function decSQL2PHP($val, $decimalPlaces=null){
 
 /**
  * This function converts date value as it's been fetched from SQL ('YYYY-MM-DD' or any strtotime()-parseable format) into string accoring to $intra locale settings ($intra->conf['dateFormat'] and $intra->conf['timeFormat']). If $precision is not 'date' (e.g. 'time' or 'datetime') it will also adds a time component.
+ *
+ * @category Data formatting
  * 
  * @param string $dtVar - Date/time value to be converted
  * @param string $precision - precision for date conversion, 'date' is default.
@@ -360,6 +406,8 @@ return $result ;
 
 /**
  * This function converts date value as it's been fetched from SQL ('YYYY-MM-DD' or any strtotime()-parseable format) into string accoring to $intra locale settings ($intra->conf['dateFormat'] and $intra->conf['timeFormat']). 
+ *
+ * @category Data formatting
  * 
  * @param string $dtVar - Date/time value to be converted
  *
@@ -373,6 +421,8 @@ return $result ;
 
 /**
  * This function converts date value received from user input into SQL-friendly value, quoted with single quotes. If origin value is empty string it returns $valueIfEmpty parameter or 'NULL' if it's not set. Origin value is checked for compliance to date format using regular expression $intra->conf['prgDate']. Also $dtVar format accepts <input type="date"> output formatted as 'YYYY-MM-DD' string. If $dtVar format is wrong it returns $valueIfEmpty or 'NULL' string.
+ *
+ * @category Data formatting
  * 
  * @param string $dtVar - origin date value
  * @param variant $valueIfEmpty - value to be returned if $dtVar is empty or badly formatted.
@@ -394,6 +444,8 @@ function datePHP2SQL($dtVar, $valueIfEmpty="NULL"){
 
 /**
  * This function converts date/time value received from user input into SQL-friendly string, quoted with single quotes. If origin value is empty string it returns $valueIfEmpty parameter or 'NULL' if it's not set. Origin value is checked for compliance to date format using regular expression $intra->conf['prgDate'] and $intra->conf['prgTime']. Time part is optional. Function also accepts 'YYYY-MM-DD[ HH:MM:SS]' string. If $dtVar format is wrong it returns $valueIfEmpty or 'NULL' string.
+ *
+ * @category Data formatting
  * 
  * @param string $dtVar - origin date value
  * @param variant $valueIfEmpty - value to be returned if $dtVar is empty or badly formatted.
@@ -417,159 +469,30 @@ function datetimePHP2SQL($dtVar, $valueIfEmpty="NULL"){
 
 
 /**
- * Funiction retrieves MySQL table information with eiseIntra's semantics
+ * getTableInfo() funiction retrieves useful MySQL table information: in addition to MySQL's 'SHOW FULL COLUMNS ...' and 'SHOW KEYS FROM ...' it also returns some PHP code that could be added to URL string, SQL queries or evaluated. See description below. Currently it uses [eiseSQL::getTableInfo()](#eisesql_gettableinfo) function.
+ * 
+ * @param string $dbName - database name
+ * @param string $tblName - table name
  *
+ * @return array - see more in [eiseSQL::getTableInfo()](#eisesql_gettableinfo) function documentation
+ * 
  */
 function getTableInfo($dbName, $tblName){
     
     return $this->oSQL->getTableInfo($tblName, $dbName);
     
-    $arrPK = Array();
-
-    $rwTableStatus=$oSQL->f($oSQL->q("SHOW TABLE STATUS FROM $dbName LIKE '".$tblName."'"));
-    if($rwTableStatus['Comment']=='VIEW' && $rwTableStatus['Engine']==null){
-        $tableType = 'view';
-    } else {
-        $tableType = 'table';
-    }
-
-    
-    $sqlCols = "SHOW FULL COLUMNS FROM `".$tblName."`";
-    $rsCols  = $oSQL->do_query($sqlCols);
-    $ii = 0;
-    while ($rwCol = $oSQL->fetch_array($rsCols)){
-        
-        if ($ii==0)
-            $firstCol = $rwCol["Field"];
-        
-        $strPrefix = (isset($strPrefix) && $strPrefix==substr($rwCol["Field"], 0, 3) 
-            ? substr($rwCol["Field"], 0, 3)
-            : (!isset($strPrefix) ? substr($rwCol["Field"], 0, 3) : "")
-            );
-        
-        if (preg_match("/int/i", $rwCol["Type"]))
-            $rwCol["DataType"] = "integer";
-        
-        if (preg_match("/float/i", $rwCol["Type"])
-           || preg_match("/double/i", $rwCol["Type"])
-           || preg_match("/decimal/i", $rwCol["Type"]))
-            $rwCol["DataType"] = "real";
-        
-        if (preg_match("/tinyint/i", $rwCol["Type"])
-            || preg_match("/bit/i", $rwCol["Type"]))
-            $rwCol["DataType"] = "boolean";
-        
-        if (preg_match("/char/i", $rwCol["Type"])
-           || preg_match("/text/i", $rwCol["Type"]))
-            $rwCol["DataType"] = "text";
-        
-        if (preg_match("/binary/i", $rwCol["Type"])
-           || preg_match("/blob/i", $rwCol["Type"]))
-            $rwCol["DataType"] = "binary";
-            
-        if (preg_match("/date/i", $rwCol["Type"])
-           || preg_match("/time/i", $rwCol["Type"]))
-            $rwCol["DataType"] = $rwCol["Type"];
-            
-        if (preg_match("/ID$/", $rwCol["Field"]) && $rwCol["Key"] != "PRI"){
-            $rwCol["FKDataType"] = $rwCol["DataType"];
-            $rwCol["DataType"] = "FK";
-        }
-        
-        if ($rwCol["Key"] == "PRI" 
-                || preg_match("/^$strPrefix(GU){0,1}ID$/i",$rwCol["Field"])
-            ){
-            $rwCol["PKDataType"] = $rwCol["DataType"];
-            $rwCol["DataType"] = "PK";
-        }
-        
-        if ($rwCol["Field"]==$strPrefix."InsertBy" 
-          || $rwCol["Field"]==$strPrefix."InsertDate" 
-          || $rwCol["Field"]==$strPrefix."EditBy" 
-          || $rwCol["Field"]==$strPrefix."EditDate" ) {
-            $rwCol["DataType"] = "activity_stamp"; 
-            $arrTable['hasActivityStamp'] = true;
-        }
-        $arrCols[$rwCol["Field"]] = $rwCol;
-        if ($rwCol["Key"] == "PRI"){
-            $arrPK[] = $rwCol["Field"];
-            if ($rwCol["Extra"]=="auto_increment")
-                $pkType = "auto_increment";
-            else 
-                if (preg_match("/GUID$/", $rwCol["Field"]) && preg_match("/^(varchar)|(char)/", $rwCol["Type"]))
-                    $pkType = "GUID";
-                else 
-                    $pkType = "user_defined";
-        }
-        $ii++;
-    }
-    
-    if (count($arrPK)==0)
-        $arrPK[] = $arrCols[$firstCol]['Field'];
-    
-    $sqlKeys = "SHOW KEYS FROM `".$tblName."`";
-    $rsKeys  = $oSQL->do_query($sqlKeys);
-    while ($rwKey = $oSQL->fetch_array($rsKeys)){
-      $arrKeys[] = $rwKey;
-    }
-    
-    //foreign key constraints
-    $rwCreate = $oSQL->fetch_array($oSQL->do_query("SHOW CREATE TABLE `{$tblName}`"));
-    $strCreate = $rwCreate["Create Table"];
-    $arrCreate = explode("\n", $strCreate);$arrCreateLen = count($arrCreate);
-    for($i=0;$i<$arrCreateLen;$i++){
-        // CONSTRAINT `FK_vhcTypeID` FOREIGN KEY (`vhcTypeID`) REFERENCES `tbl_vehicle_type` (`vhtID`)
-        if (preg_match("/^CONSTRAINT `([^`]+)` FOREIGN KEY \(`([^`]+)`\) REFERENCES `([^`]+)` \(`([^`]+)`\)/", trim($arrCreate[$i]), $arrConstraint)){
-            foreach($arrCols as $idx=>$col){
-                if ($col["Field"]==$arrConstraint[2]) { //if column equals to foreign key constraint
-                    $arrCols[$idx]["DataType"]="FK";
-                    $arrCols[$idx]["ref_table"] = $arrConstraint[3];
-                    $arrCols[$idx]["ref_column"] = $arrConstraint[4];
-                    break;
-                }
-            }
-            /*
-            echo "<pre>";
-            print_r($arrConstraint);
-            echo "</pre>";
-            //*/
-        }
-    }
-    
-    $arrColsIX = Array();
-    foreach($arrCols as $ix => $col){ $arrColsIX[$col["Field"]] = $col["Field"]; }
-    
-    $strPKVars = $strPKCond = $strPKURI = '';
-    foreach($arrPK as $pk){
-        $strPKVars .= "\${$pk}  = (isset(\$_POST['{$pk}']) ? \$_POST['{$pk}'] : \$_GET['{$pk}'] );\r\n";
-        $strPKCond .= ($strPKCond!="" ? " AND " : "")."`{$pk}` = \".".(
-                in_array($arrCols["DataType"], Array("integer", "boolean"))
-                ? "(int)(\${$pk})"
-                : "\$oSQL->e(\${$pk})"
-            ).".\"";
-        $strPKURI .= ($strPKURI!="" ? "&" : "")."{$pk}=\".urlencode(\${$pk}).\"";
-    }
-    
-    $arrTable['columns'] = $arrCols;
-    $arrTable['keys'] = $arrKeys;
-    $arrTable['PK'] = $arrPK;
-    $arrTable['PKtype'] = $pkType;
-    $arrTable['prefix'] = $strPrefix;
-    $arrTable['table'] = $tblName;
-    $arrTable['columns_index'] = $arrColsIX;
-    
-    $arrTable["PKVars"] = $strPKVars;
-    $arrTable["PKCond"] = $strPKCond;
-    $arrTable["PKURI"] = $strPKURI;
-
-    $arrTable['type'] = $tableType;
-
-    $arrTable['Comment'] = $rwTableStatus['Comment'];
-    
-    return $arrTable;
 }
 
-
+/**
+ *  getSQLValue() function returns ready-to-eval PHP code to be used in SQL queries. Currently kept for backward compatibility.
+ * 
+ * @category Data formatting
+ * 
+ * @param array $col - array in the same format as it's been received from [eiseSQL::getTableInfo()](#eisesql_gettableinfo) function. 'Field' member is obilgatory.
+ * @param boolean $flagForArray - when set to __true__, it uses not $_POST[$col['Field']] but $_POST[$col['Field']][$i]. It is useful when we need to dispatch data list.
+ *
+ * @return string PHP code that could be evaluated in SQL query.
+ */
 function getSQLValue($col, $flagForArray=false){
     $strValue = "";
     
@@ -629,6 +552,14 @@ function getSQLValue($col, $flagForArray=false){
     return $strValue;
 }
 
+/**
+ * This tiny function composes WHERE SQL condition for multiple column primary key. It's assumed that column values are  delimited with double-hash ('##'). 
+ * 
+ * @category Database routines
+ * 
+ * @param array $arrPK - Primary key array, as returned by [eiseSQL::getTableInfo()](#eisesql_gettableinfo) function, in 'PK' array member. 
+ * @param string $strValue - double key value
+ */
 function getMultiPKCondition($arrPK, $strValue){
     $arrValue = explode("##", $strValue);
     $sql_ = "";
@@ -637,7 +568,21 @@ function getMultiPKCondition($arrPK, $strValue){
     return $sql_;
 }
 
-
+/**
+ * This function reads data from SQL views or tables that's used as foreign key references. This function is widely used in eiseIntra as the data source for <select> elements and AJAX autocomplete (ajax_dropdown) elements. It can retrieve single record or whole recordset that match some criteria. It returns a recordset of value-text pairs with 'optValue' field that correspond to values and 'optText' field that correspond to text. Also it returns 'optTextLocal' for text representation in local language and 'optFlagDeleted' with flag that shows whether record is disabled for use or not. 
+ * 
+ * @category Data read
+ * 
+ * @param string $strValue - value to search for; when it's specified, the function searches for records by primary key.
+ * @param string $strText - text to search for - when we try to find match by text with `LIKE %..%`, e.g. for AJAX autocomplete list.
+ * @param string $strTable - table or view name
+ * @param string $strPrefix - 3-4-letters table field prefix. When set, it expects $strTable to have columns named as <prefix>ID, <prefix>Title, <prefix>TitleLocal and <prefix>FlagDeleted. When this parameter is empty, it expects this view to have 'optValue', 'optText', 'optTextLocal' and 'optFlagDeleted' columns. Otherwise it throws an exception from MySQL side.
+ * @param boolean $flagShowDeleted - when __true__, values are not filtered with '*FlagDeleted=0'
+ * @param string $extra - some extra criteria, pipe('|')-delimited string. Table/view should contain fields named like 'extra', 'extra1', 'extra2'...
+ * @param boolean $flagNoLimits - when __false__, it returns only first 30 matching records. Otherwise it reutrns all matched records.
+ * 
+ * @return resource with data obtained from the database 
+ */
 function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $flagShowDeleted=false, $extra='', $flagNoLimits=false){
     
     $oSQL = $this->oSQL;
