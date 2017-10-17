@@ -509,16 +509,28 @@ eiseList.prototype.filterByTab = function(tab, conf){
  */
  eiseList.prototype.fitContainer = function() {
     var list = this,
-        offsetTop = list.div.position().top,
+        positionTop = list.div.position().top,
+        offsetTop = list.div.offset().top,
         parentHeight = list.parent.outerHeight(),
-        parentPaddingBottom = parseInt(this.parent.css('padding-bottom').replace('px', ''));
+        parentPaddingBottom = parseInt(this.parent.css('padding-bottom').replace('px', '')),
+        hToSet = parentHeight-positionTop-parentPaddingBottom;
 
-    this.h = parentHeight-offsetTop-parentPaddingBottom;
-    this.div.height(this.h);
 
+    this.h = hToSet;
     this.divTableHeight = this.h - this.header.outerHeight(true);
     this.bodyHeight = this.divTableHeight - this.thead.outerHeight(true) - (this.tfoot[0] ? this.tfoot.outerHeight(true) : 0);
 
+    if(this.bodyHeight<100){
+        var viewportHeight = document.body.clientHeight,
+            parentOffsetTop = this.parent.offset().top,
+            parentParentPaddingBottom = parseInt(this.parent.parent().css('padding-bottom').replace('px', '')) 
+            hParent = viewportHeight - parentOffsetTop-(isNaN(parentParentPaddingBottom) ? 0 : parentParentPaddingBottom);
+        //console.log(hParent, viewportHeight, parentOffsetTop, this.div.css('padding-top'), this.div.css('padding-bottom'));
+        this.parent.height(Math.floor(hParent));
+        list.fitContainer();
+    }
+
+    this.div.height(this.h);
     this.divTable.height(this.divTableHeight);
     this.body.height(this.bodyHeight);
 
