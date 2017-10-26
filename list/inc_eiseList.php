@@ -244,7 +244,7 @@ public function getColumn($field, &$key=''){
         return $this->Columns[$field];
     }
     foreach($this->Columns as $ix=>&$col){
-        if($this->Columns['field']==$field){
+        if($col['field']==$field){
             $key = $ix;
             return $col;
         }
