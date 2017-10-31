@@ -412,7 +412,7 @@ CREATE TABLE `stbl_user_log` (
  
 //data for stbl_page_role
     $sqlTable['INSERT INTO `stbl_page`'] = "
-INSERT INTO `stbl_page` (`pagID`, `pagParentID`, `pagTitle`, `pagTitleLocal`, `pagIdxLeft`, `pagIdxRight`, `pagFlagShowInMenu`, `pagFile`, `pagTable`, `pagEntityID`, `pagFlagSystem`, `pagFlagHierarchy`, `pagInsertBy`, `pagInsertDate`, `pagEditBy`, `pagEditDate`) VALUES
+INSERT IGNORE INTO `stbl_page` (`pagID`, `pagParentID`, `pagTitle`, `pagTitleLocal`, `pagIdxLeft`, `pagIdxRight`, `pagFlagShowInMenu`, `pagFile`, `pagTable`, `pagEntityID`, `pagFlagSystem`, `pagFlagHierarchy`, `pagInsertBy`, `pagInsertDate`, `pagEditBy`, `pagEditDate`) VALUES
     (1, NULL, 'index.php', 'index.php', 1, 28, 0, '/index.php', NULL, NULL, NULL, NULL, NULL, '2011-11-19 17:57:54', NULL, '2011-11-19 17:57:56'),
     (4, 1, 'About', 'О системе', 24, 25, 1, '/about.php', '', '', 0, 0, '', '2011-11-21 00:59:51', '', '2013-06-18 00:00:00'),
     (5, 1, 'Settings', 'Настройки', 2, 15, 1, '', '', '', 0, 0, '', '2011-11-21 15:23:20', '', '2011-11-21 00:00:00'),

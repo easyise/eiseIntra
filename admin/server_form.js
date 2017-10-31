@@ -7,8 +7,8 @@ $(window).load(function(){
 	
 	$('.eiseGrid').eiseGrid();
 
-	$('#prc').eiseGrid('dblclick', function($tr){
-		getProcInfo($tr);		
+	$('#prc').eiseGrid('dblclick', function(){
+		getProcInfo($(this));		
 	})
 })
 
