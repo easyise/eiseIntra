@@ -1,3 +1,11 @@
+/**
+ * eiseIntra core LESS file
+ * to be included before other LESSes
+ *
+ */
+
+
+/** Core definitions */
 html { height: 100% }
 
 * html body { height: 100% } /*Для IE, т.к. он не поддерживает min-height*/ 
@@ -7,6 +15,8 @@ body{
     padding: 0 0 0 0;
     min-height: 100%;
     height: 100%;
+    font: @ei-body-font;
+    color: @ei-body-color;
 }
 
 * { box-sizing: border-box;}
@@ -14,15 +24,236 @@ body{
 form{   margin: 0 0 0 0;  padding: 0 0 0 0; }
 img {   border: 0 none; }
 
-table{	border-collapse: collapse;	font-family: inherit; }
+table  {	border-collapse: collapse;	font-family: inherit; }
 td     {  	vertical-align: top; padding: 0;}
 
-#header {
+
+
+.ei-header {
+
     overflow: hidden;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 102;
+
+    height: @ei-header-height;
+    background-color: @ei-header-background;
+
+    .ei-header-languages {
+        float: right;
+        line-height: @ei-header-height - @ei-login-info-height;
+        padding-right: 5px;
+        > a {
+            color: @ei-header-language-color;
+            display: block;
+            margin-top: 5px;
+            line-height: 12px;
+            padding-left: 18px;
+            text-decoration: none;
+            text-indent: 0;
+            text-shadow: @ei-header-language-shadow;
+
+
+            &.sel {
+                font-weight: bold;
+            }
+            &.lang-en {
+                background: @ei-flag-en no-repeat;
+            }
+
+            &.lang-ru {
+                background: @ei-flag-ru no-repeat;
+            }
+        }
+    }
+
+    & .ei-app-title {
+        color: @ei-app-title-color;
+        font-family: @ei-app-title-font;
+        float: left;
+        height: @ei-header-height;
+        font-size: @ei-header-height - 10px - 10px;
+        padding: 5px;
+        padding-top: 0;
+        > .fa {
+            font-size: 0.75em;
+            padding: 8px 5px 5px;
+            vertical-align: top;
+        }
+        > .sidebar-toggle {
+            cursor: pointer;
+        }
+        > a {
+            text-decoration: none;
+            color: inherit;
+            display: inline-block;
+            text-shadow: 1px 1px 0 @ei-app-title-shadow;
+            padding: 0 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 300;
+            height: @ei-header-height;
+            line-height: @ei-app-title-line-height;
+            vertical-align: top;
+        }
+
+    }
+
+    & .ei-top-level-menu-container {
+        float: left;
+        line-height: @ei-header-height - @ei-login-info-height;
+    }
+
+    & .ei-login-info {
+        font-size: @ei-login-info-height - 1px;
+        color: @ei-login-info-color;
+        height: @ei-login-info-height;
+        line-height: @ei-login-info-height;
+        position: absolute;
+        text-align: center;
+        top: @ei-header-height - @ei-login-info-height;
+        width: 100%;
+        background-color: @ei-login-info-background;
+        > a:link{
+            color: darken(@ei-login-info-color, 10%);
+            text-decoration: underline;
+        }
+
+        > a:visited{  color: darken(@ei-login-info-color, 10%); }
+        > a:hover{    color: @ei-login-info-color; }
+    }
+    
 }
 
-#toc {
+.ei-sidebar-menu {
+    padding-top: 0;
+    font-size: 12px !important;
+    font-family: @ei-menu-font-family;
+    width: @ei-menu-width;
+
+    position: fixed;
+    height: 100%;
+    max-height: 100%;
+    position: fixed;
+
+    transform: translateX(-100%);
+    z-index: 103;
+    transition: all 0.5s ease 0s;
+
+    &.visible {
+        transform: translateX(0);
+        box-shadow: 20px 0 20px rgba(34, 34, 34, 0.5);
+    }
+    & .bold {
+        font-weight: 700;
+    }
+
+    & .ei-logo-container  {
+        position: relative;
+        height: @ei-header-height;
+        width: @ei-menu-width;
+        font-size: @ei-header-height - 10px - 10px;
+
+        & .ei-logo-bg {
+            position: absolute;
+            left: 0; top: 0; right: 0;
+            height: @ei-header-height;
+            z-index: 104;
+            background-color: rgb(34,34,34);
+            background-color: rgba(34,34,34, 0.75);
+        }
+
+        & .sidebar-toggle {
+            color: #fff;
+            display: inline-block;
+            font-size: 1.5em;
+            line-height: 0.6em;
+            padding-left: 3px;
+            padding-top: 3px;
+            position: absolute;
+            text-shadow: 1px 1px #000;
+            z-index: 105;
+        }
+
+        & .ei-logo {
+            background-image: @ei-logo;
+            background-repeat: no-repeat;
+            background-size: @ei-logo-ratio * @ei-header-height @ei-header-height;
+            height: @ei-header-height;
+            width: @ei-logo-ratio * @ei-header-height;
+            font-size: 0;
+            display: block;
+            margin-left: 33px;
+            margin-right: 20px;   
+            position: absolute;
+            z-index: 105;     
+        }
+    }
+
+    .ei-sidebar-menu-content {
+    
+        overflow-y: auto;
+        overflow-x: visible;
+        height: 100%;
+
+        margin-top: -1 * @ei-header-height;
+        padding-top: @ei-header-height;
+
+        & .sidebar-menu {
+
+            font-size: 12px;
+
+            & li {
+                font-weight: 700; 
+            }
+
+            & .sidebar-header {
+                background-color: #006600;
+            }
+
+            & > li:hover > a,
+            & > li.active > a {
+                background: @ei-menu-active-bg none repeat scroll 0 0;
+                border-left-color: @ei-menu-active-hilite;
+                color: @ei-menu-active-color;
+                text-shadow: @ei-menu-active-text-shadow;
+                text-transform: @ei-menu-active-text-transform;
+            }
+
+            & .sidebar-submenu {
+                & li {
+                    font-weight: 500;
+                }
+                & > li.active > a, & > li > a:hover {
+                    color: @ei-menu-submenu-hover-color; 
+                }
+            }
+
+            & li > span > a {
+                display: inline;
+                color: inherit;
+                background-color: inherit;
+                padding: 0;
+                border: 0;
+                &:hover {
+                    color: inherit;
+                    background-color: inherit;
+                }
+            }
+        }
+    }
 }
+
+.sidebar-toggle {
+    cursor: pointer;
+}
+
+.ei-pane {
+    padding-left: 0;
+    padding-top: @ei-header-height;
+}
+
 
 #pane {
     padding: 0;
@@ -32,39 +263,67 @@ td     {  	vertical-align: top; padding: 0;}
     z-index: 0;
 }
 
-/********************************************************************/
-/* Menubar stuff                                                    */
-.menubar{
-        width: 100%;
-        display: block;
-        overflow: hidden;
-        position: fixed;
-        z-index: 10;
-}
 
-div.menubutton  {
-    display: inline-block;
-    float: left;
-}
 
-.menubutton a {
-    text-indent: 0;
-    font-size: 11px;
-    line-height: 16px;
-    height: 16px;
-    margin: 2px;
-    padding: 0 10px 0 24px;
-    text-decoration: none;
+
+.ei-action-menu {
+    width: 100%;
     display: block;
-}
+    overflow: hidden;
+    position: fixed;
+    z-index: 10;
 
-.menubutton.no-title a {
-    padding-left: 16px;
-    padding-right: 0;
-}
+    left: auto !important;
+    top: auto !important;
 
-.menubar div.float_right {
-   float: right !important;
+    background-color: @ei-action-menu-bg;
+    border-bottom: @ei-action-menu-border;
+    font-family: Verdana, Helvetica, sans-serif;
+
+    & .menubutton  {
+        display: inline-block;
+        float: left;
+
+        border: 1px solid @ei-action-menu-bg;
+        border-left: 1px solid @ei-action-menu-border;
+        margin: 2px;
+        min-width: 100px;
+
+        & > a {
+            text-indent: 0;
+            font-size: 11px;
+            line-height: 16px;
+            height: 16px;
+            margin: 2px;
+            padding: 0 10px 0 24px;
+            text-decoration: none;
+            display: block;
+            color: @ei-action-menu-text; 
+            
+            &:hover {
+                color: @ei-action-menu-text;
+                text-decoration: underline;
+            }
+
+            &.ei-spinner {
+                color: @ei-action-menu-text-inactive;
+                text-decoration: none;
+                background-image: @spinner-small !important;
+                background-position: 0 0;
+            }
+        }
+        &.no-title a {
+            padding-left: 16px;
+            padding-right: 0;
+        }
+        &:first{ border: 1px solid @ei-action-menu-bg; }
+        &:hover{ border: 1px solid @ei-action-menu-border; }
+    }
+
+    & .float_right, & .pull-right {
+       float: right !important;
+       min-width: 0 !important;
+    }   
 }
 
 #sysmsg {
@@ -92,7 +351,7 @@ div.menubutton  {
 
 
 .ui-dialog {
-    z-index: 100;
+    z-index: 150;
 }
 
 .ui-dialog .ui-dialog-titlebar-close span {
@@ -544,37 +803,6 @@ div.eiseIntraComment {
 /* /eiseIntraMessages */
 /*****************************************************/
 
-/**
- * Single page classes
- */ 
-
-.ei-header {
-    position: fixed;
-    top: 0;
-    width: 100%;
-    z-index: 102;
-}
-
-.ei-sidebar-menu {
-    position: fixed;
-    height: 100%;
-    max-height: 100%;
-    position: fixed;
-    z-index: 101;
-}
-
-.ei-sidebar-menu-content {
-    overflow-y: auto;
-    overflow-x: visible;
-    height: 100%;
-}
-
-.ei-action-menu {
-    position: fixed;
-    left: auto !important;
-    top: auto !important;
-}
-
 .ei-pane {
     height: 100%;
     x-overflow: hidden;
@@ -591,6 +819,51 @@ div.eiseIntraComment {
     height: 4em;
 }
 
-/**
- * /Single page classes
- */ 
+.eif-file-dropzone {
+
+    margin: 10px;
+    min-height: 100px;
+    border: 1px dashed #999;
+    position: relative;
+    
+
+    & .eif-file-dropzone-title {
+
+        font-size: 10px;
+        width: 80%;
+        margin: 0 auto;
+        position: absolute;
+        top: 50%;
+        left:50%;
+        transform: translateX(-50%) translateY(-50%) ;
+        -webkit-transform: translateX(-50%) translateY(-50%);
+        -ms-transform: translateX(-50%) translateY(-50%);
+
+        & i {
+            .ss_sprite;
+            .ss_folder_add;
+            display: block;
+            width: 18px;
+            margin: 0 auto;
+        }
+
+    }
+
+    & .eif-file-dropzone-spinner {
+        .spinner-large;
+        background-position: center;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: none;
+    }
+
+    &.uploading {
+        & .eif-file-dropzone-title {
+            display: none;
+        }
+        & .eif-file-dropzone-spinner {
+            display: block;
+        }
+    }
+}

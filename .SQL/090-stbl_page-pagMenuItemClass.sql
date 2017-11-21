@@ -1,0 +1,1 @@
+ALTER TABLE stbl_page ADD COLUMN pagMenuItemClass varchar(255) NOT NULL DEFAULT '' COMMENT 'Menu item icon class, eg "fa fa-database"' AFTER pagFlagHierarchy;

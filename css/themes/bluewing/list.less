@@ -7,6 +7,11 @@
 @background-color: #ccc;
 @selected-row-color: rgba(255,176,128,1);
 
+@font-family: inherit;
+@h1-font-family: inherit;
+@th-font-family: inherit;
+
+
 /*
 @header-background-color: #3BACEE;
 @header-color: #06183D;
@@ -17,17 +22,12 @@
 .eiseList h1 {
     font-size: 20px;
     font-weight: bold;
-    font-family: Tahoma, Helvetica, sans-serif;
+    font-family: @h1-font-family;
     padding-left: 10px;
 }
 
 .el_foundRows {
-    padding-top: 5px;
-    padding-left: 5px;
-    font-size:14px;
-    font-weight: bold;
-    font-family: Tahoma, Helvetica, sans-serif;
-    
+    font-weight: normal;
 }
 
 .el_body {
@@ -44,7 +44,7 @@
     text-align: center;
     margin-top: 80px;
     padding-left: 15px;
-    font-family: Tahoma, Helvetica, sans-serif;
+    font-family: @font-family;
     font-size: 9pt;
     text-shadow: #ccc -1px -1px 0px;
 }
@@ -53,7 +53,7 @@
     text-align: center;
     margin-top: 80px;
     padding-left: 15px;
-    font-family: Tahoma, Helvetica, sans-serif;
+    font-family: @font-family;
     font-weight: bold;
     font-size: 9pt;
     text-shadow: #ccc -1px -1px 0px;
@@ -87,7 +87,7 @@ input.el_filter {   padding: 0 5px !important;}
     color: @header-color;
     text-align: center;
     padding: 4px 10px !important;
-    font-family: Calibri,Arial,sans-serif;
+    font-family: @th-font-family;
     font-size: 12px;
     font-weight: 700;
     /*text-shadow: #000 1px 1px 0px;*/
@@ -105,8 +105,8 @@ input.el_filter {   padding: 0 5px !important;}
     padding-top: 2px;
     padding-right: 4px;
     padding-bottom: 0px;
-    font-family: Tahoma,sans-serif;
-    font-size: 8.5pt;
+    font-family: @font-family;
+    font-size: 12px;
     height: 16pt;
 }
 

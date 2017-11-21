@@ -11,19 +11,20 @@ $sqlSta = "SELECT * FROM stbl_status
   WHERE staID='$staID' AND staEntityID='$entID'";
 $rsSta = $oSQL->do_query($sqlSta);
 $rwSta = $oSQL->fetch_array($rsSta);
-  
+$ffSta = $oSQL->ff($rsSta);  
   
 
 switch($DataAction){
     case "update":
        
-       $sql[] = "UPDATE stbl_status SET
+        $sql[] = "UPDATE stbl_status SET
             staTitle = ".$oSQL->escape_string($_POST['staTitle'])."
             , staTitleLocal = ".$oSQL->escape_string($_POST['staTitleLocal'])."
             , staTrackPrecision = ".$oSQL->escape_string($_POST['staTrackPrecision'])."
             , staFlagCanUpdate = '".($_POST['staFlagCanUpdate']=='on' ? 1 : 0)."'
             , staFlagCanDelete = '".($_POST['staFlagCanDelete']=='on' ? 1 : 0)."'
-			, staFlagDeleted = '".($_POST['staFlagDeleted']=='on' ? 1 : 0)."'
+            ".(isset($ffSta['staMenuItemClass']) ? ', staMenuItemClass='.$oSQL->e($_POST['staMenuItemClass']) : '')."
+			  , staFlagDeleted = '".($_POST['staFlagDeleted']=='on' ? 1 : 0)."'
             , staEditBy = '$usrID', staEditDate = NOW()
             WHERE staID = '{$staID}'AND staEntityID = '{$entID}'";
        
@@ -126,6 +127,10 @@ $(document).ready(function(){
 <div class="eiseIntraField"><label><?php echo $intra->translate("Title Local") ?>:</label>
 <?php  echo $intra->showTextBox("staTitleLocal", $rwSta["staTitleLocal"]) ; ?>
 </div>
+
+<?php echo (isset($ffSta['staMenuItemClass']) 
+    ? $intra->field('Menu item class', 'staMenuItemClass', $rwSta['staMenuItemClass']) 
+    : ''); ?>
 
 <div class="eiseIntraField"><label><?php echo $intra->translate("Precision") ?>:</label>
 <?php  echo $intra->showCombo("staTrackPrecision", $rwSta["staTrackPrecision"], Array("date"=>$intra->translate("Date")

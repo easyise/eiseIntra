@@ -13,15 +13,13 @@ $intra->loadJS();
 <body data-conf="<?php  echo htmlspecialchars(json_encode($intra->conf)) ; ?>" data-message="<?php  echo htmlspecialchars($intra->getUserMessage()) ; ?>" class="<?php echo eiseIntra::getSlug(); ?>">  
 
 <div id="header" class="ei-header" role="nav">
-	<a href="index.php" target="_top"><div id="corner_logo" class="ei-logo"><?php echo ($intra->conf["stpCompanyName"]
-        ? $intra->conf["stpCompanyName"]
-        : $title) ?></div></a>
+    <div class="ei-app-title"><span class="sidebar-toggle fa fa-bars"></span><a href="<?php echo dirname($_SERVER['PHP_SELF']) ?>"><?php echo $title; ?></a></div>
     <div class="ei-top-level-menu-container"> </div>
-	<div id="app_title" class="ei-app-title"><?php echo $title; ?></div>
+    
     <?php if ($warning): ?>
         <div id="app_warning"><?php echo $warning; ?></div>
     <?php endif ?>
-    <div id="login_info"><?php echo $intra->translate("You're logged in as"); ?> <?php 
+    <div class="ei-login-info"><?php echo $intra->translate("You're logged in as"); ?> <?php 
     
     if ($authmethod=="mysql"){
         echo $oSQL->dbuser."@".$oSQL->dbhost;
@@ -30,7 +28,7 @@ $intra->loadJS();
         if (count($intra->arrUsrData["roles"]))
             echo "&nbsp;(".implode(", ",$intra->arrUsrData["roles"]).")";
     }?> <a href="login.php" target="_top"><?php  echo $intra->translate("Logout") ; ?></a></div>
-    <div id='languages'>
+    <div class="ei-header-languages">
     <?php 
     $langSelURI = $_SERVER['PHP_SELF'].'?'.($_SERVER['QUERY_STRING'] ? $_SERVER['QUERY_STRING'].'&' : '');
 
@@ -40,10 +38,19 @@ $intra->loadJS();
 	</div>
 </div>
 <div id="toc" class="ei-sidebar-menu" role="nav">
+    <div class="ei-logo-container">
+        <div class="ei-logo-bg"></div>
+        <i class="fa fa-angle-double-left sidebar-toggle"> </i>
+        <a href="index.php" target="_top" class="ei-logo"><?php echo ($intra->conf["stpCompanyName"]
+            ? $intra->conf["stpCompanyName"]
+            : $title) ?></a>
+    </div>
+
 
 <div class="ei-sidebar-menu-content">
 <?php 
-//echo $intra->menu();
+if($intra->conf['flagDontGetMenu'])
+    echo $intra->menu($intra->conf['MenuTarget']);
 ?>
 
 </div>

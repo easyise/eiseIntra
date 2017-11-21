@@ -12,18 +12,35 @@ var conf = {};
 
 var renderMenu = function(){
 
-    $('.ei-menu').simpleTree({
-            autoclose: false,
-            drag:false,
-            animate:true,
-            docToFolderConvert:true
-            , afterNodeToggle: function(){
-                window.setTimeout(function(){$(window).resize()}, 100);
-            }
-            
-        });
+    var $simpleTreeMenu = $('.ei-sidebar-menu .simpleTree.ei-menu'),
+        $sidebarMenu = $('.ei-sidebar-menu .sidebar-menu.ei-menu');
+
+    if($simpleTreeMenu[0] && typeof $simpleTreeMenu.simpleTree == 'function')
+        $simpleTreeMenu.simpleTree({
+                autoclose: false,
+                drag:false,
+                animate:true,
+                docToFolderConvert:true
+                , afterNodeToggle: function(){
+                    window.setTimeout(function(){$(window).resize()}, 100);
+                }
+                
+            });
+
+    if ($sidebarMenu && typeof $.sidebarMenu == 'function')
+        $.sidebarMenu($('.sidebar-menu.ei-menu'));
 
     sideBarMenuChanged();
+
+    $('.ei-sidebar-menu').click(function(){
+       sideBarMenuChanged();
+    });
+
+    $('.sidebar-toggle').click(function(ev){
+        $('.ei-sidebar-menu').toggleClass('visible');
+        sideBarMenuChanged();
+        ev.stopImmediatePropagation();
+    })
 
     window.setTimeout(function(){$(window).resize()}, 100);
 
@@ -31,7 +48,11 @@ var renderMenu = function(){
 
 var sideBarMenuChanged = function(){
 
-    $('.ei-pane').css('padding-left', $('.ei-sidebar-menu').outerWidth(true));
+    if ($('.ei-sidebar-menu.visible')[0]){
+        $('.ei-pane').css('padding-left', $('.ei-sidebar-menu').outerWidth(true));
+    } else {
+        $('.ei-pane').css('padding-left', '0px');
+    }
 
 }
 
@@ -126,7 +147,8 @@ init: function(options){
     if($('.ei-sidebar-menu')[0]){
         if(!conf.flagDontGetMenu){
             var flagStorageChangeOnDownload = false;
-            if(typeof sessionStorage[conf.menuKey] == 'undefined'){
+            //if(typeof sessionStorage[conf.menuKey] == 'undefined'){
+            if(true){
                 $.ajax('ajax_details.php?'+conf.dataReadKey+'=getMenu')
                     .done(function(data){
 
@@ -141,12 +163,6 @@ init: function(options){
                 $('.ei-sidebar-menu-content').html(sessionStorage[conf.menuKey]);
                 renderMenu();
             }
-
-            
-            $('.ei-sidebar-menu').click(function(){
-                //sessionStorage[conf.menuKey] = $('.ei-sidebar-menu').html();
-                $('.ei-pane').css('padding-left', $('.ei-sidebar-menu').outerWidth(true));
-            });
 
             // if menu was changed in some window, we update all other windows
             addEventListener('storage', function(event){
