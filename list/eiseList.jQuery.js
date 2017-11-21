@@ -729,9 +729,9 @@ eiseList.prototype.showFoundRows = function(){
     var list = this;
     if(list.nTotalRows){
         list.header.find('.el_span_foundRows').text(list.nTotalRows);
-        list.header.find('.el_foundRows').css("display", "inline-block");
+        list.header.find('.el_foundRows').css("display", "inline");
     } else {
-        list.header.find('.el_span_foundRows').text('-');
+        list.header.find('.el_span_foundRows').text('');
         list.header.find('.el_foundRows').css("display", "none");
     }
         

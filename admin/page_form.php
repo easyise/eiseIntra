@@ -112,7 +112,9 @@ function RecalculatePageTree($oSQL, $pagParentID, &$iCounter){
 if (isset($DataAction)){
     switch($DataAction){
       case "update":
-        $rwPage = $oSQL->fetch_array($oSQL->do_query("SELECT * FROM stbl_page WHERE pagID='{$_POST["pagID"]}'"));
+        $rsPage = $oSQL->do_query("SELECT * FROM stbl_page WHERE pagID='{$_POST["pagID"]}'");
+        $ffPage = $oSQL->ff($rsPage);
+        $rwPage = $oSQL->fetch_array($rsPage);
         $sql = Array();
            //echo $pagFlagShowInMenu;
         if (!$pagID) {
@@ -125,41 +127,25 @@ if (isset($DataAction)){
            $sql[] = "UPDATE stbl_page SET pagIdxLeft=pagIdxLeft+2 WHERE pagIdxLeft > @pagIdxRight;\r";
            $sql[] = "UPDATE stbl_page SET pagIdxRight=pagIdxRight+2 WHERE pagIdxRight >= @pagIdxRight;\r";
 		   /* then inserting needed record */
-           $sql[] = "INSERT INTO stbl_page(
-             pagParentID
-             , pagFile
-             , pagTitle
-			 , pagTitleLocal
-             , pagFlagShowInMenu
-			 , pagFlagSystem
-       , pagFlagHierarchy
-			 , pagFlagShowMyItems
-			 , pagTable
-			 , pagEntityID
-             , pagIdxLeft
-             , pagIdxRight
-             , pagInsertBy
-             , pagInsertDate
-             , pagEditBy
-             , pagEditDate
-             )VALUES(
-             $pagParentID
-             , ".$oSQL->escape_string($_POST["pagFile"])."
-             , ".$oSQL->escape_string($_POST["pagTitle"])."
-			 , ".$oSQL->escape_string($_POST["pagTitleLocal"])."
-             , ".($_POST["pagFlagShowInMenu"]=="on" ? "1" : "0")."
-			 , ".($_POST["pagFlagSystem"]=="on" ? "1" : "0")."
-       , ".($_POST["pagFlagHierarchy"]=="on" ? "1" : "0")."
-			 , ".($_POST["pagFlagShowMyItems"]=="on" ? "1" : "0")."
-			 , ".$oSQL->escape_string($_POST["pagTable"])."
-             , ".$oSQL->escape_string($_POST["pagEntityID"])."
-             , @pagIdxLeft
-             , @pagIdxRight
-             , '$usrID'
-             , NOW()
-             , '$usrID'
-             , NOW()
-             );\r";
+           $sql[] = "INSERT INTO stbl_page SET 
+             pagParentID = {$pagParentID}
+             , pagFile = ".$oSQL->escape_string($_POST["pagFile"])."
+             , pagTitle = ".$oSQL->escape_string($_POST["pagTitle"])."
+			 , pagTitleLocal = ".$oSQL->escape_string($_POST["pagTitleLocal"])."
+             , pagFlagShowInMenu = ".($_POST["pagFlagShowInMenu"]=="on" ? "1" : "0")."
+			 , pagFlagSystem = ".($_POST["pagFlagSystem"]=="on" ? "1" : "0")."
+       , pagFlagHierarchy = ".($_POST["pagFlagHierarchy"]=="on" ? "1" : "0")."
+			 , pagFlagShowMyItems = ".($_POST["pagFlagShowMyItems"]=="on" ? "1" : "0")."
+			 , pagTable = ".$oSQL->escape_string($_POST["pagTable"])."
+			 , pagEntityID = ".$oSQL->escape_string($_POST["pagEntityID"])."
+             , pagIdxLeft = @pagIdxLeft
+             , pagIdxRight = @pagIdxRight
+             ".(isset($ffPage['pagMenuItemClass']) ? ', pagMenuItemClass='.$oSQL->e($_POST['pagMenuItemClass']) : '')."
+             , pagInsertBy = '$usrID'
+             , pagInsertDate = NOW()
+             , pagEditBy = '$usrID'
+             , pagEditDate = NOW()
+             ;\r";
 			
 			$sql[] = "SELECT @pagID := LAST_INSERT_ID();\r";
 			
@@ -229,6 +215,7 @@ if (isset($DataAction)){
 				, pagFlagShowMyItems = ".($_POST["pagFlagShowMyItems"]=="on" ? "1" : "0")."
                 , pagTable = ".$oSQL->escape_string($_POST["pagTable"])."
                 , pagEntityID = ".$oSQL->escape_string($_POST["pagEntityID"])."
+                ".(isset($ffPage['pagMenuItemClass']) ? ', pagMenuItemClass='.$oSQL->e($_POST['pagMenuItemClass']) : '')."
                , pagEditBy='$usrID'
                , pagEditDate=CURRENT_DATE()
                WHERE pagID=".$_POST["pagID"];
@@ -352,6 +339,7 @@ if (isset($DataAction)){
 
 $sqlPAG = "SELECT * FROM stbl_page WHERE pagID='$pagID'";
 $rsPAG = $oSQL->do_query($sqlPAG);
+$ffPage = $oSQL->ff($rsPAG);
 $rwPAG = $oSQL->fetch_array($rsPAG);
 
 if (isset($_GET["pagID"])){
@@ -417,6 +405,8 @@ $(document).ready(function(){
 echo $intra->field('Title', 'pagTitle', $rwPAG["pagTitle"]);
 
 echo $intra->field('Наименование', 'pagTitleLocal', $rwPAG["pagTitleLocal"]);
+
+echo (isset($ffPage['pagMenuItemClass']) ? $intra->field('Menu Item Class', 'pagMenuItemClass', $rwPAG["pagMenuItemClass"]) : '');
 
 $sqlPages = "SELECT PG1.pagID as optValue
         , PG1.pagTitle as optText

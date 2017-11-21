@@ -456,11 +456,12 @@ foreach ($this->Columns as $col) {
 
 <div class="el_header">
 <h1><?php echo $this->conf["title"]; ?>
+<span class="el_foundRows el_span_foundRows"></span>
 <?php if ($this->conf['subtitle']): ?>
 <small><?php echo $this->conf['subtitle'] ?></small>
 <?php endif ?>
 </h1>
-<div class="el_foundRows">(<span class="el_span_foundRows"></span>)</div>
+
 <div class="el_controlBar">
 
 <?php 

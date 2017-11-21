@@ -17,6 +17,8 @@ include "inc_mysqli.php";
 include "inc_intra_data.php";
 include "inc_item.php";
 
+define('jQueryVersion', '1.6.1');
+
 /**
  * eiseIntra is the core class that encapsulates routines for authenication, form elements display, data handling, redirection and debug.
  *
@@ -588,6 +590,129 @@ public function menu($target = null){
         
     $rs = $this->oSQL->do_query($sql);
 
+    $ff = $this->oSQL->ff($rs);
+
+    $flagSidebarMenu = isset($ff['pagMenuItemClass']);
+    if (!$flagSidebarMenu)
+    //if (false)
+        return $this->menu_simpleTree($rs, $target);
+
+    $strRet = '<ul class="sidebar-menu ei-menu">'."\n";
+
+    $rw_old["iLevelInside"] = 2;
+
+    while ($rw = $this->oSQL->fetch_array($rs)){
+        
+        $rw["pagFile"] = preg_replace("/^\//", "", $rw["pagFile"]);
+        
+        $hrefSuffix = "";
+        
+        for ($i=$rw_old["iLevelInside"]; $i>$rw["iLevelInside"]; $i--)
+           $strRet .= "</ul></li>\n\n";
+        
+        for ($i=$rw_old["iLevelInside"]; $i<$rw["iLevelInside"]; $i++)
+           $strRet .= '<ul class="sidebar-submenu">'."\n";
+        
+        if (preg_match("/list\.php$/", $rw["pagFile"]) && $rw["pagEntityID"]!=""){
+           $hrefSuffix = "?".$rw["pagEntityID"]."_staID=".($rw['pagFlagShowMyItems'] ? '&'.$rw["pagEntityID"].'_'.$rw["pagEntityID"].'FlagMyItems=' : '') ;
+           $rwEnt = $this->oSQL->f('SELECT * FROM stbl_entity WHERE entID='.$this->oSQL->e($rw["pagEntityID"]));
+        }
+        
+        $flagIsEntity = ($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent");
+
+        $pagMenuItemClass = $rw['pagMenuItemClass'] ? $rw['pagMenuItemClass'] : $this->getDefaultClass($rw['pagTitle'], $rw['pagFile']);
+        
+        $strRet .= "<li".($rw["pagParentID"]==1 && ($rw["FlagWrite"] || !$this->conf['menuCollapseAll']) && $rw["nChildren"]>0
+                ? ' class="active keep-active"'
+                : "")
+            ." id=\"".$rw["pagID"]."\">"
+            .($rw["pagFile"] && !$flagIsEntity
+                ? '<a'.$target.' href="'.$rw["pagFile"].$hrefSuffix.'">'
+                : '<a href="#">')
+            ."<i class=\"fa {$pagMenuItemClass}\"></i> "
+            ."<span>".$rw["pagTitle{$this->local}"]."</span>"
+            .($rw["nChildren"]>0 ? ' <i class="fa fa-angle-left pull-right"></i>' : '')
+            .'</a>'
+            .($rw["nChildren"]==0 && !$flagIsEntity ? "</li>" : "")."\n";
+       
+        if ($hrefSuffix){
+
+            if($rw['pagFlagShowMyItems']){
+                $strRet .= '<li id="'.$rw["pagID"].'-my-items"><a target="pane" href="'
+                    .$rw["pagFile"].'?'.$rw["pagEntityID"].'_staID=&'.$rw["pagEntityID"].'_'.$rw["pagEntityID"].'FlagMyItems=1">'
+                    .'<i class="fa fa-heart"></i>'
+                    .($this->translate('My ').$rwEnt["entTitle{$this->local}Mul"])
+                    ."</a>\n";
+            }
+
+            $sqlSta = "SELECT * FROM stbl_status WHERE staEntityID='".$rw["pagEntityID"]."' AND staFlagDeleted=0";
+            $rsSta = $this->oSQL->do_query($sqlSta);
+            while ($rwSta = $this->oSQL->fetch_array($rsSta)){
+                $staMenuItemClass = $rwSta['staMenuItemClass'] ? $rwSta['staMenuItemClass'] : 'fa-circle-o';
+                $strRet .= "<li id='".$rw["pagID"]."_".$rwSta["staID"]."'><a{$target} href='"
+                    .$rw["pagFile"]."?".$rw["pagEntityID"]."_staID=".$rwSta["staID"]."'>"
+                    .'<i class="fa '.$staMenuItemClass.'"></i>'
+                    .($rwSta["staTitle{$this->local}Mul"] ? $rwSta["staTitle{$this->local}Mul"] : $rwSta["staTitle{$this->local}"])
+                    ."</a>\n";
+            }
+        }
+       
+       if ($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent"){
+          $strRet .= "<ul>\n";
+          $sqlEnt = "SELECT * FROM stbl_entity";
+          $rsEnt = $this->oSQL->do_query($sqlEnt);
+          while ($rwEnt = $this->oSQL->fetch_array($rsEnt)){
+             $strRet .= "<li id='".$rw["pagID"]."_".$rwEnt["entID"]."'><a{$target} href='".
+                $rw["pagFile"]."?entID=".$rwEnt["entID"]."'>".$rwEnt["entTitle{$this->local}"]."</a>\n";
+          }
+          $strRet .= "</ul></li>\n";
+       }
+       
+       $rw_old = $rw;
+    }
+    for ($i=$rw_old["iLevelInside"]; $i>1; $i--)
+       $strRet .= "</ul>\n\n";
+
+    $strRet .= '</ul>'."\n\n"; // /div.ei-menu
+
+    return $strRet;
+
+}
+
+/**
+ * This function returns default icon menu class basng on page URI.
+ * @ignore
+ */
+private function getDefaultClass($title, $uri){
+    $prfx = 'fa-';
+    $allstr = $title.$uri;
+    $filename = pathinfo(parse_url($uri, PHP_URL_PATH),PATHINFO_FILENAME);
+    if(preg_match('/search/i', $allstr))
+        return $prfx.'search';
+    if(preg_match('/tools/i', $allstr))
+        return $prfx.'wrench';
+    if(preg_match('/(settings|setup)/i', $allstr))
+        return $prfx.'sliders';
+    if(preg_match('/users/i', $allstr))
+        return $prfx.'group';
+    if(preg_match('/about/i', $allstr))
+        return $prfx.'book';
+    if(preg_match('/^lst[\-\_]/i', $filename) || preg_match('/[\-\_](list|lst)$/i', $filename))
+        return $prfx.'table';
+    if(preg_match('/^frm[\-\_]/i', $filename) || preg_match('/[\-\_](form|lst)$/i', $filename))
+        return $prfx.'list-alt';
+    if(!$uri)
+        return $prfx.'th';
+    return $prfx.'circle-o';
+
+}
+
+/**
+ * Old simpleTree menu for backward compatibility
+ * @ignore
+ */
+private function menu_simpleTree($rs, $target){
+
     $strRet = '<ul class="simpleTree ei-menu">'."\r\n";
 
     $strRet .= '<li id="menu_root" class="root"><span><strong>Menu</strong></span>'."\r\n";
@@ -664,7 +789,6 @@ public function menu($target = null){
     $strRet .= '</ul>'."\r\n\r\n"; // /div.ei-menu
 
     return $strRet;
-
 }
 
 /**
@@ -732,8 +856,9 @@ function requireComponent($components){
     foreach($components as $componentName){
         switch ($componentName) {
             case 'base':
-                $arrJS[] = jQueryPath."jquery-1.6.1.min.js";
+                $arrJS[] = jQueryPath."jquery-".jQueryVersion.".min.js";
                 $arrJS[] = jQueryUIPath.'jquery-ui.min.js';
+                $arrJS[] = eiseIntraLibRelativePath."sidebar-menu/sidebar-menu.js";
                 $arrJS[] = eiseIntraJSPath."intra.js";
                 $arrJS[] = eiseIntraJSPath."intra_execute.js";
                 $arrCSS[] = eiseIntraCSSPath.'themes/'.$eiseIntraCSSTheme.'/style.css';

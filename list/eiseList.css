@@ -18,8 +18,15 @@
 }
 
 .el_foundRows {
-    float: left;
+    float: right;
     display: none;
+    padding-left: 0.33em;
+    &:before {
+        content: ' (';
+    }
+    &:after {
+        content: ')';
+    }
 }
 
 .el_controlBar {

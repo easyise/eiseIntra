@@ -293,6 +293,7 @@ if ($_POST["hasPages"]=="on") {
     `pagFlagShowMyItems` TINYINT(4) NOT NULL DEFAULT 0 COMMENT 'Displays My Items menu item when checked and entity set',
     `pagFlagSystem` TINYINT(4) NOT NULL DEFAULT 0,
     `pagFlagHierarchy` TINYINT(4) NOT NULL DEFAULT 0,
+    `pagMenuItemClass` VARCHAR(250) NOT NULL DEFAULT '' COMMENT 'Menu item icon class, eg \"fa fa-database\"',
     `pagInsertBy` VARCHAR(30) NULL DEFAULT NULL,
     `pagInsertDate` DATETIME NULL DEFAULT NULL,
     `pagEditBy` VARCHAR(30) NULL DEFAULT NULL,
@@ -412,20 +413,20 @@ CREATE TABLE `stbl_user_log` (
  
 //data for stbl_page_role
     $sqlTable['INSERT INTO `stbl_page`'] = "
-INSERT IGNORE INTO `stbl_page` (`pagID`, `pagParentID`, `pagTitle`, `pagTitleLocal`, `pagIdxLeft`, `pagIdxRight`, `pagFlagShowInMenu`, `pagFile`, `pagTable`, `pagEntityID`, `pagFlagSystem`, `pagFlagHierarchy`, `pagInsertBy`, `pagInsertDate`, `pagEditBy`, `pagEditDate`) VALUES
-    (1, NULL, 'index.php', 'index.php', 1, 28, 0, '/index.php', NULL, NULL, NULL, NULL, NULL, '2011-11-19 17:57:54', NULL, '2011-11-19 17:57:56'),
-    (4, 1, 'About', 'О системе', 24, 25, 1, '/about.php', '', '', 0, 0, '', '2011-11-21 00:59:51', '', '2013-06-18 00:00:00'),
-    (5, 1, 'Settings', 'Настройки', 2, 15, 1, '', '', '', 0, 0, '', '2011-11-21 15:23:20', '', '2011-11-21 00:00:00'),
-    (6, 5, 'Security', 'Безопасность', 3, 12, 1, '', '', '', 0, 0, '', '2011-11-21 15:25:01', '', '2013-06-18 00:00:00'),
-    (7, 6, 'Users', 'Пользователи', 4, 7, 1, '/users_list.php', '', '', 0, 0, '', '2011-11-21 15:25:47', '', '2013-06-18 00:00:00'),
-    (8, 6, 'Access Control', 'Доступ', 8, 9, 1, '/role_form.php', '', '', 0, 0, '', '2011-11-21 15:32:01', '', '2011-12-23 00:00:00'),
-    (17, 1, 'ajax_details.php', 'ajax_details.php', 16, 17, 0, '/ajax_details.php', '', '', 0, 0, '', '2011-12-06 03:01:44', '', '2013-06-18 00:00:00'),
-    (22, 6, 'Change Password', 'Смена пароля', 10, 11, 1, '/password_form.php', '', '', 0, 0, '', '2011-12-16 17:52:33', '', '2011-12-22 00:00:00'),
-    (23, 5, 'System setup', 'Системные настройки', 13, 14, 1, '/setup_form.php', '', '', 0, 0, '', '2011-12-16 17:53:15', '', '2013-06-18 00:00:00'),
-    (26, 7, 'User form', 'Пользователь', 5, 6, 0, '/user_form.php', '', '', 0, 0, '', '2011-12-22 00:04:49', '', '2013-06-18 00:00:00'),
-    (29, 1, 'ajax_dropdownlist.php', 'ajax_dropdownlist.php', 18, 19, 0, '/ajax_dropdownlist.php', '', '', 0, 0, '', '2012-02-15 23:57:22', '', '2013-06-18 00:00:00'),
-    (30, 1, 'entityitem_form.php', 'entityitem_form.php', 20, 21, 0, '/entityitem_form.php', '', '', 0, 0, '', '2012-02-16 00:01:41', '', '2013-06-18 00:00:00'),
-    (31, 1, '/popup_file.php', '/popup_file.php', 26, 27, 0, '/popup_file.php', '', '', 0, 0, '', '2012-07-19 02:52:03', '', '2013-06-18 00:00:00');
+INSERT IGNORE INTO `stbl_page` (`pagID`, `pagParentID`, `pagTitle`, `pagTitleLocal`, `pagIdxLeft`, `pagIdxRight`, `pagFlagShowInMenu`, `pagFile`, `pagTable`, `pagEntityID`, `pagFlagSystem`, `pagFlagHierarchy`) VALUES
+    (1, NULL, 'index.php', 'index.php', 1, 28, 0, '/index.php', NULL, NULL, NULL, NULL),
+    (4, 1, 'About', 'О системе', 24, 25, 1, '/about.php', '', '', 0, 0),
+    (5, 1, 'Settings', 'Настройки', 2, 15, 1, '', '', '', 0, 0),
+    (6, 5, 'Security', 'Безопасность', 3, 12, 1, '', '', '', 0, 0),
+    (7, 6, 'Users', 'Пользователи', 4, 7, 1, '/users_list.php', '', '', 0, 0),
+    (8, 6, 'Access Control', 'Доступ', 8, 9, 1, '/role_form.php', '', '', 0, 0),
+    (17, 1, 'ajax_details.php', 'ajax_details.php', 16, 17, 0, '/ajax_details.php', '', '', 0, 0),
+    (22, 6, 'Change Password', 'Смена пароля', 10, 11, 1, '/password_form.php', '', '', 0, 0),
+    (23, 5, 'System setup', 'Системные настройки', 13, 14, 1, '/setup_form.php', '', '', 0, 0),
+    (26, 7, 'User form', 'Пользователь', 5, 6, 0, '/user_form.php', '', '', 0, 0),
+    (29, 1, 'ajax_dropdownlist.php', 'ajax_dropdownlist.php', 18, 19, 0, '/ajax_dropdownlist.php', '', '', 0, 0),
+    (30, 1, 'entityitem_form.php', 'entityitem_form.php', 20, 21, 0, '/entityitem_form.php', '', '', 0, 0),
+    (31, 1, '/popup_file.php', '/popup_file.php', 26, 27, 0, '/popup_file.php', '', '', 0, 0);
     ";
     
      $sqlTable['INSERT INTO `stbl_role`'] = "
@@ -630,6 +631,7 @@ CREATE TABLE `stbl_status` (
   `staTitleLocalMul` varchar(255) NOT NULL DEFAULT '',
   `staFlagCanUpdate` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Defines can the entity be updated in current status',
   `staFlagCanDelete` tinyint(4) NOT NULL DEFAULT '0',
+  `staMenuItemClass` varchar(250) NOT NULL DEFAULT '' COMMENT 'Menu item icon class, eg \"fa fa-database\"',
   `staFlagDeleted` tinyint(4) NOT NULL DEFAULT '0',
   `staInsertBy` varchar(255) NOT NULL DEFAULT '',
   `staInsertDate` datetime DEFAULT NULL,
