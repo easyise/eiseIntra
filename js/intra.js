@@ -147,8 +147,8 @@ init: function(options){
     if($('.ei-sidebar-menu')[0]){
         if(!conf.flagDontGetMenu){
             var flagStorageChangeOnDownload = false;
-            //if(typeof sessionStorage[conf.menuKey] == 'undefined'){
-            if(true){
+            if(typeof sessionStorage[conf.menuKey] == 'undefined'){
+            //if(true){
                 $.ajax('ajax_details.php?'+conf.dataReadKey+'=getMenu')
                     .done(function(data){
 
