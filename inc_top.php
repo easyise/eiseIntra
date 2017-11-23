@@ -17,7 +17,7 @@ $intra->loadJS();
     <div class="ei-top-level-menu-container"> </div>
     
     <?php if ($warning): ?>
-        <div id="app_warning"><?php echo $warning; ?></div>
+        <div class="ei-app-warning"><?php echo $warning; ?></div>
     <?php endif ?>
     <div class="ei-login-info"><?php echo $intra->translate("You're logged in as"); ?> <?php 
     

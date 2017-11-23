@@ -2274,17 +2274,22 @@ static function getKeyboardVariations($src){
  */
 static function buildLess(){
 
-    GLOBAL $eiseIntraCSSTheme, $eiseIntraFlagBuildLess;
+    GLOBAL $eiseIntraCSSTheme, $eiseIntraFlagBuildLess, $eiseIntraLessToBuild;
 
     if(!$eiseIntraFlagBuildLess)
         return;
+
+    if(!isset($eiseIntraLessToBuild)){
+        //$eiseIntraLessToBuild = array('grid', 'list', 'style');
+        $eiseIntraLessToBuild = array('style');
+    }
     
     require_once eiseIntraLibAbsolutePath.'less.php/Less.php';
 
     try {
         $strThemePath = $_SERVER['DOCUMENT_ROOT'].str_replace('/', DIRECTORY_SEPARATOR, eiseIntraCSSPath.'themes/'.$eiseIntraCSSTheme.'/');
  
-        foreach(array('grid', 'list', 'style') as $stylesheet){
+        foreach( (array)$eiseIntraLessToBuild as $stylesheet){
             $parser = new Less_Parser( array( 'compress' => true ) );
             $parser->parseFile( $strThemePath.$stylesheet.'.less' );
             $css = $parser->getCss();
