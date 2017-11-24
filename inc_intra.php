@@ -697,9 +697,11 @@ private function getDefaultClass($title, $uri){
         return $prfx.'group';
     if(preg_match('/about/i', $allstr))
         return $prfx.'book';
+    if(preg_match('/^(rep|report)[\-\_]/i', $filename) || preg_match('/[\-\_]rep$/i', $filename))
+        return $prfx.'bar-chart';
     if(preg_match('/^lst[\-\_]/i', $filename) || preg_match('/[\-\_](list|lst)$/i', $filename))
         return $prfx.'table';
-    if(preg_match('/^frm[\-\_]/i', $filename) || preg_match('/[\-\_](form|lst)$/i', $filename))
+    if(preg_match('/^frm[\-\_]/i', $filename) || preg_match('/[\-\_](form|frm)$/i', $filename))
         return $prfx.'list-alt';
     if(!$uri)
         return $prfx.'th';
