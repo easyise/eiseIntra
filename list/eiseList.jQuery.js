@@ -509,6 +509,8 @@ eiseList.prototype.filterByTab = function(tab, conf){
  */
  eiseList.prototype.fitContainer = function() {
     var list = this,
+        minRows = 5,
+        rowH = 22,
         positionTop = list.div.position().top,
         offsetTop = list.div.offset().top,
         parentHeight = list.parent.outerHeight(),
@@ -520,14 +522,20 @@ eiseList.prototype.filterByTab = function(tab, conf){
     this.divTableHeight = this.h - this.header.outerHeight(true);
     this.bodyHeight = this.divTableHeight - this.thead.outerHeight(true) - (this.tfoot[0] ? this.tfoot.outerHeight(true) : 0);
 
-    if(this.bodyHeight<100){
+    if( this.bodyHeight<minRows*rowH ){
         var viewportHeight = document.body.clientHeight,
             parentOffsetTop = this.parent.offset().top,
             parentParentPaddingBottom = parseInt(this.parent.parent().css('padding-bottom').replace('px', '')) 
             hParent = viewportHeight - parentOffsetTop-(isNaN(parentParentPaddingBottom) ? 0 : parentParentPaddingBottom);
         //console.log(hParent, viewportHeight, parentOffsetTop, this.div.css('padding-top'), this.div.css('padding-bottom'));
-        this.parent.height(Math.floor(hParent));
-        list.fitContainer();
+        if(hParent < viewportHeight){
+            this.parent.height(Math.floor(hParent));
+            list.fitContainer();
+        } else {
+            this.bodyHeight = minRows*rowH;
+            this.divTableHeight = this.bodyHeight + this.thead.outerHeight(true) + (this.tfoot[0] ? this.tfoot.outerHeight(true) : 0);
+            this.h = this.divTableHeight + this.header.outerHeight(true);
+        }
     }
 
     this.div.height(this.h);
