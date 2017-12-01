@@ -530,6 +530,26 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
             , 'order_field' => $rwAtr['atrID']
             );   
         }
+
+        switch($rwAtr['atrType']){
+            case 'date':
+                $arr['width'] = '80px';
+                break;
+            case 'datetime':
+                $arr['width'] = '120px';
+                break;
+            case 'boolean':
+            case 'checkbox':
+                $arr['width'] = '25px';
+                break;
+            case 'integer':
+            case 'real':
+                $arr['width'] = '60px';
+                break;
+            default:
+                break;
+        }
+
         $arr['nowrap'] = true;
        
         if ($rwAtr['atrType']=="combobox" || $rwAtr['atrType']=="ajax_dropdown")
