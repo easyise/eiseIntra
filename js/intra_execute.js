@@ -6,6 +6,14 @@ $(document).ready(function(){
 
 $(window).load(function(){  
 
+    if( window.parent.document ){
+        var $parentMenu = $('.ei-sidebar-menu', window.parent.document)
+        if($parentMenu[0] && !$parentMenu.hasClass('keep-visible')){
+            $parentMenu.removeClass('visible');
+            $parentMenu.click();
+        }
+    }
+
     eiseIntraAdjustFrameContent();
 
     $('#menubar a.confirm').click(function(event){
