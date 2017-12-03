@@ -71,7 +71,7 @@ public $arrUsrData = array();
  */
 public $usrID = null;
 
-public $conf = array('versionIntra'=>'2.0beta.045');
+public $conf = array('versionIntra'=>'2.1.050');
 
 private $arrHTML5AllowedInputTypes = 
     Array("color"
