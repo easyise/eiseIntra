@@ -182,7 +182,7 @@ function get_html($allowEdit=true){
    
     $oSQL=$intra->oSQL;
    
-    $strRet = '<div class="eiseGrid'.($this->conf['class'] ? ' '.$this->conf['class'] : '').'" id="'.$this->name.'">'."\r\n";
+    $strRet = '<div class="eiseGrid'.($this->conf['class'] ? ' '.$this->conf['class'] : '').'" id="'.$this->name.'" data-config="##GRID_CONFIG##">'."\r\n";
     
     if (!$allowEdit)
         $this->permissions["FlagWrite"] = false;
@@ -490,6 +490,12 @@ function get_html($allowEdit=true){
         if ($field['mandatory']){
             $arrConfig['fields'][$fieldName]['mandatory'] = $field['mandatory'];
         }
+        if ($field['href']){
+            $arrConfig['fields'][$fieldName]['href'] = $field['href'];
+            if ($field['target']){
+                $arrConfig['fields'][$fieldName]['target'] = $field['target'];
+            }
+        }
         if ($field['totals']){
             $arrConfig['fields'][$fieldName]['totals'] = $field['totals'];
         }
@@ -507,7 +513,10 @@ function get_html($allowEdit=true){
     $jsonConfig = json_encode(array_merge($arrConfig, array('widths'=>$this->arrWidth
         , 'spans' => $this->arrSpans)
     ));
-    $strRet .= "<input type=\"hidden\" id=\"inp_".$this->name."_config\" value=\"".htmlspecialchars($jsonConfig)."\">";
+
+    $strRet = str_replace('##GRID_CONFIG##', htmlspecialchars($jsonConfig), $strRet);
+
+    #$strRet .= "<input type=\"hidden\" id=\"inp_".$this->name."_config\" value=\"".htmlspecialchars($jsonConfig)."\">";
     
     $strRet .= "</div>\r\n";
     
@@ -570,6 +579,10 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     } else {
         $arrSuffix = array(0);
     }
+
+    if(!$this->permissions['FlagWrite'])
+        $cell['static'] = True;
+
     
     if ($ixRow===null){ //for template row: all calcualted class are grounded, static/disabled set to 0, href grounded
         $cell['class'] = $cell['staticClass'];
@@ -607,7 +620,9 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     $class = "eg-".$col['type'].($cell['class'] != "" ? " ".$cell['class'] : '');
     
     $strCell = "";
-    $strCell .= "\t<td class=\"{$this->name}-{$ixCol} {$class}\"".(
+    $strCell .= "\t<td class=\"{$this->name}-{$ixCol} {$class}\"".
+        " data-field=\"{$ixCol}\"".
+        (
             $cell["style"]!="" 
             ? " style=\"{$cell["style"]}\""
             : "").">";

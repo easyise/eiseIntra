@@ -29,7 +29,7 @@ function eiseGrid(gridDIV){
     this.id = gridDIV.attr('id');
     this.div = gridDIV;
 
-    this.conf = $.parseJSON(this.div.find('#inp_'+this.id+'_config').val());
+    this.conf = $.parseJSON(this.div[0].dataset['config']);
 
     this.thead = this.div.find('table thead');
     this.tableMain = this.div.find('table.eg-table');
@@ -788,22 +788,29 @@ eiseGrid.prototype.getRowID = function(oTbody){
     return oTbody.find('td input').first().val();
 }
 
-eiseGrid.prototype.addRow = function(oTrAfter, callback, conf){
-    
-    this.tableContainer.find('.eg-no-rows').css('display', 'none');
-    this.tableContainer.find('.eg-spinner').css('display', 'none');
-    
+eiseGrid.prototype.newRow = function($trAfter){
+
     var $newTbody = this.tbodyTemplate.clone(true, true)
             .css("display", "none")
             .removeClass('eg-template')
             .addClass('eg-data');
     $newTbody.find('.eg-floating-select').remove();
-    oTrAfter = ( oTrAfter 
+
+    if($trAfter)
+        $trAfter.after($newTbody);
+
+    return $newTbody;
+}
+
+eiseGrid.prototype.addRow = function(oTrAfter, callback, conf){
+    
+    this.tableContainer.find('.eg-no-rows').css('display', 'none');
+    this.tableContainer.find('.eg-spinner').css('display', 'none');
+    
+    var $newTbody = this.newRow(( oTrAfter 
         ? oTrAfter 
-        : this.tableContainer.find('tbody').last() );
-    
-    oTrAfter.after($newTbody);
-    
+        : this.tableContainer.find('tbody').last() )
+    );
 
     this.tbodies = this.tableContainer.find('tbody.eg-data');
 
@@ -1452,7 +1459,13 @@ eiseGrid.prototype.spinner = function(fn){
 
 eiseGrid.prototype.fill = function(data, fn){
 
-    var oGrid = this;
+    var oGrid = this,
+        __getHREF = function(href, data){
+            $.each(data, function(field, value){
+                href = href.replace('['+field+']', value);
+            })
+            return href;
+        };
 
     this.tableContainer.find('.eg-spinner').css('display', 'none');
 
@@ -1462,45 +1475,88 @@ eiseGrid.prototype.fill = function(data, fn){
 
     } else {
 
+        var $trAfter = oGrid.tableContainer.find('tbody').last();
+
         $.each(data, function(ix, row){
-            var $tr = oGrid.addRow(null, null, {noFocus: true});
+
+            var $tr = oGrid.newRow($trAfter)
+                .css('display', 'table-row-group');
+
             $.each(oGrid.conf.fields, function(field, props){
 
-                if (typeof(row[field])=='undefined')
+                var $td = $tr.find('td[data-field="'+field+'"]'),
+                    $div = $td.find('div'),
+                    $inp = $tr.find('input[name="'+field+'[]"]'),
+                    $inpText = $td.find('input[type="text"]');
+
+                if(!$td[0])
                     return true; // continue
 
-                var val = (row[field]!=null && typeof(row[field])=='object'
-                        ? row[field].v
-                        : (row[field]==null ? '' : row[field]));
-                var text = (row[field]!=null && typeof(row[field].t)!='undefined'
-                        ? row[field].t
-                        : val);
-                var href = (row[field]!=null && typeof(row[field])=='object'
+                if( props.type == 'order' && !row[field] ){
+                    var ord = ($trAfter.hasClass('eg-data')
+                            ? parseInt($trAfter.find('.eg-order').text().replace(/[^0-9]+/gi, '')) 
+                            : 0)+1;
+                    if($div[0])
+                        $div.text(ord);
+                    if($inp[0])
+                        $inp.val(ord);
+                }
+
+
+                if ( !row[field] )
+                    return true; // continue
+
+                var val = (typeof(row[field])=='object' ? row[field].v : row[field]),
+                    text = (row[field].t 
+                        ? row[field].t 
+                        : (row[field+'_text'] 
+                            ? row[field+'_text']
+                            : val)
+                        ),
+                    href = (row[field].h
                         ? row[field].h
-                        : row[field]);
+                        : (row[field+'_href'] 
+                            ? row[field+'_href']
+                            : (props.href 
+                                ? __getHREF(props.href, row)
+                                : ''
+                                )
+                            )
+                        ),
+                    theClass = (row[field].c
+                        ? row[field].c
+                        : row[field+'_class'])
+                    ;
 
-                var $td = $tr.find('td.'+oGrid.id+'-'+field);
-                var $inp = $tr.find('input[name="'+field+'[]"]');
-                $inp.val(val);
+                if($inp[0])
+                    $inp.val(val);
+                if(theClass){
+                    $.each(theClass.split(/\s+/), function(ix, cls){
+                        $td.addClass(cls)
+                    })
+                }
 
-                
-                switch(props['type']){
+
+                switch(props.type){
                     case 'boolean':
                     case 'checkbox':
                         if(val==1)
                             $td.find('input[type=checkbox]')[0].checked = true;
                         break;
-                    case 'combobox':
-                    case 'ajax_dropdown':
+                    case 'date':
+                    case 'datetime':
+                    case 'time':
+                        val = text = $('body').eiseIntra('formatDate', val, props.type);
                     default:
                         if($td.find('input[type=text]')[0]){
                             $td.find('input[type=text]').first().val(text);
-                        } else {                        
-                            var $div = $td.find('div').first()
-                                , $elem = $div;
+                        } else {         
+                            var $elem = $div;
                             if(href){
                                 $elem = $('<a>').appendTo($div);
-                                $elem.attr('href', href);
+                                $elem[0].href = href;
+                                if(props.target)
+                                    $elem[0].target = props.target
                             }
                             $elem.text(text);
                         }
@@ -1508,6 +1564,9 @@ eiseGrid.prototype.fill = function(data, fn){
                 }
 
             });
+
+            $trAfter = $tr;
+
         });
     
         oGrid.selectRow(); //reset row selection caused by addRow()

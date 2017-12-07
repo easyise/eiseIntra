@@ -13,7 +13,8 @@
  */
 
 include "inc_config.php";
-include "inc_mysqli.php";
+if (!class_exists('eiseSQL')) 
+    include "inc_mysqli.php";
 include "inc_intra_data.php";
 include "inc_item.php";
 
@@ -71,7 +72,7 @@ public $arrUsrData = array();
  */
 public $usrID = null;
 
-public $conf = array('versionIntra'=>'2.1.052');
+public $conf = array('versionIntra'=>'2.1.054');
 
 private $arrHTML5AllowedInputTypes = 
     Array("color"
@@ -384,7 +385,7 @@ function logout(){
  *
  * @return array `$intra->arrUsrData`
  */
-function checkPermissions(){
+function checkPermissions( $script_name = null ){
    
    $oSQL = $this->oSQL;
    
@@ -415,7 +416,7 @@ function checkPermissions(){
    }
    
    // checking script permissions
-   $script_name = preg_replace("/^(\/[^\/]+)/", "", $_SERVER["SCRIPT_NAME"]);
+   $script_name = preg_replace("/^(\/[^\/]+)/", "", ($script_name ? $script_name : $_SERVER["SCRIPT_NAME"]));
    $sqlCheckUser = "SELECT
              pagID
             , pagTitle
@@ -489,6 +490,7 @@ function checkPermissions(){
     $_SESSION["last_login_time"] = Date("Y-m-d H:i:s");
     
     $this->usrID = $this->arrUsrData["usrID"];
+    $this->conf['usrID'] = $this->arrUsrData["usrID"];
     return $this->arrUsrData;
      
 }
