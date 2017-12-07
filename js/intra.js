@@ -370,6 +370,34 @@ init: function(options){
     return $('.ei-pane').height() - $('#menubar').outerHeight(true);
 }
 
+, formatDate: function(value, format){
+    format = (!format ? 'date' : format);
+    var conf = $(this).data('eiseIntra').conf,
+        flagTime = ( format.match(/time$/) !== null ),
+        re = conf.strRegExDate_dateInput+( flagTime
+            ? '\\s*T{0,1}'+conf.strRegExTime
+            : ''),
+        isoFormatMatch = (typeof value=='string' ? value.match(new RegExp(re)) : false),
+        datetime = value;
+
+    if(isoFormatMatch){
+        datetime = conf.dateFormat.replace("d", isoFormatMatch[3])
+                                .replace("m", isoFormatMatch[2])
+                                .replace("Y", isoFormatMatch[1])
+                                .replace("y", isoFormatMatch[3].substr(-2))+
+                (flagTime 
+                    ? ' '+conf.timeFormat.replace("h", isoFormatMatch[4]) // no AM/PM yet
+                        .replace("H", isoFormatMatch[4])
+                        .replace("i", isoFormatMatch[5])
+                        .replace("s", isoFormatMatch[6])
+                    : '');
+
+    }
+
+    return datetime;
+
+}
+
 }
 
 
