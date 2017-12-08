@@ -944,6 +944,8 @@ private function handleInput(){
         }
     }
     
+    SetCookie($this->conf["cookieName"], serialize($this->arrCookieToSet), $this->conf["cookieExpire"], $_SERVER["PHP_SELF"]);
+
     if ($this->flagExcel)
         $this->iMaxRows = 0;
     
