@@ -1612,7 +1612,7 @@ static function updateMessages($newData){
 
             $oSQL->q($sqlMsg);
             
-            if($newData["entItemID"]!='' && $newData['entID']!='')
+            if($newData["entItemID"]!='' && $newData['entID']!='' && !$newData['flagNoRedirect'])
                 $intra->redirect($intra->translate('Message sent'), $_SERVER["PHP_SELF"]."?{$newData['entID']}ID=".urlencode($newData["entItemID"]));
             break;
 
