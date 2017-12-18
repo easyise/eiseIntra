@@ -14,7 +14,15 @@ var renderMenu = function(){
 
     var $simpleTreeMenu = $('.ei-sidebar-menu .simpleTree.ei-menu'),
         $sidebarMenu = $('.ei-sidebar-menu .sidebar-menu.ei-menu'),
-        $menuContainer = $('.ei-sidebar-menu');
+        $menuContainer = $('.ei-sidebar-menu'),
+        pinnedKey = $('body').eiseIntra('conf').menuKey+'_pinned',
+        flagPinned = sessionStorage[pinnedKey];
+
+    console.log(flagPinned)
+
+    if(flagPinned){
+        $menuContainer.addClass('visible').addClass('pinned');
+    }
 
     if($simpleTreeMenu[0] && typeof $simpleTreeMenu.simpleTree == 'function')
         $simpleTreeMenu.simpleTree({
@@ -47,7 +55,11 @@ var renderMenu = function(){
 
     $('.sidebar-pin').click(function(){
         $menuContainer.toggleClass('pinned');
-    })
+        if( !sessionStorage[pinnedKey] )
+            sessionStorage[pinnedKey] = true;
+        else 
+            sessionStorage.removeItem(pinnedKey);
+    }) 
 
     window.setTimeout(function(){$(window).resize()}, 100);
 
