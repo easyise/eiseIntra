@@ -13,7 +13,8 @@ var conf = {};
 var renderMenu = function(){
 
     var $simpleTreeMenu = $('.ei-sidebar-menu .simpleTree.ei-menu'),
-        $sidebarMenu = $('.ei-sidebar-menu .sidebar-menu.ei-menu');
+        $sidebarMenu = $('.ei-sidebar-menu .sidebar-menu.ei-menu'),
+        $menuContainer = $('.ei-sidebar-menu');
 
     if($simpleTreeMenu[0] && typeof $simpleTreeMenu.simpleTree == 'function')
         $simpleTreeMenu.simpleTree({
@@ -37,9 +38,15 @@ var renderMenu = function(){
     });
 
     $('.sidebar-toggle').click(function(ev){
+
         $('.ei-sidebar-menu').toggleClass('visible');
+
         sideBarMenuChanged();
         ev.stopImmediatePropagation();
+    })
+
+    $('.sidebar-pin').click(function(){
+        $menuContainer.toggleClass('pinned');
     })
 
     window.setTimeout(function(){$(window).resize()}, 100);

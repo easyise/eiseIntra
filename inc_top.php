@@ -44,6 +44,7 @@ $intra->loadJS();
         <a href="index.php" target="_top" class="ei-logo"><?php echo ($intra->conf["stpCompanyName"]
             ? $intra->conf["stpCompanyName"]
             : $title) ?></a>
+        <i class="fa fa-eye sidebar-pin"> </i>
     </div>
 
 

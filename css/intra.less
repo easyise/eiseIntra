@@ -147,10 +147,26 @@ td     {  	vertical-align: top; padding: 0;}
     z-index: 103;
     transition: all 0.5s ease 0s;
 
+    & .sidebar-pin {
+        color: #999;
+        cursor: pointer;
+        font-size: 25px;
+        position: absolute;
+        right: 5px;
+        text-shadow: -1px 1px 0 #000;
+        top: 0;
+        z-index: 105;
+    }
+
     &.visible {
         transform: translateX(0);
         box-shadow: 20px 0 20px rgba(34, 34, 34, 0.5);
     }
+
+    &.pinned .sidebar-pin {
+        color: #fff;
+    }
+
     & .bold {
         font-weight: 700;
     }

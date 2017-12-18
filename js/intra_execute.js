@@ -8,7 +8,7 @@ $(window).load(function(){
 
     if( window.parent.document ){
         var $parentMenu = $('.ei-sidebar-menu', window.parent.document)
-        if($parentMenu[0] && !$parentMenu.hasClass('keep-visible')){
+        if($parentMenu[0] && !$parentMenu.hasClass('pinned')){
             $parentMenu.removeClass('visible');
             $parentMenu.click();
         }
