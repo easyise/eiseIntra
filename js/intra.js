@@ -1176,8 +1176,10 @@ createDialog: function( conf ){
 
         $frm.eiseIntraForm('addField', field );
 
-        if(field.type=='file')
+        if(field.type=='file'){
+            $frm.attr('method', 'POST')
             $frm.attr('enctype', 'multipart/form-data')
+        }
 
     });
 
