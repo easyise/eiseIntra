@@ -18,8 +18,6 @@ var renderMenu = function(){
         pinnedKey = $('body').eiseIntra('conf').menuKey+'_pinned',
         flagPinned = sessionStorage[pinnedKey];
 
-    console.log(flagPinned)
-
     if(flagPinned){
         $menuContainer.addClass('visible').addClass('pinned');
     }
@@ -1668,7 +1666,6 @@ initFileUpload: function(){
         for(var i=0;i<this.files.length;i++){
             formData.append( inpName, this.files[i] );
         }
-        console.log(this.files);
         _do_upload();
     });
 
