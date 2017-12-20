@@ -1567,9 +1567,14 @@ static function getFile($filGUID, $filePathVar = 'stpFilesPath'){
 
     $rwFile = $oSQL->fetch_array($rsFile);
 
-    $filesPath = self::checkFilePath($intra->conf[$filePathVar]);
-
-    $intra->file($rwFile["filName"], $rwFile["filContentType"], $filesPath.$rwFile["filNamePhysical"]);
+    if(file_exists($rwFile["filNamePhysical"])
+        $fullFilePath = $rwFile["filNamePhysical"];
+    else {
+        $filesPath = self::checkFilePath($intra->conf[$filePathVar]);
+        $fullFilePath = $filesPath.$rwFile["filNamePhysical"];
+    }
+        
+    $intra->file($rwFile["filName"], $rwFile["filContentType"], $fullFilePath);
 
 }
 
