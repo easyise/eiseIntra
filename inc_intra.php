@@ -996,7 +996,7 @@ function backref($urlIfNoReferer){
  * 
  * @param string $status - response status. 'ok' should be set in case of successfull execution
  * @param string $message - status message to be displayed to the user
- * @param varian $data - data to be transmitted
+ * @param variant $data - data to be transmitted
  *
  */
 function json($status, $message, $data=null){
@@ -1007,6 +1007,61 @@ function json($status, $message, $data=null){
 
     echo json_encode(array('status'=>$status, 'message'=>$message, 'data'=>$data));
 
+    die();
+
+}
+
+
+/**
+ * Function outputs binary stuff to the user.
+ *
+ * @category Data output
+ * 
+ * @param string $name - file name in UTF-8
+ * @param string $type - MIME-type of the content
+ * @param varian $pathOrData - if realpath() returns true for this variable, system will read the file. Otherwise it outputs the data as is.
+ *
+ */
+function file($name, $type, $pathOrData){
+
+    if(!$pathOrData)
+        throw new Exception( "Output file is empty" );
+
+    $len = strlen($pathOrData);
+
+    if( $len>4096 ){
+        $data = $pathOrData;
+    } else {
+        if(realpath($pathOrData)){
+            $data = null;
+            $path = $pathOrData;
+            $len = filesize($pathOrData);
+        } else {
+            $data = $pathOrData;
+        }
+    }
+
+    header("Content-Type: ".$type);
+    if(headers_sent())
+        $this->Error('Some data has already been output, can\'t send the file');
+    header("Content-Length: ".$len);
+    header("Content-Disposition: inline; filename*=UTF-8''".rawurlencode($name) );
+    header('Cache-Control: private, max-age=0, must-revalidate');
+    header('Pragma: public');
+    ini_set('zlib.output_compression','0');
+    
+    if($data){
+        echo $data;
+    } else {
+        if($path && $len){
+            $fh = fopen($pathOrData, "rb");
+            fpassthru($fh);
+            fclose($fh);
+        } else {
+            throw new Exception("File length is {$len} for the path {$path}", 1);
+        }
+    }
+    
     die();
 
 }
@@ -2089,19 +2144,37 @@ function dataAction($dataAction, $funcOrObj=null){
  * 
  * @return variant value that return user function.
  */
-function dataRead($dataReadValues, $function){
+function dataRead($dataReadValues, $function, $arrParam = array()){
     
     $query = $_GET;
 
     $dataReadValues = (is_array($dataReadValues) ? $dataReadValues : array($dataReadValues));
 
-    if(in_array($query[self::dataReadKey], $dataReadValues)
-        && is_callable($function)){
-            $arrParam = func_get_args();
-            array_shift($arrParam);
-            array_shift($arrParam);
-            $arrArgs = $arrParam;
+    if(in_array($query[$this->conf['dataReadKey']], $dataReadValues)){
+        
+        $arrParam = func_get_args();
+        array_shift($arrParam);
+        array_shift($arrParam);
+        $arrArgs = $arrParam;
+
+        if(is_callable($function)){
             return call_user_func_array($function, $arrArgs );
+        } elseif( is_object($function) ){
+
+            $obj = $function;
+            $method = $query[$this->conf['dataReadKey']];
+            $ret = array();
+
+            try {
+
+                return call_user_func_array(array($obj, $method), array_merge(Array($query), $arrParam));
+                
+            } catch (Exception $e) {
+                die($e->getMessage());
+            }
+            
+        }
+            
     }
 
 }

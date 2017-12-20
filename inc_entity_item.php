@@ -1569,18 +1569,7 @@ static function getFile($filGUID, $filePathVar = 'stpFilesPath'){
 
     $filesPath = self::checkFilePath($intra->conf[$filePathVar]);
 
-    header("Content-Type: ".$rwFile["filContentType"]);
-    if(headers_sent())
-        $this->Error('Some data has already been output, can\'t send file');
-    header("Content-Length: ".$rwFile["filLength"]);
-    header("Content-Disposition: inline; filename*=UTF-8''".rawurlencode($rwFile["filName"]) );
-    header('Cache-Control: private, max-age=0, must-revalidate');
-    header('Pragma: public');
-    ini_set('zlib.output_compression','0');
-
-    $fh = fopen($filesPath.$rwFile["filNamePhysical"], "rb");
-    echo fread($fh, $rwFile["filLength"]);
-    fclose($fh);
+    $intra->file($rwFile["filName"], $rwFile["filContentType"], $filesPath.$rwFile["filNamePhysical"]);
 
 }
 
