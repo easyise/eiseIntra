@@ -1127,10 +1127,12 @@ eiseGrid.prototype.change = function(strFields, fn){
                     oGrid.onChange[fld] = [];
 
                 oGrid.onChange[fld].push(fn);
+                /* deleted to prevent double binding
                 var sel = '.eg-data input[name="'+fld+'[]"]';
                 oGrid.tableContainer.find(sel).bind('change', function(){
                     fn.call(oGrid, $(this).parents('tbody').first(), $(this));
                 })
+                */
                 return true; //break
             }
         }
