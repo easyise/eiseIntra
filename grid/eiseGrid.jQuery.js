@@ -1479,6 +1479,8 @@ eiseGrid.prototype.fill = function(data, fn){
 
         var $trAfter = oGrid.tableContainer.find('tbody').last();
 
+        oGrid.tableContainer.find('.eg-no-rows').css('display', 'none');
+
         $.each(data, function(ix, row){
 
             var $tr = oGrid.newRow($trAfter)
@@ -1491,7 +1493,7 @@ eiseGrid.prototype.fill = function(data, fn){
                     $inp = $tr.find('input[name="'+field+'[]"]'),
                     $inpText = $td.find('input[type="text"]');
 
-                if(!$td[0])
+                if(!$td[0] && !$inp[0])
                     return true; // continue
 
                 if( props.type == 'order' && !row[field] ){
@@ -1538,7 +1540,6 @@ eiseGrid.prototype.fill = function(data, fn){
                     })
                 }
 
-
                 switch(props.type){
                     case 'boolean':
                     case 'checkbox':
@@ -1568,6 +1569,8 @@ eiseGrid.prototype.fill = function(data, fn){
             });
 
             $trAfter = $tr;
+
+            oGrid.initRow( $tr );
 
         });
     
