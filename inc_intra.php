@@ -72,7 +72,7 @@ public $arrUsrData = array();
  */
 public $usrID = null;
 
-public $conf = array('versionIntra'=>'2.1.060');
+public $conf = array('versionIntra'=>'2.1.062');
 
 private $arrHTML5AllowedInputTypes = 
     Array("color"
