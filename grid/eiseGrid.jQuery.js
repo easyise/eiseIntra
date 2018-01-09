@@ -1903,6 +1903,42 @@ toggleMultiLine: function(fieldSequence){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     grid.toggleMultiLine(fieldSequence);
     return this;
+},
+
+dragNDrop: function(fnCallback){
+
+    var grids = this;
+
+    $('body').bind('drop', function(event) {
+        event.preventDefault();
+    }).bind('dragover', function(event) {
+        grids.each(function(){ $(this).addClass('eg-ready-to-drop') });  
+        return false;
+    }).bind("dragleave", function(event) {
+        grids.each(function(){ $(this).removeClass('eg-ready-to-drop') });  
+        return false;
+    });
+
+    grids.each(function(){
+
+        var grid = $(this).data('eiseGrid').eiseGrid;
+
+        grid.div.find('*')
+            .bind('drop', function(event) {
+                event.preventDefault(); 
+                event.stopImmediatePropagation();
+                grid.div.removeClass('eg-ready-to-drop');
+                grid.spinner();
+                if(typeof fnCallback === 'function'){
+                    fnCallback.call(grid, event);
+                }
+            })
+            .bind('dragover', function(event){  })
+            .bind('dragleave', function(event){ event.preventDefault(); event.stopImmediatePropagation(); })
+    });
+
+    return this;
+
 }
 
 };

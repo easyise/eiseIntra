@@ -151,6 +151,18 @@ select.eg-floating-select {
     display: none;
 }
 
+
+.eg-drop-here {
+    display: none;
+}
+
+.eg-ready-to-drop .eg-drop-here {
+    display: table-row-group;
+}
+.eg-ready-to-drop .eg-no-rows {
+    display: none !important;
+}
+
 .eg-controlbar {
     float: left;
 }

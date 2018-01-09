@@ -105,6 +105,26 @@ td.eg-ajax_dropdown input{
     padding: 20px;
     height: 60px;
 }
+.eg-drop-here td {
+    width: 100%;
+    text-align: center;
+    padding: 20px;
+    height: 60px;
+    border: 2px dashed #ff6d10 !important;
+    position: relative;
+    &:after {
+        color: rgba(255, 109, 16, 0.5);
+        content: "+";
+        font-size: 76px;
+        font-weight: 900;
+        left: 0;
+        line-height: 45px;
+        position: absolute;
+        text-align: center;
+        top: 0;
+        width: 100%;
+    }
+}
 .eg-spinner td {
     width: 100%;
     min-height: 60px;

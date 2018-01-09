@@ -8,7 +8,7 @@
  * @subpackage eiseGrid
  *
  * @author Ilya Eliseev (ie@e-ise.com)
- * @copyright (c) 2006-2015 Ilya S. Eliseev
+ * @copyright (c) 2006-2018 Ilya S. Eliseev
  *
  * @license http://opensource.org/licenses/gpl-license.php GNU Public License
  *
@@ -79,6 +79,7 @@ function __construct($oSQL
         , 'totalsTitle' => 'Totals'
         , 'noRowsTitle' => 'Nothing found'
         , 'spinnerTitle' => 'Loading...'
+        , 'dropHereTitle' => 'Drop it here'
         , 'arrPermissions' => Array("FlagWrite" => true)
         , 'Tabs3DCookieName' => $strName.'_tabs3d'
 
@@ -416,6 +417,7 @@ function get_html($allowEdit=true){
     // no rows and spinner rows
     $strRet .= "<tbody class=\"eg-no-rows\"><tr><td colspan=\"".count($this->visibleColumns)."\">{$this->conf['noRowsTitle']}</td></tr></tbody>\r\n";
     $strRet .= "<tbody class=\"eg-spinner\"><tr><td colspan=\"".count($this->visibleColumns)."\">{$this->conf['spinnerTitle']}</td></tr></tbody>\r\n";
+    $strRet .= "<tbody class=\"eg-drop-here\"><tr><td colspan=\"".count($this->visibleColumns)."\">{$this->conf['dropHereTitle']}</td></tr></tbody>\r\n";
     
 
     // template row
