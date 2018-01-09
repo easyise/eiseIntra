@@ -1447,15 +1447,26 @@ eiseGrid.prototype.reset = function(fn){
     }
 }
 
-eiseGrid.prototype.spinner = function(fn){
+eiseGrid.prototype.spinner = function(arg){
     
     var oGrid = this;
 
-    this.tableContainer.find('.eg-no-rows').css('display', 'none');
-    this.tableContainer.find('.eg-spinner').css('display', 'table-row-group');
+    if(arg!==false){
 
-    if (typeof(fn)==='function'){
-        fn();
+        this.tableContainer.find('.eg-no-rows').css('display', 'none');
+        this.tableContainer.find('.eg-spinner').css('display', 'table-row-group');
+
+        if (typeof arg ==='function'){
+            fn.call( this.div );
+        }
+
+    } else {
+
+        this.tableContainer.find('.eg-spinner').css('display', 'none');
+        if(this.tableContainer.find('.eg-data').length==0)
+            this.tableContainer.find('.eg-no-rows').css('display', 'table-row-group');
+        
+
     }
 }
 
@@ -1887,9 +1898,9 @@ reset: function(fn){
     return this;
 },
 
-spinner: function(fn){
+spinner: function(arg){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
-    grid.spinner(fn);
+    grid.spinner(arg);
     return this;
 },
 
