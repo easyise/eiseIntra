@@ -1916,6 +1916,17 @@ toggleMultiLine: function(fieldSequence){
     return this;
 },
 
+/**
+ * eiseGrid('dragNDrop', function(event){} ) method allows drag-n-drop operations on eiseGrid.
+ * It shows the target over eiseGrid when user start drag over document body. When user finishes drag it removes the target.
+ * Callback function is bound to 'drop' event over eiseGrid elements. Before the call grid shows the spinner.
+ * Callback is called in the context of eiseGrid object, not the main <DIV> or jQuery object.
+ * After you handle the updload with XHR or whatever you can call eiseGrid('fill', [{...}, {...}] ) method to add some rows to the grid.
+ * 
+ * @param function fnCallback(event) - the function that executes right after 'drop' event occured, target is hidden and spinner is shown. Context is current eiseGrid object.
+ * 
+ * @return jQuery
+ */
 dragNDrop: function(fnCallback){
 
     var grids = this;
@@ -1950,6 +1961,29 @@ dragNDrop: function(fnCallback){
 
     return this;
 
+},
+
+/**
+ * This method helps to struggle with large amount of <input> elements and PHP limits to handle them. This limit is set in max_input_vars php.ini setting and it is 1000 by default. eiseGrid('disableUnchanged') disables inputs in the rows that wasn't changed so browser doesn't include its contents into POST. Keep your php.ini safe, call this method before your main form submits.
+ *
+ * @return jQuery
+ */
+disableUnchanged: function(){
+
+    this.each(function(){
+
+        var grid = $(this).data('eiseGrid').eiseGrid,
+            egData = grid.tableContainer.find('.eg-data');
+
+        egData.each(function(){
+            if(!$(this).hasClass('eg-updated'))
+                $(this).find('input,select,button').prop('disabled', true);
+        })
+
+
+    })
+
+    return this;
 }
 
 };
