@@ -29,9 +29,9 @@ switch($DataAction){
             WHERE staID = '{$staID}'AND staEntityID = '{$entID}'";
        
 	   if ($_POST['staFlagDeleted']=='on'){
-	      $sql[] = "UPDATE stbl_action SET actFlagDeleted=1 
+	      $sql[] = "UPDATE stbl_action INNER JOIN stbl_action_status ON atsActionID=actID SET actFlagDeleted=1 
 		     WHERE actEntityID='{$entID}' 
-			 AND (actOldStatusID='".$_POST["staID"]."' OR actNewStatusID='".$_POST["staID"]."')";
+			 AND (atsOldStatusID='".$_POST["staID"]."' OR atsNewStatusID='".$_POST["staID"]."')";
 	   }
 	   
        $sql[] = "DELETE FROM stbl_status_attribute WHERE satStatusID='$staID' AND satEntityID='$entID'";
