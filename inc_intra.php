@@ -72,7 +72,10 @@ public $arrUsrData = array();
  */
 public $usrID = null;
 
-public $conf = array('versionIntra'=>'2.1.066');
+/**
+ * Configuration array. See description at [eiseIntra::$defaultConf](#eiseintra-deafultconf)
+ */
+public $conf = array();
 
 private $arrHTML5AllowedInputTypes = 
     Array("color"
@@ -82,9 +85,53 @@ private $arrHTML5AllowedInputTypes =
 private $arrClassInputTypes = 
     Array("ajax_dropdown", "date", "datetime", "datetime-local", "time");
 
-const cachePreventorVar = 'nc';
-const dataActionKey = 'DataAction';
-const dataReadKey = 'DataAction';
+/**
+ * Default configuration. Exact configuration parameters list is:
+ * 
+ * - 'dateFormat' - date format, default is "d.m.Y" 
+ * - 'prgDate' - regular expression for input validation/converion
+ * - 'prgDateReplaceTo' - replace parameter for preg_replace() for dates, to convert dates from local format to ISO
+ * - 'timeFormat' - time format, default is "H:i" (24-hours time), both are according to PHP date() format function
+ * - 'prgTime' - regular expression for input validation
+ * - 'decimalPlaces' - default decimal places, "2" by default
+ * - 'decimalSeparator' - decimal seprator, default is "."
+ * - 'thousandsSeparator' - default is ","
+ * - 'language' - local language, default is 'rus'
+ * - 'logofftimeout' - log off timeout in minutes, default is 360 //6 hours
+ * - 'addEiseIntraValueClass' - setting for for display true
+ * - 'keyboards' - available keyboard variations (default are 'EN,RU')
+ * - 'system' - eiseIntra path, last slash stripped (default is `ltrim(dirname($_SERVER['PHP_SELF']), '/')`
+ * - 'dataActionKey' - 'DataAction', GET or POST key for data update or retrieval
+ * - 'dataReadKey' - 'DataAction', GET or POST key for data update or retrieval
+ * - 'flagSetGlobalCookieOnRedirect' - see [eiseIntra::getCookiePath()](#eiseintra-getcookiepath) function for details, default is false
+ * - 'cachePreventorVar' - Query string parameter for cache prevention in link elements with CSS and JSS. E.g. 
+ * - 'cookiePath' -  `(isset($eiseIntraCookiePath) ? $eiseIntraCookiePath : '/')`
+ * - 'cookieExpire' - see [eiseIntra::getCookiePath()](#eiseintra-getcookiepath) function for details
+ * - 'UserMessageCookieName' - for cookie used to store user messages, default is 'eiMsg'
+ *
+ * @category Initialization
+ */
+public static $defaultConf = array(
+        'versionIntra'=>'2.1.054' 
+        , 'dateFormat' => "d.m.Y" // 
+        , 'timeFormat' => "H:i" // 
+        , 'decimalPlaces' => "2"
+        , 'decimalSeparator' => "."
+        , 'thousandsSeparator' => ","
+        , 'language' => 'rus'
+        , 'logofftimeout' => 360 //6 hours
+        , 'addEiseIntraValueClass' => true
+        , 'keyboards' => 'EN,RU'
+        , 'dataActionKey' => 'DataAction'
+        , 'dataReadKey' => 'DataAction'
+        , 'cachePreventorVar' => 'nc'
+        , 'system' => 'nc'
+        , 'cookiePath' => 'nc'
+        , 'cookieExpire' => 'nc'
+//       , 'flagSetGlobalCookieOnRedirect' = false
+        , 'selItemMenu' => null
+        , 'selItemTopLevelMenu' => null
+    );
 
 static $arrKeyboard = array(
         'EN' =>   'qwertyuiop[]asdfghjkl;\'\\zxcvbnm,./QWERTYUIOP{}ASDFGHJKL:"|ZXCVBNM<>?'
@@ -98,84 +145,57 @@ static $arrKeyboard = array(
  * @category Initialization
  * 
  * @param eiseSQL $oSQL - MySQL connection object.
- * @param array $conf - associative array with configuration options. Defaults are:  
- * - 'dateFormat' - date format, default is "d.m.Y" 
- * - 'timeFormat' - time format, default is "H:i" (24-hours time), both are according to PHP date() format function
- * - 'decimalPlaces' - default decimal places, "2" by default
- * - 'decimalSeparator' - decimal seprator, default is "."
- * - 'thousandsSeparator' - default is ","
- * - 'language' - local language, default is 'rus'
- * - 'logofftimeout' - log off timeout in minutes, default is 360 //6 hours
- * - 'addEiseIntraValueClass' - setting for for display true
- * - 'keyboards' - available keyboard variations (default are 'EN,RU')
- * - 'system' - eiseIntra path, last slash stripped (default is `ltrim(dirname($_SERVER['PHP_SELF']), '/')`
- * - 'dataActionKey' - 'DataAction', GET or POST key for data update or retrieval
- * - 'dataReadKey' - 'DataAction', GET or POST key for data update or retrieval
- * - 'flagSetGlobalCookieOnRedirect' - see [eiseIntra::getCookiePath()](#eiseintra-getcookiepath) function for details, default is false
- * - 'cookiePath' -  `(isset($eiseIntraCookiePath) ? $eiseIntraCookiePath : '/')`
- * - 'cookieExpire' - see [eiseIntra::getCookiePath()](#eiseintra-getcookiepath) function for details
- * - 'UserMessageCookieName' - for cookie used to store user messages, default is 'eiMsg'
+ * @param array $conf - associative array with configuration options. Defaults are set at [eiseIntra::$defaultConf](#eiseintra-deafultconf)
  */
 function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory anymore
 
     GLOBAL $eiseIntraCookiePath
         , $eiseIntraCookieExpire
         , $eiseIntraUserMessageCookieName
-        , $localLanguage;
+        , $localLanguage
+        , $flagNoAuth;
 
-    $this->conf = array_merge($this->conf, 
-        Array(                    //defaults for intra
-            'dateFormat' => "d.m.Y" // 
-            , 'timeFormat' => "H:i" // 
-            , 'decimalPlaces' => "2"
-            , 'decimalSeparator' => "."
-            , 'thousandsSeparator' => ","
-            , 'language' => 'rus'
-            , 'logofftimeout' => 360 //6 hours
-            , 'addEiseIntraValueClass' => true
-            , 'keyboards' => 'EN,RU'
-            , 'system' => ltrim(dirname($_SERVER['PHP_SELF']), '/')
-            , 'dataActionKey' => self::dataActionKey
-            , 'dataReadKey' => self::dataReadKey
-     //       , 'flagSetGlobalCookieOnRedirect' = false
-            , 'cookiePath' => (isset($eiseIntraCookiePath) ? $eiseIntraCookiePath : '/')
-            , 'cookieExpire' => (isset($eiseIntraCookieExpire) ? $eiseIntraCookieExpire : null)
-            , 'UserMessageCookieName' => ($eiseIntraUserMessageCookieName ? $eiseIntraUserMessageCookieName: 'eiMsg')
-            , 'selItemMenu' => null
-            , 'selItemTopLevelMenu' => null
-        )
-        , $conf
-    );
-        
-    
-    $arrFind = Array();
-    $arrReplace = Array();
-    $arrFind[] = '.'; $arrReplace[]='\\.';          
-    $arrFind[] = '/'; $arrReplace[]='\\/';          
-    $arrFind[] = 'd'; $arrReplace[]='([0-9]{1,2})'; 
-    $arrFind[] = 'm'; $arrReplace[]='([0-9]{1,2})';
-    $arrFind[] = 'Y'; $arrReplace[]='([0-9]{4})';
-    $arrFind[] = 'y'; $arrReplace[]='([0-9]{1,2})';
-    $this->conf['prgDate'] = str_replace($arrFind, $arrReplace, $this->conf['dateFormat']);
-    $dfm  = preg_replace('/[^a-z]/i','', $this->conf['dateFormat']);
-    $this->conf['prgDateReplaceTo'] = '\\'.(strpos($dfm, 'y')===false ? strpos($dfm, 'Y')+1 : strpos($dfm, 'y')+1).'-\\'.(strpos($dfm, 'm')+1).'-\\'.(strpos($dfm, 'd')+1);
-    
-    $arrFind = Array();
-    $arrReplace = Array();            
-    $arrFind[] = "."; $arrReplace[]="\\.";
-    $arrFind[] = ":"; $arrReplace[]="\\:";
-    $arrFind[] = "/"; $arrReplace[]="\\/";
-    $arrFind[] = "H"; $arrReplace[]="([0-9]{1,2})";
-    $arrFind[] = "h"; $arrReplace[]="([0-9]{1,2})";
-    $arrFind[] = "i"; $arrReplace[]="([0-9]{1,2})";
-    $arrFind[] = "s"; $arrReplace[]="([0-9]{1,2})";
-    $this->conf["prgTime"] = str_replace($arrFind, $arrReplace, $this->conf["timeFormat"]);
-    
-    $this->oSQL = $oSQL;
+    $this->conf = self::$defaultConf;
+
+    $this->conf['system'] = ltrim(dirname($_SERVER['PHP_SELF']), '/');
+    $this->conf['cookiePath'] = (isset($eiseIntraCookiePath) ? $eiseIntraCookiePath : '/');
+    $this->conf['cookieExpire'] = (isset($eiseIntraCookieExpire) ? $eiseIntraCookieExpire : null);
+    $this->conf['UserMessageCookieName'] = ($eiseIntraUserMessageCookieName ? $eiseIntraUserMessageCookieName: 'eiMsg');
+
+    $this->conf = array_merge($this->conf, $conf);
+
+    parent::__construct($oSQL, $this->conf);
 
     self::buildLess();
 
     $this->requireComponent('base');
+
+    if (!$flagNoAuth) {
+            // checking is session available
+        $this->session_initialize();
+        if (!$this->usrID){
+           SetCookie("PageNoAuth", $_SERVER["PHP_SELF"].($_SERVER["QUERY_STRING"]!="" ? ("?".$_SERVER["QUERY_STRING"]) : ""));
+           header("HTTP/1.0 401 Unauthorized");
+           header ("Location: login.php");
+           die();
+        }
+        
+        $this->checkPermissions();
+
+    }
+
+    $this->readSettings();
+
+
+    $this->checkLanguage();
+    if ($this->local){
+        include "common/lang.php";
+        $this->lang = ($lang ? $lang : array());
+    }
+
+        
+    $strLocal = $this->local; //backward-compatibility stuff
+    
 
 }
 
@@ -241,7 +261,7 @@ function encodeAuthString($login, $password){
  * @return boolean authentication result: true on success, otherwise false.
  */
 function Authenticate($login, $password, $method="LDAP", $options=array()){
-    
+
     $oSQL = $this->oSQL;
     
     switch($method) {
@@ -302,17 +322,17 @@ function Authenticate($login, $password, $method="LDAP", $options=array()){
         break;
     } 
 
-    if($method=="mysql"){
-        $_SESSION["usrID"] = $login;
-        $_SESSION["DBHOST"] = $this->oSQL->dbhost;
-        $_SESSION["DBPASS"] = $this->oSQL->dbpass;
-    }
-
     if($options['flagNoSession'])
         return true;
 
     $this->session_initialize();
     session_regenerate_id();
+
+    if($method=="mysql"){
+        $_SESSION["usrID"] = $login;
+        $_SESSION["DBHOST"] = $this->oSQL->dbhost;
+        $_SESSION["DBPASS"] = $this->oSQL->dbpass;
+    }
 
     $_SESSION["last_login_time"] = Date("Y-m-d H:i:s");
     $_SESSION["usrID"] = $login;
@@ -400,6 +420,10 @@ function checkPermissions( $script_name = null ){
           die();
       }
    }
+
+    if(!$oSQL){
+        return array();
+    }
    
    //checking is user blocked or not?
    $rsUser = $oSQL->do_query("SELECT * FROM stbl_user WHERE usrID='".$_SESSION["usrID"]."'");
@@ -1234,6 +1258,9 @@ function addTranslationKey($key){
  */
 function readSettings(){
     
+    if(!$this->oSQL)
+        return;
+
     $oSQL = $this->oSQL;
     
     /* ?????????????? ?????????? ?? tbl_setup ? ?????? ============================ BEGIN */
@@ -2054,7 +2081,7 @@ function loadCSS(){
  */
 private function getCachePreventor(){
 
-    return self::cachePreventorVar.'='.preg_replace('/\D/', '', $this->conf['versionIntra'].$this->conf['version']);
+    return $intra->conf['cachePreventorVar'].'='.preg_replace('/\D/', '', $this->conf['versionIntra'].$this->conf['version']);
 
 }
 
@@ -2080,7 +2107,7 @@ function dataAction($dataAction, $funcOrObj=null){
 
     $dataAction = (is_array($dataAction) ? $dataAction : array($dataAction));
 
-    if(in_array($newData[self::dataActionKey], $dataAction)
+    if(in_array($newData[$this->intra['dataActionKey']], $dataAction)
         && ($this->arrUsrData['FlagWrite'] || $this->arrUsrData['FlagCreate'] || $this->arrUsrData['FlagUpdate'])
         ){
         
@@ -2095,7 +2122,7 @@ function dataAction($dataAction, $funcOrObj=null){
         } elseif(is_object($funcOrObj)){
 
             $obj = $funcOrObj;
-            $method = $newData[self::dataActionKey];
+            $method = $newData[$intra->conf['dataActionKey']];
             $ret = array();
 
             try {
@@ -2152,11 +2179,11 @@ function dataRead($dataReadValues, $function, $arrParam = array()){
 
     if(in_array($query[$this->conf['dataReadKey']], $dataReadValues)){
         
-        $arrParam = func_get_args();
-        array_shift($arrParam);
-        array_shift($arrParam);
-        $arrArgs = $arrParam;
-
+            $arrParam = func_get_args();
+            array_shift($arrParam);
+            array_shift($arrParam);
+            $arrArgs = $arrParam;
+                    
         if(is_callable($function)){
             return call_user_func_array($function, $arrArgs );
         } elseif( is_object($function) ){

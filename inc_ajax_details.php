@@ -5,7 +5,7 @@ if ($_SERVER["REQUEST_METHOD"]=="POST")
 else 
   $arrIn = $_GET;
   
-$DataAction = $arrIn[eiseIntra::dataReadKey];
+$DataAction = $arrIn[$intra->conf['dataReadKey']];
 
 switch ($DataAction){
     case 'getMenu':

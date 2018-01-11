@@ -23,6 +23,8 @@ switch ($DataAction){
         }
 
         try {
+            echo '<pre>';
+            echo $authmethod;
             $intra->Authenticate( $login, $password, (isset($authmethod) ? $authmethod : "LDAP") );
             header ("Location: ".(isset($_COOKIE["PageNoAuth"]) ? $_COOKIE["PageNoAuth"] : "index.php"));
             die();

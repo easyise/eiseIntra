@@ -68,7 +68,7 @@ switch($DataAction){
 $intra->requireComponent(array('jquery-ui', 'grid'));
 
 $arrActions[]= Array ("title" => $intra->translate("New database")
-	   , "action" => 'database_form.php?'.eiseIntra::dataActionKey.'=new'
+	   , "action" => "database_form.php?{$intra->conf['dataActionKey']}=new"
 	   , "class"=> "ss_add"
 	);
 $arrActions[]= Array ("title" => $intra->translate("Refresh")

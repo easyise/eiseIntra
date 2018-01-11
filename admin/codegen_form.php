@@ -407,7 +407,7 @@ include eiseIntraAbsolutePath.'inc-frame_top.php';
 foreach($arrTable["PK"] as $i=>$pk){
     $strCode .= "<?php\r\n";
     $strCode .= "echo \$intra->field(null, '{$pk}', \${$pk}, array('type'=>'hidden'));\r\n";
-    $strCode .= "echo \$intra->field(null, eiseIntra::dataActionKey, 'update', array('type'=>'hidden'));\r\n";
+    $strCode .= "echo \$intra->field(null, \$this->conf['dataActionKey'], 'update', array('type'=>'hidden'));\r\n";
     $strCode .= "?>\r\n";
 }
 $strCode .= "

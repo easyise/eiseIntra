@@ -83,6 +83,34 @@ public static $arrIntraDataTypes = array(
     , 'activity_stamp' => array('datetime', 'timestamp')
 );
 
+function __construct($oSQL = null, $conf = null){
+        
+    $arrFind = Array();
+    $arrReplace = Array();
+    $arrFind[] = '.'; $arrReplace[]='\\.';          
+    $arrFind[] = '/'; $arrReplace[]='\\/';          
+    $arrFind[] = 'd'; $arrReplace[]='([0-9]{1,2})'; 
+    $arrFind[] = 'm'; $arrReplace[]='([0-9]{1,2})';
+    $arrFind[] = 'Y'; $arrReplace[]='([0-9]{4})';
+    $arrFind[] = 'y'; $arrReplace[]='([0-9]{1,2})';
+    $this->conf['prgDate'] = str_replace($arrFind, $arrReplace, $this->conf['dateFormat']);
+    $dfm  = preg_replace('/[^a-z]/i','', $this->conf['dateFormat']);
+    $this->conf['prgDateReplaceTo'] = '\\'.(strpos($dfm, 'y')===false ? strpos($dfm, 'Y')+1 : strpos($dfm, 'y')+1).'-\\'.(strpos($dfm, 'm')+1).'-\\'.(strpos($dfm, 'd')+1);
+    
+    $arrFind = Array();
+    $arrReplace = Array();            
+    $arrFind[] = "."; $arrReplace[]="\\.";
+    $arrFind[] = ":"; $arrReplace[]="\\:";
+    $arrFind[] = "/"; $arrReplace[]="\\/";
+    $arrFind[] = "H"; $arrReplace[]="([0-9]{1,2})";
+    $arrFind[] = "h"; $arrReplace[]="([0-9]{1,2})";
+    $arrFind[] = "i"; $arrReplace[]="([0-9]{1,2})";
+    $arrFind[] = "s"; $arrReplace[]="([0-9]{1,2})";
+    $this->conf["prgTime"] = str_replace($arrFind, $arrReplace, $this->conf["timeFormat"]);
+    
+    $this->oSQL = $oSQL;
+}
+
 /**
  * This function returns Intra type from key set of $arrIntraDataTypes array above. It takes $type and $field name as parameters, and it can be as Intra types as SQL data types returned by fetch_fields() or getTableInfo() functions.
  *
