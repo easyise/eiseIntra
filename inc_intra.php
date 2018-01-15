@@ -1698,6 +1698,7 @@ function showButton($name, $value, $arrConfig=array()){
             $strClass = 'eiseIntraDelete'.($strClass!='' ? ' ' : '').$strClass;
         $strRet = '<button'
             .($name!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
+            .' class="'.$strClass.'"'
             .(!$flagWrite ? ' disabled' : '')
             .'>'.htmlspecialchars($value).'</button>';
     }

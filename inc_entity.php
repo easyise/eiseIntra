@@ -80,7 +80,7 @@ private function init(){
     $sqlSat = "SELECT stbl_status.*,stbl_status_attribute.*  
             FROM stbl_status_attribute 
                 RIGHT OUTER JOIN stbl_status ON staID=satStatusID AND satEntityID=staEntityID
-                LEFT OUTER JOIN stbl_attribute ON atrID=satAttributeID AND atrFlagDeleted=0
+                INNER JOIN stbl_attribute ON atrID=satAttributeID AND atrFlagDeleted=0
         WHERE staEntityID=".$oSQL->e($this->entID)."
         ORDER BY staID, atrOrder";
     $rsSat = $oSQL->q($sqlSat);
