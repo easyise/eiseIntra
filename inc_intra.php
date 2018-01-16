@@ -2144,7 +2144,7 @@ function dataAction($dataAction, $funcOrObj=null){
 
     $dataAction = (is_array($dataAction) ? $dataAction : array($dataAction));
 
-    if(in_array($newData[$this->intra['dataActionKey']], $dataAction)
+    if(in_array($newData[$this->conf['dataActionKey']], $dataAction)
         && ($this->arrUsrData['FlagWrite'] || $this->arrUsrData['FlagCreate'] || $this->arrUsrData['FlagUpdate'])
         ){
         
@@ -2159,7 +2159,7 @@ function dataAction($dataAction, $funcOrObj=null){
         } elseif(is_object($funcOrObj)){
 
             $obj = $funcOrObj;
-            $method = $newData[$intra->conf['dataActionKey']];
+            $method = $newData[$this->conf['dataActionKey']];
             $ret = array();
 
             try {
