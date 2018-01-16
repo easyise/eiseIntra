@@ -113,7 +113,7 @@ private $arrClassInputTypes =
  * @category Initialization
  */
 public static $defaultConf = array(
-        'versionIntra'=>'2.1.070' 
+        'versionIntra'=>'2.1.072' 
         , 'dateFormat' => "d.m.Y" // 
         , 'timeFormat' => "H:i" // 
         , 'decimalPlaces' => "2"
@@ -453,28 +453,32 @@ function checkPermissions( ){
     }
    
    //checking is user blocked or not?
-   $rsUser = $oSQL->do_query("SELECT * FROM stbl_user WHERE usrID='".$_SESSION["usrID"]."'");
+   $rsUser = $oSQL->do_query("SELECT * FROM stbl_user WHERE usrID=".$oSQL->e($this->usrID));
    $rwUser = $oSQL->fetch_array($rsUser);
    
     if (!$rwUser["usrID"]){
-        throw new eiseException($this->translate("Your User ID %s doesnt exist in master database. Contact system administrator.", $_SESSION["usrID"]), 401 );
+        throw new eiseException($this->translate("Your User ID %s doesnt exist in master database. Contact system administrator.", $this->usrID), 401 );
     }
    
     if ($rwUser["usrFlagDeleted"]){
-        throw new eiseException( $this->translate("Your User ID %s is blocked.", $_SESSION["usrID"]), 401 );
+        throw new eiseException( $this->translate("Your User ID %s is blocked.", $this->usrID), 401 );
     }
-   
+    $this->usrID = $rwUser['usrID'];
+
     // checking script permissions
-    $script_name = preg_replace("/^(\/[^\/]+)/", "", ($this->conf['context']
+    $script_name = preg_replace("/^(\/[^\/]+)(\/.*)$/", "\\2", ($this->conf['context']
             ? $this->conf['context']
             : $_SERVER["SCRIPT_NAME"]
         )
     );
 
+    $aScriptName = array($oSQL->e($script_name), $oSQL->e('/'.$script_name));
+
     $sqlCheckUser = "SELECT
              pagID
             , pagTitle
             , pagTitleLocal
+            , pagFile
             , MAX(pgrFlagRead) as FlagRead
             , MAX(pgrFlagCreate) as FlagCreate
             , MAX(pgrFlagUpdate) as FlagUpdate
@@ -485,43 +489,44 @@ function checkPermissions( ){
              pagID
             , pagTitle
             , pagTitleLocal
+            , pagFile
             , pgrFlagRead, pgrFlagCreate, pgrFlagUpdate, pgrFlagDelete, pgrFlagWrite
             , rolID
         FROM stbl_page PAG
            INNER JOIN stbl_page_role PGR ON PAG.pagID=PGR.pgrPageID
            INNER JOIN stbl_role ROL ON PGR.pgrRoleID=ROL.rolID
            INNER JOIN stbl_role_user RLU ON ROL.rolID=RLU.rluRoleID
-           WHERE PAG.pagFile='$script_name' AND (RLU.rluUserID=".$oSQL->e($this->usrID)." AND DATEDIFF(NOW(), rluInsertDate)>=0)
+           WHERE PAG.pagFile IN (".implode(',', $aScriptName).") AND (RLU.rluUserID=".$oSQL->e($this->usrID)." AND DATEDIFF(NOW(), rluInsertDate)>=0)
         UNION 
         SELECT 
              pagID
             , pagTitle
             , pagTitleLocal
+            , pagFile
             , pgrFlagRead, pgrFlagCreate, pgrFlagUpdate, pgrFlagDelete, pgrFlagWrite
             , rolID
         FROM stbl_page PAG
            INNER JOIN stbl_page_role PGR ON PAG.pagID=PGR.pgrPageID
            INNER JOIN stbl_role ROL ON PGR.pgrRoleID=ROL.rolID
-           WHERE pagFile='$script_name' AND rolFlagDefault=1
+           WHERE PAG.pagFile IN (".implode(',', $aScriptName).") AND rolFlagDefault=1
            )
         AS t1
         GROUP BY pagID, pagTitle";
-       //echo $sqlCheckUser;
     $rsChkPerms = $oSQL->do_query($sqlCheckUser);
     $rwPerms = $oSQL->fetch_array($rsChkPerms);
         
     if (!$rwPerms["FlagRead"]){
-        
-        throw new eiseException($this->translate("%s access denied", ($this->conf['context'] 
+        throw new eiseException($this->translate("%s access denied to user %s", ($this->conf['context'] 
                 ? $this->conf['context'] 
-                : $_SERVER['PHP_SELF'])), 403);
+                : $_SERVER['PHP_SELF']),
+        $this->usrID), 403);
     } 
     
     
     $sqlRoles = "SELECT rolID, rolTitle$this->local
        FROM stbl_role ROL
        LEFT OUTER JOIN stbl_role_user RLU ON RLU.rluRoleID=ROL.rolID
-       WHERE (RLU.rluUserID = '{$_SESSION["usrID"]}' AND DATEDIFF(NOW(), rluInsertDate)>=0)
+       WHERE (RLU.rluUserID = '{$this->usrID}' AND DATEDIFF(NOW(), rluInsertDate)>=0)
           OR rolID='Everyone'";
     $rsRoles = $oSQL->do_query($sqlRoles);
     $arrRoles = Array();
