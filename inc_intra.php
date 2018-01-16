@@ -108,11 +108,12 @@ private $arrClassInputTypes =
  * - 'cookiePath' -  `(isset($eiseIntraCookiePath) ? $eiseIntraCookiePath : '/')`
  * - 'cookieExpire' - see [eiseIntra::getCookiePath()](#eiseintra-getcookiepath) function for details
  * - 'UserMessageCookieName' - for cookie used to store user messages, default is 'eiMsg'
+ * - 'defaultPage' - the page that user see right after authentication. 
  *
  * @category Initialization
  */
 public static $defaultConf = array(
-        'versionIntra'=>'2.1.068' 
+        'versionIntra'=>'2.1.070' 
         , 'dateFormat' => "d.m.Y" // 
         , 'timeFormat' => "H:i" // 
         , 'decimalPlaces' => "2"
@@ -131,6 +132,7 @@ public static $defaultConf = array(
 //       , 'flagSetGlobalCookieOnRedirect' = false
         , 'selItemMenu' => null
         , 'selItemTopLevelMenu' => null
+        , 'defaultPage' => 'about.php'
     );
 
 static $arrKeyboard = array(
@@ -170,32 +172,42 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
 
     $this->requireComponent('base');
 
-    if (!$flagNoAuth) {
-            // checking is session available
-        $this->session_initialize();
-        if (!$this->usrID){
-           SetCookie("PageNoAuth", $_SERVER["PHP_SELF"].($_SERVER["QUERY_STRING"]!="" ? ("?".$_SERVER["QUERY_STRING"]) : ""));
-           header("HTTP/1.0 401 Unauthorized");
-           header ("Location: login.php");
-           die();
+    if (!$flagNoAuth || $this->conf['context']) {
+
+        try {
+
+            $this->checkPermissions();
+
+        } catch (eiseException $e) {
+            
+            if(!$this->conf['context']){
+
+                switch($e->getCode()){
+                    case 401:
+                        header ("Location: login.php?error=".$e->getMessage());
+                        die();
+                    default:
+                        $backref = $this->backref(false);
+                        if($backref){
+                            $this->redirect('ERROR: '.$e->getMessage(), $backref);
+                        } else
+                            die($e->getMessage());
+                }
+            
+            } else {
+                throw $e;
+            }
         }
-        
-        $this->checkPermissions();
 
     }
 
     $this->readSettings();
-
 
     $this->checkLanguage();
     if ($this->local){
         include "common/lang.php";
         $this->lang = ($lang ? $lang : array());
     }
-
-        
-    $strLocal = $this->local; //backward-compatibility stuff
-    
 
 }
 
@@ -391,7 +403,7 @@ function logout(){
  * Permissions are calulated in the following way:
  * - if at least one user's role is permitted to do something, it means that this user is permitted to to it.
  * 
- * If user has no permissions to 'Read' the script, function throws header `Location: login.php` and stops the script.
+ * If user has no permissions to 'Read' the script, function throws an exception.
  * When 'Read' permissions are confirmed for the user, function updates [$intra->arrUsrData property](#eiseintra-arrusrdata). Click on [this link](#eiseintra-arrusrdata) to see full description.
  * 
  * NOTE: Role membership information is collected from stbl_role_user table basing on rluInsertDate timestamp, 
@@ -405,23 +417,38 @@ function logout(){
  *
  * @return array `$intra->arrUsrData`
  */
-function checkPermissions( $script_name = null ){
+function checkPermissions( ){
    
-   $oSQL = $this->oSQL;
+    $oSQL = $this->oSQL;
    
-   GLOBAL $strSubTitle;
-   
-   // checking user timeout
-   if ($_SESSION["last_login_time"]!="" && $strSubTitle != "DEVELOPMENT" ){
-      if (time() - strtotime($_SESSION["last_login_time"])>60*$this->conf['logofftimeout']) {
-          $tt = Date("Y-m-d H:i:s", mktime())." - ".$_SESSION["last_login_time"];
-          header("HTTP/1.0 403 Access denied");
-          header ("Location: login.php?error=".urlencode($this->translate("Session timeout ($tt). Please re-login.")));
-          die();
-      }
-   }
+    if( !$this->conf['context'] ){
 
-    if(!$oSQL){
+        $this->session_initialize();
+        if ( !$this->usrID ){
+
+           SetCookie("PageNoAuth", $_SERVER["PHP_SELF"].($_SERVER["QUERY_STRING"]!="" ? ("?".$_SERVER["QUERY_STRING"]) : ""));
+           throw new eiseException('', 401);
+           
+        }
+
+        GLOBAL $strSubTitle; // backward-compatibility
+        // checking user timeout
+        if ($_SESSION["last_login_time"]!="" && $strSubTitle != "DEVELOPMENT" ){
+           if (time() - strtotime($_SESSION["last_login_time"])>60*$this->conf['logofftimeout']) {
+               $tt = Date("Y-m-d H:i:s", mktime())." - ".$_SESSION["last_login_time"];
+               throw new eiseException($this->translate("Session timeout ($tt). Please re-login."), 401);
+           }
+        }
+    } else {
+        $this->usrID = $this->conf['usrID'];
+    }
+
+    if ( !$this->usrID ){
+        throw new eiseException('User ID is not specified', 401);           
+    }
+   
+
+    if( !$oSQL ){
         return array();
     }
    
@@ -429,19 +456,22 @@ function checkPermissions( $script_name = null ){
    $rsUser = $oSQL->do_query("SELECT * FROM stbl_user WHERE usrID='".$_SESSION["usrID"]."'");
    $rwUser = $oSQL->fetch_array($rsUser);
    
-   if (!$rwUser["usrID"]){
-        header ("Location: login.php?error=".urlencode($this->translate("Your User ID doesnt exist in master database. Contact system administrator.")));
-        die();
-   }
+    if (!$rwUser["usrID"]){
+        throw new eiseException($this->translate("Your User ID %s doesnt exist in master database. Contact system administrator.", $_SESSION["usrID"]), 401 );
+    }
    
-   if ($rwUser["usrFlagDeleted"]){
-        header ("Location: login.php?error=".urlencode($this->translate("Your User ID is blocked.")));
-        die();
-   }
+    if ($rwUser["usrFlagDeleted"]){
+        throw new eiseException( $this->translate("Your User ID %s is blocked.", $_SESSION["usrID"]), 401 );
+    }
    
-   // checking script permissions
-   $script_name = preg_replace("/^(\/[^\/]+)/", "", ($script_name ? $script_name : $_SERVER["SCRIPT_NAME"]));
-   $sqlCheckUser = "SELECT
+    // checking script permissions
+    $script_name = preg_replace("/^(\/[^\/]+)/", "", ($this->conf['context']
+            ? $this->conf['context']
+            : $_SERVER["SCRIPT_NAME"]
+        )
+    );
+
+    $sqlCheckUser = "SELECT
              pagID
             , pagTitle
             , pagTitleLocal
@@ -461,7 +491,7 @@ function checkPermissions( $script_name = null ){
            INNER JOIN stbl_page_role PGR ON PAG.pagID=PGR.pgrPageID
            INNER JOIN stbl_role ROL ON PGR.pgrRoleID=ROL.rolID
            INNER JOIN stbl_role_user RLU ON ROL.rolID=RLU.rluRoleID
-           WHERE PAG.pagFile='$script_name' AND (RLU.rluUserID=".$oSQL->e($_SESSION["usrID"])." AND DATEDIFF(NOW(), rluInsertDate)>=0)
+           WHERE PAG.pagFile='$script_name' AND (RLU.rluUserID=".$oSQL->e($this->usrID)." AND DATEDIFF(NOW(), rluInsertDate)>=0)
         UNION 
         SELECT 
              pagID
@@ -481,10 +511,10 @@ function checkPermissions( $script_name = null ){
     $rwPerms = $oSQL->fetch_array($rsChkPerms);
         
     if (!$rwPerms["FlagRead"]){
-        $errortext = "".$_SERVER["PHP_SELF"].": ".$this->translate("access denied");
-        $this->redirect("ERROR: ".$errortext
-            , (($_SERVER["HTTP_REFERER"]!="" && !strstr($_SERVER["HTTP_REFERER"], "login.php")) ? $_SERVER["HTTP_REFERER"] : "login.php?error=".urlencode($errortext)));
-        die();
+        
+        throw new eiseException($this->translate("%s access denied", ($this->conf['context'] 
+                ? $this->conf['context'] 
+                : $_SERVER['PHP_SELF'])), 403);
     } 
     
     
@@ -515,6 +545,7 @@ function checkPermissions( $script_name = null ){
     
     $this->usrID = $this->arrUsrData["usrID"];
     $this->conf['usrID'] = $this->arrUsrData["usrID"];
+
     return $this->arrUsrData;
      
 }
@@ -1005,7 +1036,7 @@ function backref($urlIfNoReferer){
         strpos($_SERVER["HTTP_REFERER"], 'index.php?pane=')===false ) //and not from fullEdit
     {
         SetCookie("referer", $_SERVER["HTTP_REFERER"], 0, $_SERVER["PHP_SELF"]);
-        $backref = $_SERVER["HTTP_REFERER"];
+        $backref = ($_SERVER["HTTP_REFERER"] ? $_SERVER["HTTP_REFERER"] : $urlIfNoReferer);
     } else {
         $backref = ($_COOKIE["referer"] ? $_COOKIE["referer"] : $urlIfNoReferer);
     }
@@ -2489,8 +2520,8 @@ static function debug($to_echo){
 
 
 class eiseException extends Exception  {
-function __construct($msg, $level = 0){
-    parent::__construct($msg);
+function __construct($msg, $code = 0){
+    parent::__construct($msg, $code);
 }
 }
 
