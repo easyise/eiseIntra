@@ -205,7 +205,7 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
 
     $this->checkLanguage();
     if ($this->local){
-        include "common/lang.php";
+        @include "common/lang.php";
         $this->lang = ($lang ? $lang : array());
     }
 
