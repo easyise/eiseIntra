@@ -819,7 +819,10 @@ function getSelectValue($cell, $row, $suffix=''){
 
     if ($_text != ""){
         return $_text;
-    }
+    } else 
+        if($_val != ''){
+            return $_val;
+        }
     if ( is_array($cell['source']) ){
         foreach($cell['source'] as $key=>$value){
             if(is_array($value)){

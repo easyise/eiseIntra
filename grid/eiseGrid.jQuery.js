@@ -1351,18 +1351,29 @@ eiseGrid.prototype.verify = function( options ){
 
 }
 
-eiseGrid.prototype.save = function(){
+eiseGrid.prototype.save = function(onSubmit){
     
     if (!this.verify())
         return false;
 
-    this.div.wrap('<form action="'+this.conf.urlToSubmit+'" id="form_eg_'+this.id+'" method="POST" />');
     var oForm = $('#form_eg_'+this.id);
-    $.each(this.conf.extraInputs, function(name, value){
-        oForm.append('<input type="hidden" name="'+name+'" value="'+value+'">');
-    });
-    oForm.find('#inp_'+this.id+'_config').remove();
-    oForm.submit();
+
+    if(!oForm[0]){
+        this.div.wrap('<form action="'+this.conf.urlToSubmit+'" id="form_eg_'+this.id+'" method="POST" />');
+        oForm = $('#form_eg_'+this.id);
+        $.each(this.conf.extraInputs, function(name, value){
+            oForm.append('<input type="hidden" name="'+name+'" value="'+value+'">');
+        });
+        oForm = $('#form_eg_'+this.id);
+    }
+    
+    if(typeof onSubmit === 'function'){
+        oForm.submit(onSubmit);
+    } else {
+        oForm.find('#inp_'+this.id+'_config').remove();
+        oForm.submit();
+    }
+    
 }
 
 
@@ -1478,6 +1489,13 @@ eiseGrid.prototype.fill = function(data, fn){
                 href = href.replace('['+field+']', value);
             })
             return href;
+        },
+        __doHREF = function(props, $parent, href){
+            var $elem = $('<a>').appendTo($parent);
+            $elem[0].href = href;
+            if(props.target)
+                $elem[0].target = props.target
+            return $elem;
         };
 
     this.tableContainer.find('.eg-spinner').css('display', 'none');
@@ -1562,15 +1580,19 @@ eiseGrid.prototype.fill = function(data, fn){
                     case 'time':
                         val = text = $('body').eiseIntra('formatDate', val, props.type);
                     default:
-                        if($td.find('input[type=text]')[0]){
-                            $td.find('input[type=text]').first().val(text);
+                        var textInput = $td.find('input[type=text]')[0];
+                        if(textInput){
+                            if(!href)
+                                $(textInput).val(text);
+                            else {
+                                $(textInput).remove();
+                                __doHREF(props, $td, href).text(text)
+                            }
+
                         } else {         
                             var $elem = $div;
                             if(href){
-                                $elem = $('<a>').appendTo($div);
-                                $elem[0].href = href;
-                                if(props.target)
-                                    $elem[0].target = props.target
+                                $elem = __doHREF(props, $div, href)
                             }
                             $elem.text(text);
                         }
@@ -1590,10 +1612,13 @@ eiseGrid.prototype.fill = function(data, fn){
     }
 
     $.each(oGrid.conf.fields, function(field, props){ // recalc totals, if any
-        if (props.totals!=undefined) oThis.recalcTotals(field);
+        if (props.totals!=undefined) oGrid.recalcTotals(field);
     });
 
     oGrid.trFirst = oGrid.tableContainer.find('.eg-data').first();
+
+    if(typeof fn === 'function')
+        fn.call(oGrid)
 
 }
 
@@ -1860,10 +1885,10 @@ validate: function( options ){
     return flagOK;
 },
 
-save: function(){
+save: function(onSubmit){
     //Wraps whole grid with FORM tag and submits it to script specified in settings.
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
-    grid.save();
+    grid.save(onSubmit);
     return this;
 },
 
