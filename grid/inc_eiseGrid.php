@@ -813,37 +813,46 @@ function getSelectValue($cell, $row, $suffix=''){
     $_val = ($suffix ? $row[$cell['field']][$suffix] : $row[$cell['field']]);
     $_text = ($suffix ? $row[$cell['field'].'_text'][$suffix] : $row[$cell['field'].'_text']);
     
-    if ($_val==""){
+    if ( !$_val ){
         return $cell['defaultText'];
     }
 
-    if ($_text != ""){
+    if ( $_text ){
         return $_text;
-    } else 
-        if($_val != ''){
-            return $_val;
-        }
+    } 
+
+    $ret = '';
+
     if ( is_array($cell['source']) ){
+
         foreach($cell['source'] as $key=>$value){
             if(is_array($value)){
                 foreach($value as $subkey=>$subval){
-                    if($subkey==$_val)
-                        return $subval;
+                    if($subkey==$_val){
+                        $ret = $subval;
+                        break;
+                    }
                 }
+                if($ret)
+                    break;
             } else
-                if($key==$_val)
-                    return $value;
+                if($key==$_val){
+                    $ret = $value;
+                    break;
+                }
         }
-        return $cell['defaultText'];
+
     } else {
+        
         if ($cell['source']!=''){
             $rs = $this->getDataFromCommonViews($this->oSQL, $_val, "", $cell['source'], $cell['source_prefix']);
             $rw = $oSQL->fetch_array($rs);
-            return $rw["optText"];
-        } else {
-            return $cell['defaultText'];
+            $ret = $rw["optText"];
         }
+
     }
+
+    return ( $ret ? $ret : $_val );
 }
 
 function getDataFromCommonViews($oSQL, $strValue, $strText, $strTable, $strPrefix){
