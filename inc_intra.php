@@ -113,7 +113,7 @@ private $arrClassInputTypes =
  * @category Initialization
  */
 public static $defaultConf = array(
-        'versionIntra'=>'2.1.074' 
+        'versionIntra'=>'2.1.078' 
         , 'dateFormat' => "d.m.Y" // 
         , 'timeFormat' => "H:i" // 
         , 'decimalPlaces' => "2"
@@ -466,11 +466,11 @@ function checkPermissions( ){
     $this->usrID = $rwUser['usrID'];
 
     // checking script permissions
-    $script_name = preg_replace("/^(\/[^\/]+)(\/.*)$/", "\\2", ($this->conf['context']
+    $script_name = ltrim(preg_replace("/^(\/[^\/]+)(\/.*)$/", "\\2", ($this->conf['context']
             ? $this->conf['context']
             : $_SERVER["SCRIPT_NAME"]
         )
-    );
+    ), '/');
 
     $aScriptName = array($oSQL->e($script_name), $oSQL->e('/'.$script_name));
 
@@ -512,6 +512,7 @@ function checkPermissions( ){
            )
         AS t1
         GROUP BY pagID, pagTitle";
+    
     $rsChkPerms = $oSQL->do_query($sqlCheckUser);
     $rwPerms = $oSQL->fetch_array($rsChkPerms);
         

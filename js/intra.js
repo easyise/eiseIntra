@@ -1325,6 +1325,11 @@ addField: function( field ){
     if(field.name)
         element.attr('name', field.name);
 
+    if(field.type=='ajax_dropdown'){
+        element[0].dataset['source'] = JSON.stringify({table: field.source, prefix: field.source_prefix, scriptURL: field.sourceURL});
+        element[0].name = element[0].name+'_text';
+    }
+
     if(field.value && $.inArray(type, ['hr', 'p', 'checkbox']) < 0 )
         element.val(field.value);
 
@@ -1340,12 +1345,15 @@ addField: function( field ){
             element.attr('required', 'required');
         }
 
-
         var $field = ( (type=='checkbox' || type=='radio') && (field.labelLayout && field.labelLayout!='left')
             ? $('<div>')
                 .append('<label></label>')
                 .append( $('<label>'+field.title+'</label>').prepend(element).addClass('eiseIntraValue') )
-            : $('<div><label>'+field.title+':</label></div>').append(element.addClass('eiseIntraValue'))
+            : $('<div><label>'+field.title+':</label></div>').append(
+                (field.type=='ajax_dropdown'
+                    ? $('<input type="hidden" name="'+field.name+'">').val(field.value)
+                    :  null)
+                ).append(element.addClass('eiseIntraValue'))
             ).addClass('eiseIntraField');
 
     } else {
