@@ -805,7 +805,9 @@ private function showTemplateRow(){
                 ? "el_".$col["type"] 
                 : ($col['checkbox'] ? "el_checkbox" : "text")).
             (isset($col['width']) ? ' el_fixedWidth' : '').
-            "\">".($col['checkbox']
+            '"'.
+            (isset($col['target']) ? ' target="'.$col['target'].'"' : '').
+            '>'.($col['checkbox']
                 ? "<input type='checkbox' name='sel_{$this->name}[]' value='' id='sel_{$this->name}_{$col['field']}_'>" 
                 : "")."</td>\r\n";
         
