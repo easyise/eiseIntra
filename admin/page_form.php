@@ -17,14 +17,9 @@ $intra->requireComponent('grid');
 
 $grid = new easyGrid($oSQL
 					, "page_role"
-                    , Array(
-                            'rowNum' =>40
-                            , 'flagEditable'=> true
-                            , 'flagKeepLastRow' => false
-                            , 'arrPermissions' => Array('FlagWrite'=> true)
+                    , Array('arrPermissions' => Array('FlagWrite'=> true)
                             , 'strTable' => "stbl_page_role"
                             , 'strPrefix' => "pgr"
-                            , 'flagStandAlone' => false
                             )
                     );
                         
@@ -109,156 +104,111 @@ function RecalculatePageTree($oSQL, $pagParentID, &$iCounter){
 
 
 
-if (isset($DataAction)){
-    switch($DataAction){
-      case "update":
-        $rsPage = $oSQL->do_query("SELECT * FROM stbl_page WHERE pagID='{$_POST["pagID"]}'");
+switch($DataAction){
+    case "update":
+
+        $oSQL->q('START TRANSACTION');
+
+        $sqlPag = "SELECT * FROM stbl_page WHERE pagID='$pagID'";
+        $rsPage = $oSQL->q($sqlPag);
         $ffPage = $oSQL->ff($rsPage);
-        $rwPage = $oSQL->fetch_array($rsPage);
-        $sql = Array();
-           //echo $pagFlagShowInMenu;
-        if (!$pagID) {
-           $sql[] = "START TRANSACTION;";
-		   /* acknowledging right from parent */
-		   //$sql[] = "DECLARE @pagIdxLeft,@pagIdxRight, @pagID;\r";
-           $sql[] = "SELECT @pagIdxLeft := pagIdxRight, @pagIdxRight := pagIdxRight+1 FROM stbl_page WHERE pagID=$pagParentID;\r";
+        $iCounter = 0;
+
+        $fields = "
+            pagParentID = {$pagParentID}
+            , pagFile = ".$oSQL->escape_string($_POST["pagFile"])."
+            , pagTitle = ".$oSQL->escape_string($_POST["pagTitle"])."
+            , pagTitleLocal = ".$oSQL->escape_string($_POST["pagTitleLocal"])."
+            , pagFlagShowInMenu = ".($_POST["pagFlagShowInMenu"]=="on" ? "1" : "0")."
+            , pagFlagSystem = ".($_POST["pagFlagSystem"]=="on" ? "1" : "0")."
+            , pagFlagHierarchy = ".($_POST["pagFlagHierarchy"]=="on" ? "1" : "0")."
+            , pagFlagShowMyItems = ".($_POST["pagFlagShowMyItems"]=="on" ? "1" : "0")."
+            , pagTable = ".$oSQL->escape_string($_POST["pagTable"])."
+            , pagEntityID = ".$oSQL->escape_string($_POST["pagEntityID"])."
+            ".(isset($ffPage['pagMenuItemClass']) 
+                ? ', pagMenuItemClass='.$oSQL->e($_POST['pagMenuItemClass']) : '')."
+            , pagEditBy = '{$intra->usrID}', pagEditDate = NOW()";
+
+        if ($oSQL->n($rsPage)==0) {
+
+            if($pagParentID){
+                list($ixLeft, $ixRight) = $oSQL->fa($oSQL->q("SELECT pagIdxRight, pagIdxRight+1 FROM stbl_page WHERE pagID=".(int)$pagParentID));
+            } 
+
+            if(!$ixRight || !$ixLeft){
+                list($ixLeft, $ixRight) = $oSQL->fa($oSQL->q("SELECT MAX(pagIdxRight), MAX(pagIdxRight)+1 FROM stbl_page")); 
+            }
 		   
-		   /* first updating all lefts and rights */
-           $sql[] = "UPDATE stbl_page SET pagIdxLeft=pagIdxLeft+2 WHERE pagIdxLeft > @pagIdxRight;\r";
-           $sql[] = "UPDATE stbl_page SET pagIdxRight=pagIdxRight+2 WHERE pagIdxRight >= @pagIdxRight;\r";
-		   /* then inserting needed record */
-           $sql[] = "INSERT INTO stbl_page SET 
-             pagParentID = {$pagParentID}
-             , pagFile = ".$oSQL->escape_string($_POST["pagFile"])."
-             , pagTitle = ".$oSQL->escape_string($_POST["pagTitle"])."
-			 , pagTitleLocal = ".$oSQL->escape_string($_POST["pagTitleLocal"])."
-             , pagFlagShowInMenu = ".($_POST["pagFlagShowInMenu"]=="on" ? "1" : "0")."
-			 , pagFlagSystem = ".($_POST["pagFlagSystem"]=="on" ? "1" : "0")."
-       , pagFlagHierarchy = ".($_POST["pagFlagHierarchy"]=="on" ? "1" : "0")."
-			 , pagFlagShowMyItems = ".($_POST["pagFlagShowMyItems"]=="on" ? "1" : "0")."
-			 , pagTable = ".$oSQL->escape_string($_POST["pagTable"])."
-			 , pagEntityID = ".$oSQL->escape_string($_POST["pagEntityID"])."
-             , pagIdxLeft = @pagIdxLeft
-             , pagIdxRight = @pagIdxRight
-             ".(isset($ffPage['pagMenuItemClass']) ? ', pagMenuItemClass='.$oSQL->e($_POST['pagMenuItemClass']) : '')."
-             , pagInsertBy = '$usrID'
-             , pagInsertDate = NOW()
-             , pagEditBy = '$usrID'
-             , pagEditDate = NOW()
-             ;\r";
+		    /* first updating all lefts and rights */
+            $oSQL->q("UPDATE stbl_page SET pagIdxLeft=pagIdxLeft+2 WHERE pagIdxLeft > {$ixLeft}");
+            $oSQL->q("UPDATE stbl_page SET pagIdxRight=pagIdxRight+2 WHERE pagIdxRight >= {$ixLeft}");
+
+            $oSQL->q("INSERT INTO stbl_page SET {$fields}
+                , pagIdxLeft = {$ixLeft}
+                , pagIdxRight = {$ixRight}
+                , pagInsertBy = '{$intra->usrID}', pagInsertDate = NOW()");
+
+            $pagID = $oSQL->i();
 			
-			$sql[] = "SELECT @pagID := LAST_INSERT_ID();\r";
+			$sqlPGR = "INSERT INTO stbl_page_role(
+               pgrPageID
+               , pgrRoleID
+               , pgrFlagRead
+    		   , pgrFlagCreate
+    		   , pgrFlagUpdate
+    		   , pgrFlagDelete
+               , pgrFlagWrite
+               , pgrInsertBy
+               , pgrInsertDate
+               , pgrEditBy
+               , pgrEditDate
+               ) SELECT
+                {$pagID} as pgrPageID
+               , rolID as pgrRoleID
+               , 0 as pgrFlagRead
+    		   , 0 as pgrFlagCreate
+    		   , 0 as prgFlagUpdate
+    		   , 0 as pgrFlagDelete
+               , 0 as pgrFlagWrite
+               , '{$intra->usrID}' as pgrInsertBy, NOW(), '{$intra->usrID}' as pgrEditBy
+               , NOW()
+               FROM stbl_role;\r";	
+            $oSQL->q($sqlPGR);		
 			
-			$sql[] = "INSERT INTO stbl_page_role(
-           pgrPageID
-           , pgrRoleID
-           , pgrFlagRead
-		   , pgrFlagCreate
-		   , pgrFlagUpdate
-		   , pgrFlagDelete
-           , pgrFlagWrite
-           , pgrInsertBy
-           , pgrInsertDate
-           , pgrEditBy
-           , pgrEditDate
-           ) SELECT
-            @pagID as pgrPageID
-           , rolID as pgrRoleID
-           , 0 as pgrFlagRead
-		   , 0 as pgrFlagCreate
-		   , 0 as prgFlagUpdate
-		   , 0 as pgrFlagDelete
-           , 0 as pgrFlagWrite
-           , '$usrID' as pgrInsertBy
-           , NOW()
-           , '$usrID' as pgrEditBy
-           , NOW()
-           FROM stbl_role;\r";			
-			
-			$sql[] = "update `stbl_page_role`
-							set pgrFlagRead = 1
+			$oSQL->q("UPDATE stbl_page_role
+							SET pgrFlagRead = 1
 							,pgrFlagCreate = 0
 							,pgrFlagUpdate = 0
 							,pgrFlagDelete = 0
 							,pgrFlagWrite = 0
 							where pgrRoleID = 'Admin'
-                            AND pgrPageID=@pagID;";
+                            AND pgrPageID={$pagID}");
+
+            $rwPage = $oSQL->f("SELECT * FROM stbl_page WHERE pagID={$pagID}");
+
+            RecalculatePageTree($oSQL, NULL, $iCounter);
 							
-			$sql[] = "COMMIT;\r";
-//           echo $sqlInsertNode."<br>";
-			/*echo "<pre>";
-			for($i=0;$i<count($sqlInsertNode);$i++)	echo $sqlInsertNode[$i];
-			echo "</pre>";
-			die();*/
-			
-			for($i=0;$i<count($sqlInsertNode);$i++)	$oSQL->do_query($sqlInsertNode[$i]);
-                
         } else {
 
-           /* updating rubric as itself */
-           $sqlUpdateNode = "UPDATE stbl_page
-               SET pagParentID='{$_POST["pagParentID"]}'
-               , pagFile=".$oSQL->escape_string($_POST["pagFile"])."
-               , pagTitle=".$oSQL->escape_string($_POST["pagTitle"])."
-			   , pagTitleLocal=".$oSQL->escape_string($_POST["pagTitleLocal"]);
-			
-			if ($pagTable && $pagPrefix) {
-				if($tableSuccess=createTable($oSQL, $pagTable, $pagPrefix)) {
-					$sqlUpdateNode .= ",pagTable = ".$oSQL->escape_string($pagTable);
-					$sqlUpdateNode .= ",pagPrefix = ".$oSQL->escape_string($pagPrefix);
-				}
-			}
-			
-            $sqlUpdateNode .= ", pagFlagShowInMenu=".($_POST["pagFlagShowInMenu"]=="on" ? "1" : "0")."
-				, pagFlagSystem = ".($_POST["pagFlagSystem"]=="on" ? "1" : "0")."
-        , pagFlagHierarchy = ".($_POST["pagFlagHierarchy"]=="on" ? "1" : "0")."
-				, pagFlagShowMyItems = ".($_POST["pagFlagShowMyItems"]=="on" ? "1" : "0")."
-                , pagTable = ".$oSQL->escape_string($_POST["pagTable"])."
-                , pagEntityID = ".$oSQL->escape_string($_POST["pagEntityID"])."
-                ".(isset($ffPage['pagMenuItemClass']) ? ', pagMenuItemClass='.$oSQL->e($_POST['pagMenuItemClass']) : '')."
-               , pagEditBy='$usrID'
-               , pagEditDate=CURRENT_DATE()
-               WHERE pagID=".$_POST["pagID"];
-            $sql[] = $sqlUpdateNode;      
-        }
-        
-       /*
-          echo "<pre>";
-          print_r($_POST);
-          print_r($sql);
-          echo "</pre>";
-          die();
-        //*/
-        for ($i=0;$i<count($sql);$i++) {
-              $oSQL->do_query($sql[$i]);
-              if (preg_match("/^INSERT INTO stbl_page\(/", $sql[$i]))
-                  $pagID = $oSQL->insert_id();              
-        }
-       
-        $grid->Update();
-        //die();
-        
-        if ($_POST["pagParentID"]!=$rwPage["pagParentID"]) {
-              $iCounter = 0;
-              RecalculatePageTree($oSQL, NULL, $iCounter);
-        }
-        /*
-        $oSQL->showProfileInfo();
-        die();
-        */
-		/*	
-		if ($pagTable && $pagPrefix) 
-           createTable($oSQL, $pagTable, $pagPrefix, true, $pagFlagHierarchy, $pagFlagSystem);
-	    createScript($pagTable, $pagPrefix );
-        */
-        //if ($_POST["pagFile"])
-        //    createPage($_POST["pagFile"]);
-        
-		SetCookie("UserMessage", "Page is changed successfully");
-        header("Location: ".$_SERVER["PHP_SELF"]."?dbName=$dbName&pagID=$pagID");
-        die();
+            $rwPage = $oSQL->f($rsPage);
+            $oSQL->q("UPDATE stbl_page SET {$fields} WHERE pagID={$pagID}");
+            $grid->Update();
 
-        break;
+            if ($_POST["pagParentID"]!=$rwPage["pagParentID"]) {
+                  RecalculatePageTree($oSQL, NULL, $iCounter);
+            }
+               
+        }
+        
+        $oSQL->q('COMMIT');
+        
+        $intra->redirect($intra->translate("Page %s is %s"
+                , ($_POST['pagTitle'.$intra->local] ? $_POST['pagTitle'.$intra->local] : $_POST['pagTitle'])
+                , ($oSQL->n($rsPage)==0 ? $intra->translate('added') : $intra->translate('updated'))
+                ),
+            $_SERVER["PHP_SELF"]."?dbName=$dbName&pagID=$pagID"
+        );
+		
       case "move":
 			
             // 1. determinig kids from new parent
@@ -333,9 +283,8 @@ if (isset($DataAction)){
            header("Location: page_list.php?dbName=$dbName");
 
            break;
-    }
-    die;
 }
+    
 
 $sqlPAG = "SELECT * FROM stbl_page WHERE pagID='$pagID'";
 $rsPAG = $oSQL->do_query($sqlPAG);
