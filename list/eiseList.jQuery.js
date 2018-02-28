@@ -111,10 +111,6 @@ function eiseList(divEiseList){
         list.form.submit();
     })
     
-    this.thead.find('input.el_special_filter').each(function(){
-        list.initSpecialFilter(this);
-    });
-
     this.form.submit(function(){
         list.saveFilters();
         if (list.conf.doNotSubmitForm==true){
@@ -143,6 +139,10 @@ function eiseList(divEiseList){
     this.setMinimalColumnWidth();
 
     this.initFilters();
+
+    this.thead.find('input.el_special_filter').each(function(){
+        list.initSpecialFilter(this);
+    });
 
     var selectedTab = this.initTabs();
 
@@ -1288,34 +1288,12 @@ eiseList.prototype.initSpecialFilter = function(initiator) {
                     });
                 }catch(e) { console.log('Datepicker not found') };
             });
-            var $inpDateFrom = $divFilterDropdown.find('.el_dateFrom input');
-            var $inpDateTill = $divFilterDropdown.find('.el_dateTill input');
 
-            var strRexData = list.conf.dateRegExs[1].rex+(type=='datetime' 
-                ? ' '+list.conf.dateRegExs[1].rexTime
-                : '');
-            var rexData  = new RegExp('([\<\>]{0,1}\=)'+strRexData, 'gi');
-            var rexDataSingle  = new RegExp('([\<\>]{0,1}\=)('+strRexData+')');
-
-            var arrMatch = $initiator.val().match(rexData);
-            if(arrMatch)
-                $.each(arrMatch, function(i,text){
-                    var m = text.match(rexDataSingle);
-                    switch(m[1]){
-                        case '>=':
-                            $inpDateFrom.val(m[2]);
-                            break;
-                        case '<=':
-                            $inpDateTill.val(m[2]);
-                            break;
-                        case '=':
-                            $inpDateFrom.val(m[2]);
-                            $inpDateTill.val(m[2]);
-                            break;
-                        default:
-                            break;
-                    }
-                })
+            var dates = this.getDatesRange($initiator.val(), type),
+                $inpDateFrom = $divFilterDropdown.find('.el_dateFrom input'),
+                $inpDateTill = $divFilterDropdown.find('.el_dateTill input');
+            $inpDateFrom.val(dates.from);
+            $inpDateTill.val(dates.till);
 
             $divFilterDropdown.dialog(dialogOptions);
 
@@ -1396,6 +1374,37 @@ eiseList.prototype.initSpecialFilter = function(initiator) {
     })
 
     
+}
+
+eiseList.prototype.getDatesRange = function(val, type){
+
+    var strRexData = this.conf.dateRegExs[1].rex+(type=='datetime' 
+        ? ' '+list.conf.dateRegExs[1].rexTime
+        : ''),
+        rexData  = new RegExp('([\<\>]{0,1}\=)'+strRexData, 'gi'),
+        rexDataSingle  = new RegExp('([\<\>]{0,1}\=)('+strRexData+')'),
+        ret = {from: null, till: null};
+
+    var arrMatch = val.match(rexData);
+    if(arrMatch)
+        $.each(arrMatch, function(i,text){
+            var m = text.match(rexDataSingle);
+            switch(m[1]){
+                case '>=':
+                    ret.from = m[2];
+                    break;
+                case '<=':
+                    ret.till = m[2];
+                    break;
+                case '=':
+                    ret.from = m[2];
+                    ret.till = m[2];
+                    break;
+                default:
+                    break;
+            }
+        });
+    return ret;
 }
 
 eiseList.prototype.debug = function(msg){
@@ -1495,6 +1504,11 @@ getEiseListObject: function(){
 getRowSelection:  function(){
     var list = $(this[0]).data('eiseList').eiseList;
     return list.getRowSelection();
+},
+
+getDatesRange: function(val){
+    var list = $(this[0]).data('eiseList').eiseList;
+    return list.getDatesRange();
 },
 
 editField: function(){
