@@ -220,6 +220,13 @@ public function update($newData){
  */
 public function delete(){
 
+	$intra = $this->intra;
+
+	$sql = "DELETE FROM {$this->conf['table']} WHERE {$this->sqlWhere}";
+	$this->oSQL->q($sql);
+
+	$this->redirectTo = $this->conf['list'];
+	$this->msgToUser = $intra->translate('%s is deleted', $this->conf['title'.$intra->local]);
 }
 
 }
