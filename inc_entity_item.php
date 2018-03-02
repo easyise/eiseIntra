@@ -738,7 +738,6 @@ public function prepareActions(){
         }
     } else {
         if(!in_array($aclOldStatusID, $rwACT['actOldStatusID'])){
-            debug_print_backtrace();
             throw new Exception("Action {$rwACT['actID']} cannot be run for origin status ".$aclOldStatusID);
         }
         if(!in_array($aclNewStatusID, $rwACT['actNewStatusID'])){
