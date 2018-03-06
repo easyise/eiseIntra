@@ -37,6 +37,34 @@ static $defaultWidthsByType = array(
     );
 
 /**
+ * Default config of eiseGrid
+ */
+static $defaultConf = Array(                    //defaults for eiseGrid
+        'titleDel' => "Del" // column title for Del
+        , "titleAdd" => "Add >>" // column title for Add
+        //, 'controlBarButtons' => 'add|insert|moveup|movedown|delete|excel|save'
+        , 'extraInputs' => Array("DataAction"=>"update")
+        , 'urlToSubmit' => ''
+        , 'dateFormat' => "d.m.Y"
+        , 'timeFormat' => "H:i" 
+        , 'decimalPlaces' => "2"
+        , 'decimalSeparator' => "."
+        , 'thousandsSeparator' => ","
+        , 'totalsTitle' => 'Totals'
+        , 'noRowsTitle' => 'Nothing found'
+        , 'spinnerTitle' => 'Loading...'
+        , 'dropHereTitle' => 'Drop it here'
+        , 'arrPermissions' => Array("FlagWrite" => true)
+        , 'Tabs3DCookieName' => '%s_tabs3d'
+
+        , 'eiseIntraRelativePath' => eiseIntraRelativePath
+
+        , 'excelSheetName' => 'Sheet 1'
+        , 'excelFileName' => 'table.xls'
+
+    );
+
+/**
  * array of columns. can be associative or indexed.
  */
 public $Columns = array();
@@ -65,31 +93,16 @@ function __construct($oSQL
     
     GLOBAL $intra;
 
-    $this->conf = Array(                    //defaults for eiseGrid
-        'titleDel' => "Del" // column title for Del
-        , "titleAdd" => "Add >>" // column title for Add
-        //, 'controlBarButtons' => 'add|insert|moveup|movedown|delete|save'
-        , 'extraInputs' => Array("DataAction"=>"update")
-        , 'urlToSubmit' => $_SERVER["PHP_SELF"]
-        , 'dateFormat' => (isset($intra->conf['dateFormat']) ? $intra->conf['dateFormat'] : "d.m.Y")  
-        , 'timeFormat' => (isset($intra->conf['timeFormat']) ? $intra->conf['timeFormat'] : "H:i") 
-        , 'decimalPlaces' => "2"
-        , 'decimalSeparator' => (isset($intra->conf['decimalSeparator']) ? $intra->conf['decimalSeparator'] : ".")
-        , 'thousandsSeparator' => (isset($intra->conf['thousandsSeparator']) ? $intra->conf['thousandsSeparator'] : ",")
-        , 'totalsTitle' => 'Totals'
-        , 'noRowsTitle' => 'Nothing found'
-        , 'spinnerTitle' => 'Loading...'
-        , 'dropHereTitle' => 'Drop it here'
-        , 'arrPermissions' => Array("FlagWrite" => true)
-        , 'Tabs3DCookieName' => $strName.'_tabs3d'
+    foreach(array('dateFormat', 'timeFormat', 'decimalSeparator', 'thousandsSeparator') as $f)
+        $arrConfig[$f] = (isset($arrConfig[$f]) ? $arrConfig[$f] : $intra->conf[$f]);
 
-        , 'eiseIntraRelativePath' => eiseIntraRelativePath
+    $arrConfig['urlToSubmit'] = (isset($arrConfig['urlToSubmit']) ? $arrConfig['urlToSubmit'] : $_SERVER["PHP_SELF"]);
+    $arrConfig['excelFileName'] = (isset($arrConfig['excelFileName']) ? $arrConfig['excelFileName'] : pathinfo($_SERVER["PHP_SELF"], PATHINFO_FILENAME).'.xls');
+    $arrConfig['Tabs3DCookieName'] = sprintf($arrConfig['Tabs3DCookieName'], $strName);
 
-    );
-    
     $this->oSQL = $oSQL;
 
-    $this->conf = array_merge($this->conf, $arrConfig);
+    $this->conf = array_merge(self::$defaultConf, $arrConfig);
     $this->name = $strName;
     $this->permissions = $this->conf["arrPermissions"];
     $this->intra = ($this->conf['intra'] ? $this->conf['intra'] : $intra);
@@ -188,7 +201,8 @@ function get_html($allowEdit=true){
     if (!$allowEdit)
         $this->permissions["FlagWrite"] = false;
     
-    if ($this->permissions["FlagWrite"]  && !empty($this->conf['controlBarButtons'])){
+    $aControlBarButtons = explode('|', $this->conf['controlBarButtons']);
+    if (($this->permissions["FlagWrite"]  && count($aControlBarButtons)>0) || array_intersect(array('excel', 'refresh'), $aControlBarButtons)>0 ){
         
         $arrButtons = explode("|", $this->conf['controlBarButtons']);
         
@@ -488,6 +502,7 @@ function get_html($allowEdit=true){
     
     $arrConfig = $this->conf;
     foreach($this->__fields as $fieldName=>$field){
+        $arrConfig['fieldIndex'][] = $fieldName;
         $arrConfig['fields'][$fieldName] = Array('type'=>$field['type'], 'title'=>$field['title']);
         if ($field['mandatory']){
             $arrConfig['fields'][$fieldName]['mandatory'] = $field['mandatory'];

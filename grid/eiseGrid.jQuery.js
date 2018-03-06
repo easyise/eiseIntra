@@ -649,6 +649,9 @@ var __initControlBar = function(){
     this.div.find('.eg-button-save').bind('click', function(){
         oGrid.save();
     });
+    this.div.find('.eg-button-excel').bind('click', function(){
+        oGrid.excel();
+    });
 
     //controlbar margin adjust to begin of 2nd TH
     this.div.find('.eg-controlbar').each(function(){
@@ -1622,6 +1625,90 @@ eiseGrid.prototype.fill = function(data, fn){
 
 }
 
+eiseGrid.prototype.excel = function(options){
+
+    var grid = this;
+
+    options = $.extend(grid.conf, options)
+
+    if(!grid.sa){
+        if(typeof saveAs==='undefined'){
+            $.getScript(this.conf.eiseIntraRelativePath+'lib/FileSaver.js/FileSaver.js', function(data, textStatus, jqxhr){
+
+                grid.sa = saveAs;
+                grid.excel();
+
+            });
+            return;
+        } else {
+            grid.sa = saveAs;
+        }
+    }
+
+    try {
+        var isSupported = !!new Blob;
+    } catch (e) {}
+
+    if(!isSupported){
+        alert("You browser doesn't support file saving");
+        return;
+    }
+
+    var strTH = '', rows = '';
+
+    grid.div.find('.eg-data').each(function(ix){
+        var $tr = $(this);
+        rows += '<Row>\n';
+        for(var i=0;i<grid.conf.fieldIndex.length;i++){
+            
+            if(ix===0){
+                var type = grid.conf.fields[grid.conf.fieldIndex[i]].type;
+                grid.conf.fields[grid.conf.fieldIndex[i]].typeExcel = (
+                    ['order', 'money', 'checkbox', 'number', 'numeric', 'int'].indexOf(type)!==-1
+                    ? 'Number'
+                    : (['date', 'datetime'].indexOf(type)!==-1
+                        ? 'DateTime'
+                        : 'String'
+                        )
+                    );
+                strTH += '<Cell><Data ss:Type="String">'+grid.conf.fields[grid.conf.fieldIndex[i]].title+'</Data></Cell>\n';
+            }
+            var val = grid.value($tr, grid.conf.fieldIndex[i]),
+                isDateTime = grid.conf.fields[grid.conf.fieldIndex[i]].typeExcel=='DateTime' && val.match(/^([0-9]{4}\-[0-9]{2}\-[0-9]{2})(T[0-9]{2}\:[0-9]{2}(\:[0-9]{2}\:[0-9]*){0,1}){0,1}$/),
+                typeExcel = (grid.conf.fields[grid.conf.fieldIndex[i]].typeExcel=='DateTime' 
+                    ? (isDateTime ? 'DateTime' : 'String')
+                    : grid.conf.fields[grid.conf.fieldIndex[i]].typeExcel);
+            rows += '<Cell'+(isDateTime
+                    ? ' ss:StyleID="s22"'
+                    : ''
+                )+'><Data ss:Type="'+typeExcel+'">'+val+'</Data></Cell>\n';
+        
+                
+        }
+        rows += '</Row>\n';
+    })
+    if(!rows){
+        alert('Table is empty')
+        return;
+    }
+
+    strTH = '<Row ss:StyleID="Hdr">\n'+strTH+'</Row>\n';
+
+    var strSheet = '<?xml version="1.0" encoding="utf-8"?>\n<?mso-application progid="Excel.Sheet"?>\n'
+        strSheet += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">\n';
+        strSheet += '<Styles><Style ss:ID="Hdr"><Font ss:Bold="1"/></Style>';
+        strSheet += '<Style ss:ID="s22"><NumberFormat ss:Format="Short Date"/></Style>';
+        strSheet += '</Styles>\n';
+        strSheet += '\n<Worksheet ss:Name="'+options.excelSheetName+'">\n<Table>\n';
+        strSheet += strTH;
+        strSheet += rows;
+        strSheet += "</Table>\n</Worksheet>\n";
+        strSheet += "</Workbook>";
+    var b = new Blob([strSheet], {type:'application/x-msexcel;charset=utf-8;'});
+    grid.sa(b, options.excelFileName);
+
+}
+
 var methods = {
 init: function( conf ) {
 
@@ -2009,7 +2096,13 @@ disableUnchanged: function(){
     })
 
     return this;
-}
+},
+
+excel: function(options){
+    var grid = $(this[0]).data('eiseGrid').eiseGrid;
+    grid.excel(options);
+    return this;
+},
 
 };
 
