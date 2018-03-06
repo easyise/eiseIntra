@@ -207,7 +207,8 @@ function get_html($allowEdit=true){
         $strControlBar = "<div class=\"eg-controlbar\">";
         
         foreach ($aControlBarButtons as $btn){
-            $strControlBar .= "<button class=\"eg-button eg-button-{$btn}\" type=\"button\"><i></i></button>\r\n";
+            if($btn)
+                $strControlBar .= "<button class=\"eg-button eg-button-{$btn}\" type=\"button\"><i></i></button>\r\n";
         }
         
         $strControlBar .= "</div>";
