@@ -1378,9 +1378,10 @@ eiseList.prototype.initSpecialFilter = function(initiator) {
 
 eiseList.prototype.getDatesRange = function(val, type){
 
-    var strRexData = this.conf.dateRegExs[1].rex+(type=='datetime' 
-        ? ' '+list.conf.dateRegExs[1].rexTime
-        : ''),
+    var list = this,
+        strRexData = list.conf.dateRegExs[1].rex+(type=='datetime' 
+            ? ' '+list.conf.dateRegExs[1].rexTime
+            : ''),
         rexData  = new RegExp('([\<\>]{0,1}\=)'+strRexData, 'gi'),
         rexDataSingle  = new RegExp('([\<\>]{0,1}\=)('+strRexData+')'),
         ret = {from: null, till: null};
