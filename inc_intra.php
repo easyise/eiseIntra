@@ -113,7 +113,7 @@ private $arrClassInputTypes =
  * @category Initialization
  */
 public static $defaultConf = array(
-        'versionIntra'=>'2.1.082' 
+        'versionIntra'=>'2.1.084' 
         , 'dateFormat' => "d.m.Y" // 
         , 'timeFormat' => "H:i" // 
         , 'decimalPlaces' => "2"
@@ -2422,8 +2422,8 @@ static function buildLess(){
         return;
 
     if(!isset($eiseIntraLessToBuild)){
-        //$eiseIntraLessToBuild = array('grid', 'list', 'style');
-        $eiseIntraLessToBuild = array('style');
+        $eiseIntraLessToBuild = array('grid', 'list', 'style');
+        //$eiseIntraLessToBuild = array('style');
     }
     
     require_once eiseIntraLibAbsolutePath.'less.php/Less.php';

@@ -94,7 +94,13 @@ function __construct($oSQL
     GLOBAL $intra;
 
     foreach(array('dateFormat', 'timeFormat', 'decimalSeparator', 'thousandsSeparator') as $f)
-        $arrConfig[$f] = (isset($arrConfig[$f]) ? $arrConfig[$f] : $intra->conf[$f]);
+        $arrConfig[$f] = (isset($arrConfig[$f]) 
+            ? $arrConfig[$f] 
+            : ($intra->conf[$f] 
+                ? $intra->conf[$f] 
+                : self::$defaultConf[$f]
+                )
+            );
 
     $arrConfig['urlToSubmit'] = (isset($arrConfig['urlToSubmit']) ? $arrConfig['urlToSubmit'] : $_SERVER["PHP_SELF"]);
     $arrConfig['excelFileName'] = (isset($arrConfig['excelFileName']) ? $arrConfig['excelFileName'] : pathinfo($_SERVER["PHP_SELF"], PATHINFO_FILENAME).'.xls');
