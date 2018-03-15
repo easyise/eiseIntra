@@ -637,7 +637,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     
     $strCell = "";
     $strCell .= "\t<td class=\"{$this->name}-{$ixCol} {$class}\"".
-        " data-field=\"{$ixCol}\"".
+        " data-field=\"{$cell['field']}\"".
         (
             $cell["style"]!="" 
             ? " style=\"{$cell["style"]}\""

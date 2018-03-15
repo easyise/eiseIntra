@@ -43,8 +43,9 @@ function eiseGrid(gridDIV){
 
     this.tfoot = gridDIV.find('table tfoot');
     
-    this.activeRow = [];
+    this.activeRow = {};
     this.lastClickedRowIx = null;
+    this.selectedRowIx = [];
 
 
     this.onChange = []; // on change selector arrays
@@ -850,48 +851,58 @@ eiseGrid.prototype.insertRow = function(callback){
 
 eiseGrid.prototype.selectRow = function(oTbody, event){
 
-    var grid = this;
+    var grid = this
 
     if(typeof(oTbody)!='undefined'){
+        
+        var selector = '#'+grid.id+' tbody.eg-data'
+            ix = oTbody.index(selector),
+            strIx = ix+'';
+
         if(event){
             if (event.shiftKey){
 
                 var ixStart, ixEnd;
                 if (grid.lastClickedRowIx){
-                    if(grid.lastClickedRowIx < oTbody.index()){
+                    if(grid.lastClickedRowIx < ix){
                         ixStart = grid.lastClickedRowIx;
-                        ixEnd = oTbody.index();
+                        ixEnd = ix;
                     } else {
                         ixEnd = grid.lastClickedRowIx;
-                        ixStart = oTbody.index();
+                        ixStart = ix;
                     } 
                 }
-                grid.activeRow = [];
+                grid.activeRow = {};
                 this.tbodies.each(function(){
-                    if ($(this).index()>=ixStart && $(this).index()<=ixEnd)
-                        grid.activeRow[$(this).index()] = $(this);
+                    if ($(this).index(selector)>=ixStart && $(this).index(selector)<=ixEnd)
+                        grid.activeRow[$(this).index(selector)+''] = $(this);
                 })
             } else if (event.ctrlKey || event.metaKey)  {
-                if(!grid.activeRow[oTbody.index()])
-                    grid.activeRow[oTbody.index()] = oTbody;
+                if(!grid.activeRow[strIx])
+                    grid.activeRow[strIx] = oTbody;
                 else 
-                    grid.activeRow[oTbody.index()] = null;
+                    grid.activeRow[strIx] = null;
             } else {
-                grid.activeRow = [];
-                grid.activeRow[oTbody.index()] = oTbody;
+                grid.activeRow = {};
+                grid.activeRow[strIx] = oTbody;
             }
         } else {
-            grid.activeRow = [];
-            grid.activeRow[oTbody.index()] = oTbody;
+            grid.activeRow = {};
+            grid.activeRow[strIx] = oTbody;
         }
 
 
-        grid.lastClickedRowIx = oTbody.index();
+        grid.lastClickedRowIx = ix;
 
+        grid.selectedRowIx = []
+        grid.selectedRowIx = $.map(grid.activeRow, function(v, i){
+            return parseInt(i)
+        })
         
     } else {
-        grid.activeRow = [];
+        grid.activeRow = {};
         grid.lastClickedRowIx = null;
+        grid.selectedRowIx = []
     }
 
     grid.tbodies.each(function(){
@@ -996,27 +1007,21 @@ eiseGrid.prototype.moveDown = function(flagDontUpdateRows){
 
     var grid = this;
 
-    for(var i=grid.activeRow.length-1;i>=0;i--){
-        var $rw = grid.activeRow[i];
-        if ($rw){
-            if ($rw.next().html()==null)
-                return false; // break, nothing to move, upper limit reached 
-            $rw.insertAfter($rw.next());
-            if(!flagDontUpdateRows){
-                grid.updateRow($rw);
-                grid.updateRow($rw.prev());
-            }
-
+    $.each(grid.activeRow, function(ix, $rw){
+        
+        if ($rw.next().html()==null)
+            return false; // break, nothing to move, upper limit reached 
+        $rw.insertAfter($rw.next());
+        if(!flagDontUpdateRows){
+            grid.updateRow($rw);
+            grid.updateRow($rw.prev());
         }
-    }
+
+    })
 
     this.recalcOrder();
 
 }
-
-function formatResult(row) {
-        return row[0].replace(/(<.+?>)/gi, '');
-    }
 
 eiseGrid.prototype.recalcTotals = function(field){
     var oGrid = this;
@@ -1222,12 +1227,17 @@ eiseGrid.prototype.text = function(oTr, strFieldName, text){
         || this.conf.fields[strFieldName].disabled !=undefined
         || (this.conf.fields[strFieldName].href !=undefined && this.value(oTr, strFieldName)!="")
         ){
-            return oTr.find('.'+this.id+'_'+strFieldName).text();
+            return (oTr.find('.'+this.id+'-'+strFieldName)[0]
+                    ? oTr.find('.'+this.id+'-'+strFieldName).text()
+                    : (oTr.find('input[name="'+strFieldName+'_text[]"]')[0]
+                        ? oTr.find('input[name="'+strFieldName+'_text[]"]').val()
+                        : oTr.find('input[name="'+strFieldName+'[]"]').val())
+                    );
         } else {
             switch (this.conf.fields[strFieldName].type){
                 case "order":
                 case "textarea":
-                    return oTr.find('.'+this.id+'_'+strFieldName).text();
+                    return oTr.find('.'+this.id+'-'+strFieldName).text();
                 case "text":
                 case "boolean":
                 case "checkbox":
@@ -1235,9 +1245,11 @@ eiseGrid.prototype.text = function(oTr, strFieldName, text){
                 case "combobox":
                 case "select":
                 case "ajax_dropdown":
-                    return oTr.find('.'+this.id+'-'+strFieldName+' input[type=text]').val();
+                    return (oTr.find('input[name="'+strFieldName+'_text[]"]')[0]
+                        ? oTr.find('input[name="'+strFieldName+'_text[]"]').val()
+                        : oTr.find('input[name="'+strFieldName+'[]"]').val());
                 default: 
-                    return oTr.find('.'+this.id+'-'+strFieldName+' input').val();
+                    return oTr.find('input[name="'+strFieldName+'[]"]').val();
             }
             
         }
@@ -1487,6 +1499,7 @@ eiseGrid.prototype.spinner = function(arg){
 eiseGrid.prototype.fill = function(data, fn){
 
     var oGrid = this,
+        rowsAdded = [],
         __getHREF = function(href, data){
             $.each(data, function(field, value){
                 href = href.replace('['+field+']', value);
@@ -1500,6 +1513,8 @@ eiseGrid.prototype.fill = function(data, fn){
                 $elem[0].target = props.target
             return $elem;
         };
+
+
 
     this.tableContainer.find('.eg-spinner').css('display', 'none');
 
@@ -1545,7 +1560,7 @@ eiseGrid.prototype.fill = function(data, fn){
                 var val = (typeof(row[field])=='object' ? row[field].v : row[field]),
                     text = (row[field].t 
                         ? row[field].t 
-                        : (row[field+'_text'] 
+                        : (typeof row[field+'_text'] !== 'undefined'
                             ? row[field+'_text']
                             : val)
                         ),
@@ -1608,6 +1623,8 @@ eiseGrid.prototype.fill = function(data, fn){
 
             oGrid.initRow( $tr );
 
+            rowsAdded.push($tr);
+
         });
     
         oGrid.selectRow(); //reset row selection caused by addRow()
@@ -1623,6 +1640,64 @@ eiseGrid.prototype.fill = function(data, fn){
     if(typeof fn === 'function')
         fn.call(oGrid)
 
+    return rowsAdded;
+
+}
+
+eiseGrid.prototype.getData = function(rows, cols, colsToExclude){
+
+    var grid = this,
+        retVal = [],
+        oData = {}
+
+    rows = (rows ? rows : grid.tableContainer.find('tbody.eg-data'))
+    cols = (cols ? cols : grid.conf.fieldIndex)
+    colsToExclude = (colsToExclude ? colsToExclude : [])
+
+    $.each(rows, function(ix, $row){
+        oData = {}
+        for(var i=0;i<cols.length;i++){
+            var field = cols[i],
+                oField = grid.conf.fields[field];
+            if(colsToExclude.indexOf(field)!==-1)
+                continue;
+            oData[field] = grid.value($row, field)
+            if(['combobox', 'select', 'ajax_dropdown'].indexOf(oField.type)!==-1){
+                oData[field+'_text'] = grid.text($row, field)
+            }
+        }
+        retVal.push(oData)
+    })
+
+    return retVal
+}
+
+eiseGrid.prototype.copyRows = function(rowsToCopy, fn){
+
+    var grid = this;
+
+    if(!rowsToCopy)
+        rowsToCopy = grid.activeRow
+
+    if (Object.keys(rowsToCopy).length==0)
+        return;
+
+    var colsToExclude = []
+
+    $.each(grid.conf.fields, function(field, opts){
+        if(['row_id', 'order'].indexOf(opts.type)!==-1)
+            colsToExclude.push(field)
+    })
+
+    data = grid.getData(rowsToCopy, null, colsToExclude);
+
+    var rows = grid.fill(data);
+    for (var i = rows.length - 1; i >= 0; i--) {
+        grid.updateRow(rows[i]);
+    };
+
+    if(typeof fn === 'function')
+        fn.call(oGrid)
 }
 
 eiseGrid.prototype.excel = function(options){
@@ -1809,6 +1884,11 @@ selectRow: function ($tr, event){
     });
     return this;
 }, 
+copyRows: function(rowsToCopy){
+    var grid = $(this[0]).data('eiseGrid').eiseGrid;
+    grid.copyRows(rowsToCopy);
+    return this;
+},
 getSelectedRow: function (){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     var $lastSelectedRow = grid.activeRow[grid.lastClickedRowIx];
