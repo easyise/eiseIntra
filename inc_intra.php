@@ -113,7 +113,7 @@ private $arrClassInputTypes =
  * @category Initialization
  */
 public static $defaultConf = array(
-        'versionIntra'=>'2.1.084' 
+        'versionIntra'=>'2.1.086' 
         , 'dateFormat' => "d.m.Y" // 
         , 'timeFormat' => "H:i" // 
         , 'decimalPlaces' => "2"

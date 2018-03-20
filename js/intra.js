@@ -1478,6 +1478,9 @@ var _fill = function($body, data, conf){
                     return true; //continue
                 switch ($elem[0].nodeName){
                     case "INPUT":
+                        if($elem.attr('type').toLowerCase()=='checkbox' ){
+                            $elem[0].checked = (parseInt(v))
+                        }
                     case "SELECT":
                         $elem.val(v);
                         break;
