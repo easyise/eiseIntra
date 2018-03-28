@@ -693,7 +693,7 @@ protected function getComboboxSource($col){
             preg_match("/^(svw_|vw_|tbl_|stbl_)/", $col['source'])
             ? ($col['source_prefix']!=""
                 ? "SELECT `{$col['source_prefix']}Title{$this->conf['strLocal']}` as optText{$this->conf['strLocal']}, `{$col['source_prefix']}ID` as optValue FROM `{$col['source']}`"
-                : "SELECT * FROM `{$col['source']}`"
+                : "SELECT * FROM `{$col['source']}`".($col['extra'] ? " WHERE extra=".$oSQL->e($col['extra']) : '')
                 )
             : $col['source']
         );
