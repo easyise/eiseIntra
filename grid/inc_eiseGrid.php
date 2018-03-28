@@ -530,6 +530,9 @@ function get_html($allowEdit=true){
         if ($field['disabled']===true){
             $arrConfig['fields'][$fieldName]['disabled'] = true;
         }
+        if (is_array($field['source'])){
+            $arrConfig['fields'][$fieldName]['source'] = $field['source'];
+        }
     }
 
     $jsonConfig = json_encode(array_merge($arrConfig, array('widths'=>$this->arrWidth

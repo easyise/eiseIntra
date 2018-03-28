@@ -1562,8 +1562,10 @@ eiseGrid.prototype.fill = function(data, fn){
                         ? row[field].t 
                         : (typeof row[field+'_text'] !== 'undefined'
                             ? row[field+'_text']
-                            : val)
-                        ),
+                            : (props.type=='combobox' && props.source && props.source[val]
+                                ? props.source[val]
+                                : val)
+                        )),
                     href = (row[field].h
                         ? row[field].h
                         : (row[field+'_href'] 
