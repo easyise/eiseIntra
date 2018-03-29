@@ -36,6 +36,7 @@ public $conf = Array(
     , 'titleFilterApply' => 'Apply'
     , 'titleFilterClear' => 'Clear'
     , 'titleFilterClose' => 'Close'
+    , 'titleTabAny' => 'Any %s'
     
     , 'controlBarButtons' => 'btnSearch|btnFieldChooser|btnOpenInExcel|btnReset'
 
@@ -782,8 +783,8 @@ protected function breakDownByTabs(){
     if($totalCount > 0){
         $this->Tabs[] = array(
                     'title' => ($this->intra 
-                            ? $this->intra->translate('Any %', $col['title'])
-                            : sprintf('Any %s', $col['title']) 
+                            ? $this->intra->translate($this->conf['titleTabAny'], $col['title'])
+                            : sprintf($this->conf['titleTabAny'], $col['title']) 
                         )." ({$totalCount})"
                     , 'filter' => $col['field']
                     , 'value' => ''
