@@ -767,13 +767,13 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                     break;
                 case "boolean":
                 case "checkbox":
-                    $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val)."\">";
+                    $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".@htmlspecialchars($_val)."\">";
                     $strCell .= "<input{$classAttr} type=\"checkbox\" name=\"{$_checkfield}[]\"".($_val==true ? " checked" : "").">";
                     break;
                 case "combobox":
-                 case "select":
-                    $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val)."\">";
-                    $strCell .= "<input{$classAttr} type=\"text\" name=\"{$_textfield}[]\" value=\"".htmlspecialchars($this->getSelectValue($cell, $row, $suffix))."\">";
+                case "select":
+                    $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".@htmlspecialchars($_val)."\">";
+                    $strCell .= "<input{$classAttr} type=\"text\" name=\"{$_textfield}[]\" value=\"".@htmlspecialchars($this->getSelectValue($cell, $row, $suffix))."\">";
                     if ($ixRow===null && $nIteration==0){ //paint floating select
                         $strCell .= "<select id=\"select-{$col['field']}\" class=\"eg-floating-select\">\r\n";
                         $strCell .= (isset($cell['defaultText']) ? "\t<option value=\"\">{$cell['defaultText']}\r\n" : "");
