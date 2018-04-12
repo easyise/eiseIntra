@@ -252,7 +252,7 @@ function encodeAuthString($login, $password){
  * stored at eiseIntra's inc_config.php and server variable EISINTRA_KEY that can be set in Nginx or Apache config.
  * Key length is set to 128-bit (32 bytes/chars).
  * 
- * If concatentated key length is less that 64 bytes, all remaining places are padded with zeros (0).
+ * If concatentated key length is less that 32 bytes, all remaining places are padded with zeros (0).
  *
  * When both keys are not set, function returns false and eiseIntra::encrypt() and eiseIntra::decrypt() are forced to work only as base64 encoder/decoder.
  *
