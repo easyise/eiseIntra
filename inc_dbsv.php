@@ -60,7 +60,7 @@ function __construct($conf = array()){
 
         if($conf['authstring']){
 
-            list($login, $password) = $this->intra->decodeAuthString($_POST['authstring']);
+            list($login, $password) = $this->intra->decodeAuthString($_POST['authstring'], true);
 
             if(!$this->intra->Authenticate($login, $password, 'mysql', array('flagNoSession'=>true))){
                 throw new Exception("Unable to connect to server {$login}@{$_POST['host']}");

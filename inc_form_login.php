@@ -7,7 +7,7 @@ if(!isset($intra))
 switch ($DataAction){
     case "login":
         
-        list($login, $password) = $intra->decodeAuthString($_POST["authstring"]);
+        list($login, $password) = $intra->decodeAuthString($_POST["authstring"], true);
 
         $strError = "";
         

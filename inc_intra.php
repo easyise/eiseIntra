@@ -213,8 +213,7 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
 
 /**
  * Function decodes authstring login:password
- * using current encoding algorithm 
- * (now base64).
+ * using decrypt() method 
  *
  * @category Authentication
  * 
@@ -222,9 +221,9 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
  *
  * @return array `[string $login, string $password]`
  */
-function decodeAuthString($authstring){
+function decodeAuthString($authstring, $flagBase64 = false){
 
-    $auth_str = base64_decode($authstring);
+    $auth_str = ($flagBase64 ? base64_decode($authstring) : $this->decrypt($authstring));
         
     preg_match("/^([^\:]+)\:([\S ]+)$/i", $auth_str, $arrMatches);
 
@@ -233,8 +232,7 @@ function decodeAuthString($authstring){
 
 /**
  * Function encodes authstring login:password
- * using current encoding algorithm 
- * (now base64).
+ * using encrypt() method.
  *
  * @category Authentication
  * 
@@ -245,9 +243,97 @@ function decodeAuthString($authstring){
  */
 function encodeAuthString($login, $password){
 
-    return base64_encode($login.':'.$password);
+    return $this->encrypt($login.':'.$password);
 
 }
+
+/**
+ * This function returns combination of global variable $eiseIntraKey  
+ * stored at eiseIntra's inc_config.php and server variable EISINTRA_KEY that can be set in Nginx or Apache config.
+ * Key length is set to 128-bit (32 bytes/chars).
+ * 
+ * If concatentated key length is less that 64 bytes, all remaining places are padded with zeros (0).
+ *
+ * When both keys are not set, function returns false and eiseIntra::encrypt() and eiseIntra::decrypt() are forced to work only as base64 encoder/decoder.
+ *
+ * @return string Key or false, if both key parts are empty.
+ *
+ */
+function getEncryptionKey(){
+
+    GLOBAL $eiseIntraKey;
+
+    $keylen = 32;
+    $key = substr($eiseIntraKey.$_SERVER['EISEINTRA_KEY'], 0, $keylen);
+    $ll = $keylen - strlen($key);
+    if(!$key)
+        return false;
+    else 
+        return ($ll>0
+            ? str_pad($key, $keylen, '0')
+            : $key
+            );
+}
+
+/**
+ * Function encrypts a string with symmetric encryption 
+ * using the key obtained from getEncryptionKey() method and current encoding algorithm 
+ * (now RIJNDAEL_256 and mcrypt). In case mcrypt is missed in PHP or encryption key is empty, it encodes string with base64. 
+ *
+ * @category Authentication
+ * 
+ * @param string $encrypt String to be encrypted.
+ *
+ * @return string Encrypted string.
+ */
+function encrypt($encrypt) {
+    $key = $this->getEncryptionKey();
+
+    if(!$key ||  !is_callable('mcrypt_encrypt')){
+        return base64_encode($encrypt);
+    }
+
+    $encrypt = serialize($encrypt);
+    $iv = mcrypt_create_iv(mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_CBC), MCRYPT_DEV_URANDOM);
+    $key = pack('H*', $key);
+    $mac = hash_hmac('sha256', $encrypt, substr(bin2hex($key), -32));
+    $passcrypt = mcrypt_encrypt(MCRYPT_RIJNDAEL_256, $key, $encrypt.$mac, MCRYPT_MODE_CBC, $iv);
+    $encoded = base64_encode($passcrypt).'|'.base64_encode($iv);
+    return $encoded;
+}
+ 
+/**
+ * Function decrypts a string with symmetric decryption 
+ * using the key obtained from getEncryptionKey() method and current encoding algorithm 
+ * (now RIJNDAEL_256 and mcrypt). In case mcrypt is missed in PHP, it encodes string with base64. 
+ *
+ * @category Authentication
+ * 
+ * @param string $encrypt String to be encrypted.
+ *
+ * @return string Encrypted string.
+ */
+function decrypt($decrypt) {
+    $key = $this->getEncryptionKey();
+
+    if(!$key ||  !is_callable('mcrypt_decrypt')){
+        return base64_decode($decrypt);
+    }
+
+    $decrypt = explode('|', $decrypt.'|');
+    $decoded = base64_decode($decrypt[0]);
+    $iv = base64_decode($decrypt[1]);
+    if(strlen($iv)!==mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_CBC)){ return false; }
+    $key = pack('H*', $key);
+    $decrypted = trim(mcrypt_decrypt(MCRYPT_RIJNDAEL_256, $key, $decoded, MCRYPT_MODE_CBC, $iv));
+    $mac = substr($decrypted, -64);
+    $decrypted = substr($decrypted, 0, -64);
+    $calcmac = hash_hmac('sha256', $decrypted, substr(bin2hex($key), -32));
+    if($calcmac!==$mac){ return false; }
+    $decrypted = unserialize($decrypted);
+    return $decrypted;
+}
+
 
 /**
  * Function that checks authentication with credentials database using selected $method.
