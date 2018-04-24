@@ -208,7 +208,7 @@ echo $strFields;
 /**
  * 
  */
-function field( $atr, $arrConf = array() ){
+function field( $atr, $arrConf_ = array() ){
 
     $intra = $this->intra;
 
@@ -221,16 +221,21 @@ function field( $atr, $arrConf = array() ){
 
     $rwAtr = $this->conf['ATR'][$atr];
 
-    $arrConf = array_merge(
-        array('type'=>$rwAtr['atrType']
+    $arrConf = array('type'=>$rwAtr['atrType']
             , 'text' => $this->item[$rwAtr["atrID"]."_text"]
             , 'source' => $rwAtr['atrDataSource']
             , 'source_prefix' => $rwAtr['atrProgrammerReserved']
             , 'FlagWrite' => $this->conf['STA'][(int)$this->staID]['satFlagShowInForm'][$atr]
             , 'UOM' => $rwAtr['atrUOMTypeID']
             , 'textIfNull' => $intra->translate($rwAtr['atrTextIfNull'])
-            )
-        , $arrConf
+            );
+
+    if($rwAtr['atrClasses'])
+        $arrConf['class'] = $rwAtr['atrClasses'];
+
+    $arrConf = array_merge(
+        $arrConf
+        , $arrConf_
         );
 
     return $this->intra->field($rwAtr["atrTitle{$intra->local}"], $rwAtr['atrID'], $this->item[$rwAtr["atrID"]], $arrConf);
