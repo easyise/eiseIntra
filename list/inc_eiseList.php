@@ -91,7 +91,9 @@ function __construct($oSQL, $strName, $arrConfig=Array()){
             if(strpos($key, 'title')===0)
                 if(isset($intra->lang[$key])) $val=$intra->lang[$key];
         }
+        $this->intra = $intra;
         unset($arrConfig["intra"]);
+
     }
 
     $this->conf = array_merge($this->conf, $arrConfig);
@@ -258,6 +260,9 @@ public function handleDataRequest(){ // handle requests and return them with Aja
     $DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
     if (!$DataAction)
         return;
+
+    if($DataAction=='updateCell')
+        $this->updateCell($_POST);
     
     $oSQL = $this->oSQL;
     $this->error = "";
@@ -805,6 +810,7 @@ private function showTemplateRow(){
             ($col["type"]!="" 
                 ? "el_".$col["type"] 
                 : ($col['checkbox'] ? "el_checkbox" : "text")).
+            (isset($col['editable']) && $this->intra && ($this->intra->arrUsrData['FlagWrite'] ||$this->intra->arrUsrData['FlagUpdate'])  ? ' el_editable' : '').
             (isset($col['width']) ? ' el_fixedWidth' : '').
             '"'.
             (isset($col['target']) ? ' target="'.$col['target'].'"' : '').
@@ -881,28 +887,28 @@ private function showFieldChooser(){
  */ 
 private function handleInput(){
 
-   GLOBAL $_DEBUG;
+    GLOBAL $_DEBUG;
 
-   //$_DEBUG = true;
+    //$_DEBUG = true;
 
-   $this->arrHiddenCols = Array();
-   $this->arrCookieToSet = Array();
+    $this->arrHiddenCols = Array();
+    $this->arrCookieToSet = Array();
 
-   $this->getCookie();
-   $this->getSession();
+    $this->getCookie();
+    $this->getSession();
 
-   $hiddenCols = (isset($_GET[$this->name."HiddenCols"]) ? $_GET[$this->name."HiddenCols"] : $this->arrCookie["HiddenCols"]);
-   //print_r($hiddenCols);
-   $this->arrHiddenCols = explode(",", $hiddenCols);
-  $this->iMaxRows = (int)(isset($_GET[$this->name."MaxRows"])
+    $hiddenCols = (isset($_GET[$this->name."HiddenCols"]) ? $_GET[$this->name."HiddenCols"] : $this->arrCookie["HiddenCols"]);
+    //print_r($hiddenCols);
+    $this->arrHiddenCols = explode(",", $hiddenCols);
+    $this->iMaxRows = (int)(isset($_GET[$this->name."MaxRows"])
            ? $_GET[$this->name."MaxRows"]
            : $this->iMaxRows
         );
-   $this->orderBy =  (isset($_GET[$this->name."OB"])
+    $this->orderBy =  (isset($_GET[$this->name."OB"])
         ? $_GET[$this->name."OB"]
         : $this->defaultOrderBy
         );
-   $this->sortOrder = (isset($_GET[$this->name."ASC_DESC"])
+    $this->sortOrder = (isset($_GET[$this->name."ASC_DESC"])
         ? $_GET[$this->name."ASC_DESC"]
         : ($this->defaultSortOrder=="" 
             ? (in_array($this->Columns[$this->orderBy]['type'], array('date', 'datetime ')) 
@@ -957,6 +963,51 @@ private function handleInput(){
         : $this->conf['calcFoundRows']);
 
 
+}
+
+/**
+ * This function updates a particular field in eiseList with DataAction=updateCell. If there's no $intra and user isn't granted to update or write on the script below, it doesn't work.
+ * Otherwise it updates a field in the table specified in sqlFrom basing on primary key value. AFter update it generates json with intra and dies.
+ *
+ * In currenct version it works only with string and int values. NULL cannot be transferred.
+ *
+ * @param array $newData - data necesasry fo update, as associative array:
+ * - pk (string) - primary key value
+ * - field (string) - field name
+ * - value (string) - field value
+ *
+ */
+public function updateCell($newData = null){
+
+    if( !($this->intra && ($this->intra->arrUsrData['FlagWrite'] ||$this->intra->arrUsrData['FlagUpdate'])) )
+        return;
+
+    $oSQL = $this->oSQL;
+
+    $newData = ($newData
+        ? $newData
+        : ($_SERVER['REQUEST_METHOD']=='POST'
+            ? $_POST
+            : null)
+        );
+    if(!$newData)
+        return;
+
+    $pk = '';
+    foreach ($this->Columns as $c) {
+        if($c['PK'])
+            $pk = $c['field'];
+    }
+
+    $oSQL->q('START TRANSACTION');
+    $sql = "UPDATE {$this->sqlFrom} SET `{$newData['field']}`=".$oSQL->e($newData['value'])." WHERE {$pk}=".$oSQL->e($newData['pk']);
+    $oSQL->q($sql);
+    $oSQL->q('COMMIT');
+
+    if($this->intra)
+        $this->intra->json('ok', '', array());
+    else 
+        die();
 }
 
 /**

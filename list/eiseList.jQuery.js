@@ -150,8 +150,6 @@ function eiseList(divEiseList){
         this.getData(0,null,true);
     }
 
-    
-
 }
 
 /**
@@ -703,7 +701,7 @@ eiseList.prototype.getData = function(iOffset, recordCount, flagResetCache, call
             if (typeof(callback)!='undefined'){
                 callback();
             }
-            
+
             if (typeof(list.onLoadComplete)!='undefined'){
                 list.onLoadComplete();
             }
@@ -814,6 +812,10 @@ eiseList.prototype.appendRow = function (index, rw){
     });
     
     tr.attr('id', this.id+'_'+rw.PK);
+
+    tr.find('.el_editable').each(function(){
+        list.initEditable(this);
+    })
     
     tr.removeClass('el_template');
     tr.addClass('el_data');
@@ -822,6 +824,54 @@ eiseList.prototype.appendRow = function (index, rw){
         tr.addClass(rw.c);
     list.tbody.append(tr);
     
+}
+
+/**
+ * This function initialize cell for being editable. It can be called for any field in the list. Basically it is called from list.appendRow() function for '.el_editable' fields.
+ * It binds list.showInput() on click event and organizes data save process with POST $.ajax request to the list script. It comes with DataAction=updateCell.
+ * 
+ * @param DOMObject cell - <td> element to become editable
+ * 
+ * @return nothing
+ */
+eiseList.prototype.initEditable = function(cell){
+    
+    var list = this;
+
+    cell.onclick = function(){
+        var conf = {
+                callback: function(cell, oldVal, newVal){
+                    //save data with ajax:
+                    // determine PK
+                    var pk = $(cell).parent('tr').attr('id').replace(list.id+'_', '');
+                    var field = $(cell).attr('class')
+                        .split(/\s+/)[0]
+                        .replace(list.id+'_','');
+                    $.ajax({ url: location.pathname
+                        , type: 'POST'
+                        , data: {
+                            DataAction: 'updateCell'
+                            , pk: pk
+                            , field: field
+                            , value: newVal
+                        }
+                        , success: function(data, text){
+                            if(jQuery().eiseIntra && data) { $('body').eiseIntra('showMessage', (data.status=='ok' ? data.message : 'ERROR:'+data.message))}
+                        }
+                        , error: function(o, error, errorThrown){
+                            if(jQuery().eiseIntra) { $('body').eiseIntra('showMessage', 'ERROR:'+list.conf['titleERRORBadResponse']+'\r\n'+list.conf['titleTryReload']+'\r\n'+errorThrown)}
+                        }
+                        , dataType: "json"
+                        
+                    });
+                    
+                    
+                    list.hideInput(cell, newVal);
+                }
+            }
+
+            var $cellInput = list.showInput(this, conf);
+    }
 }
 
 /**
