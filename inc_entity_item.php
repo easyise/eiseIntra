@@ -1674,6 +1674,16 @@ static function sendMessages($conf){
 
     }
 
+    foreach((array)$sender->arrMessages as $msg){
+        $sqlMarkSent = "UPDATE stbl_message SET msgSendDate=NOW()
+            , msgStatus='Sending'
+            , msgEditDate=NOW()
+            , msgEditBy='{$intra->usrID}'
+            WHERE msgID=".$oSQL->e($msg['msgID']);
+        $oSQL->q($sqlMarkSent);
+
+    }
+
     try {
         $arrMessages = $sender->send();
     } catch (eiseMailException $e){
