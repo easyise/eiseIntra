@@ -813,6 +813,8 @@ public function attachFile($fileNameOriginal, $fileContents, $fileMIME="Applicat
  
     $oSQL->do_query($sqlFileInsert);
 
+    return $fileGUID;
+
 }
 
 
