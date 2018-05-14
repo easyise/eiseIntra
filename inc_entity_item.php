@@ -1625,11 +1625,15 @@ static function sendMessages($conf){
 
     $oSQL = $intra->oSQL;
 
+    $oSQL->q("UPDATE stbl_message SET msgSendDate=NOW()
+            , msgStatus='Sending' 
+            WHERE msgSendDate IS NULL");
+
     // scan tablefor unsent messages
     $sqlMsg = "SELECT * 
         FROM stbl_message 
             LEFT OUTER JOIN stbl_entity ON msgEntityID=entID
-        WHERE msgSendDate IS NULL ORDER BY msgInsertDate DESC";
+        WHERE msgStatus='Sending' ORDER BY msgInsertDate DESC";
     $rsMsg = $oSQL->q($sqlMsg);
 
     include_once('../common/eiseMail/inc_eisemail.php');
@@ -1671,16 +1675,6 @@ static function sendMessages($conf){
         $msg = array_merge($msg, $rwMsg);
 
         $sender->addMessage($msg);
-
-    }
-
-    foreach((array)$sender->arrMessages as $msg){
-        $sqlMarkSent = "UPDATE stbl_message SET msgSendDate=NOW()
-            , msgStatus='Sending'
-            , msgEditDate=NOW()
-            , msgEditBy='{$intra->usrID}'
-            WHERE msgID=".$oSQL->e($msg['msgID']);
-        $oSQL->q($sqlMarkSent);
 
     }
 
