@@ -63,34 +63,36 @@ function fieldsByArray($toGen, $arrTable, $strArrName = '$_POST', $indent=''){
 
 }
 
+$defaultSQLCodegenConf = array('indent'=>"", 'flagEiseItem'=>false, 'dataArray'=>'$_POST');
 
-function getInsertCode($toGen, $arrTable, $indent=""){
+function getInsertCode($toGen, $arrTable, $conf = array()){
         
-        GLOBAL $intra;
+        GLOBAL $intra, $defaultSQLCodegenConf;
+        $conf = array_merge($defaultSQLCodegenConf, $conf);
         
         $tblName = $arrTable["table"];
 
         $strCode = "";
         
         if ($arrTable['PKtype']=="GUID")
-            $strCode .= "{$indent}SET @".$arrTable['PK'][0]."=UUID();\r\n\r\n";
+            $strCode .= "{$conf['indent']}SET @".$arrTable['PK'][0]."=UUID();\r\n\r\n";
 
-        $strCode .= "{$indent}INSERT INTO $tblName ";
+        $strCode .= "{$conf['indent']}INSERT INTO $tblName ";
         if ($toGen == "INSERT SELECT"){
-            $strCode .= "(\n{$indent}    ".fieldsByArray('INSERT FIELDS', $arrTable, '$_POST', $indent)."\r\n{$indent}) SELECT\n{$indent}".
-                fieldsByArray('INSERT SELECT', $arrTable, '$_POST', $indent);
+            $strCode .= "(\n{$conf['indent']}    ".fieldsByArray('INSERT FIELDS', $arrTable, $conf['dataArray'], $conf['indent'])."\r\n{$conf['indent']}) SELECT\n{$conf['indent']}".
+                fieldsByArray('INSERT SELECT', $arrTable, $conf['dataArray'], $conf['indent']);
         } else {
-            $strCode .= "SET\n".fieldsByArray('INSERT', $arrTable, '$_POST', $indent);
+            $strCode .= "SET\n".fieldsByArray('INSERT', $arrTable, $conf['dataArray'], $conf['indent']);
         }
 
         if ($arrTable['PKtype']=="GUID")
-            $strCode .= ";\r\n\r\n{$indent}SELECT @".$arrTable['PK'][0]." as ".$arrTable['PK'][0].";";
+            $strCode .= ";\r\n\r\n{$conf['indent']}SELECT @".$arrTable['PK'][0]." as ".$arrTable['PK'][0].";";
 
         return $strCode;
 
 }
 
-function getUpdateCode($toGen, $arrTable, $indent=""){
+function getUpdateCode($toGen, $arrTable, $conf = array()){
         
         GLOBAL $intra;
         
@@ -100,19 +102,19 @@ function getUpdateCode($toGen, $arrTable, $indent=""){
         $strCode = "UPDATE $tblName SET\r\n".$indent."    ";
         $strPKs = $arrTable["PKCond"];
         
-        $strFields = fieldsByArray($toGen, $arrTable, '$_POST', $indent);
+        $strFields = fieldsByArray($toGen, $arrTable, $conf['dataArray'], $conf['indent']);
         
         $strCode .= $strFields;
-        $strCode .= "\r\n{$indent}WHERE ".$strPKs;
+        $strCode .= "\r\n{$conf['indent']}WHERE ".$strPKs;
         
         return $strCode;
 }
 
 
 $arrActions[]= Array ("title" => ($_GET["toGen"]=="EntTables" ? "Entity" : "Table")
-	   , "action" => "".($_GET["toGen"]=="EntTables" ? "entity_form.php?dbName=$dbName&entID=".$_GET['entID'] : "table_form.php?dbName=$dbName&tblName=$tblName")
-	   , "class"=> "ss_arrow_left"
-	);
+       , "action" => "".($_GET["toGen"]=="EntTables" ? "entity_form.php?dbName=$dbName&entID=".$_GET['entID'] : "table_form.php?dbName=$dbName&tblName=$tblName")
+       , "class"=> "ss_arrow_left"
+    );
 
 try{
 
@@ -326,32 +328,166 @@ switch ($_GET["toGen"]){
         
         break;
     case "Form":
-        //echo "<pre>";
-        //print_r($arrTable); die();
+        
         $strCode .= "<?php\r\n";
-        $strCode .= "include 'common/auth.php';\r\n\r\n";
+        $strCode .= "include 'common/auth.php';\n\n";
         
-        foreach($arrTable["PK"] as $pk){
-            $strCode .= "\${$pk}  = (isset(\$_POST['{$pk}']) ? \$_POST['{$pk}'] : \$_GET['{$pk}'] );\r\n";
-            $pkCond .= ($pkCond!="" ? " AND " : "")."`{$pk}` = \".\$oSQL->e(\${$pk}).\"";
-            $pkURI .= ($pkURI!="" ? "&" : "")."{$pk}=\".urlencode(\${$pk}).\"";
-        }
-        $strCode .= "\$DataAction  = (isset(\$_POST['DataAction']) ? \$_POST['DataAction'] : \$_GET['DataAction'] );\r\n\r\n";
-        
-        $strFields = trim(fieldsByArray('UPDATE no_activity_stamp PHP', $arrTable, '$_POST', "                "));
-        $strInsert = getInsertCode('INSERT PHP', $arrTable, "                ");
-        $strUpdate = getUpdateCode('UPDATE PHP', $arrTable, "                ");
-            
+        $itemName = ucfirst($arrTable['name']);
+        $idField = "\${$arrTable['prefix']}ID";
+        $objName = "\${$arrTable['prefix']}";
+
+        $strFields = trim(fieldsByArray('UPDATE no_activity_stamp PHP', $arrTable, '$data', "                "));
+        $insertCode = ltrim(getInsertCode('INSERT PHP', $arrTable, array('indent'=>"                ", 'dataArray'=>'$data')));
+        $updateCode = ltrim(getUpdateCode('UPDATE PHP', $arrTable, array('indent'=>"                ", 'dataArray'=>'$data')));
+        $updateCode = str_replace($idField, '$this->id', $updateCode);
         switch ($arrTable['PKtype']){
             case "auto_increment":
-                $strObtainID = "\$".$arrTable["PK"][0]." = \$oSQL->i();";
+                $idCode = "\$oSQL->i()";
                 break;
             case "GUID":
             default:
-                $strObtainID = "\$".$arrTable["PK"][0]." = \$oSQL->d(\$rs);";
+                $idCode = "'' /* your id retrieval code here */;";
                 break;
-             
         }
+
+        $fields = '';
+        $fieldSources = '';
+        foreach($arrTable['columns'] as $ix=>$col){
+            if ($col["DataType"]=="PK")
+                continue;
+            if ($col["DataType"]=="binary")
+                continue;
+            if ($col["DataType"]=="activity_stamp")
+                continue;
+            
+            $title = ($col['Comment'] ? $col['Comment'] : $col['Field']);
+            $fieldValue = "{$objName}->item[\"".$col["Field"]."\"]";
+
+            switch($col['DataType']){
+                case 'FK':
+                    if ( $col["ref_table"]!=""){
+                        $arrRefTable = $intra->getTableInfo($dbName, $col["ref_table"]);
+
+                        $fields .= "echo \$intra->field('{$title}', '{$col['Field']}', {$fieldValue}, array('type'=>'select', 'source'=>'{$col['ref_table']}'"
+                            .($arrRefTable['prefix'] ? ", 'source_prefix'=>'{$arrRefTable['prefix']}'" : '')
+                            ."));\r\n\r\n";
+                    } else {
+                        $fieldSources .= "\$src_{$col['Field']} = array ('option1'=>'text1', 'option2'=>'text2');\n";
+                        $fields .= ($fields ? CODE_INDENT.'.': '')."\$intra->field(\$intra->translate('{$title}'), '{$col['Field']}', {$fieldValue}, array('type'=>'select', 'source'=>\$src_{$col['Field']}))\n";
+                    }
+                    break;
+                default:
+                    $type = ($col['DataType']=='text' ? '' : ", array('type'=>'{$col['DataType']}')");
+                    $fields .= ($fields ? CODE_INDENT.'.': '')."\$intra->field(\$intra->translate('{$title}'), '{$col['Field']}', {$fieldValue}{$type})\n";
+                    break;
+            }
+           
+        }
+        $fieldSources .= ($fieldSources ? "\n" : '');
+        $fields = rtrim($fields);
+
+        $strCode .= "class c{$itemName} extends eiseItem {
+
+function __construct({$idField} = null, \$conf=array('name'=>'{$arrTable['name']}')){   
+
+    parent::__construct({$idField}, \$conf);   
+
+}
+
+function getData(\$pk = null){
+
+    \$intra = \$this->intra;\$oSQL = \$this->oSQL;
+
+    parent::getData(\$pk);
+
+    if(!\$pk) return;
+
+    // put your extra code here
+
+    return \$this->item;
+
+}
+
+function insert(\$data){
+
+    \$intra = \$this->intra;\$oSQL = \$this->oSQL;
+
+    if(!\$data['{$arrTable['PK'][0]}']){
+        \$this->insert(\$data);
+        return;
+    }
+
+    \$oSQL->q('START TRANSACTION');
+
+    // your check uniqueness code etc
+
+    \$sql = \"{$insertCode}\";
+
+    \$oSQL->q(\$sql);
+
+    \$this->id = {$idCode};
+
+    // your extra insert code
+
+    \$oSQL->q('COMMIT');
+
+    parent::insert(\$data);
+
+}
+
+function update(\$data){
+
+    \$intra = \$this->intra;\$oSQL = \$this->oSQL;
+
+    \$oSQL->q('START TRANSACTION');
+
+    \$sql = \"{$updateCode}\";
+
+    \$oSQL->q(\$sql);
+
+    // extra update code
+
+    \$oSQL->q('COMMIT');
+
+    parent::update(\$data);
+
+}
+
+}
+
+{$objName} = new c{$itemName}(\$_POST['{$arrTable['PK'][0]}'] ? \$_POST['{$arrTable['PK'][0]}'] : \$_GET['{$arrTable['PK'][0]}']);
+
+\$intra->dataRead(array(), {$objName});
+
+\$intra->dataAction(array('insert', 'update', 'delete'), {$objName}, \$_POST);
+
+\$arrActions[]= Array ('title' => $intra->translate('Back to list')
+       , 'action' => {$objName}->conf['list']
+       , 'class'=> 'ss_arrow_left'
+    );
+
+include eiseIntraAbsolutePath.'inc-frame_top.php';
+
+{$fieldSources}\$fields = {$fields};
+
+\$fields = \$intra->fieldset(\$intra->arrUsrData['pagTitle'.\$intra->local].' '.\$ra->item['radTitle'], \$fields.
+            \$intra->field(' ', null, {$objName}->getButtons() )
+            );
+
+echo {$objName}->form(\$fields);
+
+include eiseIntraAbsolutePath.'inc-frame_bottom.php';
+";
+
+
+        echo "<pre>";
+        echo htmlspecialchars($strCode);
+        #print_r($arrTable); 
+        die();
+
+
+            
+        
 
 
         $strCode .= "\r\nif(\$intra->arrUsrData['FlagWrite']){\r\n";
@@ -395,9 +531,9 @@ switch ($_GET["toGen"]){
 \$rw".strtoupper($arrTable['prefix'])." = \$oSQL->fetch_array(\$rs".strtoupper($arrTable['prefix']).");
 
 \$arrActions[]= Array ('title' => \$intra->translate('Back to list')
-	   , 'action' => \"".(str_replace("tbl_", "", $tblName))."_list.php\"
-	   , 'class'=> 'ss_arrow_left'
-	);
+       , 'action' => \"".(str_replace("tbl_", "", $tblName))."_list.php\"
+       , 'class'=> 'ss_arrow_left'
+    );
 \$arrJS[] = jQueryUIPath.'/jquery-ui.min.js';
 \$arrCSS[] = jQueryUIPath.'/jquery-ui.min.css';
 include eiseIntraAbsolutePath.'inc-frame_top.php';
@@ -486,27 +622,27 @@ include eiseIntraAbsolutePath.'inc-frame_bottom.php';
         }catch(Exception $e){
             $strCode = "DROP TABLE IF EXISTS `{$rwEnt["entTable"]}`;
 CREATE TABLE `{$rwEnt["entTable"]}` (
-	`{$entID}ID` VARCHAR(50) NOT NULL,
-	`{$entID}StatusID` INT UNSIGNED NULL DEFAULT NULL,
-	`{$entID}ActionID` VARCHAR(50) NULL DEFAULT NULL,
-	`{$entID}ActionLogID` VARCHAR(50) NULL DEFAULT NULL,
-	`{$entID}StatusActionLogID` VARCHAR(36) NULL DEFAULT NULL,
-	`{$entID}InsertBy` VARCHAR(255) NULL DEFAULT NULL,
-	`{$entID}InsertDate` DATETIME NULL DEFAULT NULL,
-	`{$entID}EditBy` VARCHAR(255) NULL DEFAULT NULL,
-	`{$entID}EditDate` DATETIME NULL DEFAULT NULL,
-	PRIMARY KEY (`{$entID}ID`)
+    `{$entID}ID` VARCHAR(50) NOT NULL,
+    `{$entID}StatusID` INT UNSIGNED NULL DEFAULT NULL,
+    `{$entID}ActionID` VARCHAR(50) NULL DEFAULT NULL,
+    `{$entID}ActionLogID` VARCHAR(50) NULL DEFAULT NULL,
+    `{$entID}StatusActionLogID` VARCHAR(36) NULL DEFAULT NULL,
+    `{$entID}InsertBy` VARCHAR(255) NULL DEFAULT NULL,
+    `{$entID}InsertDate` DATETIME NULL DEFAULT NULL,
+    `{$entID}EditBy` VARCHAR(255) NULL DEFAULT NULL,
+    `{$entID}EditDate` DATETIME NULL DEFAULT NULL,
+    PRIMARY KEY (`{$entID}ID`)
 )
 COLLATE='utf8_general_ci'
 ENGINE=InnoDB;";
             $strCode .= "\r\n\r\nDROP TABLE IF EXISTS `{$rwEnt["entTable"]}_log`;
 CREATE TABLE `{$rwEnt["entTable"]}_log` (
-	`l{$entID}GUID` VARCHAR(36) NOT NULL,
-	`l{$entID}InsertBy` VARCHAR(50) NULL DEFAULT NULL,
-	`l{$entID}InsertDate` DATETIME NULL DEFAULT NULL,
-	`l{$entID}EditBy` VARCHAR(50) NULL DEFAULT NULL,
-	`l{$entID}EditDate` DATETIME NULL DEFAULT NULL,
-	PRIMARY KEY (`l{$entID}GUID`)
+    `l{$entID}GUID` VARCHAR(36) NOT NULL,
+    `l{$entID}InsertBy` VARCHAR(50) NULL DEFAULT NULL,
+    `l{$entID}InsertDate` DATETIME NULL DEFAULT NULL,
+    `l{$entID}EditBy` VARCHAR(50) NULL DEFAULT NULL,
+    `l{$entID}EditDate` DATETIME NULL DEFAULT NULL,
+    PRIMARY KEY (`l{$entID}GUID`)
 )
 COLLATE='utf8_general_ci'
 ENGINE=InnoDB;
@@ -836,7 +972,7 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
             $strCode .= $strFieldValue;
             
         break;
-	case "EntityReport":
+    case "EntityReport":
         $entID = $_GET["entID"];
         $rwEnt = $oSQL->fetch_array($oSQL->do_query("SELECT * FROM stbl_entity WHERE entID='$entID'"));
         
@@ -931,7 +1067,7 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
         break;
         
         
-	case "StatusLogCheck":
+    case "StatusLogCheck":
         
         for ($i = 0; $i < ob_get_level(); $i++) { ob_end_flush(); }
         ob_implicit_flush(1);
