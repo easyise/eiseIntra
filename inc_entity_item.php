@@ -1670,7 +1670,7 @@ static function sendMessages($conf){
             , 'Text' => $rwMsg['msgText']
             );
         if ($rwMsg['msgCCUserID'])
-            $msg['CC'] = "\"".$rwUsr_CC['usrName']."\"  <".$rwUsr_CC['usrEmail'].">";
+            $msg['Cc'] = "\"".$rwUsr_CC['usrName']."\"  <".$rwUsr_CC['usrEmail'].">";
 
         $msg = array_merge($msg, $rwMsg);
 
