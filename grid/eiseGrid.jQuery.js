@@ -647,8 +647,8 @@ var __initControlBar = function(){
         oGrid.deleteSelectedRows();
             
     });
-    this.div.find('.eg-button-save').bind('click', function(){
-        oGrid.save();
+    this.div.find('.eg-button-save').bind('click', function(event){
+        oGrid.save(event);
     });
     this.div.find('.eg-button-excel').bind('click', function(){
         oGrid.excel();
@@ -958,6 +958,11 @@ eiseGrid.prototype.deleteSelectedRows = function(callback){
         if(typeof callback === 'function'){
             allowDelete = callback.call(grid, $tr);
         }
+
+        if(typeof grid.beforeDeleteCallback === 'function'){
+            allowDelete = grid.beforeDeleteCallback ($tr);
+        }
+
         if(allowDelete)
             grid.deleteRow($tr);
     });
@@ -1366,12 +1371,10 @@ eiseGrid.prototype.verify = function( options ){
 
 }
 
-eiseGrid.prototype.save = function(onSubmit){
-    
-    if (!this.verify())
-        return false;
+eiseGrid.prototype.save = function(event){
 
-    var oForm = $('#form_eg_'+this.id);
+    var grid = this, 
+        oForm = $('#form_eg_'+this.id)
 
     if(!oForm[0]){
         this.div.wrap('<form action="'+this.conf.urlToSubmit+'" id="form_eg_'+this.id+'" method="POST" />');
@@ -1381,7 +1384,15 @@ eiseGrid.prototype.save = function(onSubmit){
         });
         oForm = $('#form_eg_'+this.id);
     }
+
+    if(typeof grid.onSaveCallback === 'function'){
+        if(!grid.onSaveCallback.call(oForm[0], event))
+            return false;
+    }
     
+    if (!this.verify())
+        return false;
+
     if(typeof onSubmit === 'function'){
         oForm.submit(onSubmit);
     } else {
@@ -2076,11 +2087,25 @@ dblclick: function(dblclickCallback){
     return this;
 },
 
-_delete: function(onDeleteCallback){
+beforeDelete: function(callback){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
-    grid.onDeleteCallback = onDeleteCallback;
+    grid.beforeDeleteCallback = callback;
     return this;
 },
+
+onDelete: function(callback){
+    var grid = $(this[0]).data('eiseGrid').eiseGrid;
+    grid.onDeleteCallback = callback;
+    return this;
+},
+
+
+beforeSave: function(onSaveCallback){
+    var grid = $(this[0]).data('eiseGrid').eiseGrid;
+    grid.onSaveCallback = onSaveCallback;
+    return this;
+},
+
 
 getGridObject: function(){
     return $(this[0]).data('eiseGrid').eiseGrid;
@@ -2193,8 +2218,6 @@ excel: function(options){
 var protoSlice = Array.prototype.slice;
 
 $.fn.eiseGrid = function( method ) {
-
-    if (method=='delete') method = '_delete';
 
     if ( methods[method] ) {
         return methods[method].apply( this, protoSlice.call( arguments, 1 ) );
