@@ -643,8 +643,8 @@ var __initControlBar = function(){
     this.div.find('.eg-button-movedown').bind('click', function(){
         oGrid.moveDown();
     });
-    this.div.find('.eg-button-delete').bind('click', function(){
-        oGrid.deleteSelectedRows();
+    this.div.find('.eg-button-delete').bind('click', function(event){
+        oGrid.deleteSelectedRows(event);
             
     });
     this.div.find('.eg-button-save').bind('click', function(event){
@@ -947,9 +947,14 @@ eiseGrid.prototype.deleteRow = function(oTr, callback){
 
 }
 
-eiseGrid.prototype.deleteSelectedRows = function(callback){
+eiseGrid.prototype.deleteSelectedRows = function(event, callback){
     var grid = this;
     var allowDelete = true;
+
+    if(typeof grid.beforeDeleteCallback === 'function'){
+        if(!grid.beforeDeleteCallback (event))
+            return false;
+    }
 
     $.each(grid.activeRow, function(ix, $tr){
         if(!$tr)
@@ -957,10 +962,6 @@ eiseGrid.prototype.deleteSelectedRows = function(callback){
 
         if(typeof callback === 'function'){
             allowDelete = callback.call(grid, $tr);
-        }
-
-        if(typeof grid.beforeDeleteCallback === 'function'){
-            allowDelete = grid.beforeDeleteCallback ($tr);
         }
 
         if(allowDelete)
