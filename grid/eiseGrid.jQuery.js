@@ -49,6 +49,7 @@ function eiseGrid(gridDIV){
 
 
     this.onChange = []; // on change selector arrays
+    this.goneIDs = []; // IDs of deleted rows
 
     this.arrTabs = [];
     this.selectedTab = null;
@@ -923,6 +924,7 @@ eiseGrid.prototype.deleteRow = function(oTr, callback){
     if (goneID) {
         var inpDel = oGrid.div.find('#inp_'+this.id+'_deleted');
         inpDel.val(inpDel.val()+(inpDel.val()!="" ?  "|" : "")+goneID);
+        this.goneIDs.push(goneID);
     }
 
     oTr.remove();
@@ -967,6 +969,10 @@ eiseGrid.prototype.deleteSelectedRows = function(event, callback){
         if(allowDelete)
             grid.deleteRow($tr);
     });
+
+    if(typeof grid.afterDeleteCallback === 'function'){
+        grid.afterDeleteCallback (event);
+    }
 }
 
 eiseGrid.prototype.updateRow = function(oTr){
@@ -1945,9 +1951,9 @@ deleteRow: function ($tr, callback){
     return this;
 },
 
-deleteSelectedRows: function(callback){
+deleteSelectedRows: function(event, callback){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
-    return grid.deleteSelectedRows(callback);
+    return grid.deleteSelectedRows(event, callback);
 },
 
 updateRow: function ($tr){
@@ -2091,6 +2097,13 @@ dblclick: function(dblclickCallback){
 beforeDelete: function(callback){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     grid.beforeDeleteCallback = callback;
+    return this;
+},
+
+
+afterDelete: function(callback){
+    var grid = $(this[0]).data('eiseGrid').eiseGrid;
+    grid.afterDeleteCallback = callback;
     return this;
 },
 
