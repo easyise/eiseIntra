@@ -1516,11 +1516,16 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
                     if(!$ds){
                         @eval('$ds = '.$conf['source']);
                         if(!$ds){
-                            $aDS = explode('|', $conf['source']);
-                            $ds = $aDS[0];
-                            $conf['source_prefix'] = ($conf['source_prefix'] 
-                                ? $conf['source_prefix']
-                                : $aDS[1]);        
+                            if(!preg_match('/^select\s+/i', $conf['source'])){
+                                $aDS = explode('|', $conf['source']);
+                                $ds = $aDS[0];
+                                $conf['source_prefix'] = ($conf['source_prefix'] 
+                                    ? $conf['source_prefix']
+                                    : $aDS[1]);        
+                            } else {
+                                $ds = $conf['source'];
+                                $flagIsSQL = true;
+                            }
                         }
                     }
                 }
@@ -1530,12 +1535,18 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
                 if (is_array($conf['source'])){
                     $opts = $conf['source'];
                 } else {
-                    $rsCMB = $this->getDataFromCommonViews(null, null, $conf["source"]
-                        , $conf["source_prefix"]
-                        , (! ($this->arrUsrData['FlagWrite'] && (isset($conf['FlagWrite']) ? $conf['FlagWrite'] : 1) ) )
-                        , (string)$conf['extra']
-                        , true
-                        );
+                    try {
+                        if ($flagIsSQL){
+                            $rsCMB = $this->oSQL->do_query($conf['source']);   
+                        } else {
+                            $rsCMB = $this->getDataFromCommonViews(null, null, $conf["source"]
+                                , $conf["source_prefix"]
+                                , (! ($this->arrUsrData['FlagWrite'] && (isset($conf['FlagWrite']) ? $conf['FlagWrite'] : 1) ) )
+                                , (string)$conf['extra']
+                                , true
+                                );
+                        }
+                    } catch (Exception $e) { $html .= 'ERROR: '.$e->getMessage(); return $html; }
                     $opts = Array();
                     while($rwCMB = $oSQL->f($rsCMB))
                         $opts[$rwCMB["optValue"]]=$rwCMB["optText"];

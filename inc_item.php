@@ -13,6 +13,7 @@ public $conf = array(
 	, 'table' => 'tbl_item'
 	, 'form' => 'item_form.php'
 	, 'list' => 'item_list.php'
+	, 'flagFormShowAllFields' => false
 	);
 
 public $item = array();
@@ -189,8 +190,37 @@ public function getPKFields(){
 /**
  * Returns fields HTML
  */
-public function getFields(){
-	return '';
+public function getFields($aFields = null){
+	$aToGet = ($aFields ? $aFields : ($this->conf['flagFormShowAllFields'] ? $this->table['columns_index'] : array()));
+	$html = '';
+	foreach($aToGet as $field){
+		$col = $this->table['columns'][$field];
+		$title = ($col['title'.$this->intra->local]
+			? $col['title'.$this->intra->local]
+			: ($col['title'] ? $col['title'] : $this->intra->translate($col['Comment']))
+			);
+		$conf = array_merge($col, array('type'=>(!$title ? 'hidden' : $col['DataType'])));
+		if($conf['type']==='FK'){
+			$conf['type'] = 'combobox';
+			if($col['ref_table']){
+				try {
+					$tableRef = $this->oSQL->getTableInfo($col['ref_table']);	
+				} catch (Exception $e) {}
+			
+				if($tableRef && $tableRef['prefix'] && $tableRef['prefix']!='opt'){
+					$conf['source'] = $col['ref_table'];
+					$conf['source_prefix'] = $tableRef['prefix'];
+					$conf['type'] = 'ajax_dropdown';
+				} else {
+					$conf['type'] = 'combobox';
+					$conf['defaultText'] = 'THIS IS DEFAULT OPTION SET';
+					$conf['source'] = array('XX'=>'PLEASE REPLACE IT');
+				}
+			}
+		}
+		$html .= $this->intra->field($title, $field, $this->item[$field], $conf);
+	}
+	return $html;
 }
 
 /**
