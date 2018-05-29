@@ -266,6 +266,7 @@ function result2JSON($rs, $arrConf = array()){
         , 'arrHref' => array()
         , 'fields' => array()
         , 'flagEncode' => false
+        , 'flagSimple' => false
         );
     $arrConf = array_merge($arrConf_default, $arrConf);
     $arrRet = array();
@@ -300,7 +301,7 @@ function result2JSON($rs, $arrConf = array()){
                 $decPlaces = null;
             }
 
-            $arrRW[$key]['v'] = $this->formatByType2PHP($type, $value, $decPlaces);
+            $arrRW[$key]['v'] = ($arrConf['flagSimple'] ? $value : $this->formatByType2PHP($type, $value, $decPlaces));
 
             if (isset($rw[$key.'_text'])){
                 $arrRW[$key]['t'] = $rw[$key.'_text'];
@@ -340,7 +341,24 @@ function result2JSON($rs, $arrConf = array()){
             }
         }
 
-        $arrRet[] = $arrRW;
+        if($arrConf['flagSimple']){
+            $r = array();
+            foreach($arrRW as $key => $value){
+                $r[$key] = $value['v'];
+                if(isset($value['t'])){
+                    $r[$key.'_text'] = $value['t'];
+                }
+                if(isset($value['h'])){
+                    $r[$key.'_href'] = $value['h'];
+                }
+                if(isset($value['tr'])){
+                    $r[$key.'_href_target'] = $value['tr'];
+                }
+            }
+            $arrRet[] = $r;
+        } else {
+            $arrRet[] = $arrRW;
+        }
     }
     return ($arrConf['flagEncode'] ? json_encode($arrRet) : $arrRet);
 

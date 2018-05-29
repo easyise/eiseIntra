@@ -1501,7 +1501,7 @@ switch ($da) {
 /**
  * This function obtains file list for current entity item
  */
-public function getFiles(){
+public function getFiles($conf = array()){
 
     $oSQL = $this->oSQL;
     $entID = $this->entID;
@@ -1516,7 +1516,7 @@ public function getFiles(){
 
     $rs = $this->oSQL->do_query($sqlFile);
 
-    return $this->intra->result2JSON($rs, array('arrHref'=>array('filName'=>'popup_file.php?filGUID=[filGUID]')));
+    return $this->intra->result2JSON($rs, array_merge(array('arrHref'=>array('filName'=>'popup_file.php?filGUID=[filGUID]')), $conf) );
 
 
     while ($rw = $this->oSQL->fetch_array($rs)) {
