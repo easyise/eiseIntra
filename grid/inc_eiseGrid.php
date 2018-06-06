@@ -755,7 +755,8 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
             }
             
         } else { //display input and stuff
-        
+            
+            $noAutoComplete = false;
             switch($col['type']){
                 case "order":
                     $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val).
@@ -810,9 +811,20 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                 case "del":
                     break;
 
+                case "date":
+                case "datetime":
+                case "money":
+                case "float":
+                case "double":
+                case "real":
+                case "numeric":
+                case "number":
+                case "integer":
+                    $noAutoComplete = true;
                 case "text":
                 default:
                     $strCell .= "<input{$classAttr} type=\"text\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val)."\""
+                            .($noAutoComplete ? " autocomplete=\"off\"" : '')
                             .($cell['placeholder'] ? ' placeholder="'.htmlspecialchars($cell['placeholder']).'"' : '')
                             .">";
                     break;
@@ -878,9 +890,12 @@ function getSelectValue($cell, $row, $suffix=''){
     return ( $ret ? $ret : $_val );
 }
 
-function getDataFromCommonViews($oSQL, $strValue, $strText, $strTable, $strPrefix){
+function getDataFromCommonViews($oSQL, $strValue, $strText, $strTable, $strPrefix, $flagShowDeleted=false, $extra='', $flagNoLimits=true){
 
     GLOBAL $strLocal;
+
+    if(is_a($this->intra, 'eiseIntra'))
+        return $this->intra->getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $flagShowDeleted, $extra, $flagNoLimits);
     
     //if (function_exists("getDataFromCommonViews")) // normally defined in common.php
     //    return (getDataFromCommonViews($oSQL, $strValue, $strText, $strTable, $strPrefix));
