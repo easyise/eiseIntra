@@ -1659,6 +1659,9 @@ public function form($action, $dataAction, $fields, $method='POST', $conf=array(
         .'>'."\r\n"
         .$this->field(null, $this->conf['dataActionKey'], $dataAction, array('type'=>'hidden'))."\r\n"
         .$fields."\r\n"
+        .($conf['flagAddJavaScript']
+            ? '<script>$(window).load(function(){$("'.($conf['id']!='' ? "#{$conf['id']}" : '.eif-form').'").eiseIntraForm();})</script>'
+            : '')
         .($conf['flagDontClose']
             ? ''
             : '</form>'."\r\n\r\n")

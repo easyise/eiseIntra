@@ -172,6 +172,8 @@ public function form( $fields = null, $conf = array() ){
 			)
 		);
 
+	$conf = array_merge($conf, array('id'=>$this->table['prefix'], 'flagAddJavaScript'=>True));
+
 	return $this->intra->form($this->conf['form'], 'update', $fields, 'POST', $conf);
 
 }
