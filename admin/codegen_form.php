@@ -412,11 +412,6 @@ function insert(\$data){
 
     \$intra = \$this->intra;\$oSQL = \$this->oSQL;
 
-    if(!\$data['{$arrTable['PK'][0]}']){
-        \$this->insert(\$data);
-        return;
-    }
-
     \$oSQL->q('START TRANSACTION');
 
     // your check uniqueness code etc
@@ -437,6 +432,11 @@ function insert(\$data){
 
 function update(\$data){
 
+    if(!\$data['{$arrTable['PK'][0]}']){
+        \$this->insert(\$data);
+        return;
+    }
+    
     \$intra = \$this->intra;\$oSQL = \$this->oSQL;
 
     \$oSQL->q('START TRANSACTION');

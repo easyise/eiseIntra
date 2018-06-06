@@ -227,7 +227,7 @@ $(document).ready(function() {
         $('.eiseGrid').eiseGrid();
 
         $('.eiseGrid').eiseGrid('change', 'Field, Type, Default, Null, Comments', function(){tableGridChanged()})
-        $('.eiseGrid').eiseGrid('delete', function(){tableGridChanged()});
+        $('.eiseGrid').eiseGrid('afterDelete', function(){tableGridChanged()});
 
         $('#generateALTER').click(function(){generateALTER()})
     }
