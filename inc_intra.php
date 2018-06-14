@@ -1247,7 +1247,7 @@ function batchEcho($string){
     echo htmlspecialchars( 
         call_user_func_array( 
             ($this->conf['auto_translate'] 
-                ? array($this, 'transate')
+                ? array($this, 'translate')
                 : 'sprintf'
                 )
             , $args) 
