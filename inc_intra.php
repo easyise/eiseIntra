@@ -1166,7 +1166,7 @@ function json($status, $message, $data=null){
  * 
  * @param string $name - file name in UTF-8
  * @param string $type - MIME-type of the content
- * @param varian $pathOrData - if realpath() returns true for this variable, system will read the file. Otherwise it outputs the data as is.
+ * @param variant $pathOrData - if realpath() returns true for this variable, system will read the file. Otherwise it outputs the data as is.
  *
  */
 function file($name, $type, $pathOrData){

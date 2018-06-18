@@ -252,12 +252,12 @@ class eiseSQL extends mysqli{
  *
  * @category Database routines
  *
- * @param variant $mysqli_result - MySQL result object. 
+ * @param variant $result_or_query - MySQL result object or SQL query. 
  *
  * @return array, like MySQL result::fetch_fields()
  */
-    function ff($mysqli_result){ //fetch_ix_array
-        return $this->fetch_fields($mysqli_result);
+    function ff($result_or_query){ //fetch_ix_array
+        return $this->fetch_fields(is_object($result_or_query) ? $result_or_query : $this->q($result_or_query));
     }
 
 /**
