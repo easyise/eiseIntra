@@ -1592,6 +1592,10 @@ static function updateMessages($newData){
 
     switch($da){
         case 'messageSend':
+            $fields = $oSQL->ff('SELECT * FROM stbl_message WHERE 1=0');
+            if($fields['msgPassword']){
+                list($login, $password) = $intra->decodeAuthstring($_SESSION['authstring']);
+            }
             $sqlMsg = "INSERT INTO stbl_message SET
                 msgEntityID = ".($newData['entID']!="" ? $oSQL->e($newData['entID']) : "NULL")."
                 , msgEntityItemID = ".($newData['entItemID']!="" ? $oSQL->e($newData['entItemID']) : "NULL")."
@@ -1599,12 +1603,13 @@ static function updateMessages($newData){
                 , msgToUserID = ".($newData['msgToUserID']!="" ? $oSQL->e($newData['msgToUserID']) : "NULL")."
                 , msgCCUserID = ".($newData['msgCCUserID']!="" ? $oSQL->e($newData['msgCCUserID']) : "NULL")."
                 , msgSubject = ".$oSQL->e($newData['msgSubject'])."
-                , msgText = ".$oSQL->e($newData['msgText'])."
+                , msgText = ".$oSQL->e($newData['msgText']).
+                ($fields['msgPassword'] ? ", msgPassword=".$oSQL->e($intra->encrypt($password)) : '')
+                ."
                 , msgSendDate = NULL
                 , msgReadDate = NULL
                 , msgFlagDeleted = 0
                 , msgInsertBy = '$intra->usrID', msgInsertDate = NOW(), msgEditBy = '$intra->usrID', msgEditDate = NOW()";
-
             $oSQL->q($sqlMsg);
             
             if($newData["entItemID"]!='' && $newData['entID']!='' && !$newData['flagNoRedirect'])
@@ -1629,20 +1634,36 @@ static function sendMessages($conf){
             , msgStatus='Sending' 
             WHERE msgSendDate IS NULL");
 
-    // scan tablefor unsent messages
+    // scan table for unsent messages
     $sqlMsg = "SELECT * 
         FROM stbl_message 
             LEFT OUTER JOIN stbl_entity ON msgEntityID=entID
-        WHERE msgStatus='Sending' ORDER BY msgInsertDate DESC";
+        WHERE msgStatus='Sending' ORDER BY msgFromUserID, msgInsertDate DESC";
     $rsMsg = $oSQL->q($sqlMsg);
+    $fieldsMsg = $oSQL->ff($rsMsg);
 
     include_once('../common/eiseMail/inc_eisemail.php');
 
-    $sender  = new eiseMail($conf);
+    $username = '';
+    $arrMessages = array();
 
     while($rwMsg = $oSQL->f($rsMsg)){
 
-        $rwUsr_From = $intra->getUserData_All($rwMsg['msgFromUserID'], 'all');
+        if($username != $rwMsg['msgFromUserID']){
+
+            $rwUsr_From = $intra->getUserData_All($rwMsg['msgFromUserID'], 'all');
+            $arrAuth = array();
+            if($conf['authenticate']){
+                $arrAuth['login'] = ($conf['authenticate']=='email'
+                    ? $rwUsr_From['usrEmail']
+                    : $rwUsr_From['usrID'] );
+                $arrAuth['password']  = $intra->decrypt($rwMsg['msgPassword']);
+            }
+
+            $senders[$rwMsg['msgFromUserID']]  = new eiseMail(array_merge($conf, $arrAuth));
+
+        }
+
         $rwUsr_To = $intra->getUserData_All($rwMsg['msgToUserID'], 'all');
         $rwUsr_CC = $intra->getUserData_All($rwMsg['msgCCUserID'], 'all');
 
@@ -1674,27 +1695,40 @@ static function sendMessages($conf){
 
         $msg = array_merge($msg, $rwMsg);
 
-        $sender->addMessage($msg);
+        $senders[$rwMsg['msgFromUserID']]->addMessage($msg);
 
     }
 
-    try {
-        $arrMessages = $sender->send();
-    } catch (eiseMailException $e){
-        $strError = $e->getMessage();
-        $arrMessages = $e->getMessages();
-    }
+    foreach($senders as $user=>$sender){
 
+        if($conf['authenticate'] && !$sender->conf['password']){
+            foreach($sender->arrMessages as $msg){
+                $msg['error'] = 'No password';
+                $arrMessages[] = $msg;    
+            }
+            continue;
+        }
+
+        try {
+            $sentMessages = $sender->send();
+            $arrMessages = array_merge($arrMessages, $sentMessages);
+        } catch (eiseMailException $e){
+            $strError = $e->getMessage();
+            $arrMessages = array_merge($arrMessages, $e->getMessages());
+        }
+    }
 
     foreach((array)$arrMessages as $msg){
         $sqlMarkSent = "UPDATE stbl_message SET msgSendDate=".($msg['send_time'] ? "'".date('Y-m-d H:i:s', $msg['send_time'])."'" : 'NULL' )."
             , msgStatus=".($msg['error'] ? $oSQL->e($msg['error']) : $oSQL->e('Sent'))."
+            , msgPassword=NULL
             , msgEditDate=NOW()
-            , msgEditBy='{$intra->usrID}'
+            , msgEditBy='{$msg['msgFromUserID']}'
             WHERE msgID=".$oSQL->e($msg['msgID']);
         $oSQL->q($sqlMarkSent);
 
     }
+
 
     if($strError)
         throw new Exception($strError);
