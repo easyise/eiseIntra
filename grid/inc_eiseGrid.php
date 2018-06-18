@@ -104,6 +104,7 @@ function __construct($oSQL
 
     $arrConfig['urlToSubmit'] = (isset($arrConfig['urlToSubmit']) ? $arrConfig['urlToSubmit'] : $_SERVER["PHP_SELF"]);
     $arrConfig['excelFileName'] = (isset($arrConfig['excelFileName']) ? $arrConfig['excelFileName'] : pathinfo($_SERVER["PHP_SELF"], PATHINFO_FILENAME).'.xls');
+    $arrConfig['Tabs3DCookieName_src'] = $arrConfig['Tabs3DCookieName'];
     $arrConfig['Tabs3DCookieName'] = sprintf($arrConfig['Tabs3DCookieName'], $strName);
 
     $this->oSQL = $oSQL;
@@ -117,6 +118,23 @@ function __construct($oSQL
     $this->permissions["FlagDelete"] = (isset($this->conf['flagNoDelete']) ? !$this->conf['flagNoDelete'] : $this->permissions["FlagDelete"]);
     $this->permissions["FlagWrite"] = (isset($this->conf['flagDisabled']) ? !$this->conf['flagDisabled'] : $this->permissions["FlagWrite"]);
     
+}
+
+/**
+ * This method renames Grid: it sets $grid->name and other attributes.
+ *
+ * @param string $newName - new grid name
+ *
+ * @return string - old name
+ */
+function rename($newName){
+
+    $oldName = $this->name;
+    $this->name = $newName;
+    $this->conf['Tabs3DCookieName'] = sprintf($this->conf['Tabs3DCookieName_src'], $newName);
+    
+    return $oldName;
+
 }
 
 /**
@@ -993,7 +1011,7 @@ function Update($arrNewData = array(), $conf = array()){
         if ($this->Columns[$i]['type']=="row_id") 
             $pkColName = $this->Columns[$i]['field'];
         
-        if ($col['mandatory'])
+        if ($col['mandatory'] && !$mndFieldName)
             $mndFieldName = $col["field"];
         
         foreach($arrTable["columns"] as $j=>$tCol) 
