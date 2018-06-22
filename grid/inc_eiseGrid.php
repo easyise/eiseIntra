@@ -226,8 +226,8 @@ function get_html($allowEdit=true){
         $this->permissions["FlagWrite"] = false;
     
     $aControlBarButtons = explode('|', $this->conf['controlBarButtons']);
-    if (($this->permissions["FlagWrite"]  && count($aControlBarButtons)>0) || array_intersect(array('excel', 'refresh'), $aControlBarButtons)>0 ){
-        
+    if (($this->permissions["FlagWrite"]  && count($aControlBarButtons)>0) || count(array_intersect(array('excel', 'refresh'), $aControlBarButtons))>0 ){
+
         $strControlBar = "<div class=\"eg-controlbar\">";
         
         foreach ($aControlBarButtons as $btn){
