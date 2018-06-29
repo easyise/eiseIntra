@@ -1657,7 +1657,6 @@ static function sendMessages($conf){
                 $arrAuth['login'] = ($conf['authenticate']=='email'
                     ? $rwUsr_From['usrEmail']
                     : $rwUsr_From['usrID'] );
-                $arrAuth['password']  = $intra->decrypt($rwMsg['msgPassword']);
             }
 
             $senders[$rwMsg['msgFromUserID']]  = new eiseMail(array_merge($conf, $arrAuth));
@@ -1695,6 +1694,9 @@ static function sendMessages($conf){
 
         $msg = array_merge($msg, $rwMsg);
 
+        if($conf['authenticate'] && $rwMsg['msgPassword'])
+            $senders[$rwMsg['msgFromUserID']]->conf['password'] = $intra->decrypt($rwMsg['msgPassword']);
+
         $senders[$rwMsg['msgFromUserID']]->addMessage($msg);
 
     }
@@ -1702,7 +1704,7 @@ static function sendMessages($conf){
     foreach($senders as $user=>$sender){
 
         if($conf['authenticate'] && !$sender->conf['password']){
-            foreach($sender->arrMessages as $msg){
+            foreach($sender->arrMessages as &$msg){
                 $msg['error'] = 'No password';
                 $arrMessages[] = $msg;    
             }
