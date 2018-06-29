@@ -1638,7 +1638,7 @@ static function sendMessages($conf){
     $sqlMsg = "SELECT * 
         FROM stbl_message 
             LEFT OUTER JOIN stbl_entity ON msgEntityID=entID
-        WHERE msgStatus='Sending' ORDER BY msgFromUserID, msgInsertDate DESC";
+        WHERE msgStatus='Sending' AND msgInsertDate>DATE_ADD(NOW(), INTERVAL -1 DAY) ORDER BY msgFromUserID, msgInsertDate DESC";
     $rsMsg = $oSQL->q($sqlMsg);
     $fieldsMsg = $oSQL->ff($rsMsg);
 
@@ -1658,7 +1658,7 @@ static function sendMessages($conf){
                     ? $rwUsr_From['usrEmail']
                     : $rwUsr_From['usrID'] );
             }
-
+            $username = $rwMsg['msgFromUserID'];
             $senders[$rwMsg['msgFromUserID']]  = new eiseMail(array_merge($conf, $arrAuth));
 
         }
