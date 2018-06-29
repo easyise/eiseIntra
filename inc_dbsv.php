@@ -35,6 +35,7 @@ class eiseDBSV {
 public $conf = array(
     'DBHOST' => 'localhost'
     , 'dbsvPath' => './.SQL'
+    , 'flagDisableForeignKeyChecks' => true
     );
 
 public $authorized = false;
@@ -344,10 +345,14 @@ private function parse_mysql_dump($url){
 		if (preg_match("/^CREATE FUNCTION/i", $sql_line) )
 		    $delimiter = ";;";
         if(preg_match("/$delimiter\s*$/", $sql_line)){
-		  //echo "begin:".$query.":end\r\n";
-          $oSQL->do_query($query);
-          $query = "";
-		  $delimiter = ";";
+		    //echo "begin:".$query.":end\r\n";
+            if($this->conf['flagDisableForeignKeyChecks'])
+                $oSQL->do_query('SET FOREIGN_KEY_CHECKS=0');
+            $oSQL->do_query($query);
+            if($this->conf['flagDisableForeignKeyChecks'])
+                $oSQL->do_query('SET FOREIGN_KEY_CHECKS=1');
+            $query = "";
+		    $delimiter = ";";
         }
     }
 }
