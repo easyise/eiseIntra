@@ -1214,7 +1214,7 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text){
         }
         oInp = oTr.find('input[name="'+strFieldName+'[]"]').first();
         oInp.val(strValue);
-        if (strTitle!='' && oInp.next()[0]!=undefined){
+        if (strTitle && oInp.next()[0]!=undefined){
             switch(strType){
                 case "checkbox":
                 case "boolean":
@@ -1447,7 +1447,10 @@ eiseGrid.prototype.height = function(nHeight, callback){
         var obj = nHeight
             , offsetTop = grid.div.offset().top
             , margin = offsetTop - grid.div.parents().first().offset().top;
-        nHeight = (obj===window ? window.innerHeight : $(obj).outerHeight(true)) - offsetTop - 2*margin;
+        console.log(offsetTop, margin)
+        nHeight = (obj===window 
+            ? window.innerHeight - $('.ei-action-menu').outerHeight(true) 
+            : $(obj).outerHeight(true)) - offsetTop - 2*margin;
     }
 
     if( nHeight < (hBodies/grid.tbodies.length)*3 ) // if nHeight is not specified or height is less than height of 3 rows, we do nothing
