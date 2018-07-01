@@ -2309,7 +2309,7 @@ function dataAction($dataAction, $funcOrObj=null){
  * 
  * @return variant value that return user function.
  */
-function dataRead($dataReadValues, $function, $arrParam = array()){
+function dataRead($dataReadValues, $function=null, $arrParam = array()){
     
     $query = $_GET;
 
@@ -2317,10 +2317,15 @@ function dataRead($dataReadValues, $function, $arrParam = array()){
 
     if(in_array($query[$this->conf['dataReadKey']], $dataReadValues)){
         
-            $arrParam = func_get_args();
+        $arrParam = func_get_args();
+        array_shift($arrParam);
+
+        if(!$function){
+            $function = $query[$this->conf['dataReadKey']];
+        } else {
             array_shift($arrParam);
-            array_shift($arrParam);
-            $arrArgs = $arrParam;
+        }
+        $arrArgs = $arrParam;    
                     
         if(is_callable($function)){
             return call_user_func_array($function, $arrArgs );
