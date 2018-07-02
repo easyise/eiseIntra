@@ -12,6 +12,8 @@
  *
  */
 
+GLOBAL $eiseIntraKey;
+
 include "inc_config.php";
 if (!class_exists('eiseSQL')) 
     include "inc_mysqli.php";
