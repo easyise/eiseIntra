@@ -1086,6 +1086,57 @@ function Update($arrNewData = array(), $conf = array()){
     return true;
 }
 
+function json($newData = null){
+
+    GLOBAL $intra;
+
+    if(!$newData)
+        $newData = $_POST;
+
+    foreach($this->Columns as $i=>$col){
+        if ($this->Columns[$i]['type']=="row_id") {
+            $pkColName = $this->Columns[$i]['field'];
+            break;
+        }
+    }
+
+    $aRet = array();
+
+    for($i=1;$i<count($newData[$pkColName]);$i++){
+
+        $a = array();
+        foreach($this->Columns as $col){
+
+            switch($col['type']){
+                case 'order':
+                    $val = $i;
+                    break;
+                case 'date':
+                    $val = $intra->oSQL->unq($intra->datePHP2SQL($newData[$col['field']][$i]));
+                    break;
+                case 'datetime':
+                    $val = $intra->oSQL->unq($intra->datetimePHP2SQL($newData[$col['field']][$i]));
+                    break;
+                case "integer":
+                case "real":
+                case "numeric":
+                case "number":
+                case "money":
+                    $val = $intra->oSQL->unq($intra->decPHP2SQL($newData[$col['field']][$i]));
+                    break;
+                default: 
+                    $val = $newData[$col['field']][$i];
+                    break;
+            }
+            $a[$col['field']] = $val;
+        }
+        
+        $aRet[] = $a;
+
+    }
+
+    return json_encode($aRet);
+}
 
 function getSQLValue($col){
     $strValue = "";
