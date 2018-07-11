@@ -1221,13 +1221,16 @@ function file($name, $type, $pathOrData){
  * @category Output
  * @category Batch run
  */
-function batchStart(){
+function batchStart($conf = array()){
     
     header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
     header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
     header("Content-type: text/html;charset=utf-8"); // HTML
 
     $this->flagBatch = true;
+
+    if($conf['htmlspecialchars'])
+        $this->conf['batch_htmlspecialchars'] = true;
 
     ob_start();
 
@@ -1246,14 +1249,14 @@ function batchStart(){
  */
 function batchEcho($string){
     $args = func_get_args();
-    echo htmlspecialchars( 
-        call_user_func_array( 
+    $to_echo  = call_user_func_array( 
             ($this->conf['auto_translate'] 
                 ? array($this, 'translate')
                 : 'sprintf'
                 )
-            , $args) 
-        );
+            , $args) ;
+        
+    echo ( $this->conf['batch_htmlspecialchars'] ? htmlspecialchars( $to_echo ) : $to_echo );
     ob_flush();
     flush();
 }
@@ -1398,6 +1401,9 @@ function readSettings(){
 
     while ($rwSetup = $oSQL->fetch_array($rsSetup)){
 
+        if($rwSetup['stpFlagOnDemand'])
+            continue;
+
         switch ($rwSetup["stpCharType"]){
             case "varchar":
             case "text":
@@ -1429,6 +1435,65 @@ function readSettings(){
     $this->conf = array_merge($this->conf, $arrSetup);
     
     return $arrSetup;
+}
+
+/**
+ * This function is to read or write system variable values stored in stbl_setup.
+ * 
+ * @param string $stpVarName - system setup variable name, e.g. 'docLifeTime'
+ * @param string $stpCharValue - value for this system setup variable
+ * 
+ * @return variant if param $stpVarValue is omitted it returns current setting value, otherwise it returns null in case of successful value set or throws an exception if settings variable doesn't exist in the system 
+ */
+function setting($stpVarName, $stpCharValue = null, $flagLocal = false){
+
+    $rwSetup = $this->oSQL->f("SELECT * FROM stbl_setup WHERE stpVarName=".$this->oSQL->e($stpVarName));
+
+    $Local = ($flagLocal ? 'Local' : '');
+
+    if(!$rwSetup)
+        throw new Exception("Setup variable {$stpVarName} does not exist in the system");
+
+    // read
+    if(!$stpCharValue){
+        switch ($rwSetup['stpCharType']) {
+            case 'json':
+                return json_decode($rwSetup['stpCharValue'.$Local], true);
+                break;
+            default:
+                return $rwSetup['stpCharValue'.$Local];
+                break;
+        }
+    } else 
+    // write
+    {
+        switch ($rwSetup['stpCharType']) {
+            case 'json':
+                $val = (is_string($stpCharValue) ? $stpCharValue : json_encode($stpCharValue) );
+                break;
+            case 'date':
+                $val = $this->oSQL->unq($this->datePHP2SQL($stpCharValue));
+                break;
+            case 'datetime':
+                $val = $this->oSQL->unq($this->datetimePHP2SQL($stpCharValue));
+                break;
+            case "integer":
+            case "real":
+            case "numeric":
+            case "number":
+            case "money":
+                $val = $this->oSQL->unq($this->decPHP2SQL($stpCharValue));
+                break;
+            default: 
+                $val = $stpCharValue;
+                break;
+        }
+
+        $this->oSQL->q("UPDATE stbl_setup SET stpCharValue{$Local}=".$this->oSQL->e($val).", stpEditBy='{$this->usrID}', stpEditDate=NOW() WHERE stpVarName=".$this->oSQL->e($stpVarName));
+
+    }
+        
+
 }
 
 /**

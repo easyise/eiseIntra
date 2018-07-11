@@ -12,6 +12,10 @@ function update($newData){
 
     $rsSTP = $oSQL->do_query("SELECT * FROM stbl_setup");
     while ($rwSTP = $oSQL->fetch_array($rsSTP)) {
+
+        if(!isset($newData[$rwSTP["stpVarName"]]))
+            continue;
+
         $newValue = ($rwSTP['stpCharType'] == 'password' ? $intra->encrypt($newData[$rwSTP["stpVarName"]]) : $newData[$rwSTP["stpVarName"]]) ;
         if (($newValue !=$rwSTP["stpCharValue"])&& !$rwSTP["stpFlagReadOnly"] ){
 
@@ -44,6 +48,9 @@ include eiseIntraAbsolutePath."inc{$intra->conf['frame']}_top.php";
 $rsSTP = $oSQL->do_query("SELECT * FROM stbl_setup ORDER BY stpFlagReadOnly ASC, stpNGroup ASC, stpID ASC");
    
 while ($rwSTP = $oSQL->fetch_array($rsSTP)) {
+
+    if($rwSTP["stpFlagHiddenOnForm"])
+        continue;
 
     $arrConf = Array("FlagWrite"=>(!$rwSTP["stpFlagReadOnly"] && (bool)$intra->arrUsrData["FlagWrite"]));
 

@@ -22,6 +22,7 @@ var conf = {
     }
     , buttons: []
     , formToSubmit: null
+    , onload: function() {}
     , onclose: function() {return true;}
     , title: null
 }
@@ -78,6 +79,10 @@ init: function(arg){
     }, 500);
 
     ifr.onload = function(){
+
+        if(typeof   conf.onload === 'function'){
+            conf.onload.call($dlg)
+        }
 
         if(ifr)
             ifr.contentWindow.scrollTo(0,999999);
