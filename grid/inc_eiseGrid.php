@@ -584,7 +584,11 @@ protected function __getRow($iRow, $row = null){
     $html = '<tbody class="'.(
             $iRow===null
             ? 'eg-template'
-            : 'eg-data'.($row['__rowClass'] ? ' '.$row['__rowClass'] : '')
+            : 'eg-data'.($row['__rowClass'] ? ' '.$row['__rowClass'] : '').(
+                $row['__rowDisabled']
+                ? ' eg-row-disabled'
+                : ''
+                )
             ).'">'."\r\n";
 
     for ($iSubRow = 0; $iSubRow < $this->__rowspan; $iSubRow++){
@@ -592,6 +596,8 @@ protected function __getRow($iRow, $row = null){
         $html .= '<tr>'."\r\n";
 
         foreach($this->visibleColumns as $ixCol=>$col){
+            if($row['__rowDisabled'])
+                $col['fields'][$iSubRow]['disabled'] = true;
             $html .= ($col['fields'][$iSubRow]
                 ? $this->__paintCell($col['fields'][$iSubRow], $ixCol, $iRow)
                 : '<td>&nbsp;</td>'."\r\n"

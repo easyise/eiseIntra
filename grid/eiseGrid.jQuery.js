@@ -966,7 +966,7 @@ eiseGrid.prototype.deleteSelectedRows = function(event, callback){
             allowDelete = callback.call(grid, $tr);
         }
 
-        if(allowDelete)
+        if(allowDelete && !$tr.hasClass('eg-row-disabled'))
             grid.deleteRow($tr);
     });
 
