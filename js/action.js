@@ -618,12 +618,39 @@ $.fn.eiseIntraEntityItemForm = function( method ) {
 
 function showMultipleEditForm(strTitle){
 
-    var form = '.eiseIntraMultiple';
+    var selForm = '.eiseIntraMultiple',
+        $formTemplate = $(selForm),
+        formHTML = ($formTemplate[0] ? $formTemplate[0].outerHTML : ''),
+        $form = $(formHTML).appendTo('body');
     
-    $(form).attr('title', strTitle);
-    $(form).dialog({
+    $form
+        .prop('title', strTitle)
+        .dialog({
             modal: false
             , width: $(window).width()*0.80
+        })
+        .eiseIntraForm()
+        .eiseIntraEntityItemForm({flagUpdateMultiple: true})
+        .submit(function(event) {
+            
+            $form.eiseIntraEntityItemForm("checkAction", function(){
+                if ($form.eiseIntraForm("validate")){
+                    window.setTimeout(function(){$form.find('input[type="submit"], input[type="button"]').each(function(){this.disabled = true;})}, 1);
+                    $form.eiseIntraBatch('submit', {
+                        flagAutoReload: true
+                        , title: strTitle
+                        , onload: function(){
+                            $form.dialog('close').remove();
+                        }
+                    });
+                } else {
+                    $form.eiseIntraEntityItemForm("reset");
+                }
+            })
+        
+            return false;
+        
         });
+        
         
 }

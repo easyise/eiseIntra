@@ -364,6 +364,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     $entID = $this->entID;
 
     $intra = $this->intra;
+    $intra->requireComponent('list', 'batch');
 
     $conf = $this->conf;
     $strLocal = $this->intra->local;
@@ -790,28 +791,6 @@ function getFormForList($staID){
 </fieldset>
 
 </form>
-<script>
-$(document).ready(function(){
-    $('#entForm').
-        eiseIntraForm().
-        eiseIntraEntityItemForm({flagUpdateMultiple: true}).
-        submit(function(event) {
-            var $form = $(this);
-            $form.eiseIntraEntityItemForm("checkAction", function(){
-                if ($form.eiseIntraForm("validate")){
-                    window.setTimeout(function(){$form.find('input[type="submit"], input[type="button"]').each(function(){this.disabled = true;})}, 1);
-                    $form[0].submit();
-                } else {
-                    form.eiseIntraEntityItemForm("reset");
-                }
-            })
-        
-            return false;
-        
-        });
-})
-
-</script>
 <?php
 }
 
