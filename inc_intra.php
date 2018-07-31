@@ -2448,15 +2448,25 @@ function showDatesPeriod($trnStartDate, $trnEndDate){
 }
 
 function getUserData($usrID){
+
+    if($this->userInfoCache[$usrID]){
+        return $this->userInfoCache[$usrID];
+    }
+
     $oSQL = $this->oSQL;
     $rs = $this->getDataFromCommonViews($usrID, "", "svw_user", "");
     $rw = $oSQL->fetch_array($rs);
     
-    return ($rw["optValue"]!="" 
+    $retVal = ($rw["optValue"]!="" 
         ? ($rw["optText{$this->local}"]==""
             ? $rw["optText"]
             : $rw["optText{$this->local}"])
          : $usrID);
+
+    $this->userInfoCache[$usrID] = $retVal;
+
+    return $retVal;
+
 }
 function getUserData_All($usrID, $strWhatData='all'){
     

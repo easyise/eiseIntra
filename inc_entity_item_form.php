@@ -481,21 +481,22 @@ function getActionLog($arrConfig = array()){
 
     $sql = "SELECT stbl_action_log.*
         , stbl_action.*
-        , stbl_user.*
         , STA_OLD.staTitle{$this->intra->local} as staTitle_old
         , STA_NEW.staTitle{$this->intra->local} as staTitle_new
       FROM stbl_action_log
         INNER JOIN stbl_action ON actID= aclActionID
         LEFT OUTER JOIN stbl_status STA_OLD ON STA_OLD.staID=aclOldStatusID AND STA_OLD.staEntityID=actEntityID
         LEFT OUTER JOIN stbl_status STA_NEW ON STA_NEW.staID=aclOldStatusID AND STA_NEW.staEntityID=actEntityID
-        LEFT OUTER JOIN stbl_user ON usrID=aclInsertBy
       WHERE aclEntityItemID='{$this->entItemID}' AND actEntityID='{$this->entID}'".
       (!$arrConfig['flagIncludeUpdate'] ? " AND aclActionID<>2" : "")
       ."
       ORDER BY aclInsertDate DESC, aclNewStatusID DESC";
     $rs = $this->oSQL->do_query($sql);
+    $flagHasCreate = false;
     while ($rw = $this->oSQL->fetch_array($rs)) {
         if(!$rw['usrID']) $rw['usrName'] = $rw['aclInsertBy'];
+        if($rw['actID']==1)
+            $flagHasCreate = true;
         $acl = array(
             'alGUID' => $rw['aclGUID']
             , 'actID' => $rw['actID']
@@ -505,14 +506,27 @@ function getActionLog($arrConfig = array()){
             , 'actTitle' => $rw['actTitle'.$this->intra->local]
             , 'actTitlePast' => $rw['actTitlePast'.$this->intra->local]
             , 'aclComments' => $rw['aclComments']
-            , 'aclEditBy' => $this->intra->translate('by ').($this->intra->local ? ($rw['usrNameLocal'] ? $rw['usrNameLocal'] : $rw['usrName']) : $rw['usrName'])
-            , 'aclEditDate' => date("{$this->intra->conf['dateFormat']} {$this->intra->conf['timeFormat']}"
-                , strtotime($rw["aclEditDate"]))
+            , 'aclEditBy' => $this->intra->translate('%s by %s', ucfirst($rw['actTitlePast'.$this->intra->local]), $this->intra->getUserData($rw['aclEditBy']))
+            , 'aclEditDate' => $this->intra->datetimeSQL2PHP($rw["aclEditDate"])
             , 'aclATA' => date("{$this->intra->conf['dateFormat']}"
                     .(strtotime($rw["aclATA"])!=strtotime(date('Y-m-d', strtotime($rw["aclATA"]))) ? " {$this->intra->conf['timeFormat']}" : '')
                 , strtotime($rw["aclATA"]))
             );
         $arrACL[] = $acl;  
+    }
+    if(!$flagHasCreate){
+        $arrACL[] = array(
+            'alGUID' => '0'
+            , 'actID' => 1
+            , 'aclActionPhase' => 2
+            , 'aclOldStatusID' => null
+            , 'aclNewStatusID' => 0
+            , 'actTitle' => $this->conf['ACT'][1]["actTitle{$this->intra->local}"]
+            , 'actTitlePast' => $this->conf['ACT'][1]["actTitlePast{$this->intra->local}"]
+            , 'aclEditBy' => $this->intra->translate('%s by %s', $this->conf['ACT'][1]["actTitlePast{$this->intra->local}"], $this->intra->getUserData($this->item["{$this->conf['entPrefix']}InsertBy"]))
+            , 'aclEditDate' => $this->intra->datetimeSQL2PHP($this->item["{$this->conf['entPrefix']}InsertDate"])
+            , 'aclATA' => $this->intra->datetimeSQL2PHP($this->item["{$this->conf['entPrefix']}InsertDate"])
+            );
     }
         
     $this->oSQL->free_result($rs);
