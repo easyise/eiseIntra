@@ -618,10 +618,14 @@ $.fn.eiseIntraEntityItemForm = function( method ) {
 
 function showMultipleEditForm(strTitle){
 
-    var selForm = '.eiseIntraMultiple',
-        $formTemplate = $(selForm),
-        formHTML = ($formTemplate[0] ? $formTemplate[0].outerHTML : ''),
-        $form = $(formHTML).appendTo('body');
+    if(!this.formHTML){
+        var selForm = '.eiseIntraMultiple',
+            $formTemplate = $(selForm);    
+        this.formHTML = (this.formHTML ? this.formHTML : ($formTemplate[0] ? $formTemplate[0].outerHTML : ''));    
+        $formTemplate.remove(); 
+    }
+
+    var $form = $(this.formHTML).appendTo('body');
     
     $form
         .prop('title', strTitle)
