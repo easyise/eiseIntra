@@ -1217,6 +1217,7 @@ function file($name, $type, $pathOrData){
 
 /**
  * This function outputs necessary stuff to start batch data operation script.
+ * WARNING: this function closes existing session using session_write_close(), so avoid changing $_SESSION variables in your batch processing script.
  *
  * @category Output
  * @category Batch run
@@ -1237,6 +1238,8 @@ function batchStart($conf = array()){
     for ($i = 0; $i < ob_get_level(); $i++) { ob_end_flush(); }
     ob_implicit_flush(1);
     echo str_repeat(" ", 256)."<pre>"; ob_flush();
+
+    session_write_close();
 
     set_time_limit(1200); // 20 minutes
 }
