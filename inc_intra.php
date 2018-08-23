@@ -2027,7 +2027,7 @@ function showCheckBox($strName, $strValue, $arrConfig=Array()){
 
     $id = ( $arrConfig['id'] ? $arrConfig['id'] : $strName );
 
-    $showValueAttr = preg_match('/\[\]$/', $strName);
+    $showValueAttr = preg_match('/\[\]$/', $strName) || $arrConfig['showValueAttr'];
     
     $strAttrib = $arrConfig["strAttrib"];
     $retVal = "<input name=\"{$strName}\" id=\"{$id}\" type=\"checkbox\"".
