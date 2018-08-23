@@ -88,7 +88,7 @@ public $Rows = array();
 
 function __construct($oSQL
     , $strName
-    , $arrConfig
+    , $arrConfig = array()
     ){
     
     GLOBAL $intra;
@@ -113,6 +113,8 @@ function __construct($oSQL
     $this->name = $strName;
     $this->permissions = $this->conf["arrPermissions"];
     $this->intra = ($this->conf['intra'] ? $this->conf['intra'] : $intra);
+    if($this->conf['intra'])
+        unset($this->conf['intra']);
     
     //backward-compatibility staff
     $this->permissions["FlagDelete"] = (isset($this->conf['flagNoDelete']) ? !$this->conf['flagNoDelete'] : $this->permissions["FlagDelete"]);

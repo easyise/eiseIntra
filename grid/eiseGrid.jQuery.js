@@ -103,8 +103,7 @@ function eiseGrid(gridDIV){
         oGrid.sliceByTab3d(oGrid.arrTabs[oGrid.selectedTabIx]);
 
     });
-    
-    
+
 }
 
 
@@ -1082,6 +1081,7 @@ eiseGrid.prototype.recalcAllTotals = function(){
     var oGrid = this;
 
     $.each(oGrid.conf.fields, function(field, props){ //bind totals recalculation to totals columns
+
         if (props.totals==undefined)
             return true; // continue
         oGrid.recalcTotals(field);
@@ -1829,10 +1829,10 @@ init: function( conf ) {
                 , eiseGrid : new eiseGrid($this)
             };
 
-            
             // create element and append to body
             var $eiseGrid_data = $('<div />', {
                 'class': 'eiseGrid_data'
+                , 'id': this.id+'_data'
             }).appendTo( 'body' );
 
             // Associate created element with invoking element
