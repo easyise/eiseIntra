@@ -1034,7 +1034,7 @@ eiseGrid.prototype.moveDown = function(flagDontUpdateRows){
 
 }
 
-eiseGrid.prototype.recalcTotals = function(field){
+eiseGrid.prototype.recalcTotals = function(field, flagReturn){
     var oGrid = this;
     var nTotals = 0.0;
     var nCount = 0;
@@ -1070,10 +1070,17 @@ eiseGrid.prototype.recalcTotals = function(field){
             decimalPlaces  = this.conf.fields[field].decimalPlaces!=undefined ? this.conf.fields[field].decimalPlaces : this.conf.decimalPlaces;
             break;
     }
+
+    if(flagReturn)
+        return nValue;
     
     this.tfoot.find('.'+this.id+'-'+field+' div').html(
         this.number_format(nValue, decimalPlaces)
     );
+}
+
+eiseGrid.prototype.totals  = function(field){
+    return this.recalcTotals(field, true);
 }
 
 eiseGrid.prototype.recalcAllTotals = function(){
@@ -2016,6 +2023,13 @@ recalcTotals: function (strField){
 
     });
     return this;
+},
+
+totals: function(strField){
+    
+    var grid = $(this[0]).data('eiseGrid').eiseGrid;
+    return grid.totals(strField);
+
 },
 
 change:  function(strFields, callback){
