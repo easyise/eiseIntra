@@ -73,6 +73,20 @@ function eiseGrid(gridDIV){
 
     this.initLinesStructure();
 
+    //clickable TH 
+    this.thead.find('th').click(function(){
+        var $th = $(this),
+            strField = oGrid.getFieldName($th);
+        $.each(oGrid.conf.fields, function(field, props){
+            if(strField!=field)
+                return true;
+            if(props.type=='checkbox' && props.headerClickable){
+                oGrid.div.find('.eg-data .'+oGrid.id+'-'+field+' input[type="checkbox"]').click();
+                return false;
+            }
+        })
+    })
+
     //tabs 3d
     this.div.find('#'+this.id+'-tabs3d').each(function(){
         oGrid.selectedTab = document.cookie.replace(new RegExp("(?:(?:^|.*;\\s*)"+oGrid.conf.Tabs3DCookieName+"\\s*\\=\\s*([^;]*).*$)|^.*$"), "$1");

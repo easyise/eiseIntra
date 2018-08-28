@@ -553,6 +553,9 @@ function get_html($allowEdit=true){
         if (is_array($field['source'])){
             $arrConfig['fields'][$fieldName]['source'] = $field['source'];
         }
+        if ($field['headerClickable']){
+            $arrConfig['fields'][$fieldName]['headerClickable'] = true;
+        }
     }
 
     $jsonConfig = json_encode(array_merge($arrConfig, array('widths'=>$this->arrWidth
