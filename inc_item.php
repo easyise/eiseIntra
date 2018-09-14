@@ -148,7 +148,7 @@ public function getData($pk = null){
 	$sql = "SELECT * FROM {$this->conf['table']} WHERE {$where}";
 	$rs = $oSQL->q($sql);
 	if($oSQL->n($rs)==0)
-		throw new Exception("Item with not found, requested ID: ".var_export($id, true), 404);
+		throw new Exception("Item not found, requested ID: ".var_export($id, true), 404);
 
 	$rw = $oSQL->f($rs);
 

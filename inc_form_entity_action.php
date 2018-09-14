@@ -19,7 +19,7 @@ $gridATS = new easyGrid($oSQL
                 , 'strTable' => 'stbl_action_status'
                 , 'strPrefix' => 'ats'
                 , 'flagStandAlone' => true
-                , 'controlBarButtons' => 'add'
+                , 'controlBarButtons' => 'add|delete'
                 )
         );
 

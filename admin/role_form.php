@@ -54,6 +54,12 @@ $gridROL->Columns[] = Array(
         , 'width' => '30px'
 );
 $gridROL->Columns[] = Array(
+        'title' => "all"
+        , 'field' => "rolFlagVirtual"
+        , 'type' => "checkbox"
+        , 'width' => '30px'
+);
+$gridROL->Columns[] = Array(
         'title' => "Members"
         , 'field' => "rolMembers"
         , 'type' => "text"
