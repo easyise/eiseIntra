@@ -429,13 +429,13 @@ function Authenticate($login, $password, $method="LDAP", $options=array()){
     session_regenerate_id();
 
     if($method=="mysql"){
-        $_SESSION["usrID"] = $login;
         $_SESSION["DBHOST"] = $this->oSQL->dbhost;
         $_SESSION["DBPASS"] = $this->oSQL->dbpass;
     }
 
     $_SESSION["last_login_time"] = Date("Y-m-d H:i:s");
     $_SESSION["usrID"] = $login;
+    //$_SESSION["usrID"] = 'TIKHONOVA';
     $_SESSION["authstring"] = $this->encodeAuthString($login, $password);
 
     $this->usrID = $_SESSION["usrID"];
@@ -480,6 +480,49 @@ function logout(){
     session_destroy();
 
     SetCookie("last_succesfull_usrID", $this->usrID, $this->conf['cookieExpire'], $this->conf['cookiePath']);
+
+}
+
+/**
+ * This function fills in $arrUsrData['roles'] and $arrUsrData['roleIDs'] arrays. Can be overriden for virtual roles.
+ *
+ * NOTE: Role membership information is collected from stbl_role_user table basing on rluInsertDate timestamp, 
+ * it should not be in the future. It is useful when some actions should be temporarily delegated to the other user in case of vacations, illness etc.
+ *
+ * Page permissions can be set with eiseAdmin's GUI at < database >/Pages menu.
+ * Role membership can be set by system's GUI at system's Setting/Access Control menu or <database>/Roles menu of eiseAdmin.
+ *
+ * @category Authentication
+ * @category Authorization
+ *
+ * @param string $usrID - user ID to get role membership info. If set, this function doesn't touch `$intra->arrUsrData['roles']` and `$intra->arrUsrData['roleIDs']`
+ *
+ * @return array with role IDs as keys and role titles are values.
+ */
+function getUserRoles($usrID = null) {
+    
+    $usrID_src = $usrID;
+    if(!$usrID)
+        $usrID = $this->usrID;
+
+    $arrRet = array();
+
+    $sql = "SELECT rolID as id, rolTitle{$this->local} as title
+       FROM stbl_role ROL
+       INNER JOIN stbl_role_user RLU ON RLU.rluRoleID=ROL.rolID
+       WHERE (rluUserID='$usrID'   AND DATEDIFF(NOW(), rluInsertDate)>=0)
+        OR rolFlagDefault=1";
+    $rs = $this->oSQL->q($sql);
+    while ($rw = $this->oSQL->f($rs)){
+        $arrRet[(string)$rw['id']] = $rw['title'];
+    }
+
+    if(!$usrID_src){
+        $this->arrUsrData['roleIDs'] = array_keys($arrRet);
+        $this->arrUsrData['roles'] = array_values($arrRet);
+    }
+        
+   return $arrRet;
 
 }
 
@@ -553,6 +596,10 @@ function checkPermissions( ){
     }
     $this->usrID = $rwUser['usrID'];
 
+    $this->arrUsrData = array_merge($this->arrUsrData, $rwUser);
+
+    $this->getUserRoles();
+
     // checking script permissions
     $script_name = ltrim(preg_replace("/^(\/[^\/]+)(\/.*)$/", "\\2", ($this->conf['context']
             ? $this->conf['context']
@@ -579,12 +626,9 @@ function checkPermissions( ){
             , pagTitleLocal
             , pagFile
             , pgrFlagRead, pgrFlagCreate, pgrFlagUpdate, pgrFlagDelete, pgrFlagWrite
-            , rolID
         FROM stbl_page PAG
            INNER JOIN stbl_page_role PGR ON PAG.pagID=PGR.pgrPageID
-           INNER JOIN stbl_role ROL ON PGR.pgrRoleID=ROL.rolID
-           INNER JOIN stbl_role_user RLU ON ROL.rolID=RLU.rluRoleID
-           WHERE PAG.pagFile IN (".implode(',', $aScriptName).") AND (RLU.rluUserID=".$oSQL->e($this->usrID)." AND DATEDIFF(NOW(), rluInsertDate)>=0)
+           WHERE PAG.pagFile IN (".implode(',', $aScriptName).") AND pgrRoleID IN ('".implode("','", $this->arrUsrData['roleIDs'])."')
         UNION 
         SELECT 
              pagID
@@ -592,7 +636,6 @@ function checkPermissions( ){
             , pagTitleLocal
             , pagFile
             , pgrFlagRead, pgrFlagCreate, pgrFlagUpdate, pgrFlagDelete, pgrFlagWrite
-            , rolID
         FROM stbl_page PAG
            INNER JOIN stbl_page_role PGR ON PAG.pagID=PGR.pgrPageID
            INNER JOIN stbl_role ROL ON PGR.pgrRoleID=ROL.rolID
@@ -611,30 +654,13 @@ function checkPermissions( ){
         $this->usrID), 403);
     } 
     
-    
-    $sqlRoles = "SELECT rolID, rolTitle$this->local
-       FROM stbl_role ROL
-       LEFT OUTER JOIN stbl_role_user RLU ON RLU.rluRoleID=ROL.rolID
-       WHERE (RLU.rluUserID = '{$this->usrID}' AND DATEDIFF(NOW(), rluInsertDate)>=0)
-          OR rolID='Everyone'";
-    $rsRoles = $oSQL->do_query($sqlRoles);
-    $arrRoles = Array();
-    $arrRoleIDs = Array();
-    while ($rwRol = $oSQL->fetch_array($rsRoles)){
-        $arrRoles[] = $rwRol["rolTitle$this->local"];
-        $arrRoleIDs[] = $rwRol["rolID"];
-    }
-    $oSQL->free_result($rsRoles); 
-
-    $this->arrUsrData = array_merge($rwUser, $rwPerms);
+    $this->arrUsrData = array_merge($this->arrUsrData, $rwPerms);
 
     $clear_uri = preg_replace('/^'.preg_quote(dirname($_SERVER['PHP_SELF']), '/').'/', '', $_SERVER['REQUEST_URI']);
     if($rwPage = $oSQL->f($oSQL->q("SELECT * FROM stbl_page WHERE pagFile=".$oSQL->e($clear_uri))) ) {
         $this->arrUsrData = array_merge( $this->arrUsrData, $rwPage);  
     }
 
-    $this->arrUsrData["roles"] = $arrRoles;
-    $this->arrUsrData["roleIDs"] = $arrRoleIDs;
     $_SESSION["last_login_time"] = Date("Y-m-d H:i:s");
     
     $this->usrID = $this->arrUsrData["usrID"];
@@ -724,9 +750,10 @@ public function menu($target = null){
                 INNER JOIN stbl_page PG3 ON PG3.pagIdxLeft BETWEEN PG1.pagIdxLeft AND PG1.pagIdxRight AND PG3.pagFlagShowInMenu=1
                 INNER JOIN stbl_page_role PGR ON PG1.pagID = PGR.pgrPageID
                 INNER JOIN stbl_role ROL ON PGR.pgrRoleID=ROL.rolID
-                LEFT JOIN stbl_role_user RLU ON PGR.pgrRoleID=RLU.rluRoleID
+                #LEFT JOIN stbl_role_user RLU ON PGR.pgrRoleID=RLU.rluRoleID
         WHERE 
-         (RLU.rluUserID='{$this->usrID}' OR ROL.rolFlagDefault=1)
+         #(RLU.rluUserID='{$this->usrID}' OR ROL.rolFlagDefault=1)
+         (ROL.rolID IN ('".implode("','", $this->arrUsrData['roleIDs'])."') OR ROL.rolFlagDefault=1)
          AND PG1.pagFlagShowInMenu=1
         GROUP BY 
                 PG1.pagID
