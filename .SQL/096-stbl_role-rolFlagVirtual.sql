@@ -1,0 +1,1 @@
+ALTER TABLE stbl_role ADD COLUMN rolFlagVirtual tinyint(4) NOT NULL DEFAULT '0' AFTER rolFlagDefault;
