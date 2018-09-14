@@ -1191,6 +1191,8 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text){
     
     var strType = this.conf.fields[strFieldName].type;
     var strTitle = this.conf.fields[strFieldName].title;
+
+    var oGrid = this;
     
     if (val==undefined){
         var inpSel = 'input[name="'+strFieldName+'[]"]',
@@ -1244,11 +1246,23 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text){
                     } else 
                         oInp.next().removeAttr("checked");
                     return;
+                case 'combobox':
+                    var oSelectSelector = '#select-'+(oInp.attr('name').replace(/(\[\S+\]){0,1}\[\]/, ''))
+                        , oSelect = oGrid.tbodyTemplate.find(oSelectSelector)[0]
+                        , options = oSelect.options;
+
+                    for(var qq=0;qq<options.length;qq++)
+                        if(options[qq].value==strValue){
+                            text = options[qq].text
+                            break;
+                        }
+                            
                 default:
                     if (oInp.next()[0].tagName=="INPUT")
                         oInp.next().val((text!=undefined ? text : strValue));
                     else 
                         oInp.next().html((text!=undefined ? text : strValue));
+                    break;
             }
         }
         this.recalcTotals(strFieldName);
