@@ -231,7 +231,7 @@ if (isset($DataAction)){
         //*/
         for ($i=0;$i<count($sql);$i++) {
               $oSQL->do_query($sql[$i]);
-              if (preg_match("/^INSERT INTO stbl_page\(/", $sql[$i]))
+              if (preg_match("/^INSERT INTO stbl_page\s+/", $sql[$i]))
                   $pagID = $oSQL->insert_id();              
         }
        
