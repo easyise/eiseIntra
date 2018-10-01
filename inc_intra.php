@@ -12,6 +12,8 @@
  *
  */
 
+GLOBAL $eiseIntraKey;
+
 include "inc_config.php";
 if (!class_exists('eiseSQL')) 
     include "inc_mysqli.php";
@@ -72,7 +74,10 @@ public $arrUsrData = array();
  */
 public $usrID = null;
 
-public $conf = array('versionIntra'=>'2.1.054');
+/**
+ * Configuration array. See description at [eiseIntra::$defaultConf](#eiseintra-deafultconf)
+ */
+public $conf = array();
 
 private $arrHTML5AllowedInputTypes = 
     Array("color"
@@ -82,9 +87,55 @@ private $arrHTML5AllowedInputTypes =
 private $arrClassInputTypes = 
     Array("ajax_dropdown", "date", "datetime", "datetime-local", "time");
 
-const cachePreventorVar = 'nc';
-const dataActionKey = 'DataAction';
-const dataReadKey = 'DataAction';
+/**
+ * Default configuration. Exact configuration parameters list is:
+ * 
+ * - 'dateFormat' - date format, default is "d.m.Y" 
+ * - 'prgDate' - regular expression for input validation/converion
+ * - 'prgDateReplaceTo' - replace parameter for preg_replace() for dates, to convert dates from local format to ISO
+ * - 'timeFormat' - time format, default is "H:i" (24-hours time), both are according to PHP date() format function
+ * - 'prgTime' - regular expression for input validation
+ * - 'decimalPlaces' - default decimal places, "2" by default
+ * - 'decimalSeparator' - decimal seprator, default is "."
+ * - 'thousandsSeparator' - default is ","
+ * - 'language' - local language, default is 'rus'
+ * - 'logofftimeout' - log off timeout in minutes, default is 360 //6 hours
+ * - 'addEiseIntraValueClass' - setting for for display true
+ * - 'keyboards' - available keyboard variations (default are 'EN,RU')
+ * - 'system' - eiseIntra path, last slash stripped (default is `ltrim(dirname($_SERVER['PHP_SELF']), '/')`
+ * - 'dataActionKey' - 'DataAction', GET or POST key for data update or retrieval
+ * - 'dataReadKey' - 'DataAction', GET or POST key for data update or retrieval
+ * - 'flagSetGlobalCookieOnRedirect' - see [eiseIntra::getCookiePath()](#eiseintra-getcookiepath) function for details, default is false
+ * - 'cachePreventorVar' - Query string parameter for cache prevention in link elements with CSS and JSS. E.g. 
+ * - 'cookiePath' -  `(isset($eiseIntraCookiePath) ? $eiseIntraCookiePath : '/')`
+ * - 'cookieExpire' - see [eiseIntra::getCookiePath()](#eiseintra-getcookiepath) function for details
+ * - 'UserMessageCookieName' - for cookie used to store user messages, default is 'eiMsg'
+ * - 'defaultPage' - the page that user see right after authentication. 
+ *
+ * @category Initialization
+ */
+public static $defaultConf = array(
+        'versionIntra'=>'2.1.092' 
+        , 'dateFormat' => "d.m.Y" // 
+        , 'timeFormat' => "H:i" // 
+        , 'decimalPlaces' => "2"
+        , 'decimalSeparator' => "."
+        , 'thousandsSeparator' => ","
+        , 'language' => 'rus'
+        , 'logofftimeout' => 360 //6 hours
+        , 'addEiseIntraValueClass' => true
+        , 'keyboards' => 'EN,RU'
+        , 'dataActionKey' => 'DataAction'
+        , 'dataReadKey' => 'DataAction'
+        , 'cachePreventorVar' => 'nc'
+        , 'system' => 'nc'
+        , 'cookiePath' => 'nc'
+        , 'cookieExpire' => 'nc'
+//       , 'flagSetGlobalCookieOnRedirect' = false
+        , 'selItemMenu' => null
+        , 'selItemTopLevelMenu' => null
+        , 'defaultPage' => 'about.php'
+    );
 
 static $arrKeyboard = array(
         'EN' =>   'qwertyuiop[]asdfghjkl;\'\\zxcvbnm,./QWERTYUIOP{}ASDFGHJKL:"|ZXCVBNM<>?'
@@ -98,91 +149,73 @@ static $arrKeyboard = array(
  * @category Initialization
  * 
  * @param eiseSQL $oSQL - MySQL connection object.
- * @param array $conf - associative array with configuration options. Defaults are:  
- * - 'dateFormat' - date format, default is "d.m.Y" 
- * - 'timeFormat' - time format, default is "H:i" (24-hours time), both are according to PHP date() format function
- * - 'decimalPlaces' - default decimal places, "2" by default
- * - 'decimalSeparator' - decimal seprator, default is "."
- * - 'thousandsSeparator' - default is ","
- * - 'language' - local language, default is 'rus'
- * - 'logofftimeout' - log off timeout in minutes, default is 360 //6 hours
- * - 'addEiseIntraValueClass' - setting for for display true
- * - 'keyboards' - available keyboard variations (default are 'EN,RU')
- * - 'system' - eiseIntra path, last slash stripped (default is `ltrim(dirname($_SERVER['PHP_SELF']), '/')`
- * - 'dataActionKey' - 'DataAction', GET or POST key for data update or retrieval
- * - 'dataReadKey' - 'DataAction', GET or POST key for data update or retrieval
- * - 'flagSetGlobalCookieOnRedirect' - see [eiseIntra::getCookiePath()](#eiseintra-getcookiepath) function for details, default is false
- * - 'cookiePath' -  `(isset($eiseIntraCookiePath) ? $eiseIntraCookiePath : '/')`
- * - 'cookieExpire' - see [eiseIntra::getCookiePath()](#eiseintra-getcookiepath) function for details
- * - 'UserMessageCookieName' - for cookie used to store user messages, default is 'eiMsg'
+ * @param array $conf - associative array with configuration options. Defaults are set at [eiseIntra::$defaultConf](#eiseintra-deafultconf)
  */
 function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory anymore
 
     GLOBAL $eiseIntraCookiePath
         , $eiseIntraCookieExpire
         , $eiseIntraUserMessageCookieName
-        , $localLanguage;
+        , $localLanguage
+        , $flagNoAuth;
 
-    $this->conf = array_merge($this->conf, 
-        Array(                    //defaults for intra
-            'dateFormat' => "d.m.Y" // 
-            , 'timeFormat' => "H:i" // 
-            , 'decimalPlaces' => "2"
-            , 'decimalSeparator' => "."
-            , 'thousandsSeparator' => ","
-            , 'language' => 'rus'
-            , 'logofftimeout' => 360 //6 hours
-            , 'addEiseIntraValueClass' => true
-            , 'keyboards' => 'EN,RU'
-            , 'system' => ltrim(dirname($_SERVER['PHP_SELF']), '/')
-            , 'dataActionKey' => self::dataActionKey
-            , 'dataReadKey' => self::dataReadKey
-     //       , 'flagSetGlobalCookieOnRedirect' = false
-            , 'cookiePath' => (isset($eiseIntraCookiePath) ? $eiseIntraCookiePath : '/')
-            , 'cookieExpire' => (isset($eiseIntraCookieExpire) ? $eiseIntraCookieExpire : null)
-            , 'UserMessageCookieName' => ($eiseIntraUserMessageCookieName ? $eiseIntraUserMessageCookieName: 'eiMsg')
-            , 'selItemMenu' => null
-            , 'selItemTopLevelMenu' => null
-        )
-        , $conf
-    );
-        
-    
-    $arrFind = Array();
-    $arrReplace = Array();
-    $arrFind[] = '.'; $arrReplace[]='\\.';          
-    $arrFind[] = '/'; $arrReplace[]='\\/';          
-    $arrFind[] = 'd'; $arrReplace[]='([0-9]{1,2})'; 
-    $arrFind[] = 'm'; $arrReplace[]='([0-9]{1,2})';
-    $arrFind[] = 'Y'; $arrReplace[]='([0-9]{4})';
-    $arrFind[] = 'y'; $arrReplace[]='([0-9]{1,2})';
-    $this->conf['prgDate'] = str_replace($arrFind, $arrReplace, $this->conf['dateFormat']);
-    $dfm  = preg_replace('/[^a-z]/i','', $this->conf['dateFormat']);
-    $this->conf['prgDateReplaceTo'] = '\\'.(strpos($dfm, 'y')===false ? strpos($dfm, 'Y')+1 : strpos($dfm, 'y')+1).'-\\'.(strpos($dfm, 'm')+1).'-\\'.(strpos($dfm, 'd')+1);
-    
-    $arrFind = Array();
-    $arrReplace = Array();            
-    $arrFind[] = "."; $arrReplace[]="\\.";
-    $arrFind[] = ":"; $arrReplace[]="\\:";
-    $arrFind[] = "/"; $arrReplace[]="\\/";
-    $arrFind[] = "H"; $arrReplace[]="([0-9]{1,2})";
-    $arrFind[] = "h"; $arrReplace[]="([0-9]{1,2})";
-    $arrFind[] = "i"; $arrReplace[]="([0-9]{1,2})";
-    $arrFind[] = "s"; $arrReplace[]="([0-9]{1,2})";
-    $this->conf["prgTime"] = str_replace($arrFind, $arrReplace, $this->conf["timeFormat"]);
-    
-    $this->oSQL = $oSQL;
+    $this->conf = self::$defaultConf;
+
+    $this->conf['system'] = ltrim(dirname($_SERVER['PHP_SELF']), '/');
+    $this->conf['cookiePath'] = (isset($eiseIntraCookiePath) ? $eiseIntraCookiePath : '/');
+    $this->conf['cookieExpire'] = (isset($eiseIntraCookieExpire) ? $eiseIntraCookieExpire : null);
+    $this->conf['UserMessageCookieName'] = ($eiseIntraUserMessageCookieName ? $eiseIntraUserMessageCookieName: 'eiMsg');
+
+    $this->conf = array_merge($this->conf, $conf);
+
+    parent::__construct($oSQL, $this->conf);
 
     self::buildLess();
 
     $this->requireComponent('base');
 
+    if (!$flagNoAuth || $this->conf['context']) {
+
+        try {
+
+            $this->checkPermissions();
+
+        } catch (eiseException $e) {
+            
+            if(!$this->conf['context']){
+
+                switch($e->getCode()){
+                    case 401:
+                        header ("Location: login.php?error=".$e->getMessage());
+                        die();
+                    default:
+                        $backref = $this->backref(false);
+                        if($backref){
+                            $this->redirect('ERROR: '.$e->getMessage(), $backref);
+                        } else
+                            die($e->getMessage());
+                }
+            
+            } else {
+                throw $e;
+            }
+        }
+
+    }
+
+    $this->readSettings();
+
+    $this->checkLanguage();
+    if ($this->local){
+        @include "common/lang.php";
+        $this->lang = ($lang ? $lang : array());
+    }
+
 }
 
 /**
  * Function decodes authstring login:password
- * using current encoding algorithm 
- * (now base64).
+ * using decrypt() method 
  *
  * @category Authentication
  * 
@@ -190,9 +223,9 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
  *
  * @return array `[string $login, string $password]`
  */
-function decodeAuthString($authstring){
+function decodeAuthString($authstring, $flagBase64 = false){
 
-    $auth_str = base64_decode($authstring);
+    $auth_str = ($flagBase64 ? base64_decode($authstring) : $this->decrypt($authstring));
         
     preg_match("/^([^\:]+)\:([\S ]+)$/i", $auth_str, $arrMatches);
 
@@ -201,8 +234,7 @@ function decodeAuthString($authstring){
 
 /**
  * Function encodes authstring login:password
- * using current encoding algorithm 
- * (now base64).
+ * using encrypt() method.
  *
  * @category Authentication
  * 
@@ -213,9 +245,97 @@ function decodeAuthString($authstring){
  */
 function encodeAuthString($login, $password){
 
-    return base64_encode($login.':'.$password);
+    return $this->encrypt($login.':'.$password);
 
 }
+
+/**
+ * This function returns combination of global variable $eiseIntraKey  
+ * stored at eiseIntra's inc_config.php and server variable EISINTRA_KEY that can be set in Nginx or Apache config.
+ * Key length is set to 128-bit (32 bytes/chars).
+ * 
+ * If concatentated key length is less that 32 bytes, all remaining places are padded with zeros (0).
+ *
+ * When both keys are not set, function returns false and eiseIntra::encrypt() and eiseIntra::decrypt() are forced to work only as base64 encoder/decoder.
+ *
+ * @return string Key or false, if both key parts are empty.
+ *
+ */
+function getEncryptionKey(){
+
+    GLOBAL $eiseIntraKey;
+
+    $keylen = 32;
+    $key = substr($eiseIntraKey.$_SERVER['EISEINTRA_KEY'], 0, $keylen);
+    $ll = $keylen - strlen($key);
+    if(!$key)
+        return false;
+    else 
+        return ($ll>0
+            ? str_pad($key, $keylen, '0')
+            : $key
+            );
+}
+
+/**
+ * Function encrypts a string with symmetric encryption 
+ * using the key obtained from getEncryptionKey() method and current encoding algorithm 
+ * (now RIJNDAEL_256 and mcrypt). In case mcrypt is missed in PHP or encryption key is empty, it encodes string with base64. 
+ *
+ * @category Authentication
+ * 
+ * @param string $encrypt String to be encrypted.
+ *
+ * @return string Encrypted string.
+ */
+function encrypt($encrypt) {
+    $key = $this->getEncryptionKey();
+
+    if(!$key ||  !is_callable('mcrypt_encrypt')){
+        return base64_encode($encrypt);
+    }
+
+    $encrypt = serialize($encrypt);
+    $iv = mcrypt_create_iv(mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_CBC), MCRYPT_DEV_URANDOM);
+    $key = pack('H*', $key);
+    $mac = hash_hmac('sha256', $encrypt, substr(bin2hex($key), -32));
+    $passcrypt = mcrypt_encrypt(MCRYPT_RIJNDAEL_256, $key, $encrypt.$mac, MCRYPT_MODE_CBC, $iv);
+    $encoded = base64_encode($passcrypt).'|'.base64_encode($iv);
+    return $encoded;
+}
+ 
+/**
+ * Function decrypts a string with symmetric decryption 
+ * using the key obtained from getEncryptionKey() method and current encoding algorithm 
+ * (now RIJNDAEL_256 and mcrypt). In case mcrypt is missed in PHP, it encodes string with base64. 
+ *
+ * @category Authentication
+ * 
+ * @param string $encrypt String to be encrypted.
+ *
+ * @return string Encrypted string.
+ */
+function decrypt($decrypt) {
+    $key = $this->getEncryptionKey();
+
+    if(!$key ||  !is_callable('mcrypt_decrypt')){
+        return base64_decode($decrypt);
+    }
+
+    $decrypt = explode('|', $decrypt.'|');
+    $decoded = base64_decode($decrypt[0]);
+    $iv = base64_decode($decrypt[1]);
+    if(strlen($iv)!==mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_CBC)){ return false; }
+    $key = pack('H*', $key);
+    $decrypted = trim(mcrypt_decrypt(MCRYPT_RIJNDAEL_256, $key, $decoded, MCRYPT_MODE_CBC, $iv));
+    $mac = substr($decrypted, -64);
+    $decrypted = substr($decrypted, 0, -64);
+    $calcmac = hash_hmac('sha256', $decrypted, substr(bin2hex($key), -32));
+    if($calcmac!==$mac){ return false; }
+    $decrypted = unserialize($decrypted);
+    return $decrypted;
+}
+
 
 /**
  * Function that checks authentication with credentials database using selected $method.
@@ -241,7 +361,7 @@ function encodeAuthString($login, $password){
  * @return boolean authentication result: true on success, otherwise false.
  */
 function Authenticate($login, $password, $method="LDAP", $options=array()){
-    
+
     $oSQL = $this->oSQL;
     
     switch($method) {
@@ -302,17 +422,17 @@ function Authenticate($login, $password, $method="LDAP", $options=array()){
         break;
     } 
 
-    if($method=="mysql"){
-        $_SESSION["usrID"] = $login;
-        $_SESSION["DBHOST"] = $this->oSQL->dbhost;
-        $_SESSION["DBPASS"] = $this->oSQL->dbpass;
-    }
-
     if($options['flagNoSession'])
         return true;
 
     $this->session_initialize();
     session_regenerate_id();
+
+    if($method=="mysql"){
+        $_SESSION["usrID"] = $login;
+        $_SESSION["DBHOST"] = $this->oSQL->dbhost;
+        $_SESSION["DBPASS"] = $this->oSQL->dbpass;
+    }
 
     $_SESSION["last_login_time"] = Date("Y-m-d H:i:s");
     $_SESSION["usrID"] = $login;
@@ -371,7 +491,7 @@ function logout(){
  * Permissions are calulated in the following way:
  * - if at least one user's role is permitted to do something, it means that this user is permitted to to it.
  * 
- * If user has no permissions to 'Read' the script, function throws header `Location: login.php` and stops the script.
+ * If user has no permissions to 'Read' the script, function throws an exception.
  * When 'Read' permissions are confirmed for the user, function updates [$intra->arrUsrData property](#eiseintra-arrusrdata). Click on [this link](#eiseintra-arrusrdata) to see full description.
  * 
  * NOTE: Role membership information is collected from stbl_role_user table basing on rluInsertDate timestamp, 
@@ -385,42 +505,68 @@ function logout(){
  *
  * @return array `$intra->arrUsrData`
  */
-function checkPermissions( $script_name = null ){
+function checkPermissions( ){
    
-   $oSQL = $this->oSQL;
+    $oSQL = $this->oSQL;
    
-   GLOBAL $strSubTitle;
+    if( !$this->conf['context'] ){
+
+        $this->session_initialize();
+        if ( !$this->usrID ){
+
+           SetCookie("PageNoAuth", $_SERVER["PHP_SELF"].($_SERVER["QUERY_STRING"]!="" ? ("?".$_SERVER["QUERY_STRING"]) : ""));
+           throw new eiseException('', 401);
+           
+        }
+
+        GLOBAL $strSubTitle; // backward-compatibility
+        // checking user timeout
+        if ($_SESSION["last_login_time"]!="" && $strSubTitle != "DEVELOPMENT" ){
+           if (time() - strtotime($_SESSION["last_login_time"])>60*$this->conf['logofftimeout']) {
+               $tt = Date("Y-m-d H:i:s", mktime())." - ".$_SESSION["last_login_time"];
+               throw new eiseException($this->translate("Session timeout ($tt). Please re-login."), 401);
+           }
+        }
+    } else {
+        $this->usrID = $this->conf['usrID'];
+    }
+
+    if ( !$this->usrID ){
+        throw new eiseException('User ID is not specified', 401);           
+    }
    
-   // checking user timeout
-   if ($_SESSION["last_login_time"]!="" && $strSubTitle != "DEVELOPMENT" ){
-      if (time() - strtotime($_SESSION["last_login_time"])>60*$this->conf['logofftimeout']) {
-          $tt = Date("Y-m-d H:i:s", mktime())." - ".$_SESSION["last_login_time"];
-          header("HTTP/1.0 403 Access denied");
-          header ("Location: login.php?error=".urlencode($this->translate("Session timeout ($tt). Please re-login.")));
-          die();
-      }
-   }
+
+    if( !$oSQL ){
+        return array();
+    }
    
    //checking is user blocked or not?
-   $rsUser = $oSQL->do_query("SELECT * FROM stbl_user WHERE usrID='".$_SESSION["usrID"]."'");
+   $rsUser = $oSQL->do_query("SELECT * FROM stbl_user WHERE usrID=".$oSQL->e($this->usrID));
    $rwUser = $oSQL->fetch_array($rsUser);
    
-   if (!$rwUser["usrID"]){
-        header ("Location: login.php?error=".urlencode($this->translate("Your User ID doesnt exist in master database. Contact system administrator.")));
-        die();
-   }
+    if (!$rwUser["usrID"]){
+        throw new eiseException($this->translate("Your User ID %s doesnt exist in master database. Contact system administrator.", $this->usrID), 401 );
+    }
    
-   if ($rwUser["usrFlagDeleted"]){
-        header ("Location: login.php?error=".urlencode($this->translate("Your User ID is blocked.")));
-        die();
-   }
-   
-   // checking script permissions
-   $script_name = preg_replace("/^(\/[^\/]+)/", "", ($script_name ? $script_name : $_SERVER["SCRIPT_NAME"]));
-   $sqlCheckUser = "SELECT
+    if ($rwUser["usrFlagDeleted"]){
+        throw new eiseException( $this->translate("Your User ID %s is blocked.", $this->usrID), 401 );
+    }
+    $this->usrID = $rwUser['usrID'];
+
+    // checking script permissions
+    $script_name = ltrim(preg_replace("/^(\/[^\/]+)(\/.*)$/", "\\2", ($this->conf['context']
+            ? $this->conf['context']
+            : $_SERVER["SCRIPT_NAME"]
+        )
+    ), '/');
+
+    $aScriptName = array($oSQL->e($script_name), $oSQL->e('/'.$script_name));
+
+    $sqlCheckUser = "SELECT
              pagID
             , pagTitle
             , pagTitleLocal
+            , pagFile
             , MAX(pgrFlagRead) as FlagRead
             , MAX(pgrFlagCreate) as FlagCreate
             , MAX(pgrFlagUpdate) as FlagUpdate
@@ -431,43 +577,45 @@ function checkPermissions( $script_name = null ){
              pagID
             , pagTitle
             , pagTitleLocal
+            , pagFile
             , pgrFlagRead, pgrFlagCreate, pgrFlagUpdate, pgrFlagDelete, pgrFlagWrite
             , rolID
         FROM stbl_page PAG
            INNER JOIN stbl_page_role PGR ON PAG.pagID=PGR.pgrPageID
            INNER JOIN stbl_role ROL ON PGR.pgrRoleID=ROL.rolID
            INNER JOIN stbl_role_user RLU ON ROL.rolID=RLU.rluRoleID
-           WHERE PAG.pagFile='$script_name' AND (RLU.rluUserID=".$oSQL->e($_SESSION["usrID"])." AND DATEDIFF(NOW(), rluInsertDate)>=0)
+           WHERE PAG.pagFile IN (".implode(',', $aScriptName).") AND (RLU.rluUserID=".$oSQL->e($this->usrID)." AND DATEDIFF(NOW(), rluInsertDate)>=0)
         UNION 
         SELECT 
              pagID
             , pagTitle
             , pagTitleLocal
+            , pagFile
             , pgrFlagRead, pgrFlagCreate, pgrFlagUpdate, pgrFlagDelete, pgrFlagWrite
             , rolID
         FROM stbl_page PAG
            INNER JOIN stbl_page_role PGR ON PAG.pagID=PGR.pgrPageID
            INNER JOIN stbl_role ROL ON PGR.pgrRoleID=ROL.rolID
-           WHERE pagFile='$script_name' AND rolFlagDefault=1
+           WHERE PAG.pagFile IN (".implode(',', $aScriptName).") AND rolFlagDefault=1
            )
         AS t1
         GROUP BY pagID, pagTitle";
-       //echo $sqlCheckUser;
+    
     $rsChkPerms = $oSQL->do_query($sqlCheckUser);
     $rwPerms = $oSQL->fetch_array($rsChkPerms);
         
     if (!$rwPerms["FlagRead"]){
-        $errortext = "".$_SERVER["PHP_SELF"].": ".$this->translate("access denied");
-        $this->redirect("ERROR: ".$errortext
-            , (($_SERVER["HTTP_REFERER"]!="" && !strstr($_SERVER["HTTP_REFERER"], "login.php")) ? $_SERVER["HTTP_REFERER"] : "login.php?error=".urlencode($errortext)));
-        die();
+        throw new eiseException($this->translate("%s access denied to user %s", ($this->conf['context'] 
+                ? $this->conf['context'] 
+                : $_SERVER['PHP_SELF']),
+        $this->usrID), 403);
     } 
     
     
     $sqlRoles = "SELECT rolID, rolTitle$this->local
        FROM stbl_role ROL
        LEFT OUTER JOIN stbl_role_user RLU ON RLU.rluRoleID=ROL.rolID
-       WHERE (RLU.rluUserID = '{$_SESSION["usrID"]}' AND DATEDIFF(NOW(), rluInsertDate)>=0)
+       WHERE (RLU.rluUserID = '{$this->usrID}' AND DATEDIFF(NOW(), rluInsertDate)>=0)
           OR rolID='Everyone'";
     $rsRoles = $oSQL->do_query($sqlRoles);
     $arrRoles = Array();
@@ -491,6 +639,7 @@ function checkPermissions( $script_name = null ){
     
     $this->usrID = $this->arrUsrData["usrID"];
     $this->conf['usrID'] = $this->arrUsrData["usrID"];
+
     return $this->arrUsrData;
      
 }
@@ -981,7 +1130,7 @@ function backref($urlIfNoReferer){
         strpos($_SERVER["HTTP_REFERER"], 'index.php?pane=')===false ) //and not from fullEdit
     {
         SetCookie("referer", $_SERVER["HTTP_REFERER"], 0, $_SERVER["PHP_SELF"]);
-        $backref = $_SERVER["HTTP_REFERER"];
+        $backref = ($_SERVER["HTTP_REFERER"] ? $_SERVER["HTTP_REFERER"] : $urlIfNoReferer);
     } else {
         $backref = ($_COOKIE["referer"] ? $_COOKIE["referer"] : $urlIfNoReferer);
     }
@@ -996,7 +1145,7 @@ function backref($urlIfNoReferer){
  * 
  * @param string $status - response status. 'ok' should be set in case of successfull execution
  * @param string $message - status message to be displayed to the user
- * @param varian $data - data to be transmitted
+ * @param variant $data - data to be transmitted
  *
  */
 function json($status, $message, $data=null){
@@ -1011,13 +1160,69 @@ function json($status, $message, $data=null){
 
 }
 
+
+/**
+ * Function outputs binary stuff to the user.
+ *
+ * @category Data output
+ * 
+ * @param string $name - file name in UTF-8
+ * @param string $type - MIME-type of the content
+ * @param variant $pathOrData - if realpath() returns true for this variable, system will read the file. Otherwise it outputs the data as is.
+ *
+ */
+function file($name, $type, $pathOrData){
+
+    if(!$pathOrData)
+        throw new Exception( "Output file is empty" );
+
+    $len = strlen($pathOrData);
+
+    if( $len>4096 ){
+        $data = $pathOrData;
+    } else {
+        if(realpath($pathOrData)){
+            $data = null;
+            $path = $pathOrData;
+            $len = filesize($pathOrData);
+        } else {
+            $data = $pathOrData;
+        }
+    }
+
+    header("Content-Type: ".$type);
+    if(headers_sent())
+        $this->Error('Some data has already been output, can\'t send the file');
+    header("Content-Length: ".$len);
+    header("Content-Disposition: inline; filename*=UTF-8''".rawurlencode($name) );
+    header('Cache-Control: private, max-age=0, must-revalidate');
+    header('Pragma: public');
+    ini_set('zlib.output_compression','0');
+    
+    if($data){
+        echo $data;
+    } else {
+        if($path && $len){
+            $fh = fopen($pathOrData, "rb");
+            fpassthru($fh);
+            fclose($fh);
+        } else {
+            throw new Exception("File length is {$len} for the path {$path}", 1);
+        }
+    }
+    
+    die();
+
+}
+
 /**
  * This function outputs necessary stuff to start batch data operation script.
+ * WARNING: this function closes existing session using session_write_close(), so avoid changing $_SESSION variables in your batch processing script.
  *
  * @category Output
  * @category Batch run
  */
-function batchStart(){
+function batchStart($conf = array()){
     
     header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
     header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
@@ -1025,11 +1230,16 @@ function batchStart(){
 
     $this->flagBatch = true;
 
+    if($conf['htmlspecialchars'])
+        $this->conf['batch_htmlspecialchars'] = true;
+
     ob_start();
 
     for ($i = 0; $i < ob_get_level(); $i++) { ob_end_flush(); }
     ob_implicit_flush(1);
     echo str_repeat(" ", 256)."<pre>"; ob_flush();
+
+    session_write_close();
 
     set_time_limit(1200); // 20 minutes
 }
@@ -1042,14 +1252,14 @@ function batchStart(){
  */
 function batchEcho($string){
     $args = func_get_args();
-    echo htmlspecialchars( 
-        call_user_func_array( 
+    $to_echo  = call_user_func_array( 
             ($this->conf['auto_translate'] 
-                ? array($this, 'transate')
+                ? array($this, 'translate')
                 : 'sprintf'
                 )
-            , $args) 
-        );
+            , $args) ;
+        
+    echo ( $this->conf['batch_htmlspecialchars'] ? htmlspecialchars( $to_echo ) : $to_echo );
     ob_flush();
     flush();
 }
@@ -1179,6 +1389,9 @@ function addTranslationKey($key){
  */
 function readSettings(){
     
+    if(!$this->oSQL)
+        return;
+
     $oSQL = $this->oSQL;
     
     /* ?????????????? ?????????? ?? tbl_setup ? ?????? ============================ BEGIN */
@@ -1190,6 +1403,9 @@ function readSettings(){
     $rsSetup = $oSQL->do_query($sqlSetup);
 
     while ($rwSetup = $oSQL->fetch_array($rsSetup)){
+
+        if($rwSetup['stpFlagOnDemand'])
+            continue;
 
         switch ($rwSetup["stpCharType"]){
             case "varchar":
@@ -1222,6 +1438,65 @@ function readSettings(){
     $this->conf = array_merge($this->conf, $arrSetup);
     
     return $arrSetup;
+}
+
+/**
+ * This function is to read or write system variable values stored in stbl_setup.
+ * 
+ * @param string $stpVarName - system setup variable name, e.g. 'docLifeTime'
+ * @param string $stpCharValue - value for this system setup variable
+ * 
+ * @return variant if param $stpVarValue is omitted it returns current setting value, otherwise it returns null in case of successful value set or throws an exception if settings variable doesn't exist in the system 
+ */
+function setting($stpVarName, $stpCharValue = null, $flagLocal = false){
+
+    $rwSetup = $this->oSQL->f("SELECT * FROM stbl_setup WHERE stpVarName=".$this->oSQL->e($stpVarName));
+
+    $Local = ($flagLocal ? 'Local' : '');
+
+    if(!$rwSetup)
+        throw new Exception("Setup variable {$stpVarName} does not exist in the system");
+
+    // read
+    if(!$stpCharValue){
+        switch ($rwSetup['stpCharType']) {
+            case 'json':
+                return json_decode($rwSetup['stpCharValue'.$Local], true);
+                break;
+            default:
+                return $rwSetup['stpCharValue'.$Local];
+                break;
+        }
+    } else 
+    // write
+    {
+        switch ($rwSetup['stpCharType']) {
+            case 'json':
+                $val = (is_string($stpCharValue) ? $stpCharValue : json_encode($stpCharValue) );
+                break;
+            case 'date':
+                $val = $this->oSQL->unq($this->datePHP2SQL($stpCharValue));
+                break;
+            case 'datetime':
+                $val = $this->oSQL->unq($this->datetimePHP2SQL($stpCharValue));
+                break;
+            case "integer":
+            case "real":
+            case "numeric":
+            case "number":
+            case "money":
+                $val = $this->oSQL->unq($this->decPHP2SQL($stpCharValue));
+                break;
+            default: 
+                $val = $stpCharValue;
+                break;
+        }
+
+        $this->oSQL->q("UPDATE stbl_setup SET stpCharValue{$Local}=".$this->oSQL->e($val).", stpEditBy='{$this->usrID}', stpEditDate=NOW() WHERE stpVarName=".$this->oSQL->e($stpVarName));
+
+    }
+        
+
 }
 
 /**
@@ -1311,11 +1586,16 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
                     if(!$ds){
                         @eval('$ds = '.$conf['source']);
                         if(!$ds){
-                            $aDS = explode('|', $conf['source']);
-                            $ds = $aDS[0];
-                            $conf['source_prefix'] = ($conf['source_prefix'] 
-                                ? $conf['source_prefix']
-                                : $aDS[1]);        
+                            if(!preg_match('/^select\s+/i', $conf['source'])){
+                                $aDS = explode('|', $conf['source']);
+                                $ds = $aDS[0];
+                                $conf['source_prefix'] = ($conf['source_prefix'] 
+                                    ? $conf['source_prefix']
+                                    : $aDS[1]);        
+                            } else {
+                                $ds = $conf['source'];
+                                $flagIsSQL = true;
+                            }
                         }
                     }
                 }
@@ -1325,12 +1605,18 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
                 if (is_array($conf['source'])){
                     $opts = $conf['source'];
                 } else {
-                    $rsCMB = $this->getDataFromCommonViews(null, null, $conf["source"]
-                        , $conf["source_prefix"]
-                        , (! ($this->arrUsrData['FlagWrite'] && (isset($conf['FlagWrite']) ? $conf['FlagWrite'] : 1) ) )
-                        , (string)$conf['extra']
-                        , true
-                        );
+                    try {
+                        if ($flagIsSQL){
+                            $rsCMB = $this->oSQL->do_query($conf['source']);   
+                        } else {
+                            $rsCMB = $this->getDataFromCommonViews(null, null, $conf["source"]
+                                , $conf["source_prefix"]
+                                , (! ($this->arrUsrData['FlagWrite'] && (isset($conf['FlagWrite']) ? $conf['FlagWrite'] : 1) ) )
+                                , (string)$conf['extra']
+                                , true
+                                );
+                        }
+                    } catch (Exception $e) { $html .= 'ERROR: '.$e->getMessage(); return $html; }
                     $opts = Array();
                     while($rwCMB = $oSQL->f($rsCMB))
                         $opts[$rwCMB["optValue"]]=$rwCMB["optText"];
@@ -1443,6 +1729,9 @@ public function form($action, $dataAction, $fields, $method='POST', $conf=array(
         .'>'."\r\n"
         .$this->field(null, $this->conf['dataActionKey'], $dataAction, array('type'=>'hidden'))."\r\n"
         .$fields."\r\n"
+        .($conf['flagAddJavaScript']
+            ? '<script>$(window).load(function(){$("'.($conf['id']!='' ? "#{$conf['id']}" : '.eif-form').'").eiseIntraForm();})</script>'
+            : '')
         .($conf['flagDontClose']
             ? ''
             : '</form>'."\r\n\r\n")
@@ -1616,6 +1905,7 @@ function showButton($name, $value, $arrConfig=array()){
             $strClass = 'eiseIntraDelete'.($strClass!='' ? ' ' : '').$strClass;
         $strRet = '<button'
             .($name!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
+            .' class="'.$strClass.'"'
             .(!$flagWrite ? ' disabled' : '')
             .'>'.htmlspecialchars($value).'</button>';
     }
@@ -1737,7 +2027,7 @@ function showCheckBox($strName, $strValue, $arrConfig=Array()){
 
     $id = ( $arrConfig['id'] ? $arrConfig['id'] : $strName );
 
-    $showValueAttr = preg_match('/\[\]$/', $strName);
+    $showValueAttr = preg_match('/\[\]$/', $strName) || $arrConfig['showValueAttr'];
     
     $strAttrib = $arrConfig["strAttrib"];
     $retVal = "<input name=\"{$strName}\" id=\"{$id}\" type=\"checkbox\"".
@@ -1999,7 +2289,7 @@ function loadCSS(){
  */
 private function getCachePreventor(){
 
-    return self::cachePreventorVar.'='.preg_replace('/\D/', '', $this->conf['versionIntra'].$this->conf['version']);
+    return $intra->conf['cachePreventorVar'].'='.preg_replace('/\D/', '', $this->conf['versionIntra'].$this->conf['version']);
 
 }
 
@@ -2025,7 +2315,7 @@ function dataAction($dataAction, $funcOrObj=null){
 
     $dataAction = (is_array($dataAction) ? $dataAction : array($dataAction));
 
-    if(in_array($newData[self::dataActionKey], $dataAction)
+    if(in_array($newData[$this->conf['dataActionKey']], $dataAction)
         && ($this->arrUsrData['FlagWrite'] || $this->arrUsrData['FlagCreate'] || $this->arrUsrData['FlagUpdate'])
         ){
         
@@ -2040,7 +2330,7 @@ function dataAction($dataAction, $funcOrObj=null){
         } elseif(is_object($funcOrObj)){
 
             $obj = $funcOrObj;
-            $method = $newData[self::dataActionKey];
+            $method = $newData[$this->conf['dataActionKey']];
             $ret = array();
 
             try {
@@ -2089,19 +2379,42 @@ function dataAction($dataAction, $funcOrObj=null){
  * 
  * @return variant value that return user function.
  */
-function dataRead($dataReadValues, $function){
+function dataRead($dataReadValues, $function=null, $arrParam = array()){
     
     $query = $_GET;
 
     $dataReadValues = (is_array($dataReadValues) ? $dataReadValues : array($dataReadValues));
 
-    if(in_array($query[self::dataReadKey], $dataReadValues)
-        && is_callable($function)){
-            $arrParam = func_get_args();
+    if(in_array($query[$this->conf['dataReadKey']], $dataReadValues)){
+        
+        $arrParam = func_get_args();
+        array_shift($arrParam);
+
+        if(!$function){
+            $function = $query[$this->conf['dataReadKey']];
+        } else {
             array_shift($arrParam);
-            array_shift($arrParam);
-            $arrArgs = $arrParam;
+        }
+        $arrArgs = $arrParam;    
+                    
+        if(is_callable($function)){
             return call_user_func_array($function, $arrArgs );
+        } elseif( is_object($function) ){
+
+            $obj = $function;
+            $method = $query[$this->conf['dataReadKey']];
+            $ret = array();
+
+            try {
+
+                return call_user_func_array(array($obj, $method), array_merge(Array($query), $arrParam));
+                
+            } catch (Exception $e) {
+                die($e->getMessage());
+            }
+            
+        }
+            
     }
 
 }
@@ -2138,15 +2451,25 @@ function showDatesPeriod($trnStartDate, $trnEndDate){
 }
 
 function getUserData($usrID){
+
+    if($this->userInfoCache[$usrID]){
+        return $this->userInfoCache[$usrID];
+    }
+
     $oSQL = $this->oSQL;
     $rs = $this->getDataFromCommonViews($usrID, "", "svw_user", "");
     $rw = $oSQL->fetch_array($rs);
     
-    return ($rw["optValue"]!="" 
+    $retVal = ($rw["optValue"]!="" 
         ? ($rw["optText{$this->local}"]==""
             ? $rw["optText"]
             : $rw["optText{$this->local}"])
          : $usrID);
+
+    $this->userInfoCache[$usrID] = $retVal;
+
+    return $retVal;
+
 }
 function getUserData_All($usrID, $strWhatData='all'){
     
@@ -2284,8 +2607,8 @@ static function buildLess(){
         return;
 
     if(!isset($eiseIntraLessToBuild)){
-        //$eiseIntraLessToBuild = array('grid', 'list', 'style');
-        $eiseIntraLessToBuild = array('style');
+        $eiseIntraLessToBuild = array('grid', 'list', 'style');
+        //$eiseIntraLessToBuild = array('style');
     }
     
     require_once eiseIntraLibAbsolutePath.'less.php/Less.php';
@@ -2388,8 +2711,8 @@ static function debug($to_echo){
 
 
 class eiseException extends Exception  {
-function __construct($msg, $level = 0){
-    parent::__construct($msg);
+function __construct($msg, $code = 0){
+    parent::__construct($msg, $code);
 }
 }
 

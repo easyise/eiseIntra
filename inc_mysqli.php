@@ -252,12 +252,12 @@ class eiseSQL extends mysqli{
  *
  * @category Database routines
  *
- * @param variant $mysqli_result - MySQL result object. 
+ * @param variant $result_or_query - MySQL result object or SQL query. 
  *
  * @return array, like MySQL result::fetch_fields()
  */
-    function ff($mysqli_result){ //fetch_ix_array
-        return $this->fetch_fields($mysqli_result);
+    function ff($result_or_query){ //fetch_ix_array
+        return $this->fetch_fields(is_object($result_or_query) ? $result_or_query : $this->q($result_or_query));
     }
 
 /**
@@ -483,6 +483,7 @@ class eiseSQL extends mysqli{
  * - 'keys' - list of keys that consists of associative arrays, as returned by MySQL `'SHOW KEYS FROM ...'`
  * - 'PK' - list of primary key columns
  * - 'PKtype' - one of the following values: 'auto_increment', 'GUID' or 'user_defined'
+ * - 'name' - table name without "tbl_" prefix,
  * - 'prefix' - 3-4 letter column name prefix,
  * - 'table' - table name,
  * - 'columns_index' - associative array of columns with names as keys and names as values. Kept for backward compatibility.
@@ -630,6 +631,7 @@ class eiseSQL extends mysqli{
         $arrTable['PKtype'] = $pkType;
         $arrTable['prefix'] = $strPrefix;
         $arrTable['table'] = $tblName;
+        $arrTable['name'] = preg_replace('/^tbl_/', '', $tblName);
         $arrTable['columns_index'] = $arrColsIX;
         
         $arrTable["PKVars"] = $strPKVars;

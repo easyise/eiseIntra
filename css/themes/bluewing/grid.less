@@ -105,6 +105,26 @@ td.eg-ajax_dropdown input{
     padding: 20px;
     height: 60px;
 }
+.eg-drop-here td {
+    width: 100%;
+    text-align: center;
+    padding: 20px;
+    height: 60px;
+    border: 2px dashed #ff6d10 !important;
+    position: relative;
+    &:after {
+        color: rgba(255, 109, 16, 0.5);
+        content: "+";
+        font-size: 76px;
+        font-weight: 900;
+        left: 0;
+        line-height: 45px;
+        position: absolute;
+        text-align: center;
+        top: 0;
+        width: 100%;
+    }
+}
 .eg-spinner td {
     width: 100%;
     min-height: 60px;
@@ -154,6 +174,7 @@ td.eg-ajax_dropdown input{
 }
 
 .eg-button-add i { .ss_add; }
+.eg-button-copy i { .ss_page_copy; }
 .eg-button-delete i { .ss_table_row_delete; }
 .eg-button-edit i { .ss_table_edit; }
 .eg-button-insert i { .ss_table_row_insert; }
@@ -162,6 +183,7 @@ td.eg-ajax_dropdown input{
 .eg-button-refresh i { .ss_arrow_refresh; }
 .eg-button-save i { .ss_table_save;}
 .eg-button-refresh i { .ss_table_refresh; }
+.eg-button-excel i { .ss_page_excel; }
 
 .eg-pseudotabs {
     line-height: 0 !important;

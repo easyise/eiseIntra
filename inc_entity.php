@@ -80,7 +80,7 @@ private function init(){
     $sqlSat = "SELECT stbl_status.*,stbl_status_attribute.*  
             FROM stbl_status_attribute 
                 RIGHT OUTER JOIN stbl_status ON staID=satStatusID AND satEntityID=staEntityID
-                LEFT OUTER JOIN stbl_attribute ON atrID=satAttributeID AND atrFlagDeleted=0
+                INNER JOIN stbl_attribute ON atrID=satAttributeID AND atrFlagDeleted=0
         WHERE staEntityID=".$oSQL->e($this->entID)."
         ORDER BY staID, atrOrder";
     $rsSat = $oSQL->q($sqlSat);
@@ -364,6 +364,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     $entID = $this->entID;
 
     $intra = $this->intra;
+    $intra->requireComponent('list', 'batch');
 
     $conf = $this->conf;
     $strLocal = $this->intra->local;
@@ -790,28 +791,6 @@ function getFormForList($staID){
 </fieldset>
 
 </form>
-<script>
-$(document).ready(function(){
-    $('#entForm').
-        eiseIntraForm().
-        eiseIntraEntityItemForm({flagUpdateMultiple: true}).
-        submit(function(event) {
-            var $form = $(this);
-            $form.eiseIntraEntityItemForm("checkAction", function(){
-                if ($form.eiseIntraForm("validate")){
-                    window.setTimeout(function(){$form.find('input[type="submit"], input[type="button"]').each(function(){this.disabled = true;})}, 1);
-                    $form[0].submit();
-                } else {
-                    form.eiseIntraEntityItemForm("reset");
-                }
-            })
-        
-            return false;
-        
-        });
-})
-
-</script>
 <?php
 }
 

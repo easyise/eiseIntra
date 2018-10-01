@@ -27,28 +27,5 @@ try {
 
 $intra = new eiseIntra($oSQL, Array('version'=>$version, 'collect_keys'=>true, 'menuCollapseAll'=>true));
 
-if (!$flagNoAuth) {
-        // checking is session available
-    $intra->session_initialize();
-    if (!$intra->usrID){
-       SetCookie("PageNoAuth", $_SERVER["PHP_SELF"].($_SERVER["QUERY_STRING"]!="" ? ("?".$_SERVER["QUERY_STRING"]) : ""));
-       header("HTTP/1.0 401 Unauthorized");
-       header ("Location: login.php");
-       die();
-    }
-    
-    $intra->checkPermissions($oSQL);
-}
-
-$intra->readSettings();
-
-
-$intra->checkLanguage();
-if ($intra->local)
-    @include "lang.php";
-
-    
-$strLocal = $intra->local; //backward-compatibility stuff
-
 include eiseIntraAbsolutePath."/inc_backcomp.php";
 ?>

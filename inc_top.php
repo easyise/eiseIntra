@@ -4,7 +4,7 @@ $intra->requireComponent('simpleTree');
 <html>
 <head>
 	<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
-    <title><?php  echo $title ; ?></title>
+    <title><?php echo ($title ? $title : $intra->arrUsrData["pagTitle{$intra->local}"]); ?></title>
 <?php 
 $intra->loadCSS();
 $intra->loadJS();
@@ -44,6 +44,7 @@ $intra->loadJS();
         <a href="index.php" target="_top" class="ei-logo"><?php echo ($intra->conf["stpCompanyName"]
             ? $intra->conf["stpCompanyName"]
             : $title) ?></a>
+        <i class="fa fa-eye sidebar-pin"> </i>
     </div>
 
 

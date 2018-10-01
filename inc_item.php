@@ -13,6 +13,7 @@ public $conf = array(
 	, 'table' => 'tbl_item'
 	, 'form' => 'item_form.php'
 	, 'list' => 'item_list.php'
+	, 'flagFormShowAllFields' => false
 	);
 
 public $item = array();
@@ -171,6 +172,8 @@ public function form( $fields = null, $conf = array() ){
 			)
 		);
 
+	$conf = array_merge($conf, array('id'=>$this->table['prefix'], 'flagAddJavaScript'=>True));
+
 	return $this->intra->form($this->conf['form'], 'update', $fields, 'POST', $conf);
 
 }
@@ -189,8 +192,37 @@ public function getPKFields(){
 /**
  * Returns fields HTML
  */
-public function getFields(){
-	return '';
+public function getFields($aFields = null){
+	$aToGet = ($aFields ? $aFields : ($this->conf['flagFormShowAllFields'] ? $this->table['columns_index'] : array()));
+	$html = '';
+	foreach($aToGet as $field){
+		$col = $this->table['columns'][$field];
+		$title = ($col['title'.$this->intra->local]
+			? $col['title'.$this->intra->local]
+			: ($col['title'] ? $col['title'] : $this->intra->translate($col['Comment']))
+			);
+		$conf = array_merge($col, array('type'=>(!$title ? 'hidden' : $col['DataType'])));
+		if($conf['type']==='FK'){
+			$conf['type'] = 'combobox';
+			if($col['ref_table']){
+				try {
+					$tableRef = $this->oSQL->getTableInfo($col['ref_table']);	
+				} catch (Exception $e) {}
+			
+				if($tableRef && $tableRef['prefix'] && $tableRef['prefix']!='opt'){
+					$conf['source'] = $col['ref_table'];
+					$conf['source_prefix'] = $tableRef['prefix'];
+					$conf['type'] = 'ajax_dropdown';
+				} else {
+					$conf['type'] = 'combobox';
+					$conf['defaultText'] = 'THIS IS DEFAULT OPTION SET';
+					$conf['source'] = array('XX'=>'PLEASE REPLACE IT');
+				}
+			}
+		}
+		$html .= $this->intra->field($title, $field, $this->item[$field], $conf);
+	}
+	return $html;
 }
 
 /**
@@ -201,6 +233,18 @@ public function getButtons(){
 	return $this->intra->showButton('btnSubmit', $this->intra->translate('Update'), array('type'=>'submit')).
 		$this->intra->showButton('btnDelete', $this->intra->translate('Delete'), array('type'=>'delete'));
 		 
+}
+
+/**
+ * To be triggered on DataAction=update or REST POST/PUT query
+ */
+public function insert($newData){
+
+	$intra = $this->intra;
+
+	$this->redirectTo = $this->conf['form'].'?'.$this->getURI();
+	$this->msgToUser = $intra->translate('%s is added', $this->conf['title'.$intra->local]);
+
 }
 
 /**
@@ -220,6 +264,13 @@ public function update($newData){
  */
 public function delete(){
 
+	$intra = $this->intra;
+
+	$sql = "DELETE FROM {$this->conf['table']} WHERE {$this->sqlWhere}";
+	$this->oSQL->q($sql);
+
+	$this->redirectTo = $this->conf['list'];
+	$this->msgToUser = $intra->translate('%s is deleted', $this->conf['title'.$intra->local]);
 }
 
 }

@@ -83,6 +83,34 @@ public static $arrIntraDataTypes = array(
     , 'activity_stamp' => array('datetime', 'timestamp')
 );
 
+function __construct($oSQL = null, $conf = null){
+        
+    $arrFind = Array();
+    $arrReplace = Array();
+    $arrFind[] = '.'; $arrReplace[]='\\.';          
+    $arrFind[] = '/'; $arrReplace[]='\\/';          
+    $arrFind[] = 'd'; $arrReplace[]='([0-9]{1,2})'; 
+    $arrFind[] = 'm'; $arrReplace[]='([0-9]{1,2})';
+    $arrFind[] = 'Y'; $arrReplace[]='([0-9]{4})';
+    $arrFind[] = 'y'; $arrReplace[]='([0-9]{1,2})';
+    $this->conf['prgDate'] = str_replace($arrFind, $arrReplace, $this->conf['dateFormat']);
+    $dfm  = preg_replace('/[^a-z]/i','', $this->conf['dateFormat']);
+    $this->conf['prgDateReplaceTo'] = '\\'.(strpos($dfm, 'y')===false ? strpos($dfm, 'Y')+1 : strpos($dfm, 'y')+1).'-\\'.(strpos($dfm, 'm')+1).'-\\'.(strpos($dfm, 'd')+1);
+    
+    $arrFind = Array();
+    $arrReplace = Array();            
+    $arrFind[] = "."; $arrReplace[]="\\.";
+    $arrFind[] = ":"; $arrReplace[]="\\:";
+    $arrFind[] = "/"; $arrReplace[]="\\/";
+    $arrFind[] = "H"; $arrReplace[]="([0-9]{1,2})";
+    $arrFind[] = "h"; $arrReplace[]="([0-9]{1,2})";
+    $arrFind[] = "i"; $arrReplace[]="([0-9]{1,2})";
+    $arrFind[] = "s"; $arrReplace[]="([0-9]{1,2})";
+    $this->conf["prgTime"] = str_replace($arrFind, $arrReplace, $this->conf["timeFormat"]);
+    
+    $this->oSQL = $oSQL;
+}
+
 /**
  * This function returns Intra type from key set of $arrIntraDataTypes array above. It takes $type and $field name as parameters, and it can be as Intra types as SQL data types returned by fetch_fields() or getTableInfo() functions.
  *
@@ -238,6 +266,7 @@ function result2JSON($rs, $arrConf = array()){
         , 'arrHref' => array()
         , 'fields' => array()
         , 'flagEncode' => false
+        , 'flagSimple' => false
         );
     $arrConf = array_merge($arrConf_default, $arrConf);
     $arrRet = array();
@@ -272,7 +301,7 @@ function result2JSON($rs, $arrConf = array()){
                 $decPlaces = null;
             }
 
-            $arrRW[$key]['v'] = $this->formatByType2PHP($type, $value, $decPlaces);
+            $arrRW[$key]['v'] = ($arrConf['flagSimple'] ? $value : $this->formatByType2PHP($type, $value, $decPlaces));
 
             if (isset($rw[$key.'_text'])){
                 $arrRW[$key]['t'] = $rw[$key.'_text'];
@@ -312,7 +341,24 @@ function result2JSON($rs, $arrConf = array()){
             }
         }
 
-        $arrRet[] = $arrRW;
+        if($arrConf['flagSimple']){
+            $r = array();
+            foreach($arrRW as $key => $value){
+                $r[$key] = $value['v'];
+                if(isset($value['t'])){
+                    $r[$key.'_text'] = $value['t'];
+                }
+                if(isset($value['h'])){
+                    $r[$key.'_href'] = $value['h'];
+                }
+                if(isset($value['tr'])){
+                    $r[$key.'_href_target'] = $value['tr'];
+                }
+            }
+            $arrRet[] = $r;
+        } else {
+            $arrRet[] = $arrRW;
+        }
     }
     return ($arrConf['flagEncode'] ? json_encode($arrRet) : $arrRet);
 

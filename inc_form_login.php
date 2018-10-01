@@ -7,7 +7,7 @@ if(!isset($intra))
 switch ($DataAction){
     case "login":
         
-        list($login, $password) = $intra->decodeAuthString($_POST["authstring"]);
+        list($login, $password) = $intra->decodeAuthString($_POST["authstring"], true);
 
         $strError = "";
         
@@ -23,6 +23,7 @@ switch ($DataAction){
         }
 
         try {
+            
             $intra->Authenticate( $login, $password, (isset($authmethod) ? $authmethod : "LDAP") );
             header ("Location: ".(isset($_COOKIE["PageNoAuth"]) ? $_COOKIE["PageNoAuth"] : "index.php"));
             die();
@@ -70,7 +71,7 @@ if ($strMode == "LDAP"){
  ?>
 
 <script>
-$(document).ready(function(){  
+$(window).load(function(){  
    
     $('body').eiseIntra('cleanStorage');
 

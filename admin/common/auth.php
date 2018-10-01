@@ -13,7 +13,6 @@ include 'eiseAdmin.class.php';
 $authmethod = "mysql";
 
 $intra = new eiseAdmin(array('version'=>$version, 'hideSTBLs'=>true));
-$intra->session_initialize();
 
 $dbName = $intra->getDBName();
 

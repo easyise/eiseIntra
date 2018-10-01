@@ -1,27 +1,39 @@
 <?php
-switch ($_POST["DataAction"]) {
 
-  case "update":
-      $rsSTP = $oSQL->do_query("SELECT * FROM stbl_setup");
-      while ($rwSTP = $oSQL->fetch_array($rsSTP)) {
-          if (($_POST[$rwSTP["stpVarName"]]!=$rwSTP["stpCharValue"])&&($rwSTP["stpFlagReadOnly"]!="y")){
-              $sqlUpdSetupRow = "UPDATE stbl_setup SET stpCharValue=".$oSQL->escape_string($_POST[$rwSTP["stpVarName"]]).
-                                " WHERE stpVarName = '".$rwSTP["stpVarName"]."'";
-              $oSQL->do_query($sqlUpdSetupRow);
-          }
-          if(!is_null($rwSTP["stpCharValueLocal"]) && $_POST[$rwSTP["stpVarName"]."_local"]!=$rwSTP["stpCharValueLocal"]){
-              $sqlUpdSetupRow = "UPDATE stbl_setup SET stpCharValueLocal=".$oSQL->escape_string($_POST[$rwSTP["stpVarName"]."_local"]).
+$intra->dataAction('update');
+
+function update($newData){
+
+    GLOBAL $intra;
+    $oSQL = $intra->oSQL;
+
+    $oSQL->q("START TRANSACTION");
+    $oSQL->startProfiling();
+
+    $rsSTP = $oSQL->do_query("SELECT * FROM stbl_setup");
+    while ($rwSTP = $oSQL->fetch_array($rsSTP)) {
+
+        if(!isset($newData[$rwSTP["stpVarName"]]))
+            continue;
+
+        $newValue = ($rwSTP['stpCharType'] == 'password' ? $intra->encrypt($newData[$rwSTP["stpVarName"]]) : $newData[$rwSTP["stpVarName"]]) ;
+        if (($newValue !=$rwSTP["stpCharValue"])&& !$rwSTP["stpFlagReadOnly"] ){
+
+            $sqlUpdSetupRow = "UPDATE stbl_setup SET stpCharValue=".$oSQL->e($newValue).
+                            " WHERE stpVarName = '".$rwSTP["stpVarName"]."'";
+            $oSQL->do_query($sqlUpdSetupRow);
+        }
+        if(!is_null($rwSTP["stpCharValueLocal"]) && $newData[$rwSTP["stpVarName"]."_local"]!=$rwSTP["stpCharValueLocal"]){
+            $sqlUpdSetupRow = "UPDATE stbl_setup SET stpCharValueLocal=".$oSQL->escape_string($newData[$rwSTP["stpVarName"]."_local"]).
                               " WHERE stpVarName = '".$rwSTP["stpVarName"]."'";
-              $oSQL->do_query($sqlUpdSetupRow);
-          }
-      }
-       
-      $intra->redirect($intra->translate("Settings are saved"), $_SERVER["PHP_SELF"]);
+            $oSQL->do_query($sqlUpdSetupRow);
+        }
+    }
 
+    $oSQL->q("COMMIT");
+
+    $intra->redirect($intra->translate("Settings are saved"), $_SERVER["PHP_SELF"]);
 }
-
-$arrJS[] = jQueryUIPath.'/jquery-ui.min.js';
-$arrCSS[] = jQueryUIPath.'/jquery-ui.min.css';
 
 include eiseIntraAbsolutePath."inc{$intra->conf['frame']}_top.php";
 ?>
@@ -37,6 +49,9 @@ $rsSTP = $oSQL->do_query("SELECT * FROM stbl_setup ORDER BY stpFlagReadOnly ASC,
    
 while ($rwSTP = $oSQL->fetch_array($rsSTP)) {
 
+    if($rwSTP["stpFlagHiddenOnForm"])
+        continue;
+
     $arrConf = Array("FlagWrite"=>(!$rwSTP["stpFlagReadOnly"] && (bool)$intra->arrUsrData["FlagWrite"]));
 
     $title = $rwSTP["stpTitle{$intra->local}"] ? $rwSTP["stpTitle{$intra->local}"] : $rwSTP["stpTitle"];
@@ -47,9 +62,18 @@ while ($rwSTP = $oSQL->fetch_array($rsSTP)) {
         $arrConf['strAttrib'] = 'rows=\"4\"';
     }
 
+    $flagPassword = ($rwSTP['stpCharType']==='password' && $intra->arrUsrData["FlagWrite"]);
+    $val = ($rwSTP['stpCharType']!=='password' 
+            ? $rwSTP["stpCharValue"]
+            : ( $intra->arrUsrData["FlagWrite"]
+                ? $intra->decrypt($rwSTP["stpCharValue"])
+                : str_pad('', 12, '*')
+                )
+            );
+
     echo $intra->field($title
         , $rwSTP["stpVarName"]
-        , $rwSTP["stpCharValue"]
+        , $val
         , array_merge($arrConf
             , array(
                 'type' => $rwSTP["stpCharType"]
@@ -70,10 +94,10 @@ while ($rwSTP = $oSQL->fetch_array($rsSTP)) {
         );    
     }
 
-    if($rwSTP['stpCharType']==='password'){
+    if($flagPassword){
         echo $intra->field(null
                 , $rwSTP["stpVarName"].'_old'
-                , $rwSTP["stpCharValue"]
+                , $val
                 , array('type'=>'hidden')
                 );
     }
@@ -131,8 +155,6 @@ $(window).load(function(){
                 return false; //break
             }
         })
-
-        console.log('qq', flagCanSubmit)
 
         return flagCanSubmit;
     })

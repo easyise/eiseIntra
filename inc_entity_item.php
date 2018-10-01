@@ -738,7 +738,6 @@ public function prepareActions(){
         }
     } else {
         if(!in_array($aclOldStatusID, $rwACT['actOldStatusID'])){
-            debug_print_backtrace();
             throw new Exception("Action {$rwACT['actID']} cannot be run for origin status ".$aclOldStatusID);
         }
         if(!in_array($aclNewStatusID, $rwACT['actNewStatusID'])){
@@ -813,6 +812,8 @@ public function attachFile($fileNameOriginal, $fileContents, $fileMIME="Applicat
     ";
  
     $oSQL->do_query($sqlFileInsert);
+
+    return $fileGUID;
 
 }
 
@@ -1500,7 +1501,7 @@ switch ($da) {
 /**
  * This function obtains file list for current entity item
  */
-public function getFiles(){
+public function getFiles($conf = array()){
 
     $oSQL = $this->oSQL;
     $entID = $this->entID;
@@ -1515,7 +1516,7 @@ public function getFiles(){
 
     $rs = $this->oSQL->do_query($sqlFile);
 
-    return $this->intra->result2JSON($rs, array('arrHref'=>array('filName'=>'popup_file.php?filGUID=[filGUID]')));
+    return $this->intra->result2JSON($rs, array_merge(array('arrHref'=>array('filName'=>'popup_file.php?filGUID=[filGUID]')), $conf) );
 
 
     while ($rw = $this->oSQL->fetch_array($rs)) {
@@ -1567,20 +1568,14 @@ static function getFile($filGUID, $filePathVar = 'stpFilesPath'){
 
     $rwFile = $oSQL->fetch_array($rsFile);
 
-    $filesPath = self::checkFilePath($intra->conf[$filePathVar]);
-
-    header("Content-Type: ".$rwFile["filContentType"]);
-    if(headers_sent())
-        $this->Error('Some data has already been output, can\'t send file');
-    header("Content-Length: ".$rwFile["filLength"]);
-    header("Content-Disposition: inline; filename*=UTF-8''".rawurlencode($rwFile["filName"]) );
-    header('Cache-Control: private, max-age=0, must-revalidate');
-    header('Pragma: public');
-    ini_set('zlib.output_compression','0');
-
-    $fh = fopen($filesPath.$rwFile["filNamePhysical"], "rb");
-    echo fread($fh, $rwFile["filLength"]);
-    fclose($fh);
+    if(file_exists($rwFile["filNamePhysical"]))
+        $fullFilePath = $rwFile["filNamePhysical"];
+    else {
+        $filesPath = self::checkFilePath($intra->conf[$filePathVar]);
+        $fullFilePath = $filesPath.$rwFile["filNamePhysical"];
+    }
+        
+    $intra->file($rwFile["filName"], $rwFile["filContentType"], $fullFilePath);
 
 }
 
@@ -1597,6 +1592,10 @@ static function updateMessages($newData){
 
     switch($da){
         case 'messageSend':
+            $fields = $oSQL->ff('SELECT * FROM stbl_message WHERE 1=0');
+            if($fields['msgPassword']){
+                list($login, $password) = $intra->decodeAuthstring($_SESSION['authstring']);
+            }
             $sqlMsg = "INSERT INTO stbl_message SET
                 msgEntityID = ".($newData['entID']!="" ? $oSQL->e($newData['entID']) : "NULL")."
                 , msgEntityItemID = ".($newData['entItemID']!="" ? $oSQL->e($newData['entItemID']) : "NULL")."
@@ -1604,12 +1603,13 @@ static function updateMessages($newData){
                 , msgToUserID = ".($newData['msgToUserID']!="" ? $oSQL->e($newData['msgToUserID']) : "NULL")."
                 , msgCCUserID = ".($newData['msgCCUserID']!="" ? $oSQL->e($newData['msgCCUserID']) : "NULL")."
                 , msgSubject = ".$oSQL->e($newData['msgSubject'])."
-                , msgText = ".$oSQL->e($newData['msgText'])."
+                , msgText = ".$oSQL->e($newData['msgText']).
+                ($fields['msgPassword'] ? ", msgPassword=".$oSQL->e($intra->encrypt($password)) : '')
+                ."
                 , msgSendDate = NULL
                 , msgReadDate = NULL
                 , msgFlagDeleted = 0
                 , msgInsertBy = '$intra->usrID', msgInsertDate = NOW(), msgEditBy = '$intra->usrID', msgEditDate = NOW()";
-
             $oSQL->q($sqlMsg);
             
             if($newData["entItemID"]!='' && $newData['entID']!='' && !$newData['flagNoRedirect'])
@@ -1630,20 +1630,39 @@ static function sendMessages($conf){
 
     $oSQL = $intra->oSQL;
 
-    // scan tablefor unsent messages
+    $oSQL->q("UPDATE stbl_message SET msgSendDate=NOW()
+            , msgStatus='Sending' 
+            WHERE msgSendDate IS NULL");
+
+    // scan table for unsent messages
     $sqlMsg = "SELECT * 
         FROM stbl_message 
             LEFT OUTER JOIN stbl_entity ON msgEntityID=entID
-        WHERE msgSendDate IS NULL ORDER BY msgInsertDate DESC";
+        WHERE msgStatus='Sending' AND msgInsertDate>DATE_ADD(NOW(), INTERVAL -1 DAY) ORDER BY msgFromUserID, msgInsertDate DESC";
     $rsMsg = $oSQL->q($sqlMsg);
+    $fieldsMsg = $oSQL->ff($rsMsg);
 
     include_once('../common/eiseMail/inc_eisemail.php');
 
-    $sender  = new eiseMail($conf);
+    $username = '';
+    $arrMessages = array();
 
     while($rwMsg = $oSQL->f($rsMsg)){
 
-        $rwUsr_From = $intra->getUserData_All($rwMsg['msgFromUserID'], 'all');
+        if($username != $rwMsg['msgFromUserID']){
+
+            $rwUsr_From = $intra->getUserData_All($rwMsg['msgFromUserID'], 'all');
+            $arrAuth = array();
+            if($conf['authenticate']){
+                $arrAuth['login'] = ($conf['authenticate']=='email'
+                    ? $rwUsr_From['usrEmail']
+                    : $rwUsr_From['usrID'] );
+            }
+            $username = $rwMsg['msgFromUserID'];
+            $senders[$rwMsg['msgFromUserID']]  = new eiseMail(array_merge($conf, $arrAuth));
+
+        }
+
         $rwUsr_To = $intra->getUserData_All($rwMsg['msgToUserID'], 'all');
         $rwUsr_CC = $intra->getUserData_All($rwMsg['msgCCUserID'], 'all');
 
@@ -1671,31 +1690,47 @@ static function sendMessages($conf){
             , 'Text' => $rwMsg['msgText']
             );
         if ($rwMsg['msgCCUserID'])
-            $msg['CC'] = "\"".$rwUsr_CC['usrName']."\"  <".$rwUsr_CC['usrEmail'].">";
+            $msg['Cc'] = "\"".$rwUsr_CC['usrName']."\"  <".$rwUsr_CC['usrEmail'].">";
 
         $msg = array_merge($msg, $rwMsg);
 
-        $sender->addMessage($msg);
+        if($conf['authenticate'] && $rwMsg['msgPassword'])
+            $senders[$rwMsg['msgFromUserID']]->conf['password'] = $intra->decrypt($rwMsg['msgPassword']);
+
+        $senders[$rwMsg['msgFromUserID']]->addMessage($msg);
 
     }
 
-    try {
-        $arrMessages = $sender->send();
-    } catch (eiseMailException $e){
-        $strError = $e->getMessage();
-        $arrMessages = $e->getMessages();
-    }
+    foreach($senders as $user=>$sender){
 
+        if($conf['authenticate'] && !$sender->conf['password']){
+            foreach($sender->arrMessages as &$msg){
+                $msg['error'] = 'No password';
+                $arrMessages[] = $msg;    
+            }
+            continue;
+        }
+
+        try {
+            $sentMessages = $sender->send();
+            $arrMessages = array_merge($arrMessages, $sentMessages);
+        } catch (eiseMailException $e){
+            $strError = $e->getMessage();
+            $arrMessages = array_merge($arrMessages, $e->getMessages());
+        }
+    }
 
     foreach((array)$arrMessages as $msg){
         $sqlMarkSent = "UPDATE stbl_message SET msgSendDate=".($msg['send_time'] ? "'".date('Y-m-d H:i:s', $msg['send_time'])."'" : 'NULL' )."
             , msgStatus=".($msg['error'] ? $oSQL->e($msg['error']) : $oSQL->e('Sent'))."
+            , msgPassword=NULL
             , msgEditDate=NOW()
-            , msgEditBy='{$intra->usrID}'
+            , msgEditBy='{$msg['msgFromUserID']}'
             WHERE msgID=".$oSQL->e($msg['msgID']);
         $oSQL->q($sqlMarkSent);
 
     }
+
 
     if($strError)
         throw new Exception($strError);

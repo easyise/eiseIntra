@@ -1,7 +1,7 @@
 <?php 
 include "common/auth.php";
 
-if($_GET[eiseIntra::dataActionKey]=='new')
+if($_GET[$intra->conf['dataActionKey']]=='new')
     unset($dbName);
 
 $intra->requireComponent(array('grid', 'batch'));

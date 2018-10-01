@@ -90,6 +90,59 @@ var actionButtonClick = function (oBtn, fnCallback){
     
 }
 
+var eiseIntraActionSubmit = function(event, $form){
+                
+        event.preventDefault(true);
+
+        var $initiatorButton = $(this);
+        
+        actionChoosen($(this), function(o){
+
+            $form.eiseIntraForm("makeMandatory", {
+                strMandatorySelector: o.act.mandatorySelector
+                , flagDontSetRequired : ($form.data('eiseIntraForm').conf.flagUpdateMultiple || o.act.actFlagAutocomplete!='1')});
+            
+            $form.find("#aclGUID").val(o.aclGUID);
+
+            var arrFieldsToFill = [];
+            if(o.act.aatFlagMandatory)
+                $.each(o.act.aatFlagMandatory, function(fieldName, arrFlags){
+                    if(typeof($form.find('#'+fieldName)[0])=='undefined' && o.atr[fieldName].atrType!='combobox'){
+                        arrFieldsToFill.push({name: o.atr[fieldName].atrID
+                            , title: ($form.data('eiseIntraForm').conf.local ? o.atr[fieldName].atrTitleLocal : o.atr[fieldName].atrTitle)
+                            , type: o.atr[fieldName].atrType
+                            , defaultValue: o.atr[fieldName].atrDefault
+                            , required: true});
+                    }
+                });
+
+            if (o.act.actFlagComment=='1'){
+                arrFieldsToFill.push({name: 'aclComments', title: 'Comments', type: 'textarea', required: true});
+            }
+
+            if( arrFieldsToFill.length>0 ){
+                var $frm = $.fn.eiseIntraForm('createDialog', {fields: arrFieldsToFill
+                    , title: $initiatorButton.val()
+                    , onsubmit: function(newValues){
+
+                        $form.eiseIntraForm('fill', $.extend(o, newValues), {createMissingAsHidden: true});
+                        $form.submit();
+
+                        return false;
+                    }
+                });
+
+                return;
+
+            }
+                                
+            $form.eiseIntraForm('fill', o, {createMissingAsHidden: true});
+            $form.submit();
+
+        });
+
+}
+
 var fillActionLogAJAX = function($form, extra_entID){
     
     var entID = (extra_entID ?  extra_entID : $form.data('eiseIntraForm').entID);
@@ -240,65 +293,7 @@ init: function( options ) {
 
         })
         /********** initialize submit buttons ***********/
-        $this.find('input.eiseIntraActionSubmit').click(function(event){
-                
-                event.preventDefault(true);
-
-                var $initiatorButton = $(this);
-                
-                actionChoosen($(this), function(o){
-
-                    $this.eiseIntraForm("makeMandatory", {
-                        strMandatorySelector: o.act.mandatorySelector
-                        , flagDontSetRequired : (data.conf.flagUpdateMultiple || o.act.actFlagAutocomplete!='1')});
-                    
-                    $this.find("#aclGUID").val(o.aclGUID);
-
-                    var arrFieldsToFill = [];
-                    if(o.act.aatFlagMandatory)
-                        $.each(o.act.aatFlagMandatory, function(fieldName, arrFlags){
-                            if(typeof($this.find('#'+fieldName)[0])=='undefined' && o.atr[fieldName].atrType!='combobox'){
-                                arrFieldsToFill.push({name: o.atr[fieldName].atrID
-                                    , title: ($this.data('eiseIntraForm').conf.local ? o.atr[fieldName].atrTitleLocal : o.atr[fieldName].atrTitle)
-                                    , type: o.atr[fieldName].atrType
-                                    , defaultValue: o.atr[fieldName].atrDefault
-                                    , required: true});
-                            }
-                        });
-
-                    if (o.act.actFlagComment=='1'){
-                        arrFieldsToFill.push({name: 'aclComments', title: 'Comments', type: 'textarea', required: true});
-                    }
-
-                    if( arrFieldsToFill.length>0 ){
-                        var $frm = $.fn.eiseIntraForm('createDialog', {fields: arrFieldsToFill
-                            , title: $initiatorButton.val()
-                            , onsubmit: function(newValues){
-
-                                $this.eiseIntraForm('fill', $.extend(o, newValues), {createMissingAsHidden: true});
-                                $this.submit();
-
-                                return false;
-                            }
-                        });
-
-                        return;
-
-                    }
-                                        
-/*
-                    $this.find("#actID").val(o.actID);
-                    $this.find("#aclToDo").val(o.aclToDo);
-                    $this.find("#aclOldStatusID").val(o.aclOldStatusID);
-                    $this.find("#aclNewStatusID").val(o.aclNewStatusID);
-*/
-
-                    $this.eiseIntraForm('fill', o, {createMissingAsHidden: true});
-                    $this.submit();
-
-                });
-
-        });
+        $this.find('input.eiseIntraActionSubmit').click( function(ev) { eiseIntraActionSubmit.call(this, ev, $this) });
 
         /********** initialize Start/Finish/Cancel buttons ***********/
         $this.find(".eiseIntraActionButton").bind("click", function(){
@@ -596,6 +591,10 @@ bookmark: function($elem, callback){
             }
         );
 
+},
+
+eiseIntraActionSubmit: function(btn, event){
+    eiseIntraActionSubmit.call(btn, event, this);
 }
 
 };
@@ -619,12 +618,43 @@ $.fn.eiseIntraEntityItemForm = function( method ) {
 
 function showMultipleEditForm(strTitle){
 
-    var form = '.eiseIntraMultiple';
+    if(!this.formHTML){
+        var selForm = '.eiseIntraMultiple',
+            $formTemplate = $(selForm);    
+        this.formHTML = (this.formHTML ? this.formHTML : ($formTemplate[0] ? $formTemplate[0].outerHTML : ''));    
+        $formTemplate.remove(); 
+    }
+
+    var $form = $(this.formHTML).appendTo('body');
     
-    $(form).attr('title', strTitle);
-    $(form).dialog({
+    $form
+        .prop('title', strTitle)
+        .dialog({
             modal: false
             , width: $(window).width()*0.80
+        })
+        .eiseIntraForm()
+        .eiseIntraEntityItemForm({flagUpdateMultiple: true})
+        .submit(function(event) {
+            
+            $form.eiseIntraEntityItemForm("checkAction", function(){
+                if ($form.eiseIntraForm("validate")){
+                    window.setTimeout(function(){$form.find('input[type="submit"], input[type="button"]').each(function(){this.disabled = true;})}, 1);
+                    $form.eiseIntraBatch('submit', {
+                        flagAutoReload: true
+                        , title: strTitle
+                        , onload: function(){
+                            $form.dialog('close').remove();
+                        }
+                    });
+                } else {
+                    $form.eiseIntraEntityItemForm("reset");
+                }
+            })
+        
+            return false;
+        
         });
+        
         
 }

@@ -8,7 +8,7 @@
  * @subpackage eiseGrid
  *
  * @author Ilya Eliseev (ie@e-ise.com)
- * @copyright (c) 2006-2015 Ilya S. Eliseev
+ * @copyright (c) 2006-2018 Ilya S. Eliseev
  *
  * @license http://opensource.org/licenses/gpl-license.php GNU Public License
  *
@@ -37,6 +37,34 @@ static $defaultWidthsByType = array(
     );
 
 /**
+ * Default config of eiseGrid
+ */
+static $defaultConf = Array(                    //defaults for eiseGrid
+        'titleDel' => "Del" // column title for Del
+        , "titleAdd" => "Add >>" // column title for Add
+        //, 'controlBarButtons' => 'add|insert|moveup|movedown|delete|excel|save'
+        , 'extraInputs' => Array("DataAction"=>"update")
+        , 'urlToSubmit' => ''
+        , 'dateFormat' => "d.m.Y"
+        , 'timeFormat' => "H:i" 
+        , 'decimalPlaces' => "2"
+        , 'decimalSeparator' => "."
+        , 'thousandsSeparator' => ","
+        , 'totalsTitle' => 'Totals'
+        , 'noRowsTitle' => 'Nothing found'
+        , 'spinnerTitle' => 'Loading...'
+        , 'dropHereTitle' => 'Drop it here'
+        , 'arrPermissions' => Array("FlagWrite" => true)
+        , 'Tabs3DCookieName' => '%s_tabs3d'
+
+        , 'eiseIntraRelativePath' => eiseIntraRelativePath
+
+        , 'excelSheetName' => 'Sheet 1'
+        , 'excelFileName' => 'table.xls'
+
+    );
+
+/**
  * array of columns. can be associative or indexed.
  */
 public $Columns = array();
@@ -60,43 +88,55 @@ public $Rows = array();
 
 function __construct($oSQL
     , $strName
-    , $arrConfig
+    , $arrConfig = array()
     ){
     
     GLOBAL $intra;
 
-    $this->conf = Array(                    //defaults for eiseGrid
-        'titleDel' => "Del" // column title for Del
-        , "titleAdd" => "Add >>" // column title for Add
-        //, 'controlBarButtons' => 'add|insert|moveup|movedown|delete|save'
-        , 'extraInputs' => Array("DataAction"=>"update")
-        , 'urlToSubmit' => $_SERVER["PHP_SELF"]
-        , 'dateFormat' => (isset($intra->conf['dateFormat']) ? $intra->conf['dateFormat'] : "d.m.Y")  
-        , 'timeFormat' => (isset($intra->conf['timeFormat']) ? $intra->conf['timeFormat'] : "H:i") 
-        , 'decimalPlaces' => "2"
-        , 'decimalSeparator' => (isset($intra->conf['decimalSeparator']) ? $intra->conf['decimalSeparator'] : ".")
-        , 'thousandsSeparator' => (isset($intra->conf['thousandsSeparator']) ? $intra->conf['thousandsSeparator'] : ",")
-        , 'totalsTitle' => 'Totals'
-        , 'noRowsTitle' => 'Nothing found'
-        , 'spinnerTitle' => 'Loading...'
-        , 'arrPermissions' => Array("FlagWrite" => true)
-        , 'Tabs3DCookieName' => $strName.'_tabs3d'
+    foreach(array('dateFormat', 'timeFormat', 'decimalSeparator', 'thousandsSeparator') as $f)
+        $arrConfig[$f] = (isset($arrConfig[$f]) 
+            ? $arrConfig[$f] 
+            : ($intra->conf[$f] 
+                ? $intra->conf[$f] 
+                : self::$defaultConf[$f]
+                )
+            );
 
-        , 'eiseIntraRelativePath' => eiseIntraRelativePath
+    $arrConfig['urlToSubmit'] = (isset($arrConfig['urlToSubmit']) ? $arrConfig['urlToSubmit'] : $_SERVER["PHP_SELF"]);
+    $arrConfig['excelFileName'] = (isset($arrConfig['excelFileName']) ? $arrConfig['excelFileName'] : pathinfo($_SERVER["PHP_SELF"], PATHINFO_FILENAME).'.xls');
+    $arrConfig['Tabs3DCookieName_src'] = $arrConfig['Tabs3DCookieName'];
+    $arrConfig['Tabs3DCookieName'] = sprintf($arrConfig['Tabs3DCookieName'], $strName);
 
-    );
-    
     $this->oSQL = $oSQL;
 
-    $this->conf = array_merge($this->conf, $arrConfig);
+    $this->conf = array_merge(self::$defaultConf, $arrConfig);
     $this->name = $strName;
     $this->permissions = $this->conf["arrPermissions"];
     $this->intra = ($this->conf['intra'] ? $this->conf['intra'] : $intra);
+    if($this->conf['intra'])
+        unset($this->conf['intra']);
     
     //backward-compatibility staff
     $this->permissions["FlagDelete"] = (isset($this->conf['flagNoDelete']) ? !$this->conf['flagNoDelete'] : $this->permissions["FlagDelete"]);
     $this->permissions["FlagWrite"] = (isset($this->conf['flagDisabled']) ? !$this->conf['flagDisabled'] : $this->permissions["FlagWrite"]);
     
+}
+
+/**
+ * This method renames Grid: it sets $grid->name and other attributes.
+ *
+ * @param string $newName - new grid name
+ *
+ * @return string - old name
+ */
+function rename($newName){
+
+    $oldName = $this->name;
+    $this->name = $newName;
+    $this->conf['Tabs3DCookieName'] = sprintf($this->conf['Tabs3DCookieName_src'], $newName);
+    
+    return $oldName;
+
 }
 
 /**
@@ -187,14 +227,14 @@ function get_html($allowEdit=true){
     if (!$allowEdit)
         $this->permissions["FlagWrite"] = false;
     
-    if ($this->permissions["FlagWrite"]  && !empty($this->conf['controlBarButtons'])){
-        
-        $arrButtons = explode("|", $this->conf['controlBarButtons']);
-        
+    $aControlBarButtons = explode('|', $this->conf['controlBarButtons']);
+    if (($this->permissions["FlagWrite"]  && count($aControlBarButtons)>0) || count(array_intersect(array('excel', 'refresh'), $aControlBarButtons))>0 ){
+
         $strControlBar = "<div class=\"eg-controlbar\">";
         
-        foreach ($arrButtons as $btn){
-            $strControlBar .= "<button class=\"eg-button eg-button-{$btn}\" type=\"button\"><i></i></button>\r\n";
+        foreach ($aControlBarButtons as $btn){
+            if($btn)
+                $strControlBar .= "<button class=\"eg-button eg-button-{$btn}\" type=\"button\"><i></i></button>\r\n";
         }
         
         $strControlBar .= "</div>";
@@ -416,6 +456,7 @@ function get_html($allowEdit=true){
     // no rows and spinner rows
     $strRet .= "<tbody class=\"eg-no-rows\"><tr><td colspan=\"".count($this->visibleColumns)."\">{$this->conf['noRowsTitle']}</td></tr></tbody>\r\n";
     $strRet .= "<tbody class=\"eg-spinner\"><tr><td colspan=\"".count($this->visibleColumns)."\">{$this->conf['spinnerTitle']}</td></tr></tbody>\r\n";
+    $strRet .= "<tbody class=\"eg-drop-here\"><tr><td colspan=\"".count($this->visibleColumns)."\">{$this->conf['dropHereTitle']}</td></tr></tbody>\r\n";
     
 
     // template row
@@ -486,6 +527,7 @@ function get_html($allowEdit=true){
     
     $arrConfig = $this->conf;
     foreach($this->__fields as $fieldName=>$field){
+        $arrConfig['fieldIndex'][] = $fieldName;
         $arrConfig['fields'][$fieldName] = Array('type'=>$field['type'], 'title'=>$field['title']);
         if ($field['mandatory']){
             $arrConfig['fields'][$fieldName]['mandatory'] = $field['mandatory'];
@@ -507,6 +549,12 @@ function get_html($allowEdit=true){
         }
         if ($field['disabled']===true){
             $arrConfig['fields'][$fieldName]['disabled'] = true;
+        }
+        if (is_array($field['source'])){
+            $arrConfig['fields'][$fieldName]['source'] = $field['source'];
+        }
+        if ($field['headerClickable']){
+            $arrConfig['fields'][$fieldName]['headerClickable'] = true;
         }
     }
 
@@ -541,7 +589,11 @@ protected function __getRow($iRow, $row = null){
     $html = '<tbody class="'.(
             $iRow===null
             ? 'eg-template'
-            : 'eg-data'.($row['__rowClass'] ? ' '.$row['__rowClass'] : '')
+            : 'eg-data'.($row['__rowClass'] ? ' '.$row['__rowClass'] : '').(
+                $row['__rowDisabled']
+                ? ' eg-row-disabled'
+                : ''
+                )
             ).'">'."\r\n";
 
     for ($iSubRow = 0; $iSubRow < $this->__rowspan; $iSubRow++){
@@ -549,6 +601,8 @@ protected function __getRow($iRow, $row = null){
         $html .= '<tr>'."\r\n";
 
         foreach($this->visibleColumns as $ixCol=>$col){
+            if($row['__rowDisabled'])
+                $col['fields'][$iSubRow]['disabled'] = true;
             $html .= ($col['fields'][$iSubRow]
                 ? $this->__paintCell($col['fields'][$iSubRow], $ixCol, $iRow)
                 : '<td>&nbsp;</td>'."\r\n"
@@ -621,7 +675,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     
     $strCell = "";
     $strCell .= "\t<td class=\"{$this->name}-{$ixCol} {$class}\"".
-        " data-field=\"{$ixCol}\"".
+        " data-field=\"{$cell['field']}\"".
         (
             $cell["style"]!="" 
             ? " style=\"{$cell["style"]}\""
@@ -730,7 +784,8 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
             }
             
         } else { //display input and stuff
-        
+            
+            $noAutoComplete = false;
             switch($col['type']){
                 case "order":
                     $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val).
@@ -742,13 +797,13 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                     break;
                 case "boolean":
                 case "checkbox":
-                    $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val)."\">";
+                    $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".@htmlspecialchars($_val)."\">";
                     $strCell .= "<input{$classAttr} type=\"checkbox\" name=\"{$_checkfield}[]\"".($_val==true ? " checked" : "").">";
                     break;
                 case "combobox":
-                 case "select":
-                    $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val)."\">";
-                    $strCell .= "<input{$classAttr} type=\"text\" name=\"{$_textfield}[]\" value=\"".htmlspecialchars($this->getSelectValue($cell, $row, $suffix))."\">";
+                case "select":
+                    $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".@htmlspecialchars($_val)."\">";
+                    $strCell .= "<input{$classAttr} type=\"text\" name=\"{$_textfield}[]\" value=\"".@htmlspecialchars($this->getSelectValue($cell, $row, $suffix))."\">";
                     if ($ixRow===null && $nIteration==0){ //paint floating select
                         $strCell .= "<select id=\"select-{$col['field']}\" class=\"eg-floating-select\">\r\n";
                         $strCell .= (isset($cell['defaultText']) ? "\t<option value=\"\">{$cell['defaultText']}\r\n" : "");
@@ -785,9 +840,20 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                 case "del":
                     break;
 
+                case "date":
+                case "datetime":
+                case "money":
+                case "float":
+                case "double":
+                case "real":
+                case "numeric":
+                case "number":
+                case "integer":
+                    $noAutoComplete = true;
                 case "text":
                 default:
                     $strCell .= "<input{$classAttr} type=\"text\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val)."\""
+                            .($noAutoComplete ? " autocomplete=\"off\"" : '')
                             .($cell['placeholder'] ? ' placeholder="'.htmlspecialchars($cell['placeholder']).'"' : '')
                             .">";
                     break;
@@ -811,39 +877,54 @@ function getSelectValue($cell, $row, $suffix=''){
     $_val = ($suffix ? $row[$cell['field']][$suffix] : $row[$cell['field']]);
     $_text = ($suffix ? $row[$cell['field'].'_text'][$suffix] : $row[$cell['field'].'_text']);
     
-    if ($_val==""){
+    if ( !$_val ){
         return $cell['defaultText'];
     }
 
-    if ($_text != ""){
+    if ( $_text ){
         return $_text;
-    }
+    } 
+
+    $ret = '';
+
     if ( is_array($cell['source']) ){
+
         foreach($cell['source'] as $key=>$value){
             if(is_array($value)){
                 foreach($value as $subkey=>$subval){
-                    if($subkey==$_val)
-                        return $subval;
+                    if($subkey==$_val){
+                        $ret = $subval;
+                        break;
+                    }
                 }
+                if($ret)
+                    break;
             } else
-                if($key==$_val)
-                    return $value;
+                if($key==$_val){
+                    $ret = $value;
+                    break;
+                }
         }
-        return $cell['defaultText'];
+
     } else {
+        
         if ($cell['source']!=''){
             $rs = $this->getDataFromCommonViews($this->oSQL, $_val, "", $cell['source'], $cell['source_prefix']);
             $rw = $oSQL->fetch_array($rs);
-            return $rw["optText"];
-        } else {
-            return $cell['defaultText'];
+            $ret = $rw["optText"];
         }
+
     }
+
+    return ( $ret ? $ret : $_val );
 }
 
-function getDataFromCommonViews($oSQL, $strValue, $strText, $strTable, $strPrefix){
+function getDataFromCommonViews($oSQL, $strValue, $strText, $strTable, $strPrefix, $flagShowDeleted=false, $extra='', $flagNoLimits=true){
 
     GLOBAL $strLocal;
+
+    if(is_a($this->intra, 'eiseIntra'))
+        return $this->intra->getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $flagShowDeleted, $extra, $flagNoLimits);
     
     //if (function_exists("getDataFromCommonViews")) // normally defined in common.php
     //    return (getDataFromCommonViews($oSQL, $strValue, $strText, $strTable, $strPrefix));
@@ -941,7 +1022,7 @@ function Update($arrNewData = array(), $conf = array()){
         if ($this->Columns[$i]['type']=="row_id") 
             $pkColName = $this->Columns[$i]['field'];
         
-        if ($col['mandatory'])
+        if ($col['mandatory'] && !$mndFieldName)
             $mndFieldName = $col["field"];
         
         foreach($arrTable["columns"] as $j=>$tCol) 
@@ -1016,6 +1097,57 @@ function Update($arrNewData = array(), $conf = array()){
     return true;
 }
 
+function json($newData = null){
+
+    GLOBAL $intra;
+
+    if(!$newData)
+        $newData = $_POST;
+
+    foreach($this->Columns as $i=>$col){
+        if ($this->Columns[$i]['type']=="row_id") {
+            $pkColName = $this->Columns[$i]['field'];
+            break;
+        }
+    }
+
+    $aRet = array();
+
+    for($i=1;$i<count($newData[$pkColName]);$i++){
+
+        $a = array();
+        foreach($this->Columns as $col){
+
+            switch($col['type']){
+                case 'order':
+                    $val = $i;
+                    break;
+                case 'date':
+                    $val = $intra->oSQL->unq($intra->datePHP2SQL($newData[$col['field']][$i]));
+                    break;
+                case 'datetime':
+                    $val = $intra->oSQL->unq($intra->datetimePHP2SQL($newData[$col['field']][$i]));
+                    break;
+                case "integer":
+                case "real":
+                case "numeric":
+                case "number":
+                case "money":
+                    $val = $intra->oSQL->unq($intra->decPHP2SQL($newData[$col['field']][$i]));
+                    break;
+                default: 
+                    $val = $newData[$col['field']][$i];
+                    break;
+            }
+            $a[$col['field']] = $val;
+        }
+        
+        $aRet[] = $a;
+
+    }
+
+    return json_encode($aRet);
+}
 
 function getSQLValue($col){
     $strValue = "";

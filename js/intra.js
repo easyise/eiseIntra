@@ -13,7 +13,14 @@ var conf = {};
 var renderMenu = function(){
 
     var $simpleTreeMenu = $('.ei-sidebar-menu .simpleTree.ei-menu'),
-        $sidebarMenu = $('.ei-sidebar-menu .sidebar-menu.ei-menu');
+        $sidebarMenu = $('.ei-sidebar-menu .sidebar-menu.ei-menu'),
+        $menuContainer = $('.ei-sidebar-menu'),
+        pinnedKey = $('body').eiseIntra('conf').menuKey+'_pinned',
+        flagPinned = sessionStorage[pinnedKey];
+
+    if(flagPinned){
+        $menuContainer.addClass('visible').addClass('pinned');
+    }
 
     if($simpleTreeMenu[0] && typeof $simpleTreeMenu.simpleTree == 'function')
         $simpleTreeMenu.simpleTree({
@@ -37,10 +44,20 @@ var renderMenu = function(){
     });
 
     $('.sidebar-toggle').click(function(ev){
+
         $('.ei-sidebar-menu').toggleClass('visible');
+
         sideBarMenuChanged();
         ev.stopImmediatePropagation();
     })
+
+    $('.sidebar-pin').click(function(){
+        $menuContainer.toggleClass('pinned');
+        if( !sessionStorage[pinnedKey] )
+            sessionStorage[pinnedKey] = true;
+        else 
+            sessionStorage.removeItem(pinnedKey);
+    }) 
 
     window.setTimeout(function(){$(window).resize()}, 100);
 
@@ -738,7 +755,7 @@ init: function( options ) {
 
         })
         
-        $this.find('input.eiseIntraDelete').click(function(ev){
+        $this.find('.eiseIntraDelete').click(function(ev){
                 if (confirm("Are you sure you'd like to delete?")){
                     $this.find('input,select').removeAttr('required');
                     $this.find('#DataAction').val('delete');
@@ -1308,6 +1325,11 @@ addField: function( field ){
     if(field.name)
         element.attr('name', field.name);
 
+    if(field.type=='ajax_dropdown'){
+        element[0].dataset['source'] = JSON.stringify({table: field.source, prefix: field.source_prefix, scriptURL: field.sourceURL});
+        element[0].name = element[0].name+'_text';
+    }
+
     if(field.value && $.inArray(type, ['hr', 'p', 'checkbox']) < 0 )
         element.val(field.value);
 
@@ -1323,12 +1345,15 @@ addField: function( field ){
             element.attr('required', 'required');
         }
 
-
         var $field = ( (type=='checkbox' || type=='radio') && (field.labelLayout && field.labelLayout!='left')
             ? $('<div>')
                 .append('<label></label>')
                 .append( $('<label>'+field.title+'</label>').prepend(element).addClass('eiseIntraValue') )
-            : $('<div><label>'+field.title+':</label></div>').append(element.addClass('eiseIntraValue'))
+            : $('<div><label>'+field.title+':</label></div>').append(
+                (field.type=='ajax_dropdown'
+                    ? $('<input type="hidden" name="'+field.name+'">').val(field.value)
+                    :  null)
+                ).append(element.addClass('eiseIntraValue'))
             ).addClass('eiseIntraField');
 
     } else {
@@ -1453,6 +1478,9 @@ var _fill = function($body, data, conf){
                     return true; //continue
                 switch ($elem[0].nodeName){
                     case "INPUT":
+                        if($elem.attr('type').toLowerCase()=='checkbox' ){
+                            $elem[0].checked = (parseInt(v))
+                        }
                     case "SELECT":
                         $elem.val(v);
                         break;
@@ -1649,7 +1677,6 @@ initFileUpload: function(){
         for(var i=0;i<this.files.length;i++){
             formData.append( inpName, this.files[i] );
         }
-        console.log(this.files);
         _do_upload();
     });
 

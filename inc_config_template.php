@@ -25,7 +25,7 @@ define ("eiseIntraJSPath",  eiseIntraRelativePath.'js/');
 /** Path to eiseIntra native CSS files */
 define ("eiseIntraCSSPath",  eiseIntraRelativePath.'css/');
 /** CSS theme subdirectory */
-$eiseIntraCSSTheme = 'bluewing';
+$eiseIntraCSSTheme = 'russysdev';
 
 
 /** Relative path to eiseIntra 3rd party components */
@@ -38,14 +38,6 @@ define ("eiseIntraLibAbsolutePath",  eiseIntraAbsolutePath.'lib/');
 define ("jQueryPath", eiseIntraLibRelativePath."jquery/");
 /** jQuery UI path */
 define ("jQueryUIPath", eiseIntraLibRelativePath."jquery-ui/");
-
-/** List path */
-define ("eiseListAbsolutePath", dirname(eiseIntraAbsolutePath).DIRECTORY_SEPARATOR.'eiseList'.DIRECTORY_SEPARATOR);
-define ("eiseListRelativePath", dirname(eiseIntraRelativePath).'/eiseList/');
-
-/** Grid path */
-define ("eiseGridAbsolutePath", dirname(eiseIntraAbsolutePath).DIRECTORY_SEPARATOR.'eiseGrid2'.DIRECTORY_SEPARATOR);
-define ("eiseGridRelativePath", dirname(eiseIntraRelativePath).'/eiseGrid2/');
 
 
 /** Cookie path for eiseIntra applications */
@@ -86,3 +78,5 @@ define ("imagesRelativePath", commonStuffRelativePath."images/");
 define("prgDT", "/([0-9]{1,2})[\.\-\/]([0-9]{1,2})[\.\-\/]([0-9]{4})/i");
 $prgDT = prgDT;
 define("prgReplaceTo","\\3-\\2-\\1");
+
+//$eiseIntraFlagBuildLess = True;

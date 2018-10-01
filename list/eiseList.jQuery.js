@@ -111,10 +111,6 @@ function eiseList(divEiseList){
         list.form.submit();
     })
     
-    this.thead.find('input.el_special_filter').each(function(){
-        list.initSpecialFilter(this);
-    });
-
     this.form.submit(function(){
         list.saveFilters();
         if (list.conf.doNotSubmitForm==true){
@@ -144,13 +140,15 @@ function eiseList(divEiseList){
 
     this.initFilters();
 
+    this.thead.find('input.el_special_filter').each(function(){
+        list.initSpecialFilter(this);
+    });
+
     var selectedTab = this.initTabs();
 
     if(!selectedTab){
         this.getData(0,null,true);
     }
-
-    
 
 }
 
@@ -703,7 +701,7 @@ eiseList.prototype.getData = function(iOffset, recordCount, flagResetCache, call
             if (typeof(callback)!='undefined'){
                 callback();
             }
-            
+
             if (typeof(list.onLoadComplete)!='undefined'){
                 list.onLoadComplete();
             }
@@ -814,6 +812,10 @@ eiseList.prototype.appendRow = function (index, rw){
     });
     
     tr.attr('id', this.id+'_'+rw.PK);
+
+    tr.find('.el_editable').each(function(){
+        list.initEditable(this);
+    })
     
     tr.removeClass('el_template');
     tr.addClass('el_data');
@@ -822,6 +824,54 @@ eiseList.prototype.appendRow = function (index, rw){
         tr.addClass(rw.c);
     list.tbody.append(tr);
     
+}
+
+/**
+ * This function initialize cell for being editable. It can be called for any field in the list. Basically it is called from list.appendRow() function for '.el_editable' fields.
+ * It binds list.showInput() on click event and organizes data save process with POST $.ajax request to the list script. It comes with DataAction=updateCell.
+ * 
+ * @param DOMObject cell - <td> element to become editable
+ * 
+ * @return nothing
+ */
+eiseList.prototype.initEditable = function(cell){
+    
+    var list = this;
+
+    cell.onclick = function(){
+        var conf = {
+                callback: function(cell, oldVal, newVal){
+                    //save data with ajax:
+                    // determine PK
+                    var pk = $(cell).parent('tr').attr('id').replace(list.id+'_', '');
+                    var field = $(cell).attr('class')
+                        .split(/\s+/)[0]
+                        .replace(list.id+'_','');
+                    $.ajax({ url: location.pathname
+                        , type: 'POST'
+                        , data: {
+                            DataAction: 'updateCell'
+                            , pk: pk
+                            , field: field
+                            , value: newVal
+                        }
+                        , success: function(data, text){
+                            if(jQuery().eiseIntra && data) { $('body').eiseIntra('showMessage', (data.status=='ok' ? data.message : 'ERROR:'+data.message))}
+                        }
+                        , error: function(o, error, errorThrown){
+                            if(jQuery().eiseIntra) { $('body').eiseIntra('showMessage', 'ERROR:'+list.conf['titleERRORBadResponse']+'\r\n'+list.conf['titleTryReload']+'\r\n'+errorThrown)}
+                        }
+                        , dataType: "json"
+                        
+                    });
+                    
+                    
+                    list.hideInput(cell, newVal);
+                }
+            }
+
+            var $cellInput = list.showInput(this, conf);
+    }
 }
 
 /**
@@ -1288,34 +1338,12 @@ eiseList.prototype.initSpecialFilter = function(initiator) {
                     });
                 }catch(e) { console.log('Datepicker not found') };
             });
-            var $inpDateFrom = $divFilterDropdown.find('.el_dateFrom input');
-            var $inpDateTill = $divFilterDropdown.find('.el_dateTill input');
 
-            var strRexData = list.conf.dateRegExs[1].rex+(type=='datetime' 
-                ? ' '+list.conf.dateRegExs[1].rexTime
-                : '');
-            var rexData  = new RegExp('([\<\>]{0,1}\=)'+strRexData, 'gi');
-            var rexDataSingle  = new RegExp('([\<\>]{0,1}\=)('+strRexData+')');
-
-            var arrMatch = $initiator.val().match(rexData);
-            if(arrMatch)
-                $.each(arrMatch, function(i,text){
-                    var m = text.match(rexDataSingle);
-                    switch(m[1]){
-                        case '>=':
-                            $inpDateFrom.val(m[2]);
-                            break;
-                        case '<=':
-                            $inpDateTill.val(m[2]);
-                            break;
-                        case '=':
-                            $inpDateFrom.val(m[2]);
-                            $inpDateTill.val(m[2]);
-                            break;
-                        default:
-                            break;
-                    }
-                })
+            var dates = this.getDatesRange($initiator.val(), type),
+                $inpDateFrom = $divFilterDropdown.find('.el_dateFrom input'),
+                $inpDateTill = $divFilterDropdown.find('.el_dateTill input');
+            $inpDateFrom.val(dates.from);
+            $inpDateTill.val(dates.till);
 
             $divFilterDropdown.dialog(dialogOptions);
 
@@ -1396,6 +1424,38 @@ eiseList.prototype.initSpecialFilter = function(initiator) {
     })
 
     
+}
+
+eiseList.prototype.getDatesRange = function(val, type){
+
+    var list = this,
+        strRexData = list.conf.dateRegExs[1].rex+(type=='datetime' 
+            ? ' '+list.conf.dateRegExs[1].rexTime
+            : ''),
+        rexData  = new RegExp('([\<\>]{0,1}\=)'+strRexData, 'gi'),
+        rexDataSingle  = new RegExp('([\<\>]{0,1}\=)('+strRexData+')'),
+        ret = {from: null, till: null};
+
+    var arrMatch = val.match(rexData);
+    if(arrMatch)
+        $.each(arrMatch, function(i,text){
+            var m = text.match(rexDataSingle);
+            switch(m[1]){
+                case '>=':
+                    ret.from = m[2];
+                    break;
+                case '<=':
+                    ret.till = m[2];
+                    break;
+                case '=':
+                    ret.from = m[2];
+                    ret.till = m[2];
+                    break;
+                default:
+                    break;
+            }
+        });
+    return ret;
 }
 
 eiseList.prototype.debug = function(msg){
@@ -1495,6 +1555,11 @@ getEiseListObject: function(){
 getRowSelection:  function(){
     var list = $(this[0]).data('eiseList').eiseList;
     return list.getRowSelection();
+},
+
+getDatesRange: function(val){
+    var list = $(this[0]).data('eiseList').eiseList;
+    return list.getDatesRange();
 },
 
 editField: function(){

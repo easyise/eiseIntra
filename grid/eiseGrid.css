@@ -49,10 +49,21 @@
 	border-bottom-width: 0;
 }
 
-.eg-table.multiple-subrows tbody.eg-data tr:last-of-type td {
-	border-bottom-color: #999;
-    border-bottom-width: 1px;
-}
+.eg-table.multiple-lines {
+    & thead tr:last-of-type th,
+    & tbody.eg-data tr:last-of-type td
+    {
+        border-bottom-color: #999;
+        border-bottom-width: 1px;
+    }
+    & thead tr:last-of-type th {
+        border-bottom-width: 2px;
+    }
+    & tfoot tr:first-of-type td {
+        border-top-color: #999;
+        border-top-width: 2px;
+    }
+} 
 
 .eg-container tbody:last-of-type tr:last-of-type td {
 	border-bottom-width: 0 !important;
@@ -111,7 +122,6 @@ select.eg-floating-select {
 }
 
 td.eg-checkbox {
-    vertical-align: middle;
     text-align: center;
 }
 
@@ -149,6 +159,18 @@ select.eg-floating-select {
 
 .eg-spinner {
     display: none;
+}
+
+
+.eg-drop-here {
+    display: none;
+}
+
+.eg-ready-to-drop .eg-drop-here {
+    display: table-row-group;
+}
+.eg-ready-to-drop .eg-no-rows {
+    display: none !important;
 }
 
 .eg-controlbar {
