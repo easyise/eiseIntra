@@ -120,7 +120,9 @@ public function getURI( $pkValue = null ){
 	$strPKURI = '';
 
 	foreach ($this->table['PK'] as $pk) {
-	    $strPKURI = ($strPKURI!='' ? '&' : '').urlencode($pk).'='.urlencode($pkValue[$pk]);
+	    $strPKURI = ($strPKURI!='' ? '&' : '').urlencode($pk).'='.(!preg_match('/^\[/', $pkValue[$pk]) // if there's []-value passed, it should return value intact, no urlencoding
+	    ? urlencode($pkValue[$pk])
+	    : $pkValue[$pk]);
 	}
 
 	return $strPKURI;

@@ -281,7 +281,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
             , 'sql' => $entID."ID"
             , 'filter' => $entID."ID"
             , 'order_field' => $entID."Number"
-            , 'href'=> $conf["form"]."?".$this->getURI('['.$this->this->table['PK'][0].']')
+            , 'href'=> $conf["form"]."?".$this->getURI('['.$this->table['PK'][0].']')
             )
         );
     if($this->staID===null){
@@ -519,7 +519,7 @@ function onActionStart($actID, $oldStatusID, $newStatusID){
  * @param int $oldStatusID - status ID to be moved from
  * @param int $newStatusID - destintation status ID 
  */
-function onActionFinish($actID, $oldStatusID, $newStatusID){}
+public function onActionFinish($actID, $oldStatusID, $newStatusID){}
 
 /**
  * This function is called after action is "cancelled", i.e. Action Log record has changed its aclActionPhase=3.
@@ -531,7 +531,7 @@ function onActionFinish($actID, $oldStatusID, $newStatusID){}
  * @param int $oldStatusID - status ID to be moved from
  * @param int $newStatusID - destintation status ID 
  */
-function onActionCancel($actID, $oldStatusID, $newStatusID){}
+public function onActionCancel($actID, $oldStatusID, $newStatusID){}
 
 /**
  * This function is called when user would like to undo given action, before anything's restored.
@@ -543,7 +543,7 @@ function onActionCancel($actID, $oldStatusID, $newStatusID){}
  * @param int $oldStatusID - status ID to be moved from
  * @param int $newStatusID - destintation status ID 
  */
-function onActionUndo($actID, $oldStatusID, $newStatusID){}
+public function onActionUndo($actID, $oldStatusID, $newStatusID){}
 
 /**
  * This function is called when item arrives to given status.
@@ -553,7 +553,7 @@ function onActionUndo($actID, $oldStatusID, $newStatusID){}
  *
  * @param string $staID - status ID
  */
-function onStatusArrival($staID){}
+public function onStatusArrival($staID){}
 
 /**
  * This function is called when item departs from given status.
@@ -563,6 +563,287 @@ function onStatusArrival($staID){}
  *
  * @param string $staID - status ID
  */
-function onStatusDeparture($staID){}
+public function onStatusDeparture($staID){}
 
 }
+
+//////////////////////////////////
+// File routines
+//////////////////////////////////
+
+/**
+ * @category Files
+ */
+public function attachFile($fileNameOriginal, $fileContents, $fileMIME="Application/binary"){
+    
+    $usrID = $this->intra->usrID;
+    $arrSetup = $this->intra->conf;
+    
+    $oSQL = $this->oSQL;
+    
+    $sqlGUID = "SELECT UUID() as GUID";     
+    $fileGUID = $oSQL->get_data($oSQL->do_query($sqlGUID));
+    $filename = Date("Y/m/").$fileGUID.".att";
+        
+    //saving the file
+    if(!file_exists($arrSetup["stpFilesPath"].Date("Y/m")))
+        mkdir($arrSetup["stpFilesPath"].Date("Y/m"), 0777, true);
+    //echo $arrSetup["stpFilesPath"].$filename;
+    $fh = fopen($arrSetup["stpFilesPath"].$filename, "w");
+    fwrite($fh, $fileContents, strlen($fileContents));
+    fclose($fh);
+    
+    //making the record in the database
+    $sqlFileInsert = "
+        INSERT INTO stbl_file (
+        filGUID
+        , filEntityID
+        , filEntityItemID
+        , filName
+        , filNamePhysical
+        , filLength
+        , filContentType
+        , filInsertBy, filInsertDate, filEditBy, filEditDate
+        ) VALUES (
+        '".$fileGUID."'
+        , '{$this->entID}'
+        , '{$this->entItemID}'
+        , '{$fileNameOriginal}'
+        , '$filename'
+        , '".strlen($fileContents)."'
+        , '{$fileMIME}'
+        , '{$this->intra->usrID}', NOW(), '{$this->intra->usrID}', NOW());
+    ";
+ 
+    $oSQL->do_query($sqlFileInsert);
+
+    return $fileGUID;
+
+}
+
+/**
+ * This function obtains file list for current entity item
+ * @category Files
+ */
+public function getFiles($conf = array()){
+
+    $oSQL = $this->oSQL;
+    $entID = $this->entID;
+    $entItemID = $this->entItemID;
+    $intra = $this->intra;
+
+    $sqlFile = "SELECT * FROM stbl_file WHERE filEntityID='$entID' AND filEntityItemID='{$entItemID}'
+    ORDER BY filInsertDate DESC";
+    $rsFile = $oSQL->do_query($sqlFile);
+
+    $arrFIL = array();
+
+    $rs = $this->oSQL->do_query($sqlFile);
+
+    return $this->intra->result2JSON($rs, array_merge(array('arrHref'=>array('filName'=>'popup_file.php?filGUID=[filGUID]')), $conf) );
+
+
+    while ($rw = $this->oSQL->fetch_array($rs)) {
+        if(!$rw['usrID']) $rw['usrName'] = $rw['filInsertBy'];
+        $fil = array(
+            'filGUID' => $rw['filGUID']
+            , 'filName' => array(
+                    'h'=>"popup_file.php?filGUID=".urlencode($rw["filGUID"])
+                    , 'v'=>$rw['filName']
+                    )
+            , 'filContentType' => $rw['filContentType']
+            , 'filLength' => $rw['filLength']
+            , 'filEditBy' => $this->intra->translate('by ').$this->intra->getUserData($rw['filInsertBy'])
+            , 'filEditDate' => date("{$this->intra->conf['dateFormat']} {$this->intra->conf['timeFormat']}"
+                , strtotime($rw["filInsertDate"]))
+            );
+        $arrFIL[] = $fil;  
+    }
+        
+    $this->oSQL->free_result($rs);
+
+    return $arrFIL;
+
+}
+
+static function updateFiles($DataAction){
+    
+    GLOBAL $intra;
+    
+    $oSQL = $intra->oSQL;
+    
+    $usrID = $intra->usrID;
+    $arrSetup = $intra->conf;
+    
+    $da = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
+    
+switch ($da) {
+
+    case "deleteFile":
+
+        $oSQL->q("START TRANSACTION");
+        $rwFile = $oSQL->f("SELECT * FROM stbl_file WHERE filGUID='{$_GET["filGUID"]}'");
+
+        $filesPath = self::checkFilePath($arrSetup["stpFilesPath"]);
+
+        @unlink($filesPath.$rwFile["filNamePhysical"]);
+
+        $oSQL->do_query("DELETE FROM stbl_file WHERE filGUID='{$_GET["filGUID"]}'");
+        $nFiles = 
+        $oSQL->q("COMMIT");
+
+        if($rwFile)
+            try {
+                $item = new eiseEntityItem($oSQL, $intra, $rwFile['filEntityID'], $rwFile['filEntityItemID']);
+            } catch (Exception $e) {}
+
+        $msg = $intra->translate("Deleted files: %s", $nFiles);
+
+        if($_SERVER['HTTP_X_REQUESTED_WITH']=='XMLHttpRequest' ){
+            $intra->json( 'ok', $msg, ($item ? $item->getFiles() : array()) );
+        }
+
+        $intra->redirect($msg, ($item ? self::getFormURL($item->conf, $item->item) : ($_GET["referer"] ? $_GET["referer"] : 'about.php') ));
+        
+    
+    case "attachFile":
+        
+        $entID = $_POST["entID_Attach"];
+
+        $err = '';
+        /*
+        print_r($_POST);
+        print_r($_FILES);
+        print_r($_SERVER);
+        die();
+        //*/
+
+        try {
+            $filesPath = self::checkFilePath($arrSetup["stpFilesPath"]);
+        } catch (Exception $e) {
+            $error = $intra->translate("ERROR: file upload error: %s", $e->getMessage());
+        }
+
+        try {
+            $item = new eiseEntityItem( $oSQL, $intra, $entID, $_POST['entItemID_Attach'] );
+        } catch (Exception $e) {}
+
+        $nFiles = 0;
+        if($error==''){
+
+            foreach($_FILES['attachment']['error'] as $ix => $err){
+                if($err!=0) 
+                    continue;
+
+                $f = array(
+                    'name'=> $_FILES['attachment']['name'][$ix]
+                    , 'type' => $_FILES['attachment']['type'][$ix]
+                    , 'size' => $_FILES['attachment']['size'][$ix]
+                    , 'tmp_name' =>  $_FILES['attachment']['tmp_name'][$ix]
+                    );
+
+                $oSQL->q("START TRANSACTION");
+                
+                $fileGUID = $oSQL->d("SELECT UUID() as GUID");
+                $filename = Date("Y/m/").$fileGUID.".att";
+                                    
+                if(!file_exists($filesPath.Date("Y/m")))
+                    mkdir($filesPath.Date("Y/m"), 0777, true);
+                
+                copy($f["tmp_name"], $filesPath.$filename);
+                
+                //making the record in the database
+                $sqlFileInsert = "
+                    INSERT INTO stbl_file (
+                    filGUID
+                    , filEntityID
+                    , filEntityItemID
+                    , filName
+                    , filNamePhysical
+                    , filLength
+                    , filContentType
+                    , filInsertBy, filInsertDate, filEditBy, filEditDate
+                    ) VALUES (
+                    '".$fileGUID."'
+                    , '{$entID}'
+                    , '{$_POST['entItemID_Attach']}'
+                    , '{$f["name"]}'
+                    , '$filename'
+                    , '{$f["size"]}'
+                    , '{$f["type"]}'
+                    , '{$intra->usrID}', NOW(), '{$intra->usrID}', NOW());
+                ";
+                
+                $oSQL->q($sqlFileInsert);
+                
+                $oSQL->q("COMMIT");
+
+                $nFiles++;
+            }
+        }
+        
+
+        $msg = ($error 
+            ? $error 
+            : ($nFiles ? '' : 'ERROR: ').$intra->translate("Files uploaded: %s ", $nFiles));
+        
+        if($_SERVER['HTTP_X_REQUESTED_WITH']=='XMLHttpRequest' ){
+            $intra->json( ($error!='' ? 'error' : 'ok'), $msg, ($item ? $item->getFiles() : array()) );
+        }
+
+        $intra->redirect($msg, ($item 
+            ? self::getFormURL($item->conf, $item->item) 
+            : $_SERVER["PHP_SELF"]."?{$this->entItemIDField}=".urlencode($_POST["entItemID_Attach"] )
+            )
+        );
+
+       
+    default: break;
+}
+
+}
+
+
+/**
+ * @category Files
+ */
+public static function checkFilePath($filesPath){
+    if(!$filesPath)
+        throw new Exception('File path not set');
+
+    if($filesPath[strlen($arrSetup['stpFilesPath'])-1]!=DIRECTORY_SEPARATOR)
+        $filesPath=$filesPath.DIRECTORY_SEPARATOR;
+
+    if(!is_dir($filesPath))
+        throw new Exception('File path '.$filesPath.' is not a directory');
+
+    return $filesPath;
+}
+
+/**
+ * @category Files
+ */
+public static function getFile($filGUID, $filePathVar = 'stpFilesPath'){
+
+    GLOBAL $intra;
+    $oSQL = $intra->oSQL;
+
+    $sqlFile = "SELECT * FROM stbl_file WHERE filGUID=".$oSQL->e($filGUID);
+    $rsFile = $oSQL->do_query($sqlFile);
+
+    if ($oSQL->n($rsFile)==0)
+        throw new Exception('File '.$filGUID.' not found');
+
+    $rwFile = $oSQL->fetch_array($rsFile);
+
+    if(file_exists($rwFile["filNamePhysical"]))
+        $fullFilePath = $rwFile["filNamePhysical"];
+    else {
+        $filesPath = self::checkFilePath($intra->conf[$filePathVar]);
+        $fullFilePath = $filesPath.$rwFile["filNamePhysical"];
+    }
+        
+    $intra->file($rwFile["filName"], $rwFile["filContentType"], $fullFilePath);
+
+}
+
