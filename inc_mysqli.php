@@ -612,7 +612,12 @@ class eiseSQL extends mysqli{
         }
         
         $arrColsIX = Array();
-        foreach($arrCols as $ix => $col){ $arrColsIX[$col["Field"]] = $col["Field"]; }
+        $colTypes = array();
+        foreach($arrCols as $ix => $col){ 
+            $arrColsIX[$col["Field"]] = $col["Field"]; 
+            if( $col["DataType"]!='activity_stamp' )
+                $colTypes[$col["Field"]] =  $col["DataType"];
+        }
         
         $strPKVars = $strPKCond = $strPKURI = '';
         foreach($arrPK as $pk){
@@ -633,6 +638,7 @@ class eiseSQL extends mysqli{
         $arrTable['table'] = $tblName;
         $arrTable['name'] = preg_replace('/^tbl_/', '', $tblName);
         $arrTable['columns_index'] = $arrColsIX;
+        $arrTable['columns_types'] = $colTypes;
         
         $arrTable["PKVars"] = $strPKVars;
         $arrTable["PKCond"] = $strPKCond;

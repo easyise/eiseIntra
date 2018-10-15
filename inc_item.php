@@ -16,8 +16,19 @@ public $conf = array(
 	, 'flagFormShowAllFields' => false
 	);
 
+/**
+ * Basic array with item data.
+ */
 public $item = array();
 
+/**
+ * Historical item data obtained on initialization, before any changes made to the object.
+ */
+public $item_before = array();
+
+/**
+ * The array with the table information.
+ */
 public $table = null;
 
 public function __construct($id = null,  $conf = array() ){
@@ -79,9 +90,12 @@ public function getIDFromQueryString(){
 /**
  * This function returns SQL search condition basing on primary keys. 
  */
-public function getSQLWhere($pkValue){
+public function getSQLWhere($pkValue = null){
 
-	if(count(array($pkValue))!=count($this->table['PK']))
+	if(!$pkValue)
+		$pkValue = $this->id;
+
+	if(count(array($pkValue))!=count($this->table['PK']) || !$pkValue)
 		throw new Exception("Primary key error", 500);
 
 	if( count($this->table['PK'])==1 && !is_array($pkValue) )
@@ -154,8 +168,10 @@ public function getData($pk = null){
 
 	$rw = $oSQL->f($rs);
 
-	if($this->id)
+	if($this->id){
+		$this->item_before = $rw;
 		$this->item = $rw;
+	}
 
 	return $rw;
 
@@ -174,7 +190,7 @@ public function form( $fields = null, $conf = array() ){
 			)
 		);
 
-	$conf = array_merge($conf, array('id'=>$this->table['prefix'], 'flagAddJavaScript'=>True));
+	$conf = array_merge( array('id'=>$this->table['prefix'], 'flagAddJavaScript'=>True), $conf);
 
 	return $this->intra->form($this->conf['form'], 'update', $fields, 'POST', $conf);
 
@@ -273,6 +289,53 @@ public function delete(){
 
 	$this->redirectTo = $this->conf['list'];
 	$this->msgToUser = $intra->translate('%s is deleted', $this->conf['title'.$intra->local]);
+}
+
+/**
+ * This function transforms data from the input array into SQL ans saves it. Also it calculates delta and returns it.
+ */
+public function updateTable($nd){
+
+	$sqlFields = '';
+
+	$values = array();
+	$nd_src = $nd;
+
+	// 1. convert all data from user locale to SQL locale
+	// missing fields in $nd will be skipped
+	foreach ($nd as $field => $value) {
+		if(!isset($this->table['columns_index'][$field]))
+			unset($nd[$field]);
+	}
+
+	$nd_sql = $this->intra->arrPHP2SQL($nd, $this->table['columns_types']);
+
+	foreach($nd_sql as $field=>$value){
+		if(in_array($field, $this->table['PK']))
+			continue;
+		if( $value === null ){
+			$sqlFields .= "\n, {$field}=NULL";
+			continue;
+		}
+		switch($this->table['columns_types'][$field]){
+			case 'real':
+				$sqlFields .= "\n, {$field}=".(double)$value;
+				break;
+			case 'integer':
+				$sqlFields .= "\n, {$field}=".(integer)$value;
+				break;
+			default:
+				$sqlFields .= "\n, {$field}=".$this->oSQL->e($value);
+				break;
+		}
+	}
+
+	$sql = "UPDATE {$this->conf['table']} SET ".($this->table['hasActivityStamp']
+		? " {$this->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->conf['prefix']}EditDate=NOW() {$sqlFields}"
+		: ltrim($sqlFields, ' ,'))
+		."\n WHERE ".$this->getSQLWhere();
+	
+	$this->oSQL->q($sql);
 }
 
 }

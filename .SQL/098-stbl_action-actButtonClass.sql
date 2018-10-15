@@ -1,0 +1,1 @@
+ALTER TABLE stbl_action ADD COLUMN actButtonClass varchar(255) NULL  COMMENT 'Button CSS class, eg "ss_wrench" or "fa-file-o"' AFTER actTitlePastLocal;

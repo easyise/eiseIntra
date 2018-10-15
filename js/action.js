@@ -2,19 +2,26 @@
 
 var ajaxActionURL = "ajax_details.php";
 
-var actionChoosen = function($initiator, fnCallback){
+var actionChoosen = function($initiator, $form, fnCallback){
 
-    var $form = $initiator.parents('form').first(),
-        entID = $form.eiseIntraForm('value', 'entID'),
+    var entID = $form.eiseIntraForm('value', 'entID'),
         entItemID_field = entID+'ID',
-        entItemID = $form.eiseIntraForm('value', entItemID_field)
+        entItemID = $form.eiseIntraForm('value', entItemID_field),
+        strActData = $initiator[0].dataset.action,
+        actData = (strActData 
+            ? $.parseJSON(strActData) 
+            : {actID: ( $initiator.attr('type')=='radio' ? $initiator.val() : $initiator.attr('act_id') ),
+                aclOldStatusID: $initiator.attr('orig'),
+                aclNewStatusID: $initiator.attr('dest'),
+            });
 
-        
-    var actID = ( $initiator.attr('type')=='radio' ? $initiator.val() : $initiator.attr('act_id') );
+    console.log(location.search)
 
-    var strURL = ajaxActionURL+"?DataAction=getActionDetails&actID="+encodeURIComponent(actID)
+    var strURL = ( strActData ? location.pathname+location.search+'&' : ajaxActionURL+'?' )+"DataAction=getActionDetails&actID="+encodeURIComponent(actData.actID)
         +'&entID='+encodeURIComponent(entID)
         +'&'+entItemID_field+'='+encodeURIComponent(entItemID);
+
+    console.log(strURL)
     
     var flagAutocomplete = $initiator.attr('autocomplete')==undefined ? true : false;
     
@@ -35,16 +42,12 @@ var actionChoosen = function($initiator, fnCallback){
                         
                 });
 
-            var oRet = {
-                actID: actID
-                , aclOldStatusID: $initiator.attr('orig')
-                , aclNewStatusID: $initiator.attr('dest')
-                //, mandatory: strMandatorySelector
-                //, flagAutocomplete: flagAutocomplete
-                , act: $.extend(data.act, {mandatorySelector: strMandatorySelector})
-                , atr: data.atr
-                
-            };
+            var oRet = $.extend(actData, {
+                //mandatory: strMandatorySelector,
+                //flagAutocomplete: flagAutocomplete,
+                act: $.extend(data.act, {mandatorySelector: strMandatorySelector}),
+                atr: data.atr,
+            });
 
             fnCallback(oRet);
     });
@@ -96,7 +99,7 @@ var eiseIntraActionSubmit = function(event, $form){
 
         var $initiatorButton = $(this);
         
-        actionChoosen($(this), function(o){
+        actionChoosen($(this), $form, function(o){
 
             $form.eiseIntraForm("makeMandatory", {
                 strMandatorySelector: o.act.mandatorySelector
@@ -256,6 +259,7 @@ init: function( options ) {
     return this.each(function(){
          
         var $this = $(this),
+            $form = $(this),
             data = $this.data('eiseIntraForm');
         
         var entID = $this.find('#entID').val();
@@ -284,7 +288,7 @@ init: function( options ) {
         /********** initialize radio buttons ***********/
         $this.find('fieldset.eiseIntraActions input.eiseIntraRadio').click(function(){
             
-            actionChoosen($(this), function(o){
+            actionChoosen($(this), $form, function(o){
 
                 $this.eiseIntraForm("makeMandatory", {
                     strMandatorySelector: o.act.mandatorySelector
@@ -294,6 +298,8 @@ init: function( options ) {
         })
         /********** initialize submit buttons ***********/
         $this.find('input.eiseIntraActionSubmit').click( function(ev) { eiseIntraActionSubmit.call(this, ev, $this) });
+
+        $('a[href="#ei_action"]').click( function(ev) { console.log('qq');eiseIntraActionSubmit.call(this, ev, $this); return false; });
 
         /********** initialize Start/Finish/Cancel buttons ***********/
         $this.find(".eiseIntraActionButton").bind("click", function(){
@@ -396,7 +402,8 @@ checkAction: function(callback){
     var flagUpdateMultiple = conf.flagUpdateMultiple;
     var entID = $(this).data('eiseIntraForm').entID;
     var entItemIDInput = $(this).find('#'+entID+'ID');
-    var $this = $(this);
+    var $this = $(this),
+        $form = $(this);
     
     // 1. determine what action is called
     // if old action 
@@ -426,7 +433,7 @@ checkAction: function(callback){
             $radios.each(function(){
                 if (this.checked){
                     oRadio = $(this);
-                    actionChoosen($(this), function(o){
+                    actionChoosen($(this), $form, function(o){
                         
                         if (o.act.actFlagComment=='1'){
                             var aclComments = prompt('Please comment', '');

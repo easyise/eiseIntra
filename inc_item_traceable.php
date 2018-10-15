@@ -4,10 +4,15 @@ include_once "inc_action.php";
 class eiseItemTraceable extends eiseItem {
 
 const sessKeyPrefix = 'ent:';
+const statusField = 'StatusID';
+
+protected $defaultDataToObtain = array('Text', 'ACL', 'STL', 'files', 'messages');
 	
 public function __construct($id = null,  $conf = array() ){
 
-	GLOBAL $intra, $oSQL;
+	GLOBAL $intra, $oSQL, $arrJS;
+
+    $arrJS[] = eiseIntraJSPath."action.js";
 
 	$this->conf = array_merge($this->conf, $conf);
 
@@ -31,17 +36,30 @@ public function __construct($id = null,  $conf = array() ){
 	$this->conf['table'] = ($conf['table'] ? $conf['table'] : $this->conf['entTable']);
 	$this->conf['form'] = ($conf['form'] ? $conf['form'] : $this->conf['name'].'_form.php');
 	$this->conf['list'] = ($conf['list'] ? $conf['list'] : $this->conf['name'].'_list.php');
+    $this->conf['statusField'] = $this->conf['prefix'].self::statusField;
 	$this->conf['flagFormShowAllFields'] = false;
 
 	parent::__construct($id, $this->conf);
 
     if($this->id){
-        $this->item_before = $this->item;    
+        $this->item_before = $this->item; 
+        $this->staID = $this->item[$this->conf['statusField']];
     }
     
 
-	$this->intra->dataRead('getActionDetails');
-	$this->intra->dataAction(array('insert', 'update', 'delete'));
+	$this->intra->dataRead('getActionDetails', $this);
+	$this->intra->dataAction(array('insert', 'update', 'delete', 'attachFile', 'deleteFile', 'sendMessage'), $this);
+
+}
+
+public function update($nd){
+
+    parent::update($nd);
+
+    // 1. update master table
+    $this->updateTable($nd);
+
+    // 2. do the action
 
 }
 
@@ -455,13 +473,112 @@ public function doAction($oAct){
     $oAct->execute();
 }
 
-public function getData(){
+public function getData($id = null){
+    
+    parent::getData($id);
 
+    $this->getAllData();
+
+    return $this->item;
+}
+
+function getAllData($toRetrieve = null){
+    
+    if(!$this->id)
+        return array();
+
+    if($toRetrieve===null)
+        $toRetrieve = $this->defaultDataToObtain;
+
+    if ($this->flagArchive) {
+        $arrData = json_decode($this->item["{$this->entID}Data"], true);
+        $this->item = array_merge($this->item, $arrData);
+        return $this->item;
+    }
+    
+    //   - Master table is $this->item
+    // attributes and combobox values
+    if($this->item["{$this->entID}StatusID"]!==null)
+        $this->staID = (int)$this->item["{$this->entID}StatusID"];
+
+    if(in_array('Master', $toRetrieve))
+        $this->getData();
+
+    if(in_array('Text', $toRetrieve))    
+        foreach($this->conf["ATR"] as $atrID=>$rwATR){
+            
+            if (in_array($rwATR["atrType"], Array("combobox", "ajax_dropdown"))){
+                $this->item[$rwATR["atrID"]."_text"] = !isset($this->item[$rwATR["atrID"]."_text"]) 
+                    ? $this->getDropDownText($rwATR, $this->item[$rwATR["atrID"]])
+                    : $this->item[$rwATR["atrID"]."_text"];
+            }
+
+        }
+    
+    // collect incomplete/cancelled actions
+    if(in_array('ACL', $toRetrieve)) {
+        $this->item["ACL"]  = Array();
+        $sqlACL = "SELECT * FROM stbl_action_log 
+                WHERE aclEntityItemID='{$this->id}'
+                ORDER BY aclInsertDate DESC, aclOldStatusID DESC";
+        $rsACL = $this->oSQL->do_query($sqlACL);
+        while($rwACL = $this->oSQL->fetch_array($rsACL)){
+            if($rwACL['aclActionPhase']<=2)
+                $this->item["ACL"][$rwACL["aclGUID"]] = $this->getActionData($rwACL["aclGUID"]);
+            else 
+                $this->item["ACL_Cancelled"][$rwACL["aclGUID"]] = $this->getActionData($rwACL["aclGUID"]);
+        }    
+    }    
+    
+    // collect status log and nested actions
+    if(in_array('STL', $toRetrieve)){
+        $this->item["STL"] = Array();
+        $this->getStatusData(null);
+    }
+    
+    //comments
+    if(in_array('comments', $toRetrieve)){
+        $this->item["comments"] = Array();
+        $sqlSCM = "SELECT * 
+        FROM stbl_comments 
+        WHERE scmEntityItemID='{$this->id}' ORDER BY scmInsertDate DESC";
+        $rsSCM = $this->oSQL->do_query($sqlSCM);
+        while ($rwSCM = $this->oSQL->f($rsSCM)){
+            $this->item["comments"][$rwSCM["scmGUID"]] = $rwSCM;
+        }
+    }
+    
+    //files
+    if(in_array('files', $toRetrieve)){
+        $this->item["files"] = Array();
+        $sqlFile = "SELECT * FROM stbl_file WHERE filEntityID='{$this->entID}' AND filEntityItemID='{$this->id}'
+        ORDER BY filInsertDate DESC";
+        $rsFile = $this->oSQL->do_query($sqlFile);
+        while ($rwFIL = $this->oSQL->f($rsFile)){
+            $this->item["files"][$rwFIL["filGUID"]] = $rwFIL;
+        }
+    }
+    
+    
+    //message
+    if(in_array('message', $toRetrieve)){
+        $this->item["messages"] = Array();//not yet
+    }
+    
+    
+    //echo "<pre>";
+    //print_r($this->item);
+    //die();
+
+    
+    return $this->item;
+    
 }
 
 public function refresh(){
     
 }
+
 
 /**
  * This function is called after action is "planned", i.e. record is added to the Action Log. 
@@ -495,7 +612,7 @@ function onActionStart($actID, $oldStatusID, $newStatusID){
         return true;
     
     if ($oldStatusID!=$this->item[$this->entID."StatusID"])
-        throw new Exception("Action {$this->arrAction["actTitle"]} cannot be started for {$this->entItemID} because of its status (".$this->item[$this->entID."StatusID"].")");
+        throw new Exception("Action {$this->arrAction["actTitle"]} cannot be started for {$this->id} because of its status (".$this->item[$this->entID."StatusID"].")");
 
     if (($oldStatusID!==$newStatusID 
           && $newStatusID!==""
@@ -565,6 +682,114 @@ public function onStatusArrival($staID){}
  */
 public function onStatusDeparture($staID){}
 
+
+public function form($fields = '',  $arrConfig=Array()){
+
+    $hiddens .= $this->intra->field(null, 'entID', $this->entID, array('type'=>'hidden'));
+    $hiddens .= $this->intra->field(null, 'aclOldStatusID', $this->staID , array('type'=>'hidden'));
+    $hiddens .= $this->intra->field(null, 'aclNewStatusID',  "" , array('type'=>'hidden'));
+    $hiddens .= $this->intra->field(null, 'actID', "", array('type'=>'hidden'));
+    $hiddens .= $this->intra->field(null, 'aclGUID',  "", array('type'=>'hidden'));
+    $hiddens .= $this->intra->field(null, 'aclToDo',  "", array('type'=>'hidden'));
+    $hiddens .= $this->intra->field(null, 'aclComments',  "", array('type'=>'hidden'));
+
+    $form = parent::form($hiddens.$fields, $arrConfig);
+
+    return $form;
+
+}
+
+public function arrActionButtons(){
+
+    GLOBAL $arrActions;
+   
+    $oSQL = $this->oSQL;
+    $strLocal = $this->local;
+    
+    if (!$this->intra->arrUsrData["FlagWrite"])
+        return;
+
+    if($this->staID!==null){
+        if(is_array($this->conf['STA'][$this->staID]['ACT'])){
+            foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
+
+                if(count(array_intersect($this->intra->arrUsrData['roleIDs'], (array)$rwAct['RLA']))==0)
+                    continue;
+
+                $title = $rwAct["actTitle{$this->intra->local}"];
+                  
+                $strID = "btn_".$rwAct["actID"]."_".
+                      $rwAct["actOldStatusID"]."_".
+                      $rwAct["actNewStatusID"];
+
+                $arrActions[] = Array ("title" => $title
+                       , "action" => "#ei_action"
+                       , 'id' => $strID
+                       , "dataset" => array("action"=>array('actID'=>$rwAct["actID"]
+                            , 'aclOldStatusID' => $rwAct["actOldStatusID"]
+                            , 'aclNewStatusID' => $rwAct["actNewStatusID"])
+                       )
+                       , "class" => "{$rwAct["actButtonClass"]} "
+                    );
+
+                /* $strOut .= "<input type='".($rwAct['actID']==3 ? 'button' : 'submit')."' class=\"".($rwAct['actID']==3 ? ' eiseIntraDelete' : 'eiseIntraActionSubmit')."\" name='actButton' id='$strID' value='"
+                        .htmlspecialchars($title)."'".
+                        " act_id=\"{$rwAct["actID"]}\" orig=\"{$rwAct["actOldStatusID"]}\" dest=\"{$rwAct["actNewStatusID"]}\">";
+                        */
+                  
+            }
+        }
+    } else {
+        $strOut .= '<input type="submit" class="eiseIntraActionSubmit" name="actButton\" id="btn_1__0" value="'
+                        .$this->intra->translate('Create').'"'.
+                        ' act_id="1" orig="" dest="0">';
+    }
+
+
+   
+   return $strOut;
+}
+
+public function showActionButtons(){
+   
+    $oSQL = $this->oSQL;
+    $strLocal = $this->local;
+    
+    if (!$this->intra->arrUsrData["FlagWrite"])
+        return;
+
+    if($this->staID!==null){
+        if(is_array($this->conf['STA'][$this->staID]['ACT'])){
+            foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
+
+                if(count(array_intersect($this->intra->arrUsrData['roleIDs'], (array)$rwAct['RLA']))==0)
+                    continue;
+
+                $title = $rwAct["actTitle{$this->intra->local}"];
+                  
+                $strID = "btn_".$rwAct["actID"]."_".
+                      $rwAct["actOldStatusID"]."_".
+                      $rwAct["actNewStatusID"];
+
+                $strOut .= "<input type='".($rwAct['actID']==3 ? 'button' : 'submit')."' class=\"".($rwAct['actID']==3 ? ' eiseIntraDelete' : 'eiseIntraActionSubmit')."\" name='actButton' id='$strID' value='"
+                        .htmlspecialchars($title)."'".
+                        " act_id=\"{$rwAct["actID"]}\" orig=\"{$rwAct["actOldStatusID"]}\" dest=\"{$rwAct["actNewStatusID"]}\">";
+                  
+            }
+        }
+    } else {
+        $strOut .= '<input type="submit" class="eiseIntraActionSubmit" name="actButton\" id="btn_1__0" value="'
+                        .$this->intra->translate('Create').'"'.
+                        ' act_id="1" orig="" dest="0">';
+    }
+
+
+   
+   return $strOut;
+}
+
+function getActionDetails($q){
+    die('<pre>'.var_export($q, true));
 }
 
 //////////////////////////////////
@@ -574,50 +799,75 @@ public function onStatusDeparture($staID){}
 /**
  * @category Files
  */
-public function attachFile($fileNameOriginal, $fileContents, $fileMIME="Application/binary"){
+public function attachFile($nd){
     
-    $usrID = $this->intra->usrID;
-    $arrSetup = $this->intra->conf;
-    
+    $entID = $this->conf['entID'];
     $oSQL = $this->oSQL;
-    
-    $sqlGUID = "SELECT UUID() as GUID";     
-    $fileGUID = $oSQL->get_data($oSQL->do_query($sqlGUID));
-    $filename = Date("Y/m/").$fileGUID.".att";
-        
-    //saving the file
-    if(!file_exists($arrSetup["stpFilesPath"].Date("Y/m")))
-        mkdir($arrSetup["stpFilesPath"].Date("Y/m"), 0777, true);
-    //echo $arrSetup["stpFilesPath"].$filename;
-    $fh = fopen($arrSetup["stpFilesPath"].$filename, "w");
-    fwrite($fh, $fileContents, strlen($fileContents));
-    fclose($fh);
-    
-    //making the record in the database
-    $sqlFileInsert = "
-        INSERT INTO stbl_file (
-        filGUID
-        , filEntityID
-        , filEntityItemID
-        , filName
-        , filNamePhysical
-        , filLength
-        , filContentType
-        , filInsertBy, filInsertDate, filEditBy, filEditDate
-        ) VALUES (
-        '".$fileGUID."'
-        , '{$this->entID}'
-        , '{$this->entItemID}'
-        , '{$fileNameOriginal}'
-        , '$filename'
-        , '".strlen($fileContents)."'
-        , '{$fileMIME}'
-        , '{$this->intra->usrID}', NOW(), '{$this->intra->usrID}', NOW());
-    ";
- 
-    $oSQL->do_query($sqlFileInsert);
 
-    return $fileGUID;
+    $err = '';
+
+    try {
+        $filesPath = self::checkFilePath($this->intra->conf["stpFilesPath"]);
+    } catch (Exception $e) {
+        $error = $this->intra->translate("ERROR: file upload error: %s", $e->getMessage());
+    }
+
+    $guids = array();
+    if($error==''){
+
+        foreach($_FILES['attachment']['error'] as $ix => $err){
+            if($err!=0) 
+                continue;
+
+            $f = array(
+                'name'=> $_FILES['attachment']['name'][$ix]
+                , 'type' => $_FILES['attachment']['type'][$ix]
+                , 'size' => $_FILES['attachment']['size'][$ix]
+                , 'tmp_name' =>  $_FILES['attachment']['tmp_name'][$ix]
+                );
+
+            $filGUID = $oSQL->d("SELECT UUID() as GUID");
+            $filename = Date("Y/m/").$filGUID.".att";
+                                
+            if(!file_exists($filesPath.Date("Y/m")))
+                mkdir($filesPath.Date("Y/m"), 0777, true);
+            
+            copy($f["tmp_name"], $filesPath.$filename);
+            
+            //making the record in the database
+            $sqlFileInsert = "
+                INSERT INTO stbl_file (
+                filGUID
+                , filEntityID
+                , filEntityItemID
+                , filName
+                , filNamePhysical
+                , filLength
+                , filContentType
+                , filInsertBy, filInsertDate, filEditBy, filEditDate
+                ) VALUES (
+                '".$filGUID."'
+                , '{$entID}'
+                , '{$this->id}'
+                , '{$f["name"]}'
+                , '$filename'
+                , '{$f["size"]}'
+                , '{$f["type"]}'
+                , '{$this->intra->usrID}', NOW(), '{$this->intra->usrID}', NOW());
+            ";
+            
+            $oSQL->q($sqlFileInsert);
+            
+            $guids[] = $filGUID;
+        }
+    }
+    
+    $this->redirectTo = $this->conf['form'].'?'.$this->getURI();
+    $this->msgToUser = ($error 
+        ? $error 
+        : (count($guids) ? '' : 'ERROR: ').$this->intra->translate("Files uploaded: %s ", count($guids)));
+
+    return (count($guids)>1 ? $guids : $guids[0]);
 
 }
 
@@ -629,7 +879,7 @@ public function getFiles($conf = array()){
 
     $oSQL = $this->oSQL;
     $entID = $this->entID;
-    $entItemID = $this->entItemID;
+    $entItemID = $this->id;
     $intra = $this->intra;
 
     $sqlFile = "SELECT * FROM stbl_file WHERE filEntityID='$entID' AND filEntityItemID='{$entItemID}'
@@ -793,7 +1043,7 @@ switch ($da) {
 
         $intra->redirect($msg, ($item 
             ? self::getFormURL($item->conf, $item->item) 
-            : $_SERVER["PHP_SELF"]."?{$this->entItemIDField}=".urlencode($_POST["entItemID_Attach"] )
+            : $_SERVER["PHP_SELF"]."?{$this->idField}=".urlencode($_POST["entItemID_Attach"] )
             )
         );
 
@@ -844,6 +1094,126 @@ public static function getFile($filGUID, $filePathVar = 'stpFilesPath'){
     }
         
     $intra->file($rwFile["filName"], $rwFile["filContentType"], $fullFilePath);
+
+}
+
+function getStatusData($stlDepartureActionID){
+    
+    static $nIterations;
+
+    $nIterations = ($stlDepartureActionID===null ? 0 : $nIterations);
+
+    $oSQL = $this->oSQL;
+    $entID = $this->entID;
+    
+    $arrRet = Array();
+    
+    $sqlSTL = "SELECT STL.*
+            , STL_PREVS.stlDepartureActionID AS stlDepartureActionID_prevs
+        FROM stbl_status_log STL
+        LEFT OUTER JOIN stbl_status_log STL_PREVS 
+            ON STL.stlEntityItemID=STL_PREVS.stlEntityItemID 
+                AND STL.stlEntityID=STL_PREVS.stlEntityID 
+                AND STL.stlArrivalActionID=STL_PREVS.stlDepartureActionID
+        WHERE STL.stlEntityItemID=".$oSQL->e($this->id)." AND STL.stlEntityID=".$oSQL->e($this->entID)."
+            AND IFNULL(STL.stlArrivalActionID, '')<>IFNULL(STL.stlDepartureActionID,'')
+            AND STL.stlDepartureActionID ".($stlDepartureActionID===null ? "IS NULL" : "='{$stlDepartureActionID}'");
+    $rsSTL = $oSQL->do_query($sqlSTL);
+    if ($oSQL->n($rsSTL) == 0) return Array();
+    
+    $rwSTL = $oSQL->f($rsSTL);
+
+    //$rwSTL = @array_merge($this->conf['STA'][$rwSTL['stlStatusID']],  $rwSTL);
+        
+    $arrRet = $rwSTL;
+    
+    $stlATD = ($rwSTL["stlATD"]=="" ? date("Y-m-d") : $rwSTL["stlATD"]);   
+    $sqlNAct = "SELECT aclGUID FROM stbl_action_log 
+       WHERE (DATE(aclATA) BETWEEN DATE('{$rwSTL["stlATA"]}') AND DATE('{$stlATD}'))
+         AND aclOldStatusID='{$rwSTL["stlStatusID"]}'
+         AND aclOldStatusID=aclNewStatusID
+       AND aclActionPhase=2
+       AND aclActionID<>2
+       AND aclEntityItemID='{$this->id}'
+       ORDER BY aclInsertDate DESC";
+    //echo "<pre>".$sqlNAct."</pre>";
+    $rsNAct = $oSQL->do_query($sqlNAct);
+    while ($rwNAct = $oSQL->fetch_array($rsNAct)){
+        $arrRet["ACL"][$rwNAct["aclGUID"]] = $this->getActionData($rwNAct["aclGUID"]);
+    }
+    
+    $arrRet["stlArrivalAction"] = $this->getActionData($rwSTL["stlArrivalActionID"]);
+        
+    $this->item["STL"][$rwSTL["stlGUID"]] = $arrRet;
+
+    $nIterations++;
+
+    if ($arrRet['stlDepartureActionID_prevs'] && $nIterations<MAX_STL_LENGTH){
+        $this->getStatusData($arrRet['stlDepartureActionID_prevs']);
+    }
+    
+}
+
+public function getActionData($aclGUID){
+    
+    $oSQL = $this->oSQL;
+    $entID = $this->entID;
+    
+    $arrRet = Array();
+    
+    if (!$aclGUID) return;
+    
+    $sqlACT = "SELECT ACL.*
+       FROM stbl_action_log ACL
+       WHERE aclGUID='{$aclGUID}'";
+    
+    $rwACT = $oSQL->fetch_array($oSQL->do_query($sqlACT));
+
+    //$rwACT = @array_merge($this->conf['ACT'][$rwACT['aclActionID']], $rwACT);
+    $rwACT = @array_merge($rwACT, array(
+        'staID_Old' => $this->conf['STA'][$rwACT['aclOldStatusID']]['staID']
+        , 'staTitle_Old' => $this->conf['STA'][$rwACT['aclOldStatusID']]['staTitle']
+        , 'staTitleLocal_Old' => $this->conf['STA'][$rwACT['aclOldStatusID']]['staTitleLocal']
+        ));
+    $rwACT = @array_merge($rwACT, array(
+        'staID_New' => $this->conf['STA'][$rwACT['aclNewStatusID']]['staID']
+        , 'staTitle_New' => $this->conf['STA'][$rwACT['aclNewStatusID']]['staTitle']
+        , 'staTitleLocal_New' => $this->conf['STA'][$rwACT['aclNewStatusID']]['staTitleLocal']
+        ));
+    
+    $arrRet = $rwACT;
+    
+    return $arrRet;
+    
+}
+
+public function getDropDownText($arrATR, $value){
+
+    $strRet = null;
+
+    if ( ($arrATR["atrType"] == "combobox") && $arrATR["atrDataSource"]=='' && preg_match('/^Array\(/i', $arrATR["atrProgrammerReserved"]) ) {
+        eval( '$arrOptions = '.$arrATR["atrProgrammerReserved"].';' );
+        $strRet = ($arrOptions[$value]!=''
+            ? $arrOptions[$value]
+            : $arrATR["atrTextIfNull"]);
+    } elseif ($arrATR["atrType"] == "combobox" && preg_match('/^Array\(/i', $arrATR["atrDataSource"]) ) {
+        eval( '$arrOptions = '.$arrATR["atrDataSource"].';' );
+        $strRet = ($arrOptions[$value]!=''
+            ? $arrOptions[$value]
+            : $arrATR["atrTextIfNull"]);
+    } elseif ($arrATR["atrType"] == "combobox" && ($arrOptions = @json_decode($arrATR["atrDataSource"], true)) ) {
+        $strRet = ($arrOptions[$value]!=''
+            ? $arrOptions[$value]
+            : $arrATR["atrTextIfNull"]);
+    } else {
+        $strRet = ($value != ""
+            ? $this->oSQL->d($this->intra->getDataFromCommonViews($value, null, $arrATR["atrDataSource"], $arrATR["atrProgrammerReserved"], true))
+            : $arrATR["atrTextIfNull"]
+        );
+    }
+
+    return $strRet;
+}
 
 }
 
