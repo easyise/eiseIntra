@@ -331,16 +331,17 @@ $grdMX->Columns[] = Array(
 if($oSQL->d("SHOW TABLES LIKE 'stbl_role_action'")){
     $sqlRol = "SELECT * FROM stbl_role";
     $rsRol = $oSQL->do_query($sqlRol);
-    while ($rwRol = $oSQL->fetch_array($rsRol)){
-       $fld = "rlaID_".$rwRol["rolID"];
-       $grdMX->Columns[] = Array(
-             'title'=>$rwRol["rolID"]
-             , 'field'=>$fld
-             , 'type'=>"checkbox"
-          );
-       $tbl = "RLA_".$rwRol["rolID"];
-       $roleFields .= ", (CASE WHEN $tbl.rlaID IS NULL THEN 0 ELSE 1 END) as ".$fld;
-       $roleJoins .=" LEFT OUTER JOIN stbl_role_action $tbl ON $tbl.rlaActionID=actID AND $tbl.rlaRoleID='".$rwRol["rolID"]."'";
+    if($oSQL->n($rsRol<=5)){
+        while ($rwRol = $oSQL->fetch_array($rsRol)){
+           $fld = "rlaID_".$rwRol["rolID"];
+           $grdMX->Columns[] = Array(
+                 'title'=>$rwRol["rolID"]
+                 , 'field'=>$fld
+                 , 'type'=>"checkbox"
+              );
+           $tbl = "RLA_".$rwRol["rolID"];
+           $roleFields .= ", (SELECT (CASE WHEN rlaID IS NULL THEN 0 ELSE 1 END) FROM stbl_role_action WHERE rlaRoleID='{$rwRol["rolID"]}') as ".$fld;
+        }
     }
 }
 
@@ -403,7 +404,12 @@ switch ($DataAction){
         $ent = new eiseEntity($oSQL, $intra, $entID);
 
         $atrTableName = $ent->conf['entTable'];
-        $arrTableInfo = $intra->getTableInfo($intra->getDBName(), $atrTableName);
+        try {
+            $arrTableInfo = $intra->getTableInfo($intra->getDBName(), $atrTableName);    
+        } catch (Exception $e) {
+            
+        }
+        
 
         $arrSQLAlter = array();
         $lastAddedColumn = '';

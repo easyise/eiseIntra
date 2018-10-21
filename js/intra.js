@@ -753,8 +753,8 @@ init: function( options ) {
                         + '&referer=' + encodeURIComponent(location.href);
             }
 
-        })
-        
+        });
+
         $this.find('.eiseIntraDelete').click(function(ev){
                 if (confirm("Are you sure you'd like to delete?")){
                     $this.find('input,select').removeAttr('required');
@@ -1157,6 +1157,42 @@ encodeAuthString: function(){
     authinput.val(authstr);
 
     return authstr;
+
+},
+
+dropzone: function(fnCallback){
+
+    var $form = this
+        , $dropzones = $form.find('.ei-dropzone');
+
+    $form.bind('drop', function(event) {
+        event.preventDefault();
+    }).bind('dragover', function(event) {
+        $dropzones.each(function(){ $(this).addClass('ei-ready-to-drop') });  
+        return false;
+    }).bind("dragleave", function(event) {
+        $dropzones.each(function(){ $(this).removeClass('ei-ready-to-drop') });  
+        return false;
+    });
+
+    $dropzones.each(function(){
+        var dropzone = this;
+        dropzone.addEventListener('dragenter', function(e){e.preventDefault();});
+        dropzone.addEventListener('dragover', function(e){e.preventDefault();});
+        dropzone.addEventListener('drop', _dropped);
+    })
+    
+    function _dropped(e) {
+        e.preventDefault(); 
+        e.stopImmediatePropagation();
+
+        $form.find('.ei-dropzone').removeClass('ei-ready-to-drop');
+        $(this).addClass('ei-spinner')
+        if(typeof fnCallback === 'function'){
+            fnCallback.call(this, e);
+        }
+    }
+   
 
 },
 
@@ -1721,7 +1757,7 @@ initFileUpload: function(){
         $dropzone.addClass('uploading');
 
         $.ajax({
-            url: location.pathname,  //server script to process data
+            url: location.pathname+location.search,  //server script to process data
             type: 'POST',
             xhr: function() {  // custom xhr
                 myXhr = $.ajaxSettings.xhr();

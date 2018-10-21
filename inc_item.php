@@ -16,8 +16,19 @@ public $conf = array(
 	, 'flagFormShowAllFields' => false
 	);
 
+/**
+ * Basic array with item data.
+ */
 public $item = array();
 
+/**
+ * Historical item data obtained on initialization, before any changes made to the object.
+ */
+public $item_before = array();
+
+/**
+ * The array with the table information.
+ */
 public $table = null;
 
 public function __construct($id = null,  $conf = array() ){
@@ -79,9 +90,12 @@ public function getIDFromQueryString(){
 /**
  * This function returns SQL search condition basing on primary keys. 
  */
-public function getSQLWhere($pkValue){
+public function getSQLWhere($pkValue = null){
 
-	if(count(array($pkValue))!=count($this->table['PK']))
+	if(!$pkValue)
+		$pkValue = $this->id;
+
+	if(count(array($pkValue))!=count($this->table['PK']) || !$pkValue)
 		throw new Exception("Primary key error", 500);
 
 	if( count($this->table['PK'])==1 && !is_array($pkValue) )
@@ -120,7 +134,9 @@ public function getURI( $pkValue = null ){
 	$strPKURI = '';
 
 	foreach ($this->table['PK'] as $pk) {
-	    $strPKURI = ($strPKURI!='' ? '&' : '').urlencode($pk).'='.urlencode($pkValue[$pk]);
+	    $strPKURI = ($strPKURI!='' ? '&' : '').urlencode($pk).'='.(!preg_match('/^\[/', $pkValue[$pk]) // if there's []-value passed, it should return value intact, no urlencoding
+	    ? urlencode($pkValue[$pk])
+	    : $pkValue[$pk]);
 	}
 
 	return $strPKURI;
@@ -148,12 +164,14 @@ public function getData($pk = null){
 	$sql = "SELECT * FROM {$this->conf['table']} WHERE {$where}";
 	$rs = $oSQL->q($sql);
 	if($oSQL->n($rs)==0)
-		throw new Exception("Item with not found, requested ID: ".var_export($id, true), 404);
+		throw new Exception("Item not found, requested ID: ".var_export($id, true), 404);
 
 	$rw = $oSQL->f($rs);
 
-	if($this->id)
+	if($this->id){
+		$this->item_before = $rw;
 		$this->item = $rw;
+	}
 
 	return $rw;
 
@@ -172,7 +190,7 @@ public function form( $fields = null, $conf = array() ){
 			)
 		);
 
-	$conf = array_merge($conf, array('id'=>$this->table['prefix'], 'flagAddJavaScript'=>True));
+	$conf = array_merge( array('id'=>$this->table['prefix'], 'flagAddJavaScript'=>True), $conf);
 
 	return $this->intra->form($this->conf['form'], 'update', $fields, 'POST', $conf);
 
@@ -271,6 +289,370 @@ public function delete(){
 
 	$this->redirectTo = $this->conf['list'];
 	$this->msgToUser = $intra->translate('%s is deleted', $this->conf['title'.$intra->local]);
+}
+
+/**
+ * This function transforms data from the input array into SQL ans saves it. Also it calculates delta and returns it.
+ */
+public function updateTable($nd){
+
+	$sqlFields = '';
+
+	$values = array();
+	$nd_src = $nd;
+
+	// 1. convert all data from user locale to SQL locale
+	// missing fields in $nd will be skipped
+	foreach ($nd as $field => $value) {
+		if(!isset($this->table['columns_index'][$field]))
+			unset($nd[$field]);
+	}
+
+	$nd_sql = $this->intra->arrPHP2SQL($nd, $this->table['columns_types']);
+
+	foreach($nd_sql as $field=>$value){
+		if(in_array($field, $this->table['PK']))
+			continue;
+		if( $value === null ){
+			$sqlFields .= "\n, {$field}=NULL";
+			continue;
+		}
+		switch($this->table['columns_types'][$field]){
+			case 'real':
+				$sqlFields .= "\n, {$field}=".(double)$value;
+				break;
+			case 'integer':
+				$sqlFields .= "\n, {$field}=".(integer)$value;
+				break;
+			default:
+				$sqlFields .= "\n, {$field}=".$this->oSQL->e($value);
+				break;
+		}
+	}
+
+	$sql = "UPDATE {$this->conf['table']} SET ".($this->table['hasActivityStamp']
+		? " {$this->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->conf['prefix']}EditDate=NOW() {$sqlFields}"
+		: ltrim($sqlFields, ' ,'))
+		."\n WHERE ".$this->getSQLWhere();
+	
+	$this->oSQL->q($sql);
+}
+
+//////////////////////////////////
+// File routines
+//////////////////////////////////
+
+/**
+ * @category Files
+ */
+public function attachFile($nd){
+    
+    $entID = ( $this->conf['entID'] ? $this->conf['entID'] : $this->conf['prefix'] );
+    $oSQL = $this->oSQL;
+
+    $err = '';
+
+    try {
+        $filesPath = self::checkFilePath($this->intra->conf["stpFilesPath"]);
+    } catch (Exception $e) {
+        $error = $this->intra->translate("ERROR: file upload error: %s", $e->getMessage());
+    }
+
+    $guids = array();
+    if($error==''){
+
+        foreach($_FILES['attachment']['error'] as $ix => $err){
+            if($err!=0) 
+                continue;
+
+            $f = array(
+                'name'=> $_FILES['attachment']['name'][$ix]
+                , 'type' => $_FILES['attachment']['type'][$ix]
+                , 'size' => $_FILES['attachment']['size'][$ix]
+                , 'tmp_name' =>  $_FILES['attachment']['tmp_name'][$ix]
+                );
+
+            $filGUID = $oSQL->d("SELECT UUID() as GUID");
+            $filename = Date("Y/m/").$filGUID.".att";
+                                
+            if(!file_exists($filesPath.Date("Y/m")))
+                mkdir($filesPath.Date("Y/m"), 0777, true);
+            
+            copy($f["tmp_name"], $filesPath.$filename);
+            
+            //making the record in the database
+            $sqlFileInsert = "INSERT INTO stbl_file SET
+                filGUID = '{$filGUID}'
+                , filEntityID = '{$entID}'
+                , filEntityItemID = '{$this->id}'
+                , filName = '{$f["name"]}'
+                , filNamePhysical = '{$filename}'
+                , filLength = '{$f["size"]}'
+                , filContentType = '{$f["type"]}'
+                , filInsertBy='{$this->intra->usrID}', filInsertDate=NOW()
+                , filEditBy='{$this->intra->usrID}', filEditDate=NOW() ";
+            
+            $oSQL->q($sqlFileInsert);
+            
+            $guids[] = $filGUID;
+        }
+    }
+    
+    $this->redirectTo = $this->conf['form'].'?'.$this->getURI();
+    $this->msgToUser = ($error 
+        ? $error 
+        : (count($guids) ? '' : 'ERROR: ').$this->intra->translate("Files uploaded: %s ", count($guids)));
+
+    $files = $this->getFiles(array('selectedGUIDs'=>$guids));
+
+    return $files;
+
+}
+
+/**
+ * This function obtains file list for current entity item
+ *
+ * @category Files
+ */
+public function getFiles($opts = array()){
+
+	if(!$this->id)
+		throw new Exception($this->intra->translate("Unable to get files for no item"), 404);
+
+    $oSQL = $this->oSQL;
+    $entID = ($this->conf['entID'] ? $this->conf['entID'] : $this->conf['prefix']);
+    $entItemID = $this->id;
+    $intra = $this->intra;
+
+    $sqlFile = "SELECT *".
+    	($opts['selectedGUIDs']
+    		? ", CASE WHEN filGUID IN ('".implode("', '", (array)$opts['selectedGUIDs'])."') THEN 1 ELSE 0 END as selectedGUID"
+    		: '')
+    	." FROM stbl_file WHERE filEntityID='$entID' AND filEntityItemID='{$entItemID}'
+    	ORDER BY filInsertDate DESC";
+    $rsFile = $oSQL->do_query($sqlFile);
+
+    $arrFIL = array();
+
+    $rs = $this->oSQL->do_query($sqlFile);
+
+    return $this->intra->result2JSON($rs, array_merge(array('arrHref'=>array('filName'=>$this->conf['form'].'?'.$this->intra->conf['dataReadKey'].'=getFile&filGUID=[filGUID]')), $opts) );
+        
+}
+
+/**
+ * @category Files
+ */
+public static function checkFilePath($filesPath){
+    if(!$filesPath)
+        throw new Exception('File path not set');
+
+    if($filesPath[strlen($arrSetup['stpFilesPath'])-1]!=DIRECTORY_SEPARATOR)
+        $filesPath=$filesPath.DIRECTORY_SEPARATOR;
+
+    if(!is_dir($filesPath))
+        throw new Exception('File path '.$filesPath.' is not a directory');
+
+    return $filesPath;
+}
+
+public function getFile($q, $filePathVar = 'stpFilesPath'){
+
+    $intra = $this->intra;
+    $oSQL = $this->oSQL;
+
+    if(!$q['filGUID'])
+    	throw new Exception($this->intra->translate('File ID not set'));
+
+    $sqlFile = "SELECT * FROM stbl_file WHERE filGUID=".$oSQL->e($q['filGUID']);
+    $rsFile = $oSQL->do_query($sqlFile);
+
+    if ($oSQL->n($rsFile)==0)
+        throw new Exception($this->intra->translate('File %s not found', $q['filGUID']));
+
+    $rwFile = $oSQL->fetch_array($rsFile);
+
+    if(file_exists($rwFile["filNamePhysical"]))
+        $fullFilePath = $rwFile["filNamePhysical"];
+    else {
+        $filesPath = self::checkFilePath($intra->conf[$filePathVar]);
+        $fullFilePath = $filesPath.$rwFile["filNamePhysical"];
+    }
+        
+    $intra->file($rwFile["filName"], $rwFile["filContentType"], $fullFilePath);
+
+}
+
+function formFiles(){
+
+    $strRes = "<div id=\"ei_files\" class=\"eif-file-dialog\" title=\"".$this->intra->translate('Files')."\">\r\n";
+    
+    if ($this->intra->arrUsrData['FlagWrite']){
+        $strRes .= $this->formFileAttach();
+    }
+
+    $strRes .= "<table class=\"eiseIntraFileListTable\">\r\n";
+    $strRes .= "<thead>\r\n";
+    $strRes .= "<tr>\r\n";
+    $strRes .= "<th>".$this->intra->translate('File')."</th>\r\n";
+    $strRes .= "<th colspan=\"2\">".$this->intra->translate('Uploaded')."</th>\r\n";
+    $strRes .= "<th class=\"eif_filUnattach\">&nbsp;</th>\r\n";
+    $strRes .= "</tr>\r\n";
+    $strRes .= "</thead>\r\n";
+
+
+    $strRes .= "<tbody class=\"eif_FileList\">";
+
+    $strRes .= "<tr class=\"eif_template eif_evenodd\">\r\n";
+    $strRes .= "<td><a href=\"\" class=\"eif_filName\" target=_blank></a></td>\r\n";
+    $strRes .= "<td class=\"eif_filEditBy\"></td>";
+    $strRes .= "<td class=\"eif_filEditDate\"></td>";
+    $strRes .= "<td class=\"eif_filUnattach\"><input type=\"hidden\" class=\"eif_filGUID\"> X </td>";
+    $strRes .= "</tr>";
+
+    $strRes .= "<tr class=\"eif_notfound\">";
+    $strRes .= "<td colspan=3>".$this->intra->translate("No Files Attached")."</td>";
+    $strRes .= "</tr>";
+
+    $strRes .= "<tr class=\"eif_spinner\">";
+    $strRes .= "<td colspan=3></td>";
+    $strRes .= "</tr>";
+        
+    $strRes .= "</tbody>";
+    $strRes .= "</table>\r\n";
+    $strRes .= "</div>\r\n";
+
+    return $strRes;
+
+}
+
+function formFileAttach(){
+    $entID = ($this->conf['entID'] ? $this->conf['entID'] : $this->conf['prefix']);
+    $entItemID = $this->id;
+
+    $strDiv = '';
+    $strDiv .= '<form id="eif_frmAttach" action="'.$_SERVER["PHP_SELF"].'" method="POST" enctype="multipart/form-data" onsubmit="
+       if (document.getElementById(\'eif_attachment\').value==\'\'){
+          alert (\'File is not specified.\');
+          document.getElementById(\'eif_attachment\').focus();
+          return false;
+       }
+       var btnUpl = document.getElementById(\'eif_btnUpload\');
+       btnUpl.value = \'Loading...\';
+       btnUpl.disabled = true;
+       return true;
+
+    ">'."\r\n";
+    $strDiv .= '<input type="hidden" name="DataAction" id="DataAction_attach" value="attachFile">'."\r\n";
+    $strDiv .= '<input type="hidden" name="entID_Attach" id="entItemID_Attach" value="'.$this->entID.'">'."\r\n";
+    $strDiv .= '<input type="hidden" name="entItemID_Attach" id="entItemID_Attach" value="'.$entItemID.'">'."\r\n";
+    //$strDiv .= '<label>'.$this->intra->translate('Choose file').': </label>'."\r\n";
+    $strDiv .= '<div class="eif-file-dropzone"><div class="eif-file-dropzone-title">'.$this->intra->translate('Drop files here or click to choose').'<i> </i></div><i class="eif-file-dropzone-spinner"> </i></div>';
+    $strDiv .= '<input type="file" id="eif_attachment" class="eif-attachment" name="attachment[]" multiple style="display: none;">'."\r\n";
+    $strDiv .= '<input type="submit" value="Upload" id="eif_btnUpload">'."\r\n";
+    $strDiv .= '</form>'."\r\n";
+
+    return $strDiv;
+}
+
+function formMessages(){
+
+    $oldFlagWrite = $this->intra->arrUsrData['FlagWrite'];
+    $this->intra->arrUsrData['FlagWrite'] = true;
+
+    $entID = ($this->conf['entID'] ? $this->conf['entID'] : $this->conf['prefix']);
+
+    $strRes = '<div id="ei_messages" title="'.$this->intra->translate('Messages').'">'."\n";
+
+    $strRes .= '<div class="eiseIntraMessage eif_template eif_evenodd">'."\n";
+    $strRes .= '<div class="eif_msgInsertDate"></div>';
+    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('From').':</label><span class="eif_msgFrom"></span></div>';
+    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('To').':</label><span class="eif_msgTo"></span></div>';
+    $strRes .= '<div class="eiseIntraMessageField eif_invisible"><label>'.$this->intra->translate('CC').':</label><span class="eif_msgCC"></span></div>';
+    $strRes .= '<div class="eiseIntraMessageField eif_invisible"><label>'.$this->intra->translate('Subject').':</label><span class="eif_msgSubject"></span></div>';
+    $strRes .= '<pre class="eif_msgText"></div>';
+    $strRes .= '</pre>'."\n";
+
+    $strRes .= '<div class="eif_notfound">';
+    $strRes .= '<td colspan=3>'.$this->intra->translate('No Messages Found').'</td>';
+    $strRes .= '</div>';
+
+    $strRes .= '<div class="eif_spinner">';
+    $strRes .= '</div>';
+    
+    $strRes .= '<div class="eiseIntraMessageButtons"><input type="button" id="msgNew" value="'.$this->intra->translate('New Message').'">';
+    $strRes .= '</div>';
+        
+    $strRes .= "</div>\r\n";
+
+    $strRes .= '<form id="ei_message_form" title="'.$this->intra->translate('New Message').'" class="eiseIntraForm" method="POST">'."\n";
+    $strRes .= '<input type="hidden" name="DataAction" id="DataAction_attach" value="sendMessage">'."\r\n";
+    $strRes .= '<input type="hidden" name="entID" id="entID_Message" value="'.$entID.'">'."\r\n";
+    $strRes .= '<input type="hidden" name="entItemID" id="entItemID_Message" value="'.$this->id.'">'."\r\n";
+    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('To').':</label>'
+        .$this->intra->showAjaxDropdown('msgToUserID', '', array('required'=>true, 'strTable'=>'svw_user')).'</div>';
+    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('CC').':</label>'
+        .$this->intra->showAjaxDropdown('msgCCUserID', '', array('strTable'=>'svw_user')).'</div>';
+    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('Subject').':</label>'.$this->intra->showTextBox('msgSubject', '').'</div>';
+    $strRes .= '<div class="eiseIntraMessageBody">'.$this->intra->showTextArea('msgText', '').'</div>';
+    $strRes .= '<div class="eiseIntraMessageButtons"><input type="submit" id="msgPost" value="'.$this->intra->translate('Send').'">
+        <input type="button" id="msgClose" value="'.$this->intra->translate('Close').'">
+        </div>';
+    $strRes .= "</form>\r\n";
+
+    $this->intra->arrUsrData['FlagWrite'] = $oldFlagWrite;
+
+    return $strRes;
+
+}
+
+public function getMessages(){
+
+    $oSQL = $this->oSQL;
+    $entID = ($this->conf['entID'] ? $this->conf['entID'] : $this->conf['prefix']);
+    $intra = $this->intra;
+
+    $sqlMsg = "SELECT *
+    , (SELECT optText FROM svw_user WHERE optValue=msgFromUserID) as msgFrom
+    , (SELECT optText FROM svw_user WHERE optValue=msgToUserID) as msgTo
+    , (SELECT optText FROM svw_user WHERE optValue=msgCCUserID) as msgCC
+     FROM stbl_message WHERE msgEntityID='$entID' AND msgEntityItemID='{$this->id}'
+    ORDER BY msgInsertDate DESC";
+    $rsMsg = $oSQL->q($sqlMsg);
+
+    return $intra->result2JSON($rsMsg);
+
+}
+
+public function sendMessage($nd){
+
+	$oSQL = $this->oSQL;
+	$entID = ($this->conf['entID'] ? $this->conf['entID'] : $this->conf['prefix']);
+	$intra = $this->intra;
+
+    $fields = $oSQL->ff('SELECT * FROM stbl_message WHERE 1=0');
+    if($fields['msgPassword']){
+        list($login, $password) = $this->intra->decodeAuthstring($_SESSION['authstring']);
+    }
+    $sqlMsg = "INSERT INTO stbl_message SET
+        msgEntityID = ".$oSQL->e($entID)."
+        , msgEntityItemID = ".($nd['entItemID']!="" ? $oSQL->e($this->id) : "NULL")."
+        , msgFromUserID = '$intra->usrID'
+        , msgToUserID = ".($nd['msgToUserID']!="" ? $oSQL->e($nd['msgToUserID']) : "NULL")."
+        , msgCCUserID = ".($nd['msgCCUserID']!="" ? $oSQL->e($nd['msgCCUserID']) : "NULL")."
+        , msgSubject = ".$oSQL->e($nd['msgSubject'])."
+        , msgText = ".$oSQL->e($nd['msgText']).
+        ($fields['msgPassword'] ? ", msgPassword=".$oSQL->e($intra->encrypt($password)) : '')
+        ."
+        , msgSendDate = NULL
+        , msgReadDate = NULL
+        , msgFlagDeleted = 0
+        , msgInsertBy = '$intra->usrID', msgInsertDate = NOW(), msgEditBy = '$intra->usrID', msgEditDate = NOW()";
+    $oSQL->q($sqlMsg);
+
+    $this->redirectTo = $this->conf['form'].'?'.$this->getURI();
+	$this->msgToUser = $intra->translate('Message sent');
+
 }
 
 }

@@ -687,6 +687,51 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
     return $rs;
 }
 
+/**
+ * This function recursively convers data in associative array according to type definition supplied in $types parameter. Suitable for situations when you need locale-indepedent json.
+ * 
+ */
+public function arrPHP2SQL($arrSrc, $types = array()){
+    $aInt = array();
+    $arrRet = array();
+    foreach($arrSrc as $key=>$value){
+        $flagIsText = false;
+        if(is_array($value)){
+            $arrRet[$key] = $this->arrPHP2SQL($value, $types);
+        } else {
+            switch ($types[$key]) {
+                case 'date':
+                    $arrRet[$key] = $this->oSQL->unq($this->datePHP2SQL($value));
+                    break;
+                case 'datetime':
+                    $arrRet[$key] = $this->oSQL->unq($this->datetimePHP2SQL($value));
+                    break;
+                case 'integer':
+                    $arrRet[$key] = $this->oSQL->unq(($value == null ? 'NULL' : (int)$value));
+                    break;
+                case 'real':
+                    $arrRet[$key] = $this->oSQL->unq($this->intra->decPHP2SQL($value));
+                    break;
+                case 'FK':
+                case 'select':
+                case 'combobox':
+                case 'ajax_dropdown':
+                    $arrRet[$key] = $this->oSQL->unq($value==='' ? 'NULL' : $value);
+                    break;
+                case 'boolean':
+                case 'checkbox':
+                    $arrRet[$key] = ( $value == 'on' ? 1 : (int)$value );
+                    break;
+                default:
+                    $arrRet[$key] = $value;
+                    break;
+            }
+            
+        } 
+    }
+    return $arrRet;
+}
+
 /******************************************************************************/
 /* ARCHIVE/RESTORE ROUTINES                                                   */
 /******************************************************************************/

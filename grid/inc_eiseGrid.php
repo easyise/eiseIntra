@@ -1111,6 +1111,16 @@ function json($newData = null){
         }
     }
 
+    if(!$pkColName){
+        foreach($this->Columns as $i=>$col){
+            if ($this->Columns[$i]['type']=="order") {
+                $ordColName = $this->Columns[$i]['field'];
+                break;
+            }
+        }
+        $pkColName = $ordColName;
+    }
+
     $aRet = array();
 
     for($i=1;$i<count($newData[$pkColName]);$i++){
