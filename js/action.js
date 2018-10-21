@@ -15,21 +15,19 @@ var actionChoosen = function($initiator, $form, fnCallback){
                 aclNewStatusID: $initiator.attr('dest'),
             });
 
-    console.log(location.search)
-
     var strURL = ( strActData ? location.pathname+location.search+'&' : ajaxActionURL+'?' )+"DataAction=getActionDetails&actID="+encodeURIComponent(actData.actID)
         +'&entID='+encodeURIComponent(entID)
         +'&'+entItemID_field+'='+encodeURIComponent(entItemID);
 
-    console.log(strURL)
-    
     var flagAutocomplete = $initiator.attr('autocomplete')==undefined ? true : false;
     
     $.getJSON(strURL,
-        function(data){
+        function(response){
+
+            data = response.data || response;
             
-            if (data.ERROR){
-                alert(data.ERROR);
+            if (data.ERROR || response.status != 'ok'){
+                alert(data.ERROR || response.message);
                 return;
             }
             
@@ -169,12 +167,20 @@ var showMessages = function($form){
     var entItemID = $form.data('eiseIntraForm').entItemID;
 
     if(!this.htmlMsgForm){
-        this.htmlMsgForm = $('#eiseIntraMessageForm')[0].outerHTML;
-        $('#eiseIntraMessageForm').remove();
+        var $f = $('#eiseIntraMessageForm, #ei_message_form');
+        if($f[0]){
+            this.htmlMsgForm = $f[0].outerHTML;
+            $f.remove();
+        }
     }
     if(!this.htmlMsgList){
-        this.htmlMsgList = $('#eiseIntraMessages')[0].outerHTML;
-        $('#eiseIntraMessages').remove();
+        var $f = $('#eiseIntraMessages, #ei_messages');
+        if($f[0]){
+            if($f[0].id=='ei_messages')
+                this.flagURLSelf = true;
+            this.htmlMsgList = $f[0].outerHTML;
+            $f.remove();    
+        }
     }
 
     var msgmng = this;
@@ -189,8 +195,10 @@ var showMessages = function($form){
             };
     }
 
-    var strURL = "ajax_details.php?DataAction=getMessages&entItemID="+encodeURIComponent(entItemID)+
-        "&entID="+encodeURIComponent(entID);
+    var strURL = (msgmng.flagURLSelf 
+        ? location.pathname+location.search 
+        : "ajax_details.php?entItemID="+encodeURIComponent(entItemID)+"&entID="+encodeURIComponent(entID)
+    ) + "&DataAction=getMessages";
     
     $.getJSON(strURL, function(response){
         if(response.data && response.data.length==0){
@@ -299,7 +307,18 @@ init: function( options ) {
         /********** initialize submit buttons ***********/
         $this.find('input.eiseIntraActionSubmit').click( function(ev) { eiseIntraActionSubmit.call(this, ev, $this) });
 
-        $('a[href="#ei_action"]').click( function(ev) { console.log('qq');eiseIntraActionSubmit.call(this, ev, $this); return false; });
+        $('a[href="#ei_action"]').click( function(ev) { eiseIntraActionSubmit.call(this, ev, $this); return false; });
+        $('a[href="#ei_messages"]').click( function(ev) {
+            $this.eiseIntraEntityItemForm('showMessages');
+            return false;
+        });
+        $('a[href="#ei_files"]').click( function(ev) { 
+                $('#ei_files').dialog({modal: true, width: '40%'})
+                    .eiseIntraAJAX('initFileUpload')
+                    .find('tbody')
+                    .eiseIntraAJAX('fillTable', location.pathname+location.search+"&DataAction=getFiles");  
+                return false; 
+            });
 
         /********** initialize Start/Finish/Cancel buttons ***********/
         $this.find(".eiseIntraActionButton").bind("click", function(){

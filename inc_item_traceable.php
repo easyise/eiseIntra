@@ -47,8 +47,8 @@ public function __construct($id = null,  $conf = array() ){
     }
     
 
-	$this->intra->dataRead('getActionDetails', $this);
-	$this->intra->dataAction(array('insert', 'update', 'delete', 'attachFile', 'deleteFile', 'sendMessage'), $this);
+	$this->intra->dataRead(array('getActionDetails', 'getFiles', 'getFile', 'getMessages','sendMessage'), $this);
+	$this->intra->dataAction(array('insert', 'update', 'delete', 'attachFile', 'deleteFile'), $this);
 
 }
 
@@ -56,10 +56,15 @@ public function update($nd){
 
     parent::update($nd);
 
+    $this->oSQL->q('START TRANSACTION');
     // 1. update master table
     $this->updateTable($nd);
+    $this->oSQL->q('COMMIT');
 
+    $this->oSQL->q('START TRANSACTION');
     // 2. do the action
+    $this->doAction(new eiseAction($this, $nd));
+    $this->oSQL->q('COMMIT');
 
 }
 
@@ -693,7 +698,18 @@ public function form($fields = '',  $arrConfig=Array()){
     $hiddens .= $this->intra->field(null, 'aclToDo',  "", array('type'=>'hidden'));
     $hiddens .= $this->intra->field(null, 'aclComments',  "", array('type'=>'hidden'));
 
+    $oldFW = $this->intra->arrUsrData['FlagWrite'];
+    if(!$fields){
+        if(!$this->conf['STA'][$this->staID]['staFlagCanUpdate']){
+            $this->intra->arrUsrData['FlagWrite'] = false;
+        }
+        $fields = $this->getFields();
+        $this->intra->arrUsrData['FlagWrite'] = $oldFW;
+    }
+
     $form = parent::form($hiddens.$fields, $arrConfig);
+
+    $this->intra->arrUsrData['FlagWrite'] = $oldFW;
 
     return $form;
 
@@ -710,39 +726,38 @@ public function arrActionButtons(){
         return;
 
     if($this->staID!==null){
-        if(is_array($this->conf['STA'][$this->staID]['ACT'])){
-            foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
+        foreach((array)$this->conf['STA'][$this->staID]['ACT'] as $rwAct){
 
-                if(count(array_intersect($this->intra->arrUsrData['roleIDs'], (array)$rwAct['RLA']))==0)
-                    continue;
+            if(count(array_intersect($this->intra->arrUsrData['roleIDs'], (array)$rwAct['RLA']))==0)
+                continue;
 
-                $title = $rwAct["actTitle{$this->intra->local}"];
+            $title = ($rwAct["actTitle{$this->intra->local}"] ? $rwAct["actTitle{$this->intra->local}"] : $rwAct["actTitle"]) ;
+              
+            $strID = "btn_".$rwAct["actID"]."_".
+                  $rwAct["actOldStatusID"]."_".
+                  $rwAct["actNewStatusID"];
+
+            $arrActions[] = Array ("title" => $title
+                   , "action" => "#ei_action"
+                   , 'id' => $strID
+                   , "dataset" => array("action"=>array('actID'=>$rwAct["actID"]
+                        , 'aclOldStatusID' => $rwAct["actOldStatusID"]
+                        , 'aclNewStatusID' => $rwAct["actNewStatusID"])
+                   )
+                   , "class" => "{$rwAct["actButtonClass"]} "
+                );
                   
-                $strID = "btn_".$rwAct["actID"]."_".
-                      $rwAct["actOldStatusID"]."_".
-                      $rwAct["actNewStatusID"];
-
-                $arrActions[] = Array ("title" => $title
-                       , "action" => "#ei_action"
-                       , 'id' => $strID
-                       , "dataset" => array("action"=>array('actID'=>$rwAct["actID"]
-                            , 'aclOldStatusID' => $rwAct["actOldStatusID"]
-                            , 'aclNewStatusID' => $rwAct["actNewStatusID"])
-                       )
-                       , "class" => "{$rwAct["actButtonClass"]} "
-                    );
-
-                /* $strOut .= "<input type='".($rwAct['actID']==3 ? 'button' : 'submit')."' class=\"".($rwAct['actID']==3 ? ' eiseIntraDelete' : 'eiseIntraActionSubmit')."\" name='actButton' id='$strID' value='"
-                        .htmlspecialchars($title)."'".
-                        " act_id=\"{$rwAct["actID"]}\" orig=\"{$rwAct["actOldStatusID"]}\" dest=\"{$rwAct["actNewStatusID"]}\">";
-                        */
-                  
-            }
         }
     } else {
-        $strOut .= '<input type="submit" class="eiseIntraActionSubmit" name="actButton\" id="btn_1__0" value="'
-                        .$this->intra->translate('Create').'"'.
-                        ' act_id="1" orig="" dest="0">';
+        $arrActions[] = Array ("title" => $title
+               , "action" => "#ei_action"
+               , 'id' => "btn_1__0"
+               , "dataset" => array("action"=>array('actID'=>1
+                    , 'aclOldStatusID' => null
+                    , 'aclNewStatusID' => 0)
+               )
+               , "class" => "ss_add "
+            );
     }
 
 
@@ -789,131 +804,26 @@ public function showActionButtons(){
 }
 
 function getActionDetails($q){
-    die('<pre>'.var_export($q, true));
-}
 
-//////////////////////////////////
-// File routines
-//////////////////////////////////
-
-/**
- * @category Files
- */
-public function attachFile($nd){
-    
-    $entID = $this->conf['entID'];
-    $oSQL = $this->oSQL;
-
-    $err = '';
-
-    try {
-        $filesPath = self::checkFilePath($this->intra->conf["stpFilesPath"]);
-    } catch (Exception $e) {
-        $error = $this->intra->translate("ERROR: file upload error: %s", $e->getMessage());
+    $arrRet = Array();
+          
+    if (!$q['actID'] && !$q['aclGUID']){
+        throw new Exception("Action details cannot be resolved: nether action not action log IDs provided", 1);
     }
 
-    $guids = array();
-    if($error==''){
-
-        foreach($_FILES['attachment']['error'] as $ix => $err){
-            if($err!=0) 
-                continue;
-
-            $f = array(
-                'name'=> $_FILES['attachment']['name'][$ix]
-                , 'type' => $_FILES['attachment']['type'][$ix]
-                , 'size' => $_FILES['attachment']['size'][$ix]
-                , 'tmp_name' =>  $_FILES['attachment']['tmp_name'][$ix]
-                );
-
-            $filGUID = $oSQL->d("SELECT UUID() as GUID");
-            $filename = Date("Y/m/").$filGUID.".att";
-                                
-            if(!file_exists($filesPath.Date("Y/m")))
-                mkdir($filesPath.Date("Y/m"), 0777, true);
-            
-            copy($f["tmp_name"], $filesPath.$filename);
-            
-            //making the record in the database
-            $sqlFileInsert = "
-                INSERT INTO stbl_file (
-                filGUID
-                , filEntityID
-                , filEntityItemID
-                , filName
-                , filNamePhysical
-                , filLength
-                , filContentType
-                , filInsertBy, filInsertDate, filEditBy, filEditDate
-                ) VALUES (
-                '".$filGUID."'
-                , '{$entID}'
-                , '{$this->id}'
-                , '{$f["name"]}'
-                , '$filename'
-                , '{$f["size"]}'
-                , '{$f["type"]}'
-                , '{$this->intra->usrID}', NOW(), '{$this->intra->usrID}', NOW());
-            ";
-            
-            $oSQL->q($sqlFileInsert);
-            
-            $guids[] = $filGUID;
-        }
+    if($q['aclGUID']){
+        $acl = $this->item['ACL'][$q['aclGUID']];
+        if(!$acl)
+            throw new Exception("Action details cannot be resolved: action log ID provided is wrong", 1);
+        $act = $this->conf['ACT'][$acl['actID']];
+    } else {
+        $acl = $act = $this->conf['ACT'][$q['actID']];
     }
-    
-    $this->redirectTo = $this->conf['form'].'?'.$this->getURI();
-    $this->msgToUser = ($error 
-        ? $error 
-        : (count($guids) ? '' : 'ERROR: ').$this->intra->translate("Files uploaded: %s ", count($guids)));
 
-    return (count($guids)>1 ? $guids : $guids[0]);
-
-}
-
-/**
- * This function obtains file list for current entity item
- * @category Files
- */
-public function getFiles($conf = array()){
-
-    $oSQL = $this->oSQL;
-    $entID = $this->entID;
-    $entItemID = $this->id;
-    $intra = $this->intra;
-
-    $sqlFile = "SELECT * FROM stbl_file WHERE filEntityID='$entID' AND filEntityItemID='{$entItemID}'
-    ORDER BY filInsertDate DESC";
-    $rsFile = $oSQL->do_query($sqlFile);
-
-    $arrFIL = array();
-
-    $rs = $this->oSQL->do_query($sqlFile);
-
-    return $this->intra->result2JSON($rs, array_merge(array('arrHref'=>array('filName'=>'popup_file.php?filGUID=[filGUID]')), $conf) );
-
-
-    while ($rw = $this->oSQL->fetch_array($rs)) {
-        if(!$rw['usrID']) $rw['usrName'] = $rw['filInsertBy'];
-        $fil = array(
-            'filGUID' => $rw['filGUID']
-            , 'filName' => array(
-                    'h'=>"popup_file.php?filGUID=".urlencode($rw["filGUID"])
-                    , 'v'=>$rw['filName']
-                    )
-            , 'filContentType' => $rw['filContentType']
-            , 'filLength' => $rw['filLength']
-            , 'filEditBy' => $this->intra->translate('by ').$this->intra->getUserData($rw['filInsertBy'])
-            , 'filEditDate' => date("{$this->intra->conf['dateFormat']} {$this->intra->conf['timeFormat']}"
-                , strtotime($rw["filInsertDate"]))
-            );
-        $arrFIL[] = $fil;  
-    }
-        
-    $this->oSQL->free_result($rs);
-
-    return $arrFIL;
-
+    $this->intra->json('ok', '', Array("acl"=>$acl 
+        , 'act'=>$act
+        , 'atr'=>$this->conf['ATR']
+        ));
 }
 
 static function updateFiles($DataAction){
@@ -1053,49 +963,6 @@ switch ($da) {
 
 }
 
-
-/**
- * @category Files
- */
-public static function checkFilePath($filesPath){
-    if(!$filesPath)
-        throw new Exception('File path not set');
-
-    if($filesPath[strlen($arrSetup['stpFilesPath'])-1]!=DIRECTORY_SEPARATOR)
-        $filesPath=$filesPath.DIRECTORY_SEPARATOR;
-
-    if(!is_dir($filesPath))
-        throw new Exception('File path '.$filesPath.' is not a directory');
-
-    return $filesPath;
-}
-
-/**
- * @category Files
- */
-public static function getFile($filGUID, $filePathVar = 'stpFilesPath'){
-
-    GLOBAL $intra;
-    $oSQL = $intra->oSQL;
-
-    $sqlFile = "SELECT * FROM stbl_file WHERE filGUID=".$oSQL->e($filGUID);
-    $rsFile = $oSQL->do_query($sqlFile);
-
-    if ($oSQL->n($rsFile)==0)
-        throw new Exception('File '.$filGUID.' not found');
-
-    $rwFile = $oSQL->fetch_array($rsFile);
-
-    if(file_exists($rwFile["filNamePhysical"]))
-        $fullFilePath = $rwFile["filNamePhysical"];
-    else {
-        $filesPath = self::checkFilePath($intra->conf[$filePathVar]);
-        $fullFilePath = $filesPath.$rwFile["filNamePhysical"];
-    }
-        
-    $intra->file($rwFile["filName"], $rwFile["filContentType"], $fullFilePath);
-
-}
 
 function getStatusData($stlDepartureActionID){
     

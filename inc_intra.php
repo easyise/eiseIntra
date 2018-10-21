@@ -121,7 +121,7 @@ private $arrClassInputTypes =
  * @category Initialization
  */
 public static $defaultConf = array(
-        'versionIntra'=>'2.1.092' 
+        'versionIntra'=>'2.1.094' 
         , 'dateFormat' => "d.m.Y" // 
         , 'timeFormat' => "H:i" // 
         , 'decimalPlaces' => "2"
@@ -995,7 +995,7 @@ private function menu_simpleTree($rs, $target){
 function actionMenu($arrActions = array(), $flagShowLink=false){
 
     $strRet .= '<div class="menubar ei-action-menu" id="menubar">'."\r\n";
-    foreach ($arrActions as $act) {
+    foreach ((array)$arrActions as $act) {
             $strRet .=  "<div class=\"menubutton\">";
             $strRet .= "<a href=\"{$act['action']}\"".($act['id'] ? ' id="'.$act['id'].'"' : '');
 
@@ -2437,8 +2437,8 @@ function dataAction($dataAction, $funcOrObj=null){
  * @return variant value that return user function.
  */
 function dataRead($dataReadValues, $function=null, $arrParam = array()){
-    
-    $query = $_GET;
+
+    $query = ($_SERVER['REQUEST_METHOD']=='POST' ? $_POST : (array)$_GET);
 
     $dataReadValues = (is_array($dataReadValues) ? $dataReadValues : array($dataReadValues));
 
@@ -2455,7 +2455,7 @@ function dataRead($dataReadValues, $function=null, $arrParam = array()){
         $arrArgs = $arrParam;    
                     
         if(is_callable($function)){
-            return call_user_func_array($function, $arrArgs );
+            $ret = call_user_func_array($function, array_merge(Array($query), $arrParam) );
         } elseif( is_object($function) ){
 
             $obj = $function;
@@ -2464,12 +2464,18 @@ function dataRead($dataReadValues, $function=null, $arrParam = array()){
 
             try {
 
-                return call_user_func_array(array($obj, $method), array_merge(Array($query), $arrParam));
+                $ret = call_user_func_array(array($obj, $method), array_merge(Array($query), $arrParam));
                 
             } catch (Exception $e) {
                 die($e->getMessage());
             }
             
+        }
+
+        if(is_array($ret)){
+            $this->json('ok', null, $ret);
+        } elseif (is_string($ret)) {
+            die($ret);
         }
             
     }

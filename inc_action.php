@@ -30,7 +30,7 @@ public function execute(){
 	
     // proceed with the action
     if ($this->arrAction["actFlagAutocomplete"] && !$this->arrAction["aclGUID"]){
-        
+
         $this->add();
         $this->validate();
         $this->finish();
@@ -128,10 +128,14 @@ public function validate(){
 	    }
 	} else {
 	    if(!in_array($aclOldStatusID, $this->conf['actOldStatusID'])){
-	        throw new Exception("Action {$rwACT['actID']} cannot be run for origin status ".$aclOldStatusID);
+            throw new Exception($this->intra->translate("Action \"%s\" cannot be run for origin status \"%s\""
+                , ( $this->conf['actTitle'.$this->intra->local] ? $this->conf['actTitle'.$this->intra->local] : $this->conf['actTitle'])
+                , $this->item->conf['STA'][(string)$this->arrAction["aclOldStatusID"]]['staTitle'.$this->intra->local]));
 	    }
-	    if(!in_array($aclNewStatusID, $this->conf['actNewStatusID'])){
-	        throw new Exception("Action {$rwACT['actID']} cannot be run for destination status ".$aclOldStatusID);
+	    if(!in_array($this->arrAction["aclNewStatusID"], $this->conf['actNewStatusID'])){
+	        throw new Exception($this->intra->translate("Action \"%s\" cannot be run for destination status \"%s\""
+                , ( $this->conf['actTitle'.$this->intra->local] ? $this->conf['actTitle'.$this->intra->local] : $this->conf['actTitle'])
+                , $this->item->conf['STA'][(string)$this->arrAction["aclNewStatusID"]]['staTitle'.$this->intra->local]));
 	    }
 	}
 }

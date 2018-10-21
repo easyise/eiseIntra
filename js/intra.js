@@ -1757,7 +1757,7 @@ initFileUpload: function(){
         $dropzone.addClass('uploading');
 
         $.ajax({
-            url: location.pathname,  //server script to process data
+            url: location.pathname+location.search,  //server script to process data
             type: 'POST',
             xhr: function() {  // custom xhr
                 myXhr = $.ajaxSettings.xhr();
