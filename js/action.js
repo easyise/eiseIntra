@@ -24,9 +24,9 @@ var actionChoosen = function($initiator, $form, fnCallback){
     $.getJSON(strURL,
         function(response){
 
-            data = response.data || response;
-            
-            if (data.ERROR || response.status != 'ok'){
+            var data = (response.data || response);
+
+            if (data.ERROR || (response.status && response.status != 'ok')){
                 alert(data.ERROR || response.message);
                 return;
             }
