@@ -279,7 +279,7 @@ init: function(options){
  * This method shows user message box with text.
  * @param string text Text message to be shown.
  */
-, showMessage: function(text){
+, showMessage: function(text, options){
 
     var $sysmsg = $('<div id="ei-sysmsg" />')
         .append('<i />')
@@ -317,6 +317,11 @@ init: function(options){
                     $sysmsg.dialog('close').remove()
                 }, 10000)
             }
+            , close: function(){
+                if(options && typeof options.onclose === 'function'){
+                    onclose.call($sysmsg);
+                }
+            }
             , hide: 'fade'
         })
 
@@ -340,6 +345,11 @@ init: function(options){
                 window.setTimeout(function(){
                     $sysmsg.dialog('close').remove()
                 }, 7000)
+            }
+            , close: function(){
+                if(options && typeof options.onclose === 'function'){
+                    onclose.call($sysmsg);
+                }
             }
             , hide: 'fade'
         })
