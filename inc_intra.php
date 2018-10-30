@@ -1150,7 +1150,8 @@ function redirect($strMessage, $strLocation, $arrConfig = array()){
 
     $conf = array_merge($this->conf, $arrConfig);
 
-    setcookie ( $conf['UserMessageCookieName'], $strMessage, 0, $this->getCookiePath($strLocation,  $arrConfig) );
+    $this->setUserMessage($strMessage, $conf);
+
     header("Location: {$strLocation}");
     die();
 
@@ -1313,6 +1314,17 @@ function batchEcho($string){
     echo ( $this->conf['batch_htmlspecialchars'] ? htmlspecialchars( $to_echo ) : $to_echo );
     ob_flush();
     flush();
+}
+
+/**
+ * This function sets user message to the cookie.
+ *
+ * @param string $strMessage with user message
+ * @param array $conf param
+ */
+function setUserMessage($strMessage, $conf = array()){
+    $conf = array_merge($this->conf, $conf);
+    setcookie ( $conf['UserMessageCookieName'], $strMessage, 0, $this->getCookiePath($strLocation,  $conf) );
 }
 
 /**
