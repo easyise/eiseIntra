@@ -74,8 +74,8 @@ private function init(){
         ($this->intra->conf['systemID'] ? $this->intra->conf['systemID'].':' : '')
         .$this->entID;
 
-    //if($_SESSION[$sessKey]){
-    if(false){
+    if($_SESSION[$sessKey]){
+    //if(false){
         $this->conf = $_SESSION[$sessKey];
         return $this->conf;
     }

@@ -334,8 +334,18 @@ public function updateTable($nd){
 		? " {$this->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->conf['prefix']}EditDate=NOW() {$sqlFields}"
 		: ltrim($sqlFields, ' ,'))
 		."\n WHERE ".$this->getSQLWhere();
-	
+
 	$this->oSQL->q($sql);
+
+	$this->item = array_merge($this->item, $nd_sql);
+	$this->getDelta($this->item_before, $this->item);
+
+	//die('<pre>ND:'.var_export($nd_sql, true)."\nDelta:".var_export($this->delta, true));
+}
+
+public function getDelta($old, $new){
+	$this->delta = array_diff_assoc($new, $old);
+	return $this->delta;
 }
 
 //////////////////////////////////
