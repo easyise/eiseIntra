@@ -2578,12 +2578,15 @@ function getUserData_All($usrID, $strWhatData='all'){
  */
 static function getFullHREF($iframeHREF){
     $prjDir = dirname($_SERVER['REQUEST_URI']);
-    $flagHTTPS = preg_match('/^HTTPS/', $_SERVER['SERVER_PROTOCOL']);
+    $flagHTTPS = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443;
     $strURL = 'http'
         .($flagHTTPS ? 's' : '')
         .'://'
         .$_SERVER['HTTP_HOST']
-        .($_SERVER['SERVER_PORT']!=($flagHTTPS ? 443 : 80) ? ':'.$_SERVER['SERVER_PORT'] : '')
+        .( !empty($_SERVER['SERVER_PORT']) 
+            ? ($_SERVER['SERVER_PORT']!=($flagHTTPS ? 443 : 80) ? ':'.$_SERVER['SERVER_PORT'] : '')
+            : ''
+            )
         .$prjDir.'/'
         .'index.php?pane='.urlencode($iframeHREF);
     return $strURL;
