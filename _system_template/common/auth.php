@@ -14,7 +14,7 @@ $title = "A System";
 
 include "./version.php";
 
-include ("../dist/eiseIntra/inc_intra.php");
+include ("./vendor/eiseIntra/inc_intra.php");
 include ("config.php");
 
 $oSQL = new eiseSQL($DBHOST, $DBUSER, $DBPASS, $DBNAME, false, CP_UTF8);

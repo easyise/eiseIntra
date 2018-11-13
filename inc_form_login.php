@@ -24,7 +24,7 @@ switch ($DataAction){
 
         try {
             
-            $intra->Authenticate( $login, $password, (isset($authmethod) ? $authmethod : "LDAP") );
+            $intra->Authenticate( $login, $password, (isset($authmethod) ? $authmethod : "LDAP"), ($authmethod=="mysql" ? array('dbhost'=>$_POST['host']) : null) );
             header ("Location: ".(isset($_COOKIE["PageNoAuth"]) ? $_COOKIE["PageNoAuth"] : "index.php"));
             die();
 
