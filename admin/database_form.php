@@ -23,6 +23,7 @@ $grid->Columns[]=Array(
     , 'title' => "chk"
     , 'type' => "checkbox"
     , 'width' => '20px'
+    , 'headerClickable' => true
 );
 $grid->Columns[]=Array(
 	'field'=>"Name"
@@ -122,6 +123,13 @@ $arrActions[]= Array ("title" => "Create table"
 	   , "action" => "javascript:CreateNewTable();"
 	   , "class" => "ss_add"
 	);
+
+if(!$arrFlags['hasPages']){
+        $arrActions[]= Array ("title" => "Apply eiseIntra"
+         , "action" => "javascript:applyIntra.call(this)"
+         , "class" => "ss_script_add"
+      );
+}
 
 if (isset($eiseIntraVersion) && $eiseIntraVersion < 100){
     $arrActions[]= Array ("title" => "Upgrade eiseIntra"
@@ -339,6 +347,49 @@ function dumpSelectedTables(dbName, what){
     }
     
 
+}
+
+var applyIntra = function(){
+    var initiator = this,
+      $initiator = $(this),
+    $dialog = $(this).eiseIntraForm('createDialog', {
+      title: $initiator.text()
+      , method: 'POST'
+      , action: 'database_act.php'+location.search
+      , fields: [{
+        type: 'hidden'
+        , name: 'DataAction'
+        , value: 'applyIntra'
+      },{
+        type: 'password'
+        , name: 'password'
+        , title: 'Admin password'
+      },{
+        type: 'password'
+        , name: 'password1'
+        , title: 'Pls confirm'
+      },{
+        type: 'checkbox'
+        , name: 'flagGetSQL'
+        , title: 'Only get SQL'
+      },
+      ] 
+      , onsubmit: function(){
+            if($dialog.find('input[name="password"]').val() != $dialog.find('input[name="password1"]').val()){
+                $dialog.find('input[name="password"]').focus();
+                alert("Passwords doesn't match");
+                return false;
+            }
+            window.setTimeout(function(){$dialog.find('input[type="submit"], input[type="button"], button').each(function(){this.disabled = true;})}, 1);
+            $dialog.eiseIntraBatch('submit', {
+                timeoutTillAutoClose: null
+                , flagAutoReload: true
+                , title: $initiator.text()
+            })
+            return false;
+      }
+
+    });
 }
 
 </script>

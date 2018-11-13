@@ -332,7 +332,7 @@ function Execute(){
 
 }
 
-private function parse_mysql_dump($url){
+public function parse_mysql_dump($url){
 
     $oSQL = $this->oSQL;
 
