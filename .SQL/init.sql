@@ -310,12 +310,12 @@ INSERT INTO `stbl_page` VALUES
 (4, 1, 'About', 'О системе', 24, 25, 1, '/about.php', '', '', 0, 0, 0, '', NULL, NULL, NULL, NULL),
 (5, 1, 'Settings', 'Настройки', 2, 15, 1, '', '', '', 0, 0, 0, '', NULL, NULL, NULL, NULL),
 (6, 5, 'Security', 'Безопасность', 3, 12, 1, '', '', '', 0, 0, 0, '', NULL, NULL, NULL, NULL),
-(7, 6, 'Users', 'Пользователи', 4, 7, 1, '/users_list.php', '', '', 0, 0, 0, '', NULL, NULL, NULL, NULL),
+(7, 6, 'Users', 'Пользователи', 4, 7, 1, '/user_list.php', '', '', 0, 0, 0, '', NULL, NULL, NULL, NULL),
 (8, 6, 'Access Control', 'Доступ', 8, 9, 1, '/role_form.php', '', '', 0, 0, 0, '', NULL, NULL, NULL, NULL),
 (17, 1, 'ajax_details.php', 'ajax_details.php', 16, 17, 0, '/ajax_details.php', '', '', 0, 0, 0, '', NULL, NULL, NULL, NULL),
 (22, 6, 'Change Password', 'Смена пароля', 10, 11, 1, '/password_form.php', '', '', 0, 0, 0, '', NULL, NULL, NULL, NULL),
 (23, 5, 'System setup', 'Системные настройки', 13, 14, 1, '/setup_form.php', '', '', 0, 0, 0, '', NULL, NULL, NULL, NULL),
-(26, 7, 'User form', 'Пользователь', 5, 6, 0, '/user_form.php', '', '', 0, 0, 0, '', NULL, NULL, NULL, NULL),
+(26, 7, 'User', 'Пользователь', 5, 6, 0, '/user_form.php', '', '', 0, 0, 0, '', NULL, NULL, NULL, NULL),
 (29, 1, 'ajax_dropdownlist.php', 'ajax_dropdownlist.php', 18, 19, 0, '/ajax_dropdownlist.php', '', '', 0, 0, 0, '', NULL, NULL, NULL, NULL),
 (30, 1, 'entityitem_form.php', 'entityitem_form.php', 20, 21, 0, '/entityitem_form.php', '', '', 0, 0, 0, '', NULL, NULL, NULL, NULL),
 (31, 1, '/popup_file.php', '/popup_file.php', 26, 27, 0, '/popup_file.php', '', '', 0, 0, 0, '', NULL, NULL, NULL, NULL);
@@ -600,16 +600,14 @@ SET FOREIGN_KEY_CHECKS=0;
 
 DROP TABLE IF EXISTS `stbl_user`;
 CREATE TABLE `stbl_user` (
-  `usrID` varchar(255) NOT NULL DEFAULT '',
-  `usrName` varchar(255) DEFAULT NULL,
-  `usrNameLocal` varchar(255) DEFAULT NULL,
-  `usrAuthMethod` varchar(255) DEFAULT 'DB',
-  `usrPass` varchar(32) DEFAULT NULL,
-  `usrFlagLocal` tinyint(4) DEFAULT '0',
-  `usrPhone` varchar(30) DEFAULT NULL,
-  `usrEmail` varchar(255) DEFAULT NULL,
-  `usrEmployeeID` int(11) DEFAULT NULL COMMENT 'Employee from tbl_employee',
-  `usrFlagDeleted` tinyint(4) DEFAULT NULL,
+  `usrID` varchar(255) NOT NULL DEFAULT '' COMMENT 'User ID (login)',
+  `usrName` varchar(255) DEFAULT NULL COMMENT 'Name (Eng)',
+  `usrNameLocal` varchar(255) DEFAULT NULL COMMENT 'Name',
+  `usrAuthMethod` varchar(255) DEFAULT 'DB' COMMENT 'Auth Method (DB, LDAP, etc)',
+  `usrPass` varchar(32) DEFAULT NULL COMMENT 'Password',
+  `usrPhone` varchar(30) DEFAULT NULL COMMENT 'Phone Number',
+  `usrEmail` varchar(255) DEFAULT NULL COMMENT 'Email',
+  `usrFlagDeleted` tinyint(4) NOT NULL DEFAULT 0 COMMENT 'Inactive?',
   `usrInsertBy` varchar(50) DEFAULT NULL,
   `usrInsertDate` datetime DEFAULT NULL,
   `usrEditBy` varchar(50) DEFAULT NULL,
@@ -617,7 +615,6 @@ CREATE TABLE `stbl_user` (
   PRIMARY KEY (`usrID`),
   KEY `IX_Auth` (`usrID`,`usrPass`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='User authentication table';
-INSERT INTO `stbl_user` VALUES
 ('admin', 'Admin', 'Администратор', 'DB', 'fc36d155acdc86b93cfb4c93dc35fbe5', 0, '', '', NULL, 0, 'admin', '2018-11-13 22:10:31', 'admin', '2018-11-13 22:10:31');
 SET FOREIGN_KEY_CHECKS=1;
 

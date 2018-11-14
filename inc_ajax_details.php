@@ -9,10 +9,12 @@ $DataAction = $arrIn[$intra->conf['dataReadKey']];
 
 switch ($DataAction){
     case 'getMenu':
+        header("Content-Type: text/html; charset=UTF-8");
         echo $intra->menu();
         die();
 
     case 'getTopLevelMenu':
+        header("Content-Type: text/html; charset=UTF-8");
         echo $intra->topLevelMenu($eiseIntraTopLevelMenu);
         die();
 

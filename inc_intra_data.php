@@ -732,6 +732,43 @@ public function arrPHP2SQL($arrSrc, $types = array()){
     return $arrRet;
 }
 
+/**
+ * This function returns SQL for field values. It can be used either in UPDATE or in INSERT ... SET queries.
+ * 
+ */
+public function getSQLFields($tableInfo, $data){
+
+    $sqlFields = '';
+
+    foreach($data as $field=>$value){
+        if(in_array($field, $tableInfo['PK']))
+            continue;
+        if(!in_array($field, $tableInfo['columns_index']))
+            continue;
+        if( $value === null || ($this->table['columns_types'][$field]=="FK" && !$value) ){
+            $sqlFields .= "\n, {$field}=NULL";
+            continue;
+        }
+        switch($this->table['columns_types'][$field]){
+            case 'real':
+                $sqlFields .= "\n, {$field}=".(double)$value;
+                break;
+            case 'integer':
+                $sqlFields .= "\n, {$field}=".(integer)$value;
+                break;
+            default:
+                $sqlFields .= "\n, {$field}=".$this->oSQL->e($value);
+                break;
+        }
+    }
+
+    return $sqlFields;
+
+}
+
+        
+
+
 /******************************************************************************/
 /* ARCHIVE/RESTORE ROUTINES                                                   */
 /******************************************************************************/
