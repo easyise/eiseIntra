@@ -230,7 +230,8 @@ init: function(options){
     // show user message
     window.setTimeout(function(){
             $this.eiseIntra('showMessage');
-        }, 1);
+        }, 100);
+    
 
 }
 
