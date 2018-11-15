@@ -228,7 +228,9 @@ init: function(options){
     })
 
     // show user message
-    $this.eiseIntra('showMessage');
+    window.setTimeout(function(){
+            $this.eiseIntra('showMessage');
+        }, 1);
 
 }
 
