@@ -408,48 +408,38 @@ function getData(\$pk = null){
 
 }
 
-function insert(\$data){
+public function update(\$nd){
 
-    \$intra = \$this->intra;\$oSQL = \$this->oSQL;
+    \$nd_sql = \$this->intra->arrPHP2SQL(\$nd, \$this->table['columns_types']);
 
-    \$oSQL->q('START TRANSACTION');
+    \$sqlFields = \$this->intra->getSQLFields(\$this->table, \$nd_sql);
 
-    // your check uniqueness code etc
+    \$this->oSQL->q('START TRANSACTION');
 
-    \$sql = \"{$insertCode}\";
-
-    \$oSQL->q(\$sql);
-
-    \$this->id = {$idCode};
-
-    // your extra insert code
-
-    \$oSQL->q('COMMIT');
-
-    parent::insert(\$data);
-
-}
-
-function update(\$data){
-
-    if(!\$data['{$arrTable['PK'][0]}']){
-        \$this->insert(\$data);
-        return;
+    if(!\$this->id){
+        ".(in_array($arrTable['PKtype'], array('user_defined', 'GUID')) 
+          ? "\$this->id = ".($arrTable['PKtype']=='GUID' 
+            ? "\$this->oSQL->q('SELECT UUID()');" 
+            : "\$nd[\$this->table['PK'][0].'_'];") 
+          : '')."
+        \$sql = \"INSERT INTO stbl_user SET ".(in_array($arrTable['PKtype'], array('user_defined', 'GUID')) 
+          ? "{\$this->table['PK'][0]}=\".\$this->oSQL->e(\$this->id).\", " 
+          : '')
+        ."{\$this->conf['prefix']}InsertBy='{\$this->intra->usrID}', {\$this->conf['prefix']}InsertDate=NOW() 
+            , {\$this->conf['prefix']}EditBy='{\$this->intra->usrID}', {\$this->conf['prefix']}EditDate=NOW()
+            {\$sqlFields}\";
+        \$this->oSQL->q(\$sql);
+        ".(!in_array($arrTable['PKtype'], array('user_defined', 'GUID')) 
+            ? "\$this->id = \$this->oSQL->i();"
+            : '')."
+    } else {
+        \$sql = \"UPDATE stbl_user SET {\$this->conf['prefix']}EditBy='{\$this->intra->usrID}', {\$this->conf['prefix']}EditDate=NOW() {\$sqlFields} WHERE \".\$this->getSQLWhere();
+        \$this->oSQL->q(\$sql);
     }
-    
-    \$intra = \$this->intra;\$oSQL = \$this->oSQL;
 
-    \$oSQL->q('START TRANSACTION');
+    \$this->oSQL->q('COMMIT');
 
-    \$sql = \"{$updateCode}\";
-
-    \$oSQL->q(\$sql);
-
-    // extra update code
-
-    \$oSQL->q('COMMIT');
-
-    parent::update(\$data);
+    parent::update(\$nd);
 
 }
 
@@ -459,7 +449,7 @@ function update(\$data){
 
 \$intra->dataRead(array(), {$objName});
 
-\$intra->dataAction(array('insert', 'update', 'delete'), {$objName}, \$_POST);
+\$intra->dataAction(array('update', 'delete'), {$objName}, \$_POST);
 
 \$arrActions[]= Array ('title' => $intra->translate('Back to list')
        , 'action' => {$objName}->conf['list']

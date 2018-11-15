@@ -343,6 +343,9 @@ function decrypt($decrypt) {
     return $decrypted;
 }
 
+function hash($str){
+    return md5($str);
+}
 
 /**
  * Function that checks authentication with credentials database using selected $method.
@@ -409,7 +412,7 @@ function Authenticate($login, $password, $method="LDAP", $options=array()){
         if(!$oSQL->connect()){
             throw new eiseException("Unable to connect to database");
         }
-        $sqlAuth = "SELECT usrID FROM stbl_user WHERE usrID='{$login}' AND usrPass='".md5($password)."'";
+        $sqlAuth = "SELECT usrID FROM stbl_user WHERE usrID='{$login}' AND usrPass='".$this->hash($password)."'";
         $rsAuth = $oSQL->do_query($sqlAuth);
         if ($oSQL->num_rows($rsAuth)!=1)
             throw new eiseException("Bad database user name or password");
@@ -1182,7 +1185,7 @@ function backref($urlIfNoReferer){
         strpos($_SERVER["HTTP_REFERER"], 'index.php?pane=')===false ) //and not from fullEdit
     {
         SetCookie("referer", $_SERVER["HTTP_REFERER"], 0, $_SERVER["PHP_SELF"]);
-        $backref = ($_SERVER["HTTP_REFERER"] ? $_SERVER["HTTP_REFERER"] : $urlIfNoReferer);
+        $backref = ($_SERVER["HTTP_REFERER"] && !preg_match('/login.php/', $_SERVER["HTTP_REFERER"]) ? $_SERVER["HTTP_REFERER"] : $urlIfNoReferer);
     } else {
         $backref = ($_COOKIE["referer"] ? $_COOKIE["referer"] : $urlIfNoReferer);
     }
@@ -1651,6 +1654,9 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
                 } else {
                     $ds = @json_decode($conf['source'], true);
                     if(!$ds){
+                        if(!$conf['source'])
+                            throw new Exception("Source for column {$name} not specified.", 1);
+                            
                         @eval('$ds = '.$conf['source']);
                         if(!$ds){
                             if(!preg_match('/^select\s+/i', $conf['source'])){

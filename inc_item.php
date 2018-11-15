@@ -63,6 +63,7 @@ public function __construct($id = null,  $conf = array() ){
 	$this->conf = array_merge($this->conf, $conf);
 
 	$this->table = $this->oSQL->getTableInfo($this->conf['table']);
+	$this->conf['prefix'] = ( isset($conf['prefix']) ? $conf['prefix'] : $this->table['prefix'] );
 
 	$this->id = ( $id===null ? $this->getIDFromQueryString() : $id);
 
@@ -310,25 +311,7 @@ public function updateTable($nd){
 
 	$nd_sql = $this->intra->arrPHP2SQL($nd, $this->table['columns_types']);
 
-	foreach($nd_sql as $field=>$value){
-		if(in_array($field, $this->table['PK']))
-			continue;
-		if( $value === null ){
-			$sqlFields .= "\n, {$field}=NULL";
-			continue;
-		}
-		switch($this->table['columns_types'][$field]){
-			case 'real':
-				$sqlFields .= "\n, {$field}=".(double)$value;
-				break;
-			case 'integer':
-				$sqlFields .= "\n, {$field}=".(integer)$value;
-				break;
-			default:
-				$sqlFields .= "\n, {$field}=".$this->oSQL->e($value);
-				break;
-		}
-	}
+	$sqlFields = $this->intra->getSQLFields($this->table, $nd_sql);
 
 	$sql = "UPDATE {$this->conf['table']} SET ".($this->table['hasActivityStamp']
 		? " {$this->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->conf['prefix']}EditDate=NOW() {$sqlFields}"

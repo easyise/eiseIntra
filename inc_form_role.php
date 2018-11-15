@@ -54,10 +54,7 @@ if ($_POST["DataAction"]=="update"){
     }
 }
 
-$arrJS[] = jQueryUIRelativePath."js/jquery-ui-1.8.16.custom.min.js";
-$arrCSS[] = jQueryUIRelativePath."css/redmond/jquery-ui-1.8.16.custom.css";
-
-include "inc-frame_top.php";
+include eiseIntraAbsolutePath."inc{$intra->conf['frame']}_top.php";
 
 
 ?>
@@ -109,6 +106,8 @@ $(document).ready(function(){
 
     for(var y=0;y<gridsPerRow.length;y++){
         var row = gridsPerRow[y];
+        if(!row)
+            continue;
         for(var x=0;x<row.length;x++){
 
             var $flds = row[x];
@@ -205,5 +204,4 @@ if ($intra->arrUsrData["FlagWrite"]){
 
 
 <?php
-include "inc-frame_bottom.php";
-?>
+include eiseIntraAbsolutePath."inc{$intra->conf['frame']}_top.php";
