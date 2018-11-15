@@ -141,6 +141,7 @@ public static $defaultConf = array(
         , 'selItemMenu' => null
         , 'selItemTopLevelMenu' => null
         , 'defaultPage' => 'about.php'
+        , 'pass_hash' => 'md5'
     );
 
 static $arrKeyboard = array(
@@ -343,8 +344,43 @@ function decrypt($decrypt) {
     return $decrypted;
 }
 
-function hash($str){
-    return md5($str);
+/**
+ * This function returns password hash according to hashing method specified in $conf['pass_hash'].
+ * @category Authentication
+ * 
+ * @param string $pass The password, the string to be encrypted.
+ *
+ * @return string Hash of given string.
+ */
+function password_hash($pass){
+    switch ($this->conf['pass_hash']) {
+        case 'md5':
+            return md5($pass);
+        case 'php_password_api':
+        default:
+            return password_hash($pass);
+            break;
+    } 
+}
+
+/**
+ * This function verifies the password across the hash according to hashing method specified in $conf['pass_hash'].
+ * @category Authentication
+ * 
+ * @param string $pass The password.
+ * @param string $hash Hash string to be compared with.
+ *
+ * @return string Hash of given string.
+ */
+function password_verify($pass, $hash){
+    switch ($this->conf['pass_hash']) {
+        case 'md5':
+            return (md5($pass)===$hash);
+        case 'php_password_api':
+        default:
+            return password_verify($pass, $hash);
+            break;
+    } 
 }
 
 /**
@@ -412,10 +448,15 @@ function Authenticate($login, $password, $method="LDAP", $options=array()){
         if(!$oSQL->connect()){
             throw new eiseException("Unable to connect to database");
         }
-        $sqlAuth = "SELECT usrID FROM stbl_user WHERE usrID='{$login}' AND usrPass='".$this->hash($password)."'";
-        $rsAuth = $oSQL->do_query($sqlAuth);
-        if ($oSQL->num_rows($rsAuth)!=1)
-            throw new eiseException("Bad database user name or password");
+        $sqlAuth = "SELECT * FROM stbl_user WHERE usrID='{$login}'";
+        $rwAuth = $oSQL->f($sqlAuth);
+        if (!$rwAuth)
+            throw new eiseException($this->translate("User %s not found", $login));
+        if ($rwAuth['usrFlagDeleted'])
+            throw new eiseException($this->translate("User %s is blocked", $login));
+        if (!$this->password_verify($password, $rwAuth['usrPass']))
+            throw new eiseException($this->translate("Bad user name or password %s ", $login));
+            
 
         break;
     case "mysql":
