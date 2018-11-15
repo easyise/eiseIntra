@@ -4,103 +4,79 @@ include 'common/auth.php';
 $DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['DataAction'] );
 
 
-switch($DataAction){
-    case "update":
-        
-        $sqlTryToAuth = "SELECT usrID FROM stbl_user WHERE usrID='$usrID' AND usrPass=".$oSQL->escape_string(md5($_POST['usrPass']))."";
-        $rsAuth = $oSQL->do_query($sqlTryToAuth);
-        if ($oSQL->num_rows($rsAuth)==0){
-            SetCookie("UserMessage", "ERROR: Old password not valid");
-            header("Location: ".$_SERVER["PHP_SELF"]);
-            die();
-        }
-        
-        
-        $sql = "UPDATE stbl_user SET
-            usrPass = ".($_POST['usrPassword1']!="" ? $oSQL->escape_string(md5($_POST['usrPassword1'])) : "usrPass")."
-            , usrEditBy = '$usrID', usrEditDate = NOW()
-            WHERE usrID = '".$_POST['usrID']."'";
-        
-        $oSQL->do_query($sql);
-        
-        //die();
-        
-        SetCookie("UserMessage", "Data is updated");
-        header("Location: ".$_SERVER["PHP_SELF"]);
-        die();
-        break;
-    default:
-        break;
+if($_POST['DataAction']==="update"){
+    
+    $oSQL->q('START TRANSACTION');
+
+    $rwUsr = $oSQL->f("SELECT * FROM stbl_user WHERE usrID='{$intra->usrID}'");
+
+    if(!$intra->password_verify($_POST['usrPass_old'], $rwUsr['usrPass'])){
+        $intra->redirect('ERROR: '.$intra->translate('Invalid password for user %s', $intra->usrID), $_SERVER['PHP_SELF']);
+    }
+
+    $sql = "UPDATE stbl_user SET
+        usrPass = ".$oSQL->e($intra->password_hash($_POST['usrPass']))."
+        , usrEditBy = '$usrID', usrEditDate = NOW()
+        WHERE usrID = '".$intra->usrID."'";
+    
+    $oSQL->do_query($sql);
+
+    $oSQL->q('COMMIT');
+    
+    $intra->redirect('ERROR: '.$intra->translate('Password for %s is updated', $intra->usrID), $_SERVER['PHP_SELF']);
+    
 }
 
-$sqlUSR = "SELECT * FROM stbl_user WHERE usrID='$usrID'";
+$sqlUSR = "SELECT * FROM stbl_user WHERE usrID='$intra->usrID'";
 $rsUSR = $oSQL->do_query($sqlUSR);
 $rwUSR = $oSQL->fetch_array($rsUSR);
 
 $arrJS[] = "../common/easyCal/easyCal.js";
-include eiseIntraAbsolutePath."inc-frame_top.php";
+include eiseIntraAbsolutePath."inc{$intra->conf['frame']}_top.php";
+
+$fields = $intra->field(null, 'DataAction', 'update', array('type'=>'hidden'))
+    .$intra->fieldset( $intra->arrUsrData['pagTitle'.$intra->local].' '.$intra->usrID, 
+            $intra->field($intra->translate('Old Password'), 'usrPass_old', '', array('type'=>'password', 'required'=>true)).
+            $intra->field($intra->translate('New Password'), 'usrPass', '', array('type'=>'password', 'required'=>true)).
+            $intra->field($intra->translate('Confirm Password'), 'usrPass1', '', array('type'=>'password', 'required'=>true)).
+            $intra->field(' ', null, $intra->showButton('btnSubmit', $intra->translate('Set Password'), array('type'=>'submit')))
+            );
+
+echo $intra->form($intra->conf['form'], 'update', $fields, 'POST', array('id'=>'password', 'flagAddJavaScript'=>True));
+
 ?>
+<script type="text/javascript">
+$(window).load(function(){
 
-<h1><?php  echo $arrUsrData["pagTitle$strLocal"] ; ?></h1>
+    $('form#password').submit(function(){
 
-<div class="panel">
-<table width="100%">
-<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST">
-<input type="hidden" name="usrID" value="<?php  echo htmlspecialchars($rwUSR['usrID']) ; ?>">
-<input type="hidden" name="DataAction" value="update">
-<tr><td width="70%">
+        var $pass1 = $('#usrPass')
+            , pass1 = $pass1.val()
+            , pass2 = $('#usrPass1').val();
 
-<table width="100%">
+        if(!pass1){
+            alert('Password is empty');
+            $pass1.focus();
+            return false;
+        }
 
+        if(pass1!=pass2){
+            alert('Passwords doesn\'t match');
+            $pass1.focus();
+            return false;
+        }
 
-<tr>
-<td class="field_title"><?php  echo getTranslation("Login") ; ?>:</td>
-<td><?php
- echo ShowTextBox("usrID_", $rwUSR["usrID"], " style='width: 100%;' disabled='yes'");?></td>
-</tr>
-
-<tr>
-<td class="field_title"><?php  echo getTranslation("Old Password") ; ?>:</td>
-<td><input type="password" id="usrPass" name="usrPass" value="" style="width: auto;"></td>
-</tr>
-
-<tr>
-<td class="field_title"><?php  echo getTranslation("Password") ; ?>:</td>
-<td><input type="password" id="usrPassword1" name="usrPassword1" value="" style="width: auto;"></td>
-</tr>
-
-<tr>
-<td class="field_title"><?php  echo getTranslation("Repeat Password") ; ?>:</td>
-<td><input type="password" id="usrPassword2" name="usrPassword2" value="" style="width: auto;"></td>
-</tr>
-
-</table>
-
-<td width="30%"></td>
-</tr>
-<?php 
-if ($arrUsrData["FlagWrite"]) {
- ?>
-<tr><td><div align="center"><input type="Submit" value="Update" onclick="return checkForm();">
-<?php 
-?>
-</div></td></tr>
-<?php 
-}
- ?>
-</table>
-<script>
-
-function checkForm(){
-    var pass1 = document.getElementById("usrPassword1");
-    var pass2 = document.getElementById("usrPassword2");
-    if (pass1.value!="" && pass1.value!=pass2.value) {
-        alert("Passwords doesn't match");
-        return false;
-    }
-    return true;
-}
+        return true;
+    })
+    
+})
 </script>
+<style type="text/css">
+form#password fieldset {
+    width: 50%;
+    min-width: 400px;
+}
+</style>
 <?php
-include eiseIntraAbsolutePath."inc-frame_bottom.php";
-?>
+
+include eiseIntraAbsolutePath."inc{$intra->conf['frame']}_bottom.php";

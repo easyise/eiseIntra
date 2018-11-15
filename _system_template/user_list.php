@@ -1,11 +1,7 @@
 <?php
 include("common/auth.php");
-$arrJS[] = commonStuffRelativePath."eiseList/eiseList.js";
-$arrCSS[] = commonStuffRelativePath."eiseList/themes/navy/screen.css";
-include_once(commonStuffAbsolutePath."eiseList/inc_eiseList.php");
 
-$arrJS[] = jQueryUIRelativePath."js/jquery-ui-1.8.16.custom.min.js";
-$arrCSS[] = jQueryUIRelativePath."css/redmond/jquery-ui-1.8.16.custom.css";
+$intra->requireComponent('list');
 
 $listName = $listName ? $listName : "usr";
 $lst = new eiseList($oSQL, $listName
@@ -86,9 +82,9 @@ if ($arrUsrData['FlagWrite']){
     );
 }
 
-include eiseIntraAbsolutePath."inc-frame_top.php";
+include eiseIntraAbsolutePath."inc_top.php";
 
 $lst->show();
 
-include eiseIntraAbsolutePath."inc-frame_bottom.php";
+include eiseIntraAbsolutePath."inc_bottom.php";
 ?>

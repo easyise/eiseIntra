@@ -4,191 +4,123 @@ include 'common/auth.php';
 $usrID_  = (isset($_POST['usrID']) ? $_POST['usrID'] : $_GET['usrID'] );
 $DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['DataAction'] );
 
+class cUser extends eiseItem {
 
-switch($DataAction){
-    case "update":
-        if ($usrID_=="") {
-            $sql[] = "INSERT INTO stbl_user (
-                usrID
-                , usrName
-                , usrNameLocal
-                , usrAuthMethod
-                , usrPass
-                , usrFlagLocal
-                , usrPhone
-                , usrEmail
-                , usrFlagDeleted
-                , usrInsertBy, usrInsertDate, usrEditBy, usrEditDate
-                ) VALUES (
-                '{$_POST["usrID_"]}'
-                , ".$oSQL->escape_string($_POST['usrName'])."
-                , ".$oSQL->escape_string($_POST['usrNameLocal'])."
-                , 'DB'
-                , ".($_POST['usrPassword1']!="" ? $oSQL->escape_string(md5($_POST['usrPassword1'])) : "NULL")."
-                , '".($_POST['usrFlagLocal']=='on' ? 1 : 0)."'
-                , ".$oSQL->escape_string($_POST['usrPhone'])."
-                , ".$oSQL->escape_string($_POST['usrEmail'])."
-                , '".($_POST['usrFlagDeleted']=='on' ? 1 : 0)."'
-                , '$usrID', NOW(), '$usrID', NOW());";
-            $usrID_=$_POST["usrID_"];
-        } else {
-            $sql[] = "UPDATE stbl_user SET
-                usrName = ".$oSQL->escape_string($_POST['usrName'])."
-                , usrNameLocal = ".$oSQL->escape_string($_POST['usrNameLocal'])."
-                , usrPass = ".($_POST['usrPassword1']!="" ? $oSQL->escape_string(md5($_POST['usrPassword1'])) : "usrPass")."
-                , usrFlagLocal = '".($_POST['usrFlagLocal']=='on' ? 1 : 0)."'
-                , usrPhone = ".$oSQL->escape_string($_POST['usrPhone'])."
-                , usrEmail = ".$oSQL->escape_string($_POST['usrEmail'])."
-                , usrFlagDeleted = '".($_POST['usrFlagDeleted']=='on' ? 1 : 0)."'
-                , usrEditBy = '$usrID', usrEditDate = NOW()
-                WHERE usrID = '".$_POST['usrID']."'";
-        }
-        
-        for($i=0;$i<count($sql);$i++){
-           $oSQL->do_query($sql[$i]);
-        //echo "<pre>{$sql[$i]}</pre>";
-        }
-        
-        //die();
-        
-        SetCookie("UserMessage", "Data is updated");
-        header("Location: ".$_SERVER["PHP_SELF"]."?usrID={$usrID_}");
-        die();
-        break;
-    case "delete":
-        $sqlDel = "DELETE FROM stbl_user WHERE usrID='{$_POST["usrID"]}'";
-        $oSQL->do_query($sqlDel);
-        SetCookie("UserMessage", "Data is deleted");
-        header("Location: users_list.php");
-        die();
-        break;
-    default:
-        break;
+static $defaultPass = 'default_password';
+
+public function __construct($id = null, $conf = array()){
+
+    $conf = array_merge($conf, array('name'=>'user', 'table'=>'stbl_user', 'flagFormShowAllFields'=> true));
+
+    parent::__construct($id, $conf);
+
 }
 
-$sqlUSR = "SELECT * FROM stbl_user WHERE usrID='$usrID_'";
-$rsUSR = $oSQL->do_query($sqlUSR);
-$rwUSR = $oSQL->fetch_array($rsUSR);
 
-$arrActions[]= Array ('title' => 'Back to list'
-	   , 'action' => "users_list.php"
+public function update($nd){
+
+    $nd_sql = $this->intra->arrPHP2SQL($nd, $this->table['columns_types']);
+
+    if($nd_sql['usrPass']!==cUser::$defaultPass)
+        $nd_sql['usrPass'] = $this->intra->password_hash($nd_sql['usrPass']);
+
+    $sqlFields = $this->intra->getSQLFields($this->table, $nd_sql);
+
+    $this->oSQL->q('START TRANSACTION');
+
+    if(!$this->id){
+        $this->id = $nd[$this->table['PK'][0].'_'];
+        $sql = "INSERT INTO stbl_user SET {$this->table['PK'][0]}=".$this->oSQL->e($this->id).", {$this->conf['prefix']}InsertBy='{$this->intra->usrID}', {$this->conf['prefix']}InsertDate=NOW() 
+            , {$this->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->conf['prefix']}EditDate=NOW()
+            {$sqlFields}";
+        $this->oSQL->q($sql);
+        
+    } else {
+        $sql = "UPDATE stbl_user SET {$this->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->conf['prefix']}EditDate=NOW() {$sqlFields} WHERE ".$this->getSQLWhere();
+        $this->oSQL->q($sql);
+    }
+
+    $this->oSQL->q('COMMIT');
+
+    parent::update($nd);
+
+}
+
+public function delete(){
+    parent::delete();
+}
+
+public function form($fields=null, $conf=array()){
+
+    $fields = (!$this->id ? $this->intra->field($this->intra->translate('User ID'), 'usrID_', '', array('required'=>True)) : '')
+        .$this->intra->field(null, 'defaultPass', cUser::$defaultPass, array('type'=>'hidden'))
+        .$this->intra->field($this->intra->translate('Name (Eng)'), 'usrName', $this->item["usrName"], array('required'=>True))
+        .$this->intra->field($this->intra->translate('Name'), 'usrNameLocal', $this->item["usrNameLocal"], array('required'=>True))
+        .$this->intra->field($this->intra->translate('Password'), 'usrPass', cUser::$defaultPass, array('type'=>'password', array('required'=>True)))
+        .$this->intra->field($this->intra->translate('Confirm Password'), 'usrPass1', cUser::$defaultPass, array('type'=>'password', array('required'=>True)))
+        .$this->intra->field($this->intra->translate('Phone Number'), 'usrPhone', $this->item["usrPhone"])
+        .$this->intra->field($this->intra->translate('Email'), 'usrEmail', $this->item["usrEmail"])
+        .$this->intra->field($this->intra->translate('Inactive?'), 'usrFlagDeleted', $this->item["usrFlagDeleted"], array('type'=>'boolean'));
+
+    $fields = $this->intra->fieldset($this->intra->arrUsrData['pagTitle'.$this->intra->local].' '.strtoupper($this->id), $fields.
+                $this->intra->field(' ', null, $this->getButtons() )
+                );
+
+    return parent::form($fields, $conf);
+
+}
+
+}
+
+$usr = new cUser();
+
+$intra->dataAction(array('insert', 'update', 'delete'), $usr, $_POST);
+
+$arrActions[]= Array ('title' => $intra->translate('Back')
+	   , 'action' => $usr->conf['list']
 	   , 'class'=> 'ss_arrow_left'
 	);
-$arrJS[] = "../common/easyCal/easyCal.js";
-include eiseIntraAbsolutePath."inc-frame_top.php";
+
+include eiseIntraAbsolutePath."inc{$intra->conf['frame']}_top.php";
+
+echo $usr->form();
+
 ?>
+<script type="text/javascript">
+$(window).load(function(){
 
-<h1><?php  echo $arrUsrData["pagTitle$strLocal"] ; ?></h1>
+    $('#usr').submit( function(){
 
-<div class="panel">
-<table width="100%">
-<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST">
-<input type="hidden" id="usrID" name="usrID" value="<?php  echo htmlspecialchars($rwUSR['usrID']) ; ?>">
-<input type="hidden" id="DataAction" name="DataAction" value="update">
-<tr><td width="70%">
+        var $pass1 = $('#usrPass')
+            , pass1 = $pass1.val()
+            , pass2 = $('#usrPass1').val()
+            , defaultPass = $('#defaultPass').val()
+            , usrID = $('#usrID').val();
 
-<table width="100%">
+        if(!pass1){
+            alert('Password is empty');
+            $pass1.focus();
+            return false;
+        }
 
-<?php 
+        if(pass1!=pass2){
+            alert('Passwords doesn\'t match');
+            $pass1.focus();
+            return false;
+        }
 
-if ($rwUSR['usrID']=="") {
- ?>
+        if(!usrID && pass1==defaultPass){
+            alert('You should specify the password');
+            $pass1.focus();
+            return false;
+        }
 
-<tr>
-<td class="field_title"><?php  echo getTranslation("Login") ; ?>:</td>
-<td><?php
- echo ShowTextBox("usrID_", $rwUSR["usrID"], " style='width: 100%;'");?></td>
-</tr>
-<?php 
-}
- ?>
+        return true;
 
-<tr>
-<td class="field_title"><?php  echo getTranslation("Name") ; ?>:</td>
-<td><?php
- echo ShowTextBox("usrName", $rwUSR["usrName"], " style='width: 100%;'");?></td>
-</tr>
+    })
 
-<tr>
-<td class="field_title"><?php  echo getTranslation("Name (Local)") ; ?>:</td>
-<td><?php
- echo ShowTextBox("usrNameLocal", $rwUSR["usrNameLocal"], " style='width: 100%;'");?></td>
-</tr>
-
-<tr>
-<td class="field_title"><?php  echo getTranslation("Password") ; ?>:</td>
-<td><input type="password" id="usrPassword1" name="usrPassword1" value="" style="width: auto;"></td>
-</tr>
-
-<tr>
-<td class="field_title"><?php  echo getTranslation("Repeat Password") ; ?>:</td>
-<td><input type="password" id="usrPassword2" name="usrPassword2" value="" style="width: auto;"></td>
-</tr>
-
-<tr>
-<td class="field_title"><?php  echo getTranslation("Default Language") ; ?>:</td>
-<td><?php
- echo ShowCheckBox("usrFlagLocal", $rwUSR["usrFlagLocal"]);?></td>
-</tr>
-
-<tr>
-<td class="field_title"><?php  echo getTranslation("Phone") ; ?>:</td>
-<td><?php
- echo ShowTextBox("usrPhone", $rwUSR["usrPhone"], " style='width: 100%;'");?></td>
-</tr>
-
-<tr>
-<td class="field_title"><?php  echo getTranslation("Email") ; ?>:</td>
-<td><?php
- echo ShowTextBox("usrEmail", $rwUSR["usrEmail"], " style='width: 100%;'");?></td>
-</tr>
-
-<tr>
-<td class="field_title"><?php  echo getTranslation("Deleted") ; ?>:</td>
-<td><?php
- echo ShowCheckBox("usrFlagDeleted", $rwUSR["usrFlagDeleted"]);?></td>
-</tr>
-
-
-</table>
-
-<td width="30%"></td>
-</tr>
-<?php 
-if ($arrUsrData["FlagWrite"]) {
- ?>
-<tr><td><div align="center"><input type="Submit" value="Update" onclick="return checkForm();">
-<?php 
-if ($usrID_!="" && $rwUSR["usrDeleteDate"]==""){
-?>
-<input type="Submit" value="Delete" onclick="return confirmDelete()" style="width:auto;">
-<?php  
-  }
-?>
-</div></td></tr>
-<?php 
-}
- ?>
-</table>
-<script>
-function confirmDelete(){
-   if(confirm("Are you sure you'd like to delete?")){
-      document.getElementById("DataAction").value="delete";
-      return true;
-   }
-   return false;
-}
-
-function checkForm(){
-    var pass1 = document.getElementById("usrPassword1");
-    var pass2 = document.getElementById("usrPassword2");
-    if (pass1.value!="" && pass1.value!=pass2.value) {
-        alert("Passwords doesn't match");
-        return false;
-    }
-    return true;
-}
+});
 </script>
 <?php
-include eiseIntraAbsolutePath."inc-frame_bottom.php";
-?>
+
+include eiseIntraAbsolutePath."inc{$intra->conf['frame']}_bottom.php";
