@@ -14,7 +14,6 @@ switch ($DataAction){
         die();
 
     case 'getTopLevelMenu':
-        header("Content-Type: text/html; charset=UTF-8");
         echo $intra->topLevelMenu($eiseIntraTopLevelMenu);
         die();
 
