@@ -27,11 +27,6 @@ if($_POST['DataAction']==="update"){
     
 }
 
-$sqlUSR = "SELECT * FROM stbl_user WHERE usrID='$intra->usrID'";
-$rsUSR = $oSQL->do_query($sqlUSR);
-$rwUSR = $oSQL->fetch_array($rsUSR);
-
-$arrJS[] = "../common/easyCal/easyCal.js";
 include eiseIntraAbsolutePath."inc{$intra->conf['frame']}_top.php";
 
 $fields = $intra->field(null, 'DataAction', 'update', array('type'=>'hidden'))
