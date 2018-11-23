@@ -1650,7 +1650,9 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
         if(!in_array($conf['type'], array('boolean', 'checkbox', 'radio')) ) {
             if ($title!==''){
                 $labelClass = ($flagFieldDelimiter ? 'field-delimiter-label' : 'title-'.$name).($conf['labelClass'] ? ' '.$conf['labelClass'] : '');
-                $html .= "<label".($name ? " id=\"title_{$name}\"" : '')." class=\"{$labelClass}\">".htmlspecialchars($title).(
+                $html .= "<label".($name ? " id=\"title_{$name}\"" : '')." class=\"{$labelClass}\">".(preg_match('/\<[a-z]/i', $title) 
+                    ? $title 
+                    : htmlspecialchars($title)).(
                     trim($title)!='' ? ':' : ''
                   )."</label>";
             }
@@ -1803,7 +1805,7 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
  *
  */
 public function fieldset($legend=null, $fields='', $conf = array()){
- 
+
     return '<fieldset'
         .($conf['id']!='' ? ' id="'.htmlspecialchars($conf['id']).'"' : '')
         .($conf['class']!='' ? ' class="'.htmlspecialchars($conf['class']).'"' : '')
@@ -2455,7 +2457,7 @@ function dataAction($dataAction, $funcOrObj=null){
                 $status = ($ret===False ? '500' : 'ok');
                 $message = $obj->msgToUser;
                 $data = (array)$ret;
-                
+
             } catch (Exception $e) {
                 $status = '500';
                 $message = $e->getMessage();
@@ -2467,7 +2469,6 @@ function dataAction($dataAction, $funcOrObj=null){
 
             if($flagIsAJAX)
                 $this->json($status, $message, $data);
-
             if($redirect)
                 $this->redirect($message, $redirect);
             else {
@@ -2608,6 +2609,7 @@ function getUserData_All($usrID, $strWhatData='all'){
         case "sn_fn":
             return $rwUser["usrName"];
         case "namelocal":
+        case "nameLocal":
             return $rwUser["usrNameLocal"];
         case "email":
         case "e-mail":
