@@ -2131,6 +2131,8 @@ height: function(nHeight, callback){
 },
 
 dblclick: function(dblclickCallback){
+    if(!$(this[0]).data('eiseGrid'))
+        return this;
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     grid.dblclickCallback = dblclickCallback;
     grid.tbodies.bind('dblclick', function(event){
