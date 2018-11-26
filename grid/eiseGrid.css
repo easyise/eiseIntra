@@ -25,6 +25,13 @@
     white-space: nowrap;
 }
 
+.eg-table > thead > tr > th.eg-clickable {
+    cursor: pointer;
+}
+.eg-table > thead > tr > th.eg-mandatory > span::after {
+    content: "*";
+}
+
 .eg-table th:last-of-type {
     border-right-width: 0;
     border-right-style: none;

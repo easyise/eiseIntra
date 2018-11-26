@@ -314,6 +314,9 @@ function get_html($allowEdit=true){
                         " class=\"{$this->name}-{$spannedColumns[0]['fields'][0]['field']}"
                             .($col['mandatory'] 
                                 ? " eg-mandatory" 
+                                : "")
+                            .($col['headerClickable'] 
+                                ? " eg-clickable" 
                                 : "").$this->Columns[$ix]['staticClass']."\"";
                        
                         
