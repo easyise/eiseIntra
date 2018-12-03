@@ -477,9 +477,9 @@ var convertDateForDateInput = function($eiForm, inp){
 
 }
 
-var getInput = function($form, strFieldName){
+var getInput = function(strFieldName){
 
-    return $form.find('#'+strFieldName);
+    return this.find('[name="'+strFieldName+'"]');
 
 }
 
@@ -540,9 +540,6 @@ var getFieldLabel = function(oInp){
 }
 var getFieldLabelText = function(oInp){
     return getFieldLabel(oInp).text().replace(/[\:\*]+$/, '');
-}
-var getInput = function(fieldName){
-    return this.find('#'+fieldName);
 }
 var setTextAsync = function($inp, value){
     $inp.val(value);
@@ -926,9 +923,11 @@ value: function(strFieldName, val, decimalPlaces){
     if(!$inp[0])
         return undefined;
 
-    if (val==undefined){ // if we get calue
+    if (val==undefined){ // if we get value
         var strValue = $inp.val();
         switch(strType){
+            case 'checkbox':
+                return $inp[0].checked
             case "integer":
             case "int":
             case "numeric":
@@ -995,7 +994,11 @@ value: function(strFieldName, val, decimalPlaces){
             default:
                 break;
         }
-        $inp.val(strValue);
+        if(strType != 'checkbox')
+            $inp.val(strValue);
+        else 
+            $inp[0].checked = (strValue && strValue!='0');
+
         if($inp[0].nodeName.toLowerCase()==='input' && $inp.attr('type').toLowerCase()==='hidden'){
             $inp.parent().find('#span_'+strFieldName).text(strValue);
         }
@@ -1335,12 +1338,18 @@ addField: function( field ){
         case 'combobox':
         case 'select':
             element = $('<select>');
-            $.each(field.options, function(ix, item){
-                $opt = $('<option>');
-                $opt.attr('value', item.v);
-                $opt.text(item.t);
-                $opt.appendTo(element);
-            })
+            if(typeof field.options == 'string' && field.options.match(/^\s*\<option/i)){
+                element.append($(field.options));
+
+            } else {
+                $.each(field.options, function(ix, item){
+                    $opt = $('<option>');
+                    $opt.prop('value', item.v);
+                    $opt.text(item.t);
+                    $opt.appendTo(element);
+                })    
+            }
+            
             break;
         case 'password':
             element = $('<input type="password">');
@@ -1372,7 +1381,7 @@ addField: function( field ){
     }
 
     if(field.name)
-        element.attr('name', field.name);
+        element.prop('name', field.name);
 
     if(field.type=='ajax_dropdown'){
         element[0].dataset['source'] = JSON.stringify({table: field.source, prefix: field.source_prefix, scriptURL: field.sourceURL});
@@ -1380,18 +1389,20 @@ addField: function( field ){
     }
 
     if(field.value && $.inArray(type, ['hr', 'p', 'checkbox']) < 0 )
-        element.val(field.value);
+        element.val(field.type=='ajax_dropdown' && field.text 
+            ? field.text 
+            : field.value);
 
     if(field.value && type=='p')
         element.html(field.value);
 
     if((field.value===true || field.checked) && type=='checkbox')
-        element.attr('checked', 'checked');
+        element.prop('checked', true);
 
     if( field.type!='hidden' && field.title && $.inArray(type, ['hr', 'p'])<0 ){
 
         if(field.required){
-            element.attr('required', 'required');
+            element.prop('required', true);
         }
 
         var $field = ( (type=='checkbox' || type=='radio') && (field.labelLayout && field.labelLayout!='left')
