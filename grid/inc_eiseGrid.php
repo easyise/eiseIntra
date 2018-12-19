@@ -880,7 +880,7 @@ function getSelectValue($cell, $row, $suffix=''){
     $_val = ($suffix ? $row[$cell['field']][$suffix] : $row[$cell['field']]);
     $_text = ($suffix ? $row[$cell['field'].'_text'][$suffix] : $row[$cell['field'].'_text']);
     
-    if ( !$_val ){
+    if ( $_val==='' || $_val===null ){
         return $cell['defaultText'];
     }
 
