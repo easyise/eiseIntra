@@ -1909,7 +1909,9 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
         
         $strType = (in_array($arrConfig['type'], $this->arrHTML5AllowedInputTypes) ? $arrConfig["type"] : 'text');
 
-        $strClass .= (!in_array($arrConfig['type'], $this->arrHTML5AllowedInputTypes) ? ($strClass!='' ? ' ' : '').'eiseIntra_'.$arrConfig["type"] : '');
+        $strClass .= (!in_array($arrConfig['type'], $this->arrHTML5AllowedInputTypes) 
+            ? ($strClass!='' ? ' ' : '').'eiseIntra_'.$arrConfig["type"].' eif-input-'.$arrConfig["type"] 
+            : '');
 
         $strRet = "<input type=\"{$strType}\" name=\"{$strName}\" id=\"{$strName}\"".
             ($strAttrib ? " ".$strAttrib : "").
@@ -2075,12 +2077,17 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
 
     if ($flagWrite){
 
+        $optDefaultText = (isset($confOptions["defaultText"]) 
+            ? "<option value=\"\">".htmlspecialchars($this->conf['auto_translate'] ? $this->translate($confOptions["defaultText"]) : $confOptions["defaultText"])."</option>\r\n" 
+            : ''
+        );
+
         $retVal .= "<select id=\"".$strName."\" name=\"".$strName."\"".$strAttrib.
             ($strClass ? ' class="'.$strClass.'"' : "").
             ($confOptions["required"] ? " required=\"required\"" : "").">\r\n";
-        if ( isset($confOptions["defaultText"]) ){
-            $retVal .= "<option value=\"\">".htmlspecialchars($this->conf['auto_translate'] ? $this->translate($confOptions["defaultText"]) : $confOptions["defaultText"])."</option>\r\n" ;
-        }
+        
+        $retVal .= (!$confOptions['defaultTextPosition'] ? $optDefaultText : '');
+            
         if (!isset($confOptions['deletedOptions']))
             $confOptions['deletedOptions'] = array();
         foreach ($arrOptions as $key => $value){
@@ -2097,6 +2104,7 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
                         (in_array($key, $confOptions['deletedOptions']) ? ' class="deleted"' : '').
                         ">".str_repeat('&nbsp;',5*$confOptions["indent"][$key]).htmlspecialchars($value)."</option>\r\n";
         }
+        $retVal .= ($confOptions['defaultTextPosition']=='last' ? $optDefaultText : '');
         $retVal .= "</select>";
 
     } else {
