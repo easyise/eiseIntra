@@ -1250,12 +1250,13 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text){
                     var oSelectSelector = '#select-'+(oInp.attr('name').replace(/(\[\S+\]){0,1}\[\]/, ''))
                         , oSelect = oGrid.tbodyTemplate.find(oSelectSelector)[0]
                         , options = oSelect.options;
-
-                    for(var qq=0;qq<options.length;qq++)
-                        if(options[qq].value==strValue){
-                            text = options[qq].text
+                    for (var i = options.length - 1; i >= 0; i--) {
+                        if(options[i].value == strValue){
+                            text = options[i].text
                             break;
                         }
+                    };
+                    
                             
                 default:
                     if (oInp.next()[0].tagName=="INPUT")
