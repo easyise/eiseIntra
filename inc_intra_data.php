@@ -688,7 +688,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
 }
 
 /**
- * This function recursively convers data in associative array according to type definition supplied in $types parameter. Suitable for situations when you need locale-indepedent json.
+ * This function recursively converts data in associative array according to type definition supplied in $types parameter. Suitable for situations when you need locale-indepedent json.
  * 
  */
 public function arrPHP2SQL($arrSrc, $types = array()){
@@ -721,6 +721,40 @@ public function arrPHP2SQL($arrSrc, $types = array()){
                 case 'boolean':
                 case 'checkbox':
                     $arrRet[$key] = ( $value == 'on' ? 1 : (int)$value );
+                    break;
+                default:
+                    $arrRet[$key] = $value;
+                    break;
+            }
+            
+        } 
+    }
+    return $arrRet;
+}
+/**
+ * This function also recursively converts data in associative array according to type definition supplied in $types parameter. Suitable for situations when you need to convert data according to your user locale.
+ * 
+ */
+public function arrSQL2PHP($arrSrc, $types = array()){
+    $aInt = array();
+    $arrRet = array();
+    foreach($arrSrc as $key=>$value){
+        $flagIsText = false;
+        if(is_array($value)){
+            $arrRet[$key] = $this->arrSQL2PHP($value, $types);
+        } else {
+            switch ($types[$key]) {
+                case 'date':
+                    $arrRet[$key] = $this->dateSQL2PHP($value);
+                    break;
+                case 'datetime':
+                    $arrRet[$key] = $this->datetimeSQL2PHP($value);
+                    break;
+                case 'integer':
+                    $arrRet[$key] = ($value === null ? '' : (int)$value);
+                    break;
+                case 'real':
+                    $arrRet[$key] = ($value === null ? '' : $this->intra->decSQL2PHP($value));
                     break;
                 default:
                     $arrRet[$key] = $value;
