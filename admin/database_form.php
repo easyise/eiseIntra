@@ -289,7 +289,7 @@ $grid->Execute();
 </fieldset>
 </form>
 <script>
-$(window).load(function(){
+$(document).ready(function(){
 
     $('.eiseGrid').eiseGrid();
 

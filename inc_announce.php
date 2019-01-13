@@ -213,7 +213,7 @@ function adjustHeight(){
 
 }
 
-$(window).load(function(){
+$(document).ready(function(){
 	$('.eiseIntraAnnounce form').submit(function(){
 
 		var text = $(this).find('textarea[name=annText]').val();

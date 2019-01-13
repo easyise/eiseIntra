@@ -20,7 +20,9 @@ if (!class_exists('eiseSQL'))
 include "inc_intra_data.php";
 include "inc_item.php";
 
-define('jQueryVersion', '1.6.1');
+//define('jQueryVersion', '3.3.1'); // you can re-define this constant in your script if you need more modern jQUery version
+//define('jQueryVersion', '1.6.1');
+define('jQueryVersion', '1.11.3');
 
 /**
  * eiseIntra is the core class that encapsulates routines for authenication, form elements display, data handling, redirection and debug.
@@ -1167,7 +1169,7 @@ private function getCookiePath($strLocation, $arrConfig = array()){
 /**
  * This method adds HTTP header "Location" that redirects user to URL/URI specified in $strLocation, with text message to be shown on this page, specified in $strMessage parameter.  
  *
- * Message will be shown on eiseIntra enabled page, using `$('body').eiseIntra('showMessage')` function that will fire right after `$('window').load()` event.  
+ * Message will be shown on eiseIntra enabled page, using `$('body').eiseIntra('showMessage')` function that will fire right after `$(document).ready()` event.  
  *
  * Message will be saved for display using cookies. By default cookie path is the path part of $strLocation URL. If $intra->conf['flagSetGlobalCookieOnRedirect'] is TRUE, cookie path will be set by global constant $this->conf['cookiePath'].  
  *
@@ -1846,7 +1848,7 @@ public function form($action, $dataAction, $fields, $method='POST', $conf=array(
         .$this->field(null, $this->conf['dataActionKey'], $dataAction, array('type'=>'hidden'))."\r\n"
         .$fields."\r\n"
         .($conf['flagAddJavaScript']
-            ? '<script>$(window).load(function(){$("'.($conf['id']!='' ? "#{$conf['id']}" : '.eif-form').'").eiseIntraForm();})</script>'
+            ? '<script>$(document).ready(function(){$("'.($conf['id']!='' ? "#{$conf['id']}" : '.eif-form').'").eiseIntraForm();})</script>'
             : '')
         .($conf['flagDontClose']
             ? ''
