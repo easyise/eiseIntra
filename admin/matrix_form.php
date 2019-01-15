@@ -119,7 +119,7 @@ $(document).ready(function(){
     $('#rolID').change(function(){
         location.href='matrix_form.php?rolID='+encodeURIComponent($(this).val());
     });
-    $('a[href=#save]').click(function(){
+    $('a[href="#save"]').click(function(){
         $('.eiseGrid').eiseGrid('save');
         return false;
     })

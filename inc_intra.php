@@ -22,7 +22,7 @@ include "inc_item.php";
 
 //define('jQueryVersion', '3.3.1'); // you can re-define this constant in your script if you need more modern jQUery version
 //define('jQueryVersion', '1.6.1');
-define('jQueryVersion', '1.11.3');
+define('jQueryVersion', '1.12.4');
 
 /**
  * eiseIntra is the core class that encapsulates routines for authenication, form elements display, data handling, redirection and debug.
