@@ -87,7 +87,7 @@ echo $usr->form();
 
 ?>
 <script type="text/javascript">
-$(window).load(function(){
+$(document).ready(function(){
 
     $('#usr').submit( function(){
 

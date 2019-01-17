@@ -1589,7 +1589,7 @@ $.extend($.fn.eiseList, {
 
 })( jQuery );
 
-$(window).load(function(){
+$(document).ready(function(){
 
     $('.eiseList').eiseList();
 

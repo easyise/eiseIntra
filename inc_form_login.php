@@ -71,8 +71,8 @@ if ($strMode == "LDAP"){
  ?>
 
 <script>
-$(window).load(function(){  
-   
+$(document).ready(function(){  
+
     $('body').eiseIntra('cleanStorage');
 
     var host = document.getElementById("host");

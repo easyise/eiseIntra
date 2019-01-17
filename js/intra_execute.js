@@ -1,10 +1,6 @@
-$(document).ready(function(){
-    
-    $('body').eiseIntra();
-    
-})
+$(function(){
 
-$(window).load(function(){  
+    $('body').eiseIntra();
 
     if( window.parent.document ){
         var $parentMenu = $('.ei-sidebar-menu', window.parent.document)

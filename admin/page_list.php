@@ -103,6 +103,12 @@ $rsPages = $oSQL->do_query($sqlPages);
 
 ?>
 
+<style type="text/css">
+.simpleTree .trigger {
+    width: 33px;
+}
+</style>
+
 <form id="matrixForm" name="matrixForm" action="<?php echo $_SERVER["PHP_SELF"] ; ?>" method="POST">
 <input type="hidden" name="DataAction" value="update">
 <input type="hidden" id="dbName" name="dbName" value="<?php echo $dbName ; ?>">

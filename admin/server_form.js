@@ -3,7 +3,7 @@ var explainerConf = {
 	, title: 'Query Analyzer'
 };
 
-$(window).load(function(){
+$(document).ready(function(){
 	
 	$('.eiseGrid').eiseGrid();
 

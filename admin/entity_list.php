@@ -102,7 +102,7 @@ include eiseIntraAbsolutePath."inc_top.php";
 <script>
 $(document).ready(function(){  
 	$('.eiseGrid').eiseGrid();
-    $('a[href=#add]').click(function(){
+    $('a[href="#add"]').click(function(){
         $('#ent').eiseGrid('addRow');
         return false;
     })

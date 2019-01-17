@@ -114,12 +114,12 @@ td.pgr-pagFullTitle > div {
 </style>
 
 <script>
-$(window).load(function(){  
+$(document).ready(function(){  
     $('.eiseGrid').eiseGrid();
     $('#rolID').change(function(){
         location.href='matrix_form.php?rolID='+encodeURIComponent($(this).val());
     });
-    $('a[href=#save]').click(function(){
+    $('a[href="#save"]').click(function(){
         $('.eiseGrid').eiseGrid('save');
         return false;
     })
@@ -182,11 +182,6 @@ while ($rwPGR = $oSQL->fetch_array($rsPGR)){
 $gridPGR->Execute();
 ?>
 </fieldset>
-<script type="text/javascript">
-$(window).load(function(){
-    $('')
-})
-</script>
 
 </div><?php
 include eiseIntraAbsolutePath.'inc_bottom.php';

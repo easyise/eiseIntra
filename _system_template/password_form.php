@@ -41,7 +41,7 @@ echo $intra->form($intra->conf['form'], 'update', $fields, 'POST', array('id'=>'
 
 ?>
 <script type="text/javascript">
-$(window).load(function(){
+$(document).ready(function(){
 
     $('form#password').submit(function(){
 

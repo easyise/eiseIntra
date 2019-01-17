@@ -209,8 +209,8 @@ eiseGrid.prototype.toggleMultiLine = function(o){
                         $td = $tbody.find('input[name="'+fieldToRestore+'[]"]').parents('td').first();
                     $td.removeClass(className);
                     $td.attr('class', classNameNew+' '+$td.attr('class'));
-                    $tdAfter.after($td);
-
+                    $td.detach();
+                    $td.insertAfter($tdAfter);
                 })
 
             }
@@ -263,7 +263,6 @@ eiseGrid.prototype.toggleMultiLine = function(o){
 
         // calculate line numbers
         for( var nCol=0; nCol<lsl; nCol++ ){ var nl = ls[nCol].fields.length; nLines =  (nl > nLines ? nl : nLines); }
-
 
         // for each tbodies add tr
         $tcBodies.each(function(){
@@ -815,7 +814,7 @@ eiseGrid.prototype.newRow = function($trAfter){
     $newTbody.find('.eg-floating-select').remove();
 
     if($trAfter)
-        $trAfter.after($newTbody);
+        $newTbody.insertAfter($trAfter);
 
     return $newTbody;
 }

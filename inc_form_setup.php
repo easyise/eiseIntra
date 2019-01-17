@@ -135,7 +135,7 @@ var checkPassword = function($passInp, $frm){
 
 }
 
-$(window).load(function(){
+$(document).ready(function(){
     var $frm = $('.eiseIntraForm')
         .eiseIntraForm();
 
