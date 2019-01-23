@@ -10,7 +10,7 @@ $(function(){
         }
     }
 
-    eiseIntraAdjustFrameContent();
+    window.setTimeout(eiseIntraAdjustFrameContent, 500);
 
     $('#menubar a.confirm').click(function(event){
         
