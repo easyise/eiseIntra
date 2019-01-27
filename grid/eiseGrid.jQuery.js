@@ -7,7 +7,7 @@ http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js
 
 
 Published under GPL version 2 license
-(c)2006-2015 Ilya S. Eliseev ie@e-ise.com, easyise@gmail.com
+(c)2006-2019 Ilya S. Eliseev ie@e-ise.com, easyise@gmail.com
 
 Contributors:
 Pencho Belneiski
@@ -74,18 +74,26 @@ function eiseGrid(gridDIV){
     this.initLinesStructure();
 
     //clickable TH 
-    this.thead.find('th').click(function(){
+    this.thead.find('th').each(function(){
         var $th = $(this),
             strField = oGrid.getFieldName($th);
         $.each(oGrid.conf.fields, function(field, props){
             if(strField!=field)
                 return true;
             if(props.type=='checkbox' && props.headerClickable){
-                oGrid.div.find('.eg-data .'+oGrid.id+'-'+field+' input[type="checkbox"]').click();
-                return false;
+                $th.click(function(){
+                    oGrid.div.find('.eg-data .'+oGrid.id+'-'+field+' input[type="checkbox"]').click();
+                });
+                return true;
+            }
+            if(props.sortable){
+                $th.click(function(ev){
+                    oGrid.sort( field );
+                })
+                return true;
             }
         })
-    })
+    });
 
     //tabs 3d
     this.div.find('#'+this.id+'-tabs3d').each(function(){
@@ -1839,6 +1847,81 @@ eiseGrid.prototype.excel = function(options){
         strSheet += "</Workbook>";
     var b = new Blob([strSheet], {type:'application/x-msexcel;charset=utf-8;'});
     grid.sa(b, options.excelFileName);
+
+}
+
+eiseGrid.prototype.sort = function( field, fnCallback ){
+    
+    var grid = this,
+        $th = grid.thead.find('th.'+grid.id+'-'+field),
+        orderNew = -1 * (this.conf.fields[field].order ? this.conf.fields[field].order : -1);
+
+    if($th[0]){
+
+        $th.addClass('eg-sortable')
+            .addClass('eg-wait');
+
+    }
+
+    grid.doSort( field, orderNew, function( order ){
+
+        grid.thead.find('th').removeClass('eg-asc eg-desc')
+
+        if($th[0])
+            $th
+                .removeClass('eg-wait')
+                .removeClass('eg-'+(order<0 ? 'asc' : 'desc'))
+                .addClass('eg-'+(order>0 ? 'asc' : 'desc'))
+
+        if(typeof fnCallback == 'function'){
+            fnCallback.call(grid, order)
+        }
+    });
+
+}
+
+eiseGrid.prototype.doSort = function( field, order, fnCallback ){
+    var grid = this,
+        tbodies = grid.tbodies
+        type = grid.conf.fields[field].type;
+
+    tbodies.sort( function(tbodyA, tbodyB){ 
+        return grid._sortFunction([tbodyA, tbodyB], field, order, type) 
+    } );
+
+    for (var i = tbodies.length - 1; i >= 0; i--) {
+        if(i>0)
+            $(tbodies[i]).before(tbodies[i-1]);
+    };
+
+    grid.tbodies = grid.tableContainer.find('tbody.eg-data');
+
+    grid.conf.fields[field].order = order;
+
+    fnCallback.call(grid, order);
+
+}
+
+eiseGrid.prototype._sortFunction = function(tbodies, field, order, type){
+
+    var grid = this,
+        values = [];
+
+    for (var i = tbodies.length - 1; i >= 0; i--) {
+        var $tbody = $(tbodies[i]);
+
+        switch (type){
+            case 'ajax_dropdown':
+            case 'combobox':
+            case 'select':
+                values[i] = grid.text($tbody, field);
+            default:
+                values[i] = grid.value($tbody, field);        
+        }        
+
+    };
+
+    return order * (values[0] > values[1] ? 1 : -1); 
 
 }
 

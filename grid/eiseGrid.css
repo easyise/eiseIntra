@@ -28,6 +28,39 @@
 .eg-table > thead > tr > th.eg-clickable {
     cursor: pointer;
 }
+
+
+.eg-table > thead > tr > th.eg-sortable {
+    cursor: pointer;
+    position: relative;
+}
+
+.eg-table > thead > tr > th.eg-sortable:before,
+.eg-table > thead > tr > th.eg-sortable:after {
+    position: absolute;
+    font-size: @th-height / 2 ;
+    font-family: FontAwesome;
+    line-height: @th-height;
+    content: "\f0dc";
+    opacity: 0.5;
+}
+.eg-table > thead > tr > th.eg-sortable:before {
+    left: @th-height /4;
+    top: 0;
+}
+.eg-table > thead > tr > th.eg-sortable:after {
+    right: @th-height /4;
+    top: 0;
+}
+.eg-table > thead > tr > th.eg-sortable.eg-asc:before,
+.eg-table > thead > tr > th.eg-sortable.eg-asc:after {
+    content: "\f0d8";
+}
+.eg-table > thead > tr > th.eg-sortable.eg-desc:before,
+.eg-table > thead > tr > th.eg-sortable.eg-desc:after {
+    content: "\f0d7";
+}
+
 .eg-table > thead > tr > th.eg-mandatory > span::after {
     content: "*";
 }

@@ -317,6 +317,9 @@ function get_html($allowEdit=true){
                                 : "")
                             .($col['headerClickable'] 
                                 ? " eg-clickable" 
+                                : "")
+                            .($col['sortable'] 
+                                ? " eg-sortable" 
                                 : "").$this->Columns[$ix]['staticClass']."\"";
                        
                         
@@ -558,6 +561,9 @@ function get_html($allowEdit=true){
         }
         if ($field['headerClickable']){
             $arrConfig['fields'][$fieldName]['headerClickable'] = true;
+        }
+        if ($field['sortable']===true){
+            $arrConfig['fields'][$fieldName]['sortable'] = true;
         }
     }
 

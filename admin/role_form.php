@@ -1,9 +1,7 @@
 <?php
 include "common/auth.php" ;
 
-include commonStuffAbsolutePath.'eiseGrid2/inc_eiseGrid.php';
-$arrJS[] = commonStuffRelativePath.'eiseGrid2/eiseGrid.jQuery.js';
-$arrCSS[] = commonStuffRelativePath.'eiseGrid2/themes/default/screen.css';
+$intra->requireComponent('grid');
 
 $oSQL->dbname=(isset($_POST["dbName"]) ? $_POST["dbName"] : $_GET["dbName"]);
 $oSQL->select_db($oSQL->dbname);
@@ -35,18 +33,21 @@ $gridROL->Columns[] = Array(
         , 'mandatory' => true
         , 'type' => "text"
         , 'width' => '150px'
+        , 'sortable' => true
 );
 $gridROL->Columns[] = Array(
         'title' => "Title (Loc)"
         , 'field' => "rolTitleLocal"
         , 'type' => "text"
         , 'width' => "300px"
+        , 'sortable' => true
         );
 $gridROL->Columns[] = Array(
         'title' => "Title"
         , 'field' => "rolTitle"
         , 'type' => "text"
         , 'width' => "300px"
+        , 'sortable' => true
 );$gridROL->Columns[] = Array(
         'title' => "all"
         , 'field' => "rolFlagDefault"
@@ -54,7 +55,7 @@ $gridROL->Columns[] = Array(
         , 'width' => '30px'
 );
 $gridROL->Columns[] = Array(
-        'title' => "all"
+        'title' => "virt"
         , 'field' => "rolFlagVirtual"
         , 'type' => "checkbox"
         , 'width' => '30px'
