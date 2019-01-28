@@ -803,6 +803,10 @@ eiseGrid.prototype.bindKeyPress = function ( $o ){
 
 
 eiseGrid.prototype.getFieldName = function ( oField ){
+
+    if(oField[0].dataset['field'])
+        return oField[0].dataset['field'];
+
     var arrClasses = oField.attr("class").split(/\s+/);
     var colID = arrClasses[0].replace(this.id+"-", "");
     return colID;
@@ -1490,7 +1494,6 @@ eiseGrid.prototype.height = function(nHeight, callback){
         var obj = nHeight
             , offsetTop = grid.div.offset().top
             , margin = offsetTop - grid.div.parents().first().offset().top;
-        console.log(offsetTop, margin)
         nHeight = (obj===window 
             ? window.innerHeight - $('.ei-action-menu').outerHeight(true) 
             : $(obj).outerHeight(true)) - offsetTop - 2*margin;
@@ -1853,25 +1856,29 @@ eiseGrid.prototype.excel = function(options){
 eiseGrid.prototype.sort = function( field, fnCallback ){
     
     var grid = this,
-        $th = grid.thead.find('th.'+grid.id+'-'+field),
+        $th = grid.thead.find('th[data-field="'+field+'"]'),
         orderNew = -1 * (this.conf.fields[field].order ? this.conf.fields[field].order : -1);
 
     if($th[0]){
-
-        $th.addClass('eg-sortable')
-            .addClass('eg-wait');
-
+        setTimeout(function(){
+            $th.addClass('eg-sortable')
+                .addClass('eg-wait');    
+        }, 10)
     }
 
     grid.doSort( field, orderNew, function( order ){
 
         grid.thead.find('th').removeClass('eg-asc eg-desc')
 
-        if($th[0])
-            $th
-                .removeClass('eg-wait')
-                .removeClass('eg-'+(order<0 ? 'asc' : 'desc'))
-                .addClass('eg-'+(order>0 ? 'asc' : 'desc'))
+        if($th[0]){
+            window.setTimeout(function(){
+                $th
+                    .removeClass('eg-wait')
+                    .removeClass('eg-'+(order<0 ? 'asc' : 'desc'))
+                    .addClass('eg-'+(order>0 ? 'asc' : 'desc'));
+            }, 10)
+        }
+            
 
         if(typeof fnCallback == 'function'){
             fnCallback.call(grid, order)

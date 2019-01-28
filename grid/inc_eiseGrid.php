@@ -308,6 +308,7 @@ function get_html($allowEdit=true){
                 && $this->Columns[$ix+1]['title']!=$col['title']) || !isset($this->Columns[$ix+1])){
                 
                 $strHead .= "\t<th".
+                            " data-field=\"{$col['field']}\"".
                             ($col["style"]!="" 
                             ? " style=\"{$col['style']}\""
                             : "").

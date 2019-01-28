@@ -52,6 +52,14 @@
     right: @th-height /4;
     top: 0;
 }
+.eg-table > thead > tr > th.eg-sortable.eg-wait:before,
+.eg-table > thead > tr > th.eg-sortable.eg-wait:after {
+    content: "\f021" !important;
+    font-weight: 100;
+    -webkit-animation: fa-spin 2s infinite linear;
+    animation: fa-spin 2s infinite linear;
+}
+
 .eg-table > thead > tr > th.eg-sortable.eg-asc:before,
 .eg-table > thead > tr > th.eg-sortable.eg-asc:after {
     content: "\f0d8";
