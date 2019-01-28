@@ -1704,7 +1704,8 @@ eiseGrid.prototype.fill = function(data, fn){
         if (props.totals!=undefined) oGrid.recalcTotals(field);
     });
 
-    oGrid.trFirst = oGrid.tableContainer.find('.eg-data').first();
+    oGrid.tbodies = oGrid.tableContainer.find('.eg-data');
+    oGrid.trFirst = oGrid.tbodies.first();
 
     if(typeof fn === 'function')
         fn.call(oGrid)
@@ -1889,8 +1890,9 @@ eiseGrid.prototype.sort = function( field, fnCallback ){
 
 eiseGrid.prototype.doSort = function( field, order, fnCallback ){
     var grid = this,
-        tbodies = grid.tbodies
+        tbodies = grid.tbodies,
         type = grid.conf.fields[field].type;
+
 
     tbodies.sort( function(tbodyA, tbodyB){ 
         return grid._sortFunction([tbodyA, tbodyB], field, order, type) 
