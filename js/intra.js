@@ -209,30 +209,50 @@ init: function(options){
     // if ei-pane contains iframe
     adjustIframe();
 
-    // ajdust top padding
-    if($('.ei-pane')[0]){
-        var padding = parseInt($('.ei-pane').css('padding-top').replace('px', ''))
-            , hActionMenu = 0;
-        if($('.ei-action-menu')[0]){
-            hActionMenu = $('.ei-action-menu').outerHeight(true);
-            $('.ei-action-menu').css('margin-top', '-'+hActionMenu+'px');
-        }
-
-        $('.ei-pane').css('padding-top', (padding+hActionMenu)+'px');
-
-    }
-
     // clean storage when user changes language
     $('.language-selector').click(function(){
         $this.eiseIntra('cleanStorage');
-    })
+    });
 
-    // show user message
-    window.setTimeout(function(){
-            $this.eiseIntra('showMessage');
-        }, 100);
-    
+    return this;
 
+}
+
+, doVisualAdjustments: function(){
+
+    // adjust side menu
+    if( window.parent.document ){
+        var $parentMenu = $('.ei-sidebar-menu', window.parent.document)
+        if($parentMenu[0] && !$parentMenu.hasClass('pinned')){
+            $parentMenu.removeClass('visible');
+            $parentMenu.click();
+        }
+    }
+
+    // ajdust top padding
+    var hActionMenu = 0;
+    if($('.ei-action-menu')[0]){
+        hActionMenu = $('.ei-action-menu').outerHeight(true);
+        $("#frameContent").css ("padding-top", hActionMenu+"px");
+
+        if($('.ei-pane')[0]){
+            $('.ei-action-menu').css('margin-top', '-'+hActionMenu+'px');
+            $('.ei-pane').css('padding-top', (parseInt($('.ei-pane').css('padding-top').replace('px', '')) + hActionMenu)+'px');            
+        }
+
+        $('.ei-action-menu a.confirm').click(function(event){
+            
+            if (!confirm('Are you sure you want to execute "'+$(this).text()+'"?')){
+                event.preventDefault();
+                return false;
+            } else {
+                return true;
+            }
+
+        });
+    }
+
+    return this;
 }
 
 , adjustTopLevelMenu: function(){
@@ -1886,15 +1906,6 @@ function eiseIntraAdjustPane(){
     
     //adjust toc width, actual for IE
     //$('#td_toc').css("width", (divTOC.outerWidth(true)+"px"));
-}
-
-function eiseIntraAdjustFrameContent(){
-    
-    var oMenubarHeight = $(".menubar").outerHeight(true);
-
-    if (oMenubarHeight!=null) {
-        $("#frameContent").css ("padding-top", oMenubarHeight+"px");
-    }   
 }
 
 function MsgClose(){
