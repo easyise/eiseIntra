@@ -284,21 +284,24 @@ init: function(options){
  */
 , showMessage: function(text, options){
 
-    var $sysmsg = $('<div id="ei-sysmsg" />')
-        .append('<i />')
-        .appendTo(this)
-        , msgText = ''
-        , errorConditions = /^ERROR(\:){0,1}\s*/i;
-    
     if(text)
         msgText = text;
     else {
         if(this[0].dataset.message){
             msgText = this[0].dataset.message; 
             this[0].dataset.message = ''; 
-        } else 
+        } else {
             return this;
+        }
     }
+
+    if(!msgText)
+        return this;
+
+    var $sysmsg = $('<div id="ei-sysmsg" />')
+        .append('<i />')
+        .appendTo(this)
+        , errorConditions = /^ERROR(\:){0,1}\s*/i;
 
     if(msgText.match(errorConditions)){ // show alert box with buttons
         
@@ -317,7 +320,8 @@ init: function(options){
             , buttons: {Ok: function(){ $sysmsg.dialog('close').remove() } }
             , open: function(){
                 window.setTimeout(function(){
-                    $sysmsg.dialog('close').remove()
+                    if($sysmsg[0])
+                        $sysmsg.dialog('close').remove()
                 }, 10000)
             }
             , close: function(){
@@ -334,11 +338,13 @@ init: function(options){
 
         $sysmsg.css('white-space', 'nowrap');
 
+        var h = ($('#menubar')[0] && $('#menubar').outerHeight(true) ? $('#menubar').outerHeight(true) : 28)
+
         $sysmsg
         .dialog({
             dialogClass: "ei_dialog_notitle ei-sysmsg-info"
             , resizable: false
-            , height: $('#menubar').outerHeight(true)
+            , height: h
             , width: 'auto'
             , position: ($('.ei-header')[0]
                     ? {my: 'right top', at: 'right bottom', of: $('.ei-header')}
@@ -346,7 +352,8 @@ init: function(options){
                     )
             , open: function(){
                 window.setTimeout(function(){
-                    $sysmsg.dialog('close').remove()
+                    if($sysmsg[0])
+                        $sysmsg.dialog('close').remove()
                 }, 7000)
             }
             , close: function(){
@@ -356,7 +363,7 @@ init: function(options){
             }
             , hide: 'fade'
         })
-        .css('height', $('#menubar').outerHeight()+'px');
+        .css('height', h+'px');
 
     }
 
