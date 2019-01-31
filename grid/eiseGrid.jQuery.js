@@ -1939,46 +1939,121 @@ eiseGrid.prototype._sortFunction = function(tbodies, field, order, type){
 
 eiseGrid.prototype.showFilter = function(ev){
 
-    var grid = this;
-
-    if( typeof $.fn.eiseIntraForm == 'undefined' ){
-        return this;
-    }
-
-    var fields = [];
+    var grid = this
+        , $dlg = $('<div class="eiseIntraForm">')
+        , $initiator = $(ev.currentTarget)
+        , fields = [];
 
     $.each(grid.conf.fields, function(key, field){
         
         if(field.filterable){
-            var fld = {};
-            fld.title = field.title;
-            fld.type = 'text';
-            fld.name = key;
-            fld.value = field.filterValue;
+            var $elem = $('<input type="text">')
+                , fld = {}
+                , options = [];
+            grid.tbodies.each(function(){
+                options.push(grid.text($(this), key));
+            });
+            fields.push(field);
+            $elem.attr('name', key);
+            $elem.val(typeof grid.conf.fields[key].filterValue != 'undefined' ? grid.conf.fields[key].filterValue : '')
 
-            fields.push(fld);
+            var $field = $('<div><label>'+field.title+':</label></div>')
+                .append($elem.addClass('eiseIntraValue'))
+                .addClass('eiseIntraField');
+
+            options = Array.from(new Set(options))
+
+            $elem.autocomplete({
+                source: options,
+                minLength: 3,
+                focus: function(event,ui) {
+                    event.preventDefault();
+                    if (ui.item){
+                        $elem.val(ui.item.label);
+                    }
+                },
+                select: function(event,ui) {
+                    event.preventDefault();
+                    if (ui.item){
+                        $elem.val(ui.item.label);
+                    }
+                },
+                change: function(event, ui){
+                }
+            }).on('keydown', function(ev){
+                if(ev.keyCode==13)
+                    grid.applyFilter($dlg)
+
+            });
+
+            $dlg.append($field);
+
         }
+    });
+
+    if(fields.length==0){
+        $dlg.remove();
+        return this;
+    }
+
+    $dlg.appendTo('body');
+
+    $dlg.dialog({
+                dialogClass: 'el_dialog_notitle', 
+                position: {
+                    my: "left top",
+                    at: 'left bottom',
+                    of: $initiator
+                  },
+                show: 'slideDown',
+                hide: 'slideUp',
+                resizable: false,
+                width: 300,
+                title: "Filter",
+                buttons: {
+                    "OK": function() {
+
+                        grid.applyFilter($dlg);
+
+                        return false;
+                    },
+                    "Cancel": function() {
+                        $(this).dialog("close");
+                    }
+                },
+            });
+
+    return;
+
+}
+
+eiseGrid.prototype.applyFilter = function($dlg){
+
+    var grid = this;
+
+    $dlg.find('input').each(function(){
+        var field = this,
+            $field = $(field),
+            filterValue = $field.val();
+
+        if(!field.name)
+            return true; //continue
+        grid.conf.fields[field.name].filterValue = filterValue;
+        
+    });
+
+    grid.tbodies.each(function(){ $(this).removeClass('eg-filtered'); });
+
+    $.each(grid.conf.fields, function(key, field){
+        grid.tbodies.each(function(){
+            var text = grid.text($(this), key);
+            if(field.filterValue && text.search(new RegExp(field.filterValue, 'i'))<0)
+                $(this).addClass('eg-filtered');
+        })
     })
 
-    var $frm = $.fn.eiseIntraForm('createDialog', {fields: fields
-                    , title: 'Filter'
-                    , onsubmit: function(newValues){
+    $dlg.dialog('close').remove();
 
-                        $(this).find('input').each(function(){
-                            var field = this,
-                                $field = $(field);
-
-                            if(!field.name)
-                                return true; //continue
-                            console.log(field.name)
-                            grid.conf.fields[field.name].filterValue = $field.val();
-                        })
-
-                        $(this).dialog('close').remove();
-                        
-                        return false;
-                    }
-                });
 }
 
 var methods = {

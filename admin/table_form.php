@@ -42,6 +42,7 @@ switch($pane){
            'field'=>"Type"
            , 'title'=>"DB Type"
             , 'type' => "text"
+            , 'filterable' => true
         );
 
         $grid->Columns[] = Array(
