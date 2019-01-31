@@ -1,6 +1,8 @@
 
-@th-height: 28px;
-@table-border-radius: 6px;
+@eg-th-height: 28px;
+@eg-table-border-radius: 6px;
+@eg-button-fa-color: #71b76b;
+@eg-button-fa-text-shadow: #225a1f;
 
 @import (less) url("../../../grid/eiseGrid.css");
 @import (less) "../../../lib/sprites/sprite.css";
@@ -14,7 +16,7 @@
 	font-size: 12px;
 	border-color: #eee;
     border: 1px solid #ccc;
-    border-radius: @table-border-radius;
+    border-radius: @eg-table-border-radius;
     border-collapse:separate;
 }
 
@@ -25,17 +27,17 @@
     font-weight: 300; 
     text-align: center;
     padding: 0;
-    height:@th-height;
+    height:@eg-th-height;
     padding-left: 2px;
     padding-right: 2px;
 
     &:first-of-type {
         border-top: none;
-        border-radius: @table-border-radius - 2px 0 0 0;
+        border-radius: @eg-table-border-radius - 2px 0 0 0;
     }
     &:last-of-type {
         border-top: none;
-        border-radius: 0 @table-border-radius - 2px 0 0;
+        border-radius: 0 @eg-table-border-radius - 2px 0 0;
     }
 }
 
@@ -140,7 +142,7 @@ td.eg-ajax_dropdown input{
 }
 
 .eg-controlbar {
-    margin-bottom: -1 * @th-height;
+    margin-bottom: -1 * @eg-th-height;
     padding-top: 3px;
     padding-left: 2px;
     margin-left: 3px;
