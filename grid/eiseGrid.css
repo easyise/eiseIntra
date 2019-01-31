@@ -38,18 +38,18 @@
 .eg-table > thead > tr > th.eg-sortable:before,
 .eg-table > thead > tr > th.eg-sortable:after {
     position: absolute;
-    font-size: @th-height / 2 ;
+    font-size: @eg-th-height / 2 ;
     font-family: FontAwesome;
-    line-height: @th-height;
+    line-height: @eg-th-height;
     content: "\f0dc";
     opacity: 0.5;
 }
 .eg-table > thead > tr > th.eg-sortable:before {
-    left: @th-height /4;
+    left: @eg-th-height /4;
     top: 0;
 }
 .eg-table > thead > tr > th.eg-sortable:after {
-    right: @th-height /4;
+    right: @eg-th-height /4;
     top: 0;
 }
 .eg-table > thead > tr > th.eg-sortable.eg-wait:before,
@@ -222,7 +222,8 @@ select.eg-floating-select {
 }
 
 .eg-controlbar {
-    float: left;
+    position: absolute;
+    z-index: 10;
 }
 
 .eg-3d {
@@ -244,6 +245,30 @@ select.eg-floating-select {
     width: auto;
     height: auto;
     overflow: hidden;
+}
+
+.eg-button:active {
+    border-style: inset;
+    transform: translateX(1px) translateY(1px);
+}
+
+.eg-button i {
+    display: inline-block;
+    font: normal normal normal @eg-th-height/1 FontAwesome;
+    font-size: inherit;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color: @eg-button-fa-color;
+    text-shadow: 1px 1px 0 @eg-button-fa-text-shadow;
+}
+
+.eg-button.eg-button-filter i {
+    background-image: none;
+    padding-left: 0;
+}
+.eg-button.eg-button-filter i:before {
+    content: "\f0b0";
 }
 
 .eg-pseudotabs {

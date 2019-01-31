@@ -674,6 +674,9 @@ var __initControlBar = function(){
     this.div.find('.eg-button-excel').bind('click', function(){
         oGrid.excel();
     });
+    this.div.find('.eg-button-filter').bind('click', function(ev){
+        oGrid.showFilter(ev);
+    });
 
     //controlbar margin adjust to begin of 2nd TH
     this.div.find('.eg-controlbar').each(function(){
@@ -1932,6 +1935,50 @@ eiseGrid.prototype._sortFunction = function(tbodies, field, order, type){
 
     return order * (values[0] > values[1] ? 1 : -1); 
 
+}
+
+eiseGrid.prototype.showFilter = function(ev){
+
+    var grid = this;
+
+    if( typeof $.fn.eiseIntraForm == 'undefined' ){
+        return this;
+    }
+
+    var fields = [];
+
+    $.each(grid.conf.fields, function(key, field){
+        
+        if(field.filterable){
+            var fld = {};
+            fld.title = field.title;
+            fld.type = 'text';
+            fld.name = key;
+            fld.value = field.filterValue;
+
+            fields.push(fld);
+        }
+    })
+
+    var $frm = $.fn.eiseIntraForm('createDialog', {fields: fields
+                    , title: 'Filter'
+                    , onsubmit: function(newValues){
+
+                        $(this).find('input').each(function(){
+                            var field = this,
+                                $field = $(field);
+
+                            if(!field.name)
+                                return true; //continue
+                            console.log(field.name)
+                            grid.conf.fields[field.name].filterValue = $field.val();
+                        })
+
+                        $(this).dialog('close').remove();
+                        
+                        return false;
+                    }
+                });
 }
 
 var methods = {
