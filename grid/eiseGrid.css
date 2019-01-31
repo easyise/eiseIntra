@@ -121,6 +121,10 @@
 	display: none;
 }
 
+tbody.eg-filtered {
+    display: none;
+}
+
 .eg-container td {
     border-right-width: 1px;
     border-right-style: solid;
