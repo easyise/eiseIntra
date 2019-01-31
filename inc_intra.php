@@ -1328,8 +1328,10 @@ function batchStart($conf = array()){
 
     $this->flagBatch = true;
 
-    if($conf['htmlspecialchars'])
-        $this->conf['batch_htmlspecialchars'] = true;
+    foreach ($conf as $key => $value) {
+        if(!in_array($key, array_keys($this->conf)))
+            $this->conf['batch_'.$key] = $value;
+    }
 
     ob_start();
 
@@ -1357,7 +1359,8 @@ function batchEcho($string){
                 )
             , $args) ;
         
-    echo ( $this->conf['batch_htmlspecialchars'] ? htmlspecialchars( $to_echo ) : $to_echo );
+    echo ( $this->conf['batch_htmlspecialchars'] ? htmlspecialchars( $to_echo ) : $to_echo ).
+        ($this->conf['batch_autolinefeed'] ? "\n" : '');
     ob_flush();
     flush();
 }
