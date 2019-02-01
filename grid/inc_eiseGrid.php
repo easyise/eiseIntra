@@ -226,15 +226,22 @@ function get_html($allowEdit=true){
     
     if (!$allowEdit)
         $this->permissions["FlagWrite"] = false;
+
+    foreach ($this->Columns as $col) {
+        if($col['title'] && $col['filterable']===true){
+            $this->conf['controlBarButtons'] .= ($this->conf['controlBarButtons'] ? '|' : '').'filter';
+            break;
+        }
+    }
     
     $aControlBarButtons = explode('|', $this->conf['controlBarButtons']);
-    if (($this->permissions["FlagWrite"]  && count($aControlBarButtons)>0) || count(array_intersect(array('excel', 'refresh'), $aControlBarButtons))>0 ){
+    if (($this->permissions["FlagWrite"]  && count($aControlBarButtons)>0) || count(array_intersect(array('excel', 'refresh', 'filter'), $aControlBarButtons))>0 ){
 
         $strControlBar = "<div class=\"eg-controlbar\">";
         
         foreach ($aControlBarButtons as $btn){
             if($btn)
-                $strControlBar .= "<button class=\"eg-button eg-button-{$btn}\" type=\"button\"><i></i></button>\r\n";
+                $strControlBar .= "<button class=\"eg-button eg-button-{$btn}\" type=\"button\"><i></i></button>";
         }
         
         $strControlBar .= "</div>";
@@ -321,9 +328,11 @@ function get_html($allowEdit=true){
                                 : "")
                             .($col['sortable'] 
                                 ? " eg-sortable" 
+                                : "")
+                            .($col['filterable'] 
+                                ? " eg-filterable" 
                                 : "").$this->Columns[$ix]['staticClass']."\"";
                        
-                        
                 if (count($spannedColumns)>1) {
                     $this->arrSpans[$spannedColumns[0]['field']]=count($spannedColumns);
                     $strHead .= ' colspan="'.count($spannedColumns).'"';
@@ -565,6 +574,9 @@ function get_html($allowEdit=true){
         }
         if ($field['sortable']===true){
             $arrConfig['fields'][$fieldName]['sortable'] = true;
+        }
+        if ($field['filterable']===true){
+            $arrConfig['fields'][$fieldName]['filterable'] = true;
         }
     }
 

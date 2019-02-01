@@ -127,7 +127,7 @@ $(document).ready(function(){
 </script>
 
 <div class="eiseIntraForm">
-<fieldset><legend><?php echo $intra->translate('Permissions for role').': '.$intra->field(null, 'rolID', $rolID, array('type' => "select"
+<fieldset style="max-width: 600px"><legend><?php echo $intra->translate('Permissions for role').': '.$intra->field(null, 'rolID', $rolID, array('type' => "select"
         , 'source' => 'stbl_role', 'prefix'=>'rol')
 ); ?></legend>
 <?php

@@ -674,6 +674,9 @@ var __initControlBar = function(){
     this.div.find('.eg-button-excel').bind('click', function(){
         oGrid.excel();
     });
+    this.div.find('.eg-button-filter').bind('click', function(ev){
+        oGrid.showFilter(ev);
+    });
 
     //controlbar margin adjust to begin of 2nd TH
     this.div.find('.eg-controlbar').each(function(){
@@ -1931,6 +1934,134 @@ eiseGrid.prototype._sortFunction = function(tbodies, field, order, type){
     };
 
     return order * (values[0] > values[1] ? 1 : -1); 
+
+}
+
+eiseGrid.prototype.showFilter = function(ev){
+
+    var grid = this
+        , $dlg = $('<div class="eiseIntraForm">')
+        , $initiator = $(ev.currentTarget)
+        , fields = [];
+
+    $.each(grid.conf.fields, function(key, field){
+        
+        if(field.filterable){
+            var $elem = $('<input type="text">')
+                , fld = {}
+                , options = [];
+            grid.tbodies.each(function(){
+                options.push(grid.text($(this), key));
+            });
+            fields.push(field);
+            $elem.attr('name', key);
+            $elem.val(typeof grid.conf.fields[key].filterValue != 'undefined' ? grid.conf.fields[key].filterValue : '')
+
+            var $field = $('<div><label>'+field.title+':</label></div>')
+                .append($elem.addClass('eiseIntraValue'))
+                .addClass('eiseIntraField');
+
+            options = Array.from(new Set(options))
+
+            $elem.autocomplete({
+                source: options,
+                minLength: 3,
+                focus: function(event,ui) {
+                    event.preventDefault();
+                    if (ui.item){
+                        $elem.val(ui.item.label);
+                    }
+                },
+                select: function(event,ui) {
+                    event.preventDefault();
+                    if (ui.item){
+                        $elem.val(ui.item.label);
+                    }
+                },
+                change: function(event, ui){
+                }
+            }).on('keydown', function(ev){
+                if(ev.keyCode==13)
+                    grid.applyFilter($dlg, $initiator)
+
+            });
+
+            $dlg.append($field);
+
+        }
+    });
+
+    if(fields.length==0){
+        $dlg.remove();
+        return this;
+    }
+
+    $dlg.appendTo('body');
+
+    $dlg.dialog({
+                dialogClass: 'el_dialog_notitle', 
+                position: {
+                    my: "left top",
+                    at: 'left bottom',
+                    of: $initiator
+                  },
+                show: 'slideDown',
+                hide: 'slideUp',
+                resizable: false,
+                width: 300,
+                title: "Filter",
+                buttons: {
+                    "OK": function() {
+
+                        grid.applyFilter($dlg, $initiator);
+
+                        return false;
+                    },
+                    "Cancel": function() {
+                        $(this).dialog("close");
+                    }
+                },
+            });
+
+    return;
+
+}
+
+eiseGrid.prototype.applyFilter = function($dlg, $button){
+
+    var grid = this
+        , rowsAffected = 0;
+
+    $dlg.find('input').each(function(){
+        var field = this,
+            $field = $(field),
+            filterValue = $field.val();
+
+        if(!field.name)
+            return true; //continue
+        grid.conf.fields[field.name].filterValue = filterValue;
+        
+    });
+
+    grid.tbodies.each(function(){ $(this).removeClass('eg-filtered'); });
+
+    $.each(grid.conf.fields, function(key, field){
+        grid.tbodies.each(function(){
+            var text = grid.text($(this), key);
+            if(field.filterValue && text.search(new RegExp(field.filterValue, 'i'))<0){
+                $(this).addClass('eg-filtered');
+                rowsAffected += 1;
+            }
+        })
+    })
+
+    if($button && $button[0])
+        if( rowsAffected )
+            $button.addClass('eg-button-applied');
+        else
+            $button.removeClass('eg-button-applied');
+
+    $dlg.dialog('close').remove();
 
 }
 

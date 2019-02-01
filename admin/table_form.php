@@ -35,11 +35,14 @@ switch($pane){
            , 'title'=>"Field"
            , 'type' => "text"
            , 'width' => '38%'
+           , 'sortable' => true
+           , 'filterable' => true
         );
         $grid->Columns[] = Array(
            'field'=>"Type"
            , 'title'=>"DB Type"
             , 'type' => "text"
+            , 'filterable' => true
         );
 
         $grid->Columns[] = Array(
