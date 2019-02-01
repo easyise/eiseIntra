@@ -259,12 +259,23 @@ select.eg-floating-select {
 .eg-button i {
     display: inline-block;
     font: normal normal normal @eg-th-height/1 FontAwesome;
-    font-size: inherit;
+    font-size: @eg-th-height/2;
     text-rendering: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     color: @eg-button-fa-color;
     text-shadow: 1px 1px 0 @eg-button-fa-text-shadow;
+    position: relative;
+}
+
+.eg-button i:before {
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin-left: -1px;
+    position: absolute;
+    text-align: center;
+    width: 100%;
 }
 
 .eg-button.eg-button-filter i {
@@ -273,6 +284,9 @@ select.eg-floating-select {
 }
 .eg-button.eg-button-filter i:before {
     content: "\f0b0";
+}
+.eg-button.eg-button-filter.eg-button-applied {
+    border-style: inset;
 }
 
 .eg-pseudotabs {

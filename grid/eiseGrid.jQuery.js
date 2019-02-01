@@ -1982,7 +1982,7 @@ eiseGrid.prototype.showFilter = function(ev){
                 }
             }).on('keydown', function(ev){
                 if(ev.keyCode==13)
-                    grid.applyFilter($dlg)
+                    grid.applyFilter($dlg, $initiator)
 
             });
 
@@ -2013,7 +2013,7 @@ eiseGrid.prototype.showFilter = function(ev){
                 buttons: {
                     "OK": function() {
 
-                        grid.applyFilter($dlg);
+                        grid.applyFilter($dlg, $initiator);
 
                         return false;
                     },
@@ -2027,9 +2027,10 @@ eiseGrid.prototype.showFilter = function(ev){
 
 }
 
-eiseGrid.prototype.applyFilter = function($dlg){
+eiseGrid.prototype.applyFilter = function($dlg, $button){
 
-    var grid = this;
+    var grid = this
+        , rowsAffected = 0;
 
     $dlg.find('input').each(function(){
         var field = this,
@@ -2047,10 +2048,18 @@ eiseGrid.prototype.applyFilter = function($dlg){
     $.each(grid.conf.fields, function(key, field){
         grid.tbodies.each(function(){
             var text = grid.text($(this), key);
-            if(field.filterValue && text.search(new RegExp(field.filterValue, 'i'))<0)
+            if(field.filterValue && text.search(new RegExp(field.filterValue, 'i'))<0){
                 $(this).addClass('eg-filtered');
+                rowsAffected += 1;
+            }
         })
     })
+
+    if($button && $button[0])
+        if( rowsAffected )
+            $button.addClass('eg-button-applied');
+        else
+            $button.removeClass('eg-button-applied');
 
     $dlg.dialog('close').remove();
 
