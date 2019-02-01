@@ -39,12 +39,14 @@ $gridROL->Columns[] = Array(
         , 'field' => "rolTitleLocal"
         , 'type' => "text"
         , 'width' => "300px"
+        , 'filterable' => true
         );
 $gridROL->Columns[] = Array(
         'title' => "Title"
         , 'field' => "rolTitle"
         , 'type' => "text"
         , 'width' => "300px"
+        , 'filterable' => true
 );$gridROL->Columns[] = Array(
         'title' => "all"
         , 'field' => "rolFlagDefault"
@@ -63,6 +65,7 @@ $gridROL->Columns[] = Array(
         , 'type' => "text"
         , 'disabled' => "[rolFlagDefault]"
         , 'width' => "100%"
+        , 'filterable' => true
 );
 
 
