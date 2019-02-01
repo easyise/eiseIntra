@@ -33,21 +33,18 @@ $gridROL->Columns[] = Array(
         , 'mandatory' => true
         , 'type' => "text"
         , 'width' => '150px'
-        , 'sortable' => true
 );
 $gridROL->Columns[] = Array(
         'title' => "Title (Loc)"
         , 'field' => "rolTitleLocal"
         , 'type' => "text"
         , 'width' => "300px"
-        , 'sortable' => true
         );
 $gridROL->Columns[] = Array(
         'title' => "Title"
         , 'field' => "rolTitle"
         , 'type' => "text"
         , 'width' => "300px"
-        , 'sortable' => true
 );$gridROL->Columns[] = Array(
         'title' => "all"
         , 'field' => "rolFlagDefault"
