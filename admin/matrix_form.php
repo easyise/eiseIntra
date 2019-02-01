@@ -103,7 +103,7 @@ include eiseIntraAbsolutePath.'inc_top.php';
 ?>
 <style type="text/css">
 #rolID {
-    width: auto;
+    width: 350px;
     display: inline;
     clear: none;
     font-size: 15px;
