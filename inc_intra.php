@@ -846,22 +846,24 @@ public function menu($target = null){
            $rwEnt = $this->oSQL->f('SELECT * FROM stbl_entity WHERE entID='.$this->oSQL->e($rw["pagEntityID"]));
         }
         
-        $flagIsEntity = ($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent");
-
         $pagMenuItemClass = $rw['pagMenuItemClass'] ? $rw['pagMenuItemClass'] : $this->getDefaultClass($rw['pagTitle'], $rw['pagFile']);
         
+        $customSubMenu = call_user_func_array(array($this, 'menuItem'), array($rw));
+
         $strRet .= "<li".($rw["pagParentID"]==1 && ($rw["FlagWrite"] || !$this->conf['menuCollapseAll']) && $rw["nChildren"]>0
                 ? ' class="active keep-active"'
                 : "")
             ." id=\"".$rw["pagID"]."\">"
-            .($rw["pagFile"] && !$flagIsEntity
-                ? '<a'.$target.' href="'.$rw["pagFile"].$hrefSuffix.'">'
-                : '<a href="#">')
+            .($rw["pagFile"] ? '<a'.$target.' href="'.$rw["pagFile"].$hrefSuffix.'">' : '<a href="#">')
             ."<i class=\"fa {$pagMenuItemClass}\"></i> "
             ."<span>".$rw["pagTitle{$this->local}"]."</span>"
-            .($rw["nChildren"]>0 ? ' <i class="fa fa-angle-left pull-right"></i>' : '')
+            .($rw["nChildren"]>0 || preg_match('/^\<ul/i', ltrim($customSubMenu))
+                ? ' <i class="fa fa-angle-left pull-right"></i>' 
+                : '')
             .'</a>'
-            .($rw["nChildren"]==0 && !$flagIsEntity ? "</li>" : "")."\n";
+            .$customSubMenu
+            .($rw["nChildren"]==0 ? "</li>" : "")
+            ."\n";
        
         if ($hrefSuffix){
 
@@ -885,18 +887,7 @@ public function menu($target = null){
             }
         }
        
-       if ($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent"){
-          $strRet .= "<ul>\n";
-          $sqlEnt = "SELECT * FROM stbl_entity";
-          $rsEnt = $this->oSQL->do_query($sqlEnt);
-          while ($rwEnt = $this->oSQL->fetch_array($rsEnt)){
-             $strRet .= "<li id='".$rw["pagID"]."_".$rwEnt["entID"]."'><a{$target} href='".
-                $rw["pagFile"]."?entID=".$rwEnt["entID"]."'>".$rwEnt["entTitle{$this->local}"]."</a>\n";
-          }
-          $strRet .= "</ul></li>\n";
-       }
-       
-       $rw_old = $rw;
+        $rw_old = $rw;
     }
     for ($i=$rw_old["iLevelInside"]; $i>1; $i--)
        $strRet .= "</ul>\n\n";
@@ -906,6 +897,18 @@ public function menu($target = null){
     return $strRet;
 
 }
+
+/**
+ * This method is called __before__ each menu item <li> closure. 
+ * You can add custom menu items/submenus in your own app overriding this method in the inherited class.
+ *
+ * @category Navigation
+ *
+ * @param string $rw - row info from stbl_page for current <li>
+ *
+ * @return string HTML with submenu structure
+ */
+public function menuItem($rw){    return '';    }
 
 /**
  * This function returns default icon menu class basng on page URI.
@@ -966,20 +969,14 @@ private function menu_simpleTree($rs, $target){
            $rwEnt = $this->oSQL->f('SELECT * FROM stbl_entity WHERE entID='.$this->oSQL->e($rw["pagEntityID"]));
         }
         
-        $flagIsEntity = ($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent" ? true : false);
         
         $strRet .= "<li".($rw["pagParentID"]==1 && ($rw["FlagWrite"] || !$this->conf['menuCollapseAll'])
                  ? " class='open'"
-                 : "")." id='".$rw["pagID"]."'>".
-          ($rw["pagFile"] && !$flagIsEntity && !($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent")
-            ? "<a{$target} href='".$rw["pagFile"].$hrefSuffix."'>"
-            : "")
-          ."<span>".$rw["pagTitle{$this->local}"]."</span>".
-          ($rw["pagFile"] && !$flagIsEntity
-            ? "</a>"
-            : ""
-            )
-            .($rw["nChildren"]==0 && !($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent") ? "</li>" : "")."\r\n";
+                 : "")." id='".$rw["pagID"]."'>"
+            .($rw["pagFile"] ? "<a{$target} href=\"{$rw["pagFile"]}{$hrefSuffix}\">" : '')
+            ."<span>".$rw["pagTitle{$this->local}"]."</span>"
+            .($rw["pagFile"] ? "</a>" : '')
+            .($rw["nChildren"]==0 ? "</li>" : "")."\r\n";
        
         if ($hrefSuffix){
 
