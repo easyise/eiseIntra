@@ -512,6 +512,7 @@ eiseList.prototype.filterByTab = function(tab, conf){
         positionTop = list.div.position().top,
         offsetTop = list.div.offset().top,
         parentHeight = list.parent.outerHeight(),
+        parentPaddingTop = parseInt(this.parent.css('padding-top').replace('px', '')),
         parentPaddingBottom = parseInt(this.parent.css('padding-bottom').replace('px', '')),
         hToSet = parentHeight-positionTop-parentPaddingBottom;
 
@@ -1589,7 +1590,7 @@ $.extend($.fn.eiseList, {
 
 })( jQuery );
 
-$(document).ready(function(){
+$(window).on('load', function(){
 
     $('.eiseList').eiseList();
 
