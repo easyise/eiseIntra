@@ -15,7 +15,8 @@ echo "\t".$strHead."\r\n";
 ?>
 
 </head>
-<body data-message="<?php echo htmlspecialchars( $intra->getUserMessage() ) ?>" class="<?php echo eiseIntra::getSlug(); ?>"><input type="hidden" id="eiseIntraConf" value="<?php  echo htmlspecialchars(json_encode($intra->conf)) ; ?>">
+<body data-conf="<?php  echo htmlspecialchars(json_encode($intra->conf)) ; ?>" data-message="<?php echo htmlspecialchars( $intra->getUserMessage() ) ?>" class="<?php echo eiseIntra::getSlug(); ?>"><input 
+	type="hidden" id="eiseIntraConf" value="<?php  echo htmlspecialchars(json_encode($intra->conf)) ; ?>">
 
 <?php 
 if (!$flagNoMenu) {

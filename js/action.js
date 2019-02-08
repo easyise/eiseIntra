@@ -272,8 +272,8 @@ init: function( options ) {
         
         var entID = $this.find('#entID').val();
         var entItemID = $this.find('#'+entID+'ID').val();
-        var conf = $.parseJSON($('#eiseIntraConf').val());
-        
+        var conf = $('body').eiseIntra('conf');
+
         if ( ! data ) {
             
             $(this).data('eiseIntraForm', {
