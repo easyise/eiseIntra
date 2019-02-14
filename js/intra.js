@@ -506,7 +506,14 @@ var convertDateForDateInput = function($eiForm, inp){
 
 var getInput = function(strFieldName){
 
-    return this.find('[name="'+strFieldName+'"]');
+    if(!strFieldName)
+        return null;
+
+    var ret = this.find('[name="'+strFieldName+'"]');
+    if( !ret[0] )
+        ret = this.find('#'+strFieldName);
+
+    return ret;
 
 }
 
