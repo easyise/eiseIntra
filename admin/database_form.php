@@ -355,7 +355,7 @@ var applyIntra = function(){
     $dialog = $(this).eiseIntraForm('createDialog', {
       title: $initiator.text()
       , method: 'POST'
-      , action: 'database_act.php'+location.search
+      , action: 'database_act.php'+location.search+'&nocache=true'
       , fields: [{
         type: 'hidden'
         , name: 'DataAction'

@@ -195,22 +195,36 @@ case "convert":
 
 case 'applyIntra':
     
-    header("Content-Type: text/plain; charset=UTF-8");
-    header("Expires: 0");
-    header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
+    $intra->batchStart(array('autolinefeed'=>true));
+
+    $intra->batchEcho("Applying eiseIntra core data tables...");
 
     include_once ( eiseIntraAbsolutePath."inc_dbsv.php" );
+
+    if(!$_POST['password'] || ($_POST['password']!==$_POST['password1']))
+        die('Error: admin password not set');
 
     $dbsv = new eiseDBSV(array('intra' => $intra
             , 'dbsvPath'=>eiseIntraAbsolutePath.".SQL"
             , 'DBNAME' => $dbName));
     $frameworkDBVersion = $dbsv->getNewVersion();
 
-    $oSQL->startProfiling();
+    //$oSQL->startProfiling();
 
     $dbsv->parse_mysql_dump(eiseIntraAbsolutePath.".SQL/init.sql");
 
-    $oSQL->showProfileInfo();
+    $sqlUsr = "INSERT INTO stbl_user SET
+        usrID = 'admin'
+        , usrName = 'The Admin'
+        , usrNameLocal = 'Администратор'
+        , usrAuthMethod = 'DB'
+        , usrPass = ".$oSQL->e($intra->password_hash($_POST['password']))."
+        , usrInsertBy = 'admin', usrInsertDate = NOW(), usrEditBy = 'admin', usrEditDate = NOW()";
+    $oSQL->q($sqlUsr);
+
+    //$oSQL->showProfileInfo();
+
+    $intra->batchEcho("All done!");
 
     die();
 
