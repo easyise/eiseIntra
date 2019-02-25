@@ -315,7 +315,7 @@ public function updateTable($nd){
 
 	$sql = "UPDATE {$this->conf['table']} SET ".($this->table['hasActivityStamp']
 		? " {$this->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->conf['prefix']}EditDate=NOW() {$sqlFields}"
-		: ltrim($sqlFields, ' ,'))
+		: ltrim($sqlFields, ", \n"))
 		."\n WHERE ".$this->getSQLWhere();
 
 	$this->oSQL->q($sql);
