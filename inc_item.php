@@ -274,7 +274,7 @@ public function update($newData){
 	$intra = $this->intra;
 
 	$this->redirectTo = $this->conf['form'].'?'.$this->getURI();
-	$this->msgToUser = $intra->translate('%s is updated', $this->conf['title'.$intra->local]);
+	$this->msgToUser = $intra->translate('"%s" is updated', $this->conf['title'.$intra->local]);
 
 }
 
@@ -289,7 +289,7 @@ public function delete(){
 	$this->oSQL->q($sql);
 
 	$this->redirectTo = $this->conf['list'];
-	$this->msgToUser = $intra->translate('%s is deleted', $this->conf['title'.$intra->local]);
+	$this->msgToUser = $intra->translate('"%s" is deleted', $this->conf['title'.$intra->local]);
 }
 
 /**

@@ -99,6 +99,13 @@ var eiseIntraActionSubmit = function(event, $form){
         
         actionChoosen($(this), $form, function(o){
 
+            if(o.act.actID=='3'){
+                if(confirm("Are you sure you'd like to delete?")){
+                    location.href=location.pathname+location.search+"&DataAction=delete";
+                }
+                return;
+            }
+
             $form.eiseIntraForm("makeMandatory", {
                 strMandatorySelector: o.act.mandatorySelector
                 , flagDontSetRequired : ($form.data('eiseIntraForm').conf.flagUpdateMultiple || o.act.actFlagAutocomplete!='1')});
@@ -136,7 +143,6 @@ var eiseIntraActionSubmit = function(event, $form){
                 return;
 
             }
-                                
             $form.eiseIntraForm('fill', o, {createMissingAsHidden: true});
             $form.submit();
 

@@ -68,6 +68,21 @@ public function update($nd){
 
 }
 
+public function delete(){
+
+    $this->oSQL->q('START TRANSACTION');
+    if( !$this->conf['STA'][$this->staID]['staFlagCanDelete'] ){
+        $this->msgToUser = $this->intra->translate('Unable to delete "%s"', $this->conf['title'.$this->intra->local]);
+        $this->redirectTo = $this->conf['form'].'?'.$this->getURI();
+        return; 
+    }
+    $this->oSQL->q("DELETE FROM stbl_action_log WHERE aclEntityItemID=".$this->oSQL->e($this->id));
+    $this->oSQL->q("DELETE FROM stbl_status_log WHERE stlEntityItemID=".$this->oSQL->e($this->id));
+    parent::delete();
+    $this->oSQL->q('COMMIT');
+
+}
+
 private function init(){
 
     $sessKey = self::sessKeyPrefix.

@@ -1048,10 +1048,10 @@ fill: function(data, options){
 
         $.each(data, function(field, fieldData){
 
-            if( typeof(fieldData)=='object' && typeof(fieldData.v)=='undefined' )
+            if( typeof(fieldData)=='object' && (fieldData && typeof(fieldData.v)=='undefined') )
                 return true; // skip objects without data
 
-            var fData = (typeof(fieldData)=='object' && typeof(fieldData.v)!='undefined' 
+            var fData = (typeof(fieldData)=='object' && (fieldData && typeof(fieldData.v)!='undefined')
                 ? fieldData
                 : {v: fieldData});
 
