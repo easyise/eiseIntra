@@ -10,6 +10,60 @@ $oSQL->select_db($dbName);
 
 switch($DataAction) {
 
+case 'deexcelize_getCreate':
+
+    $datatype = 'varchar(256) NOT NULL DEFAULT \'\'';
+    $nCols = 64;
+    
+    include_once(commonStuffAbsolutePath.'eiseXLSX/eiseXLSX.php');
+
+    try {
+        $xlsx = new eiseXLSX($_FILES['excel']['tmp_name']);
+    } catch(eiseXLSX_Exception $e) {
+        die("ERROR: ".$e->getMessage());
+    }
+
+    $fields = '';
+    for ($i=1; $i <= $nCols; $i++) { 
+        $d = $xlsx->data("R1C{$i}");
+        if(trim($d)!=''){
+            $fields .= ($fields ? "\n\t, " : '').$_POST['prfx'].ucfirst(trim($d))." {$datatype}";
+        } else 
+            break;
+    }
+
+    $sql = "CREATE TABLE {$_POST['table']}(\n{$fields}\n)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
+    die($sql);
+
+case 'deexcelize':
+    
+    include_once(commonStuffAbsolutePath.'eiseXLSX/eiseXLSX.php');
+
+    try {
+        $xlsx = new eiseXLSX($_FILES['excel']['tmp_name']);
+        $oSQL->q("DROP TABLE IF EXISTS {$_POST['table']}");
+        $oSQL->q($_POST['tableCreate']);
+        $fields = $oSQL->ff($oSQL->q("SELECT * FROM {$_POST['table']} LIMIT 0,1"));
+        $nRows = $xlsx->getRowCount();
+        for ($i=2; $i <= $nRows ; $i++) { 
+            $nField = 1;
+            $vals = '';
+            foreach($fields as $field){
+                $vals .= ($vals ? ', ' : '').$oSQL->e($xlsx->data("R{$i}C{$nField}"));
+                $nField+=1;
+            }
+            $sql = "INSERT INTO {$_POST['table']} VALUES ({$vals})";
+            $oSQL->q($sql);
+        }
+    } catch(eiseXLSX_Exception $e) {
+        die("ERROR: ".$e->getMessage());
+    }
+
+
+
+    die();
+
 case 'dump':
     
     header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
