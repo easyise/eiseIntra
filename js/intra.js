@@ -1332,6 +1332,8 @@ createDialog: function( conf ){
 
     if(conf.onclose)
         dlgConf.close = conf.onclose;
+    if(conf.oncreate)
+        dlgConf.create = conf.oncreate;
 
     if(conf.width)
         dlgConf.width = conf.width;
