@@ -1821,7 +1821,10 @@ eiseGrid.prototype.excel = function(options){
                     );
                 strTH += '<Cell><Data ss:Type="String">'+grid.conf.fields[grid.conf.fieldIndex[i]].title+'</Data></Cell>\n';
             }
-            var val = grid.value($tr, grid.conf.fieldIndex[i]),
+            var val = (['ajax_dropdown', 'combobox', 'select'].indexOf(grid.conf.fields[grid.conf.fieldIndex[i]].type)!==-1 
+                ? grid.text($tr, grid.conf.fieldIndex[i])
+                : grid.value($tr, grid.conf.fieldIndex[i])
+                ),
                 isDateTime = grid.conf.fields[grid.conf.fieldIndex[i]].typeExcel=='DateTime' && val.match(/^([0-9]{4}\-[0-9]{2}\-[0-9]{2})(T[0-9]{2}\:[0-9]{2}(\:[0-9]{2}\:[0-9]*){0,1}){0,1}$/),
                 typeExcel = (grid.conf.fields[grid.conf.fieldIndex[i]].typeExcel=='DateTime' 
                     ? (isDateTime ? 'DateTime' : 'String')
