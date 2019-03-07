@@ -1821,7 +1821,7 @@ eiseGrid.prototype.excel = function(options){
                     );
                 strTH += '<Cell><Data ss:Type="String">'+grid.conf.fields[grid.conf.fieldIndex[i]].title+'</Data></Cell>\n';
             }
-            var val = (['ajax_dropdown', 'combobox', 'select'].indexOf(grid.conf.fields[grid.conf.fieldIndex[i]].type)!==-1 
+            var val = (['ajax_dropdown', 'combobox', 'select'].indexOf(grid.conf.fields[grid.conf.fieldIndex[i]]['type'])!==-1 
                 ? grid.text($tr, grid.conf.fieldIndex[i])
                 : grid.value($tr, grid.conf.fieldIndex[i])
                 ),
