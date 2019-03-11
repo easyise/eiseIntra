@@ -1289,8 +1289,8 @@ eiseGrid.prototype.text = function(oTr, strFieldName, text){
         || this.conf.fields[strFieldName].disabled !=undefined
         || (this.conf.fields[strFieldName].href !=undefined && this.value(oTr, strFieldName)!="")
         ){
-            return (oTr.find('.'+this.id+'-'+strFieldName)[0]
-                    ? oTr.find('.'+this.id+'-'+strFieldName).text()
+            return (oTr.find('td[data-field="'+strFieldName+'"]')[0]
+                    ? oTr.find('td[data-field="'+strFieldName+'"]').text()
                     : (oTr.find('input[name="'+strFieldName+'_text[]"]')[0]
                         ? oTr.find('input[name="'+strFieldName+'_text[]"]').val()
                         : oTr.find('input[name="'+strFieldName+'[]"]').val())
