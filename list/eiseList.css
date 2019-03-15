@@ -87,8 +87,8 @@ div.el_body {
 }
 
 .eiseList > form {
-    padding: 0;
-    margin: 0;
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
 .eiseList thead input 

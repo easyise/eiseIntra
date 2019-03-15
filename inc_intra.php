@@ -1037,6 +1037,9 @@ private function menu_simpleTree($rs, $target){
  */
 function actionMenu($arrActions = array(), $flagShowLink=false){
 
+    if(!$arrActions || count($arrActions)===0)
+        return '';
+
     $strRet .= '<div class="menubar ei-action-menu" id="menubar">'."\r\n";
     foreach ((array)$arrActions as $act) {
             $strRet .=  "<div class=\"menubutton\">";

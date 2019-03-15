@@ -57,7 +57,7 @@ if($intra->conf['flagDontGetMenu'])
 </div>
 
 </div>
-<div class="ei-pane content">
+<div class="ei-pane<?php echo $intra->conf['frame'] ?> content">
 <?php 
 if (!$flagNoMenu) {
     echo $intra->actionMenu($arrActions, false);

@@ -271,24 +271,39 @@ td     {  	vertical-align: top; padding: 0;}
     cursor: pointer;
 }
 
+
 .ei-pane {
     padding-left: 0;
-    padding-top: @ei-header-height;
-
-    & > iframe#pane {
-        width: 100%;
-        height: 100%;
-        padding-top: @ei-header-height;
-        margin-top: -1 * @ei-header-height;
-    }
+    padding-top: @ei-header-height;    
 }
 
+
+.ei-pane-frame {
+    position: fixed;
+    left: 0;
+    top: @ei-header-height;
+    right: 0;
+    bottom: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+
+
+    & > iframe {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+    }
+}
 
 #pane {
     padding: 0;
     margin: 0;
     border: 0;
-    position: fixed;
+    position: absolute;
     z-index: 0;
 }
 
@@ -858,12 +873,14 @@ div.eiseIntraComment {
 /* /eiseIntraMessages */
 /*****************************************************/
 
+
 .ei-pane {
     height: 100%;
     x-overflow: hidden;
     y-overflow: auto;
 }
-.ei-pane-frame {
+
+.ei-pane-framed {
     min-height: 100%;
     position: relative;
     overflow: visible;

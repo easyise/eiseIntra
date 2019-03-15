@@ -65,22 +65,13 @@ var renderMenu = function(){
 
 var sideBarMenuChanged = function(){
 
-    var $iframe = $('.ei-pane iframe');
-
-    $('.ei-pane').css('padding-left', ($('.ei-sidebar-menu.visible')[0] 
-        ? $('.ei-sidebar-menu').outerWidth(true)
-        : '0') 
-    );
-    if($iframe[0]){
-        $iframe.css('padding-left', ($('.ei-sidebar-menu.visible')[0] 
+    var $iframe = $('.ei-pane-frame iframe'),
+        padding = ($('.ei-sidebar-menu.visible')[0] 
             ? $('.ei-sidebar-menu').outerWidth(true)
-            : '0') 
-        );
-        $iframe.css('margin-left', ($('.ei-sidebar-menu.visible')[0] 
-            ? -1 * $('.ei-sidebar-menu').outerWidth(true)
-            : '0')
-        );    
-    }
+            : '0');
+
+    $('.ei-pane-frame').css('left', padding );
+    $('.ei-pane').css('padding-left', padding );
 
 }
 
