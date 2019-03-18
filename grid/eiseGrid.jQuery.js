@@ -1533,9 +1533,7 @@ eiseGrid.prototype.reset = function(fn){
     
     var oGrid = this;
 
-    this.tableContainer.find('tbody.eg-data').each(function(){ // delete visible rows
-        oGrid.deleteRow($(this));
-    });
+    this.tableContainer.find('tbody.eg-data').remove();
     this.tableContainer.find('tbody.eg-no-rows').css('display', 'table-row-group');
 
     if (typeof(fn)!='undefined'){
