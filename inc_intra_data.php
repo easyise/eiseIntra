@@ -780,10 +780,11 @@ public function getSQLFields($tableInfo, $data){
         if(!in_array($field, $tableInfo['columns_index']))
             continue;
         if( $value === null || ($this->table['columns_types'][$field]=="FK" && !$value) ){
-            $sqlFields .= "\n, {$field}=NULL";
+            if($tableInfo['columns_dict'][$field]['Null']==='YES')
+                $sqlFields .= "\n, {$field}=NULL";
             continue;
         }
-        switch($this->table['columns_types'][$field]){
+        switch($tableInfo['columns_types'][$field]){
             case 'real':
                 $sqlFields .= "\n, {$field}=".(double)$value;
                 break;
@@ -794,6 +795,7 @@ public function getSQLFields($tableInfo, $data){
                 $sqlFields .= "\n, {$field}=".$this->oSQL->e($value);
                 break;
         }
+
     }
 
     return $sqlFields;
