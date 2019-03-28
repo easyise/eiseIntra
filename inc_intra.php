@@ -574,8 +574,8 @@ function getUserRoles($usrID = null) {
         $this->arrUsrData['roleIDs'] = array_keys($arrRet);
         $this->arrUsrData['roles'] = array_values($arrRet);
     }
-        
-   return $arrRet;
+
+    return $arrRet;
 
 }
 
@@ -715,6 +715,8 @@ function checkPermissions( ){
     
     $this->usrID = $this->arrUsrData["usrID"];
     $this->conf['usrID'] = $this->arrUsrData["usrID"];
+
+    $this->arrUsrData_src = $this->arrUsrData;
 
     return $this->arrUsrData;
      
