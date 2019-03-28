@@ -1123,6 +1123,11 @@ function json( $newData = null, $conf = array() ){
                 case "money":
                     $val = $intra->oSQL->unq($intra->decPHP2SQL($newData[$col['field']][$i]));
                     break;
+                case 'combobox':
+                case 'select':
+                case 'ajax_dropdown':
+                    $val = ($newData[$col['field']][$i]!=='' ? $newData[$col['field']][$i] : null);
+                    break;
                 default: 
                     $val = $newData[$col['field']][$i];
                     break;
