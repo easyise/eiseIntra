@@ -40,6 +40,15 @@ case 'deexcelize':
     
     include_once(commonStuffAbsolutePath.'eiseXLSX/eiseXLSX.php');
 
+    /*
+    row id by row number SQL
+    UPDATE tbl_profit_share_mapping psm INNER JOIN (SELECT t.*, 
+       @rownum := @rownum + 1 AS psmID_
+    FROM tbl_profit_share_mapping t, 
+           (SELECT @rownum := 0) r) tt ON tt.psmJobID=psm.psmJobID AND tt.psmSupInvoiceID=psm.psmSupInvoiceID AND tt.psmCode=psm.psmCode
+    SET psm.psmID=psmID_ ;
+    */
+
     try {
         $xlsx = new eiseXLSX($_FILES['excel']['tmp_name']);
         $oSQL->q("DROP TABLE IF EXISTS {$_POST['table']}");

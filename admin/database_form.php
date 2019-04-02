@@ -356,7 +356,7 @@ $(document).ready(function(){
                         table = 'tbl_'+tableBase+'_upload',
                         prfx = aFile[0].replace(/[aeiou0-9]/gi, '').substr(0,3)+'u';
                     if(ext.toLowerCase()!='xlsx'){
-                        alert("This is not XSLX file")
+                        alert("This is not XLSX file")
                         return false;
                     }
                     
