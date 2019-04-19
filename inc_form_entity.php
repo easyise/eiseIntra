@@ -493,7 +493,7 @@ switch ($DataAction){
             $oSQL->q($sqlVer);
         }
         
-        //update action matrix
+        /* update action matrix
         $arrToDelete = explode("|", $_POST["inp_act_deleted"]);
         for($i=0;$i<count($arrToDelete);$i++)
            if ($arrToDelete[$i]!=""){
@@ -565,7 +565,7 @@ switch ($DataAction){
               }
            }
         
-       /*
+       
         echo "<pre>";
         print_r($_POST);
         print_r($sql);
