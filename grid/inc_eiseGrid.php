@@ -110,8 +110,14 @@ function __construct($oSQL
     $this->oSQL = $oSQL;
 
     $this->conf = array_merge(self::$defaultConf, $arrConfig);
+
     $this->name = $strName;
-    $this->permissions = $this->conf["arrPermissions"];
+    $this->permissions = (isset($arrConfig["arrPermissions"]) 
+        ? $arrConfig["arrPermissions"]
+        : ( isset($intra->arrUsrData['FlagWrite'])
+            ? array('FlagWrite'=>$intra->arrUsrData['FlagWrite'])
+            : self::$defaultConf['arrPermissions']) 
+        );
     $this->intra = ($this->conf['intra'] ? $this->conf['intra'] : $intra);
     if($this->conf['intra'])
         unset($this->conf['intra']);
@@ -1025,7 +1031,7 @@ function Update($newData = null, $conf = array()){
         $extraFieldsUpd[$arrTable['prefix']."EditDate"] = 'NOW()';
     }
 
-    if($arrTable['PKtype']=='GUID' && !$row[$arrTable['PK'][0]])
+    if( $arrTable['PKtype']=='GUID' && !isset( $arrNewData[$arrTable['PK'][0]]) )
         $extraFieldsIns[$arrTable['PK'][0]] = 'UUID()';
 
     foreach (explode("|", $newData["inp_".$this->name."_deleted"]) as $idToDelete)

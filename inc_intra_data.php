@@ -776,7 +776,10 @@ public function getSQLFields($tableInfo, $data){
 
     foreach($data as $field=>$value){
         if(in_array($field, $tableInfo['PK']))
-            continue;
+            if( !($tableInfo['PKtype']=='user_defined' && $value !== null) ){
+                continue;
+            } 
+
         if(!in_array($field, $tableInfo['columns_index']))
             continue;
         if( $value === null || ($this->table['columns_types'][$field]=="FK" && !$value) ){
@@ -789,6 +792,7 @@ public function getSQLFields($tableInfo, $data){
                 $sqlFields .= "\n, {$field}=".(double)$value;
                 break;
             case 'integer':
+            case 'boolean':
                 $sqlFields .= "\n, {$field}=".(integer)$value;
                 break;
             default:
