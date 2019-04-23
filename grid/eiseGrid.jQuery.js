@@ -1682,7 +1682,7 @@ eiseGrid.prototype.fill = function(data, fn){
                             if(href){
                                 $elem = __doHREF(props, $div, href)
                             }
-                            $elem.text(text);
+                            $elem.html(text);
                         }
                         break;
                 }
