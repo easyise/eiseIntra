@@ -493,7 +493,7 @@ switch ($DataAction){
             $oSQL->q($sqlVer);
         }
         
-        /* update action matrix
+        /* update action matrix */
         $arrToDelete = explode("|", $_POST["inp_act_deleted"]);
         for($i=0;$i<count($arrToDelete);$i++)
            if ($arrToDelete[$i]!=""){
@@ -501,11 +501,6 @@ switch ($DataAction){
               $sql[] = "DELETE FROM stbl_role_action WHERE rlaActionID='".$arrToDelete[$i]."'";
               $sql[] = "DELETE FROM stbl_action_attribute WHERE aatActionID='".$arrToDelete[$i]."'";
            }
-        
-        $sqlRol = "SELECT * FROM stbl_role WHERE rolID<>1";
-        $rsRol = $oSQL->do_query($sqlRol);
-        while ($rwRol = $oSQL->fetch_array($rsRol))
-            $arrRolIDs[] = $rwRol["rolID"];
         
         for ($i=0;$i<count($_POST["actID"]);$i++)
            if ($_POST["actTitle"][$i]!=""){
@@ -551,21 +546,9 @@ switch ($DataAction){
                  $sql[] = "SET @actID='".$_POST["actID"][$i]."'";
               }
               
-              $sql[] = "DELETE FROM stbl_role_action WHERE rlaActionID=@actID";
-              for ($j=0;$j<count($arrRolIDs);$j++){
-                 if ($_POST["rlaID_".$arrRolIDs[$j]][$i]=="1"){
-                   $sql[] = "INSERT INTO stbl_role_action (
-                      rlaRoleID
-                      , rlaActionID
-                      )VALUES(
-                      '".$arrRolIDs[$j]."'
-                      , @actID
-                      )";
-                 }
-              }
            }
         
-       
+/*       
         echo "<pre>";
         print_r($_POST);
         print_r($sql);
