@@ -1,6 +1,9 @@
 <?php
 include_once "inc_item.php";
 include_once "inc_action.php";
+
+define('MAX_STL_LENGTH', 256);
+
 class eiseItemTraceable extends eiseItem {
 
 const sessKeyPrefix = 'ent:';
@@ -37,7 +40,8 @@ public function __construct($id = null,  $conf = array() ){
 	$this->conf['form'] = ($conf['form'] ? $conf['form'] : $this->conf['name'].'_form.php');
 	$this->conf['list'] = ($conf['list'] ? $conf['list'] : $this->conf['name'].'_list.php');
     $this->conf['statusField'] = $this->conf['prefix'].self::statusField;
-	$this->conf['flagFormShowAllFields'] = false;
+    $this->conf['flagFormShowAllFields'] = false;
+	$this->conf['flagDeleteLogs'] = true;
 
 	parent::__construct($id, $this->conf);
 
@@ -45,10 +49,9 @@ public function __construct($id = null,  $conf = array() ){
         $this->item_before = $this->item; 
         $this->staID = $this->item[$this->conf['statusField']];
     }
-    
 
 	$this->intra->dataRead(array('getActionDetails', 'getFiles', 'getFile', 'getMessages','sendMessage'), $this);
-	$this->intra->dataAction(array('insert', 'update', 'delete', 'attachFile', 'deleteFile'), $this);
+	$this->intra->dataAction(array('insert', 'update', 'updateMultiple', 'delete', 'attachFile', 'deleteFile'), $this);
 
 }
 
@@ -68,6 +71,30 @@ public function update($nd){
 
 }
 
+public function updateMultiple($nd){
+    
+    $this->intra->batchStart();
+
+    $class = get_class($this);
+    $ids = explode('|', $nd[$this->conf['PK'].'s']);
+
+    $this->preventRecursiveHooks($nd);
+
+    foreach($nd as $key=>$value){
+        if(!$value)
+            unset($nd[$key]);
+    }
+
+    foreach($ids as $id){
+        $o = new $class($id);
+        $this->intra->batchEcho("Updating {$id}...", '');
+        $o->update($nd);
+        $this->intra->batchEcho(" done!");
+    }
+    $this->intra->batchEcho("All done!");
+    die();    
+}
+
 public function delete(){
 
     $this->oSQL->q('START TRANSACTION');
@@ -76,8 +103,10 @@ public function delete(){
         $this->redirectTo = $this->conf['form'].'?'.$this->getURI();
         return; 
     }
-    $this->oSQL->q("DELETE FROM stbl_action_log WHERE aclEntityItemID=".$this->oSQL->e($this->id));
-    $this->oSQL->q("DELETE FROM stbl_status_log WHERE stlEntityItemID=".$this->oSQL->e($this->id));
+    if($this->conf['flagDeleteLogs']){
+        $this->oSQL->q("DELETE FROM stbl_action_log WHERE aclEntityItemID=".$this->oSQL->e($this->id));
+        $this->oSQL->q("DELETE FROM stbl_status_log WHERE stlEntityItemID=".$this->oSQL->e($this->id));
+    }
     parent::delete();
     $this->oSQL->q('COMMIT');
 
@@ -91,7 +120,7 @@ private function init(){
 
     if($_SESSION[$sessKey]){
     //if(false){
-        $this->conf = $_SESSION[$sessKey];
+        $this->conf = array_merge($this->conf, $_SESSION[$sessKey]);
         return $this->conf;
     }
 
@@ -100,12 +129,12 @@ private function init(){
     // read entity information
     $this->ent = $oSQL->f("SELECT *, (SELECT GROUP_CONCAT(rolID) FROM stbl_role) as roles FROM stbl_entity WHERE entID=".$oSQL->e($this->entID));
     if (!$this->ent){
-        throw new Exception("Entity '{$entID}' not found");
+        throw new Exception("Entity '{$this->entID}' not found");
     }
     
     $arrRoles = explode(',', $this->ent['roles']); unset($this->ent['roles']);
 
-    $this->conf = $this->ent;
+    $this->conf = array_merge($this->conf, $this->ent);
     
     // read attributes
     $this->conf['ATR'] = array();
@@ -154,13 +183,13 @@ private function init(){
         } 
 
         if($rwSat['satFlagShowInForm'])
-            $this->conf['STA'][$rwSat['staID']]['satFlagShowInForm'][$rwSat['satAttributeID']] = (int)$rwSat['satFlagEditable'];
+            $this->conf['STA'][$rwSat['staID']]['satFlagShowInForm'][] = $rwSat['satAttributeID'];
         if($rwSat['satFlagEditable'])
-            $this->conf['STA'][$rwSat['staID']]['satFlagEditable'][$rwSat['satAttributeID']] = (int)$rwSat['satFlagEditable'];
+            $this->conf['STA'][$rwSat['staID']]['satFlagEditable'][] = $rwSat['satAttributeID'];
         if($rwSat['satFlagShowInList'])
-            $this->conf['STA'][$rwSat['staID']]['satFlagShowInList'][$rwSat['satAttributeID']] = $rwSat['satAttributeID'];
+            $this->conf['STA'][$rwSat['staID']]['satFlagShowInList'][] = $rwSat['satAttributeID'];
         if($rwSat['satFlagTrackOnArrival'])
-            $this->conf['STA'][$rwSat['staID']]['satFlagTrackOnArrival'][$rwSat['satAttributeID']] = $rwSat['satAttributeID'];
+            $this->conf['STA'][$rwSat['staID']]['satFlagTrackOnArrival'][] = $rwSat['satAttributeID'];
           
     }
     
@@ -261,25 +290,33 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
 
     $hasBookmarks = (boolean)$oSQL->d("SHOW TABLES LIKE 'stbl_bookmark'");
 
-    $lst = new eiseList($oSQL, $listName, Array('title'=>$this->conf["title{$strLocal}"].(
-    		$this->staID!==null
-            ? ': '.($this->conf['STA'][$this->staID]["staTitle{$strLocal}Mul"] ? $this->conf['STA'][$this->staID]["staTitle{$strLocal}Mul"] : $this->conf['STA'][$this->staID]["staTitle{$strLocal}"])
-            : '')
-        ,  "intra" => $this->intra
-        , "cookieName" => $listName.$this->staID.($_GET["{$listName}_{$listName}FlagMyItems"]==="1" ? 'MyItems' : '')
-        , "cookieExpire" => time()+60*60*24*30
-            , 'defaultOrderBy'=>"{$this->entID}EditDate"
-            , 'defaultSortOrder'=>"DESC"
-            , 'sqlFrom' => "{$this->conf["entTable"]} LEFT OUTER JOIN stbl_status ON {$entID}StatusID=staID AND staEntityID='{$entID}'".
-                ($hasBookmarks ? " LEFT OUTER JOIN stbl_bookmark ON bkmEntityID='{$entID}' AND bkmEntityItemID={$entID}ID" : '').
-                ((!in_array("actTitle", $arrExcludeCols) && !in_array("staTitle", $arrExcludeCols))
-                    ? " LEFT OUTER JOIN stbl_action_log LAC
-                    INNER JOIN stbl_action ON LAC.aclActionID=actID 
-                    ON {$entID}ActionLogID=LAC.aclGUID
-                    LEFT OUTER JOIN stbl_action_log SAC ON {$entID}StatusActionLogID=SAC.aclGUID"
-                    : "")
+    $conf4list = $this->conf;
 
+    unset($conf4list['ATR']);
+    unset($conf4list['STA']);
+    unset($conf4list['ACT']);
+
+    $conf4list = array_merge($conf4list,
+        Array('title'=>$this->conf["title{$strLocal}"].(
+                $this->staID!==null
+                ? ': '.($this->conf['STA'][$this->staID]["staTitle{$strLocal}Mul"] ? $this->conf['STA'][$this->staID]["staTitle{$strLocal}Mul"] : $this->conf['STA'][$this->staID]["staTitle{$strLocal}"])
+                : '')
+            ,  "intra" => $this->intra
+            , "cookieName" => $listName.$this->staID.($_GET["{$listName}_{$listName}FlagMyItems"]==="1" ? 'MyItems' : '')
+            , "cookieExpire" => time()+60*60*24*30
+                , 'defaultOrderBy'=>"{$this->entID}EditDate"
+                , 'defaultSortOrder'=>"DESC"
+                , 'sqlFrom' => "{$this->conf["entTable"]} LEFT OUTER JOIN stbl_status ON {$entID}StatusID=staID AND staEntityID='{$entID}'".
+                    ($hasBookmarks ? " LEFT OUTER JOIN stbl_bookmark ON bkmEntityID='{$entID}' AND bkmEntityItemID={$entID}ID" : '').
+                    ((!in_array("actTitle", $arrExcludeCols) && !in_array("staTitle", $arrExcludeCols))
+                        ? " LEFT OUTER JOIN stbl_action_log LAC
+                        INNER JOIN stbl_action ON LAC.aclActionID=actID 
+                        ON {$entID}ActionLogID=LAC.aclGUID
+                        LEFT OUTER JOIN stbl_action_log SAC ON {$entID}StatusActionLogID=SAC.aclGUID"
+                        : "")
         ));
+
+    $lst = new eiseList($oSQL, $listName, $conf4list);
 
     $lst->addColumn(array('title' => ""
             , 'field' => $entID."ID"
@@ -342,6 +379,26 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
 	            )
 	        );
 	}
+
+    if (!in_array("aclATA", $arrExcludeCols))
+        $lst->addColumn(array('title' => "ATA"
+            , 'type'=>"date"
+            , 'field' => "aclATA"
+            , 'sql' => "IFNULL(SAC.aclATA, SAC.aclInsertDate)"
+            , 'filter' => "aclATA"
+            , 'order_field' => "aclATA"
+            )
+        );
+    if (!in_array("actTitle", $arrExcludeCols))
+        $lst->addColumn(array('title' => "Action"
+            , 'type'=>"text"
+            , 'field' => "actTitle{$strLocal}"
+            , 'sql' => "CASE WHEN LAC.aclActionPhase=1 THEN CONCAT('Started \"', actTitle, '\"') ELSE actTitlePast END"
+            , 'filter' => "actTitle{$strLocal}"
+            , 'order_field' => "actTitlePast{$strLocal}"
+            , 'nowrap' => true
+            )
+        );
             
     
     $strFrom = "";
@@ -467,9 +524,7 @@ public function getNewItemID($data = array()){
     return null;
 }
 
-public function insert($nd){
-
-    $this->oSQL->q('START TRANSACTION');
+public function newItem($nd = array()){
 
     $newID = $this->getNewItemID($nd);
     $sql = "INSERT INTO {$this->conf['table']} SET 
@@ -483,6 +538,14 @@ public function insert($nd){
 
     $this->doAction(new eiseAction($this, array('actID'=>1)));
 
+}
+
+public function insert($nd){
+
+    $this->oSQL->q('START TRANSACTION');
+
+    $this->newItem();
+
     $this->oSQL->q('COMMIT');
 
     parent::insert($nd);
@@ -490,7 +553,9 @@ public function insert($nd){
 }
 
 public function doAction($oAct){
+    $this->currentAction = $oAct;
     $oAct->execute();
+    unset($this->currentAction);
 }
 
 public function getData($id = null){
@@ -536,11 +601,11 @@ function getAllData($toRetrieve = null){
         }
     
     // collect incomplete/cancelled actions
-    if(in_array('ACL', $toRetrieve)) {
+    if(in_array('ACL', $toRetrieve) || in_array('STL', $toRetrieve)) {
         $this->item["ACL"]  = Array();
         $sqlACL = "SELECT * FROM stbl_action_log 
                 WHERE aclEntityItemID='{$this->id}'
-                ORDER BY aclInsertDate DESC, aclOldStatusID DESC";
+                ORDER BY aclATA DESC, aclOldStatusID DESC";
         $rsACL = $this->oSQL->do_query($sqlACL);
         while($rwACL = $this->oSQL->fetch_array($rsACL)){
             if($rwACL['aclActionPhase']<=2)
@@ -553,7 +618,16 @@ function getAllData($toRetrieve = null){
     // collect status log and nested actions
     if(in_array('STL', $toRetrieve)){
         $this->item["STL"] = Array();
-        $this->getStatusData(null);
+        $sqlSTL = "SELECT * 
+            , CASE WHEN stlStatusID=0 THEN 1 ELSE 0 END as flagDraft
+            FROM stbl_status_log 
+            WHERE stlEntityID='{$this->entID}' 
+            AND stlEntityItemID=".$this->oSQL->e($this->id)."
+            ORDER BY flagDraft, IFNULL(stlATA, NOW()) DESC";
+        $rsSTL = $this->oSQL->q($sqlSTL);
+        while($rwSTL = $this->oSQL->f($rsSTL)){
+            $this->item['STL'][$rwSTL['stlGUID']] = $rwSTL;
+        }
     }
     
     //comments
@@ -656,7 +730,13 @@ function onActionStart($actID, $oldStatusID, $newStatusID){
  * @param int $oldStatusID - status ID to be moved from
  * @param int $newStatusID - destintation status ID 
  */
-public function onActionFinish($actID, $oldStatusID, $newStatusID){}
+public function onActionFinish($actID, $oldStatusID, $newStatusID){
+
+    if($actID==3){
+        $this->delete();
+    }
+
+}
 
 /**
  * This function is called after action is "cancelled", i.e. Action Log record has changed its aclActionPhase=3.
@@ -705,6 +785,10 @@ public function onStatusDeparture($staID){}
 
 public function form($fields = '',  $arrConfig=Array()){
 
+    $defaultConf = array('flagAddJavaScript'=>True);
+
+    $arrConfig = array_merge($defaultConf, $arrConfig);
+
     $hiddens .= $this->intra->field(null, 'entID', $this->entID, array('type'=>'hidden'));
     $hiddens .= $this->intra->field(null, 'aclOldStatusID', $this->staID , array('type'=>'hidden'));
     $hiddens .= $this->intra->field(null, 'aclNewStatusID',  "" , array('type'=>'hidden'));
@@ -722,11 +806,90 @@ public function form($fields = '',  $arrConfig=Array()){
         $this->intra->arrUsrData['FlagWrite'] = $oldFW;
     }
 
-    $form = parent::form($hiddens.$fields, $arrConfig);
+    $flagAddJavaScript = $arrConfig['flagAddJavaScript'];
+
+    $arrConfig['flagAddJavaScript'] = False;
+
+    $form = parent::form($hiddens.$fields, $arrConfig)
+        .($flagAddJavaScript
+            ? "<script>$(document).ready(function(){ $('#{$this->table['prefix']}').eiseIntraForm().eiseIntraEntityItemForm();})</script>"
+            : '');
+
 
     $this->intra->arrUsrData['FlagWrite'] = $oldFW;
 
     return $form;
+
+}
+
+public function form4list(){
+
+    $this->conf['flagShowOnlyEditable'] = true;
+    $htmlFields = $this->getFields();
+
+    $htmlFields = $this->intra->fieldset($this->intra->translate('Set Data'), $htmlFields.(!$this->conf['radios'] 
+            ? $this->intra->field(' ', null, $this->showActionButtons()) 
+            : '')
+        , array('class'=>'eiseIntraMainForm')).
+        ($this->conf['radios'] ? $this->intra->fieldset($this->intra->translate('Action'), $this->showActionRadios()
+            .$this->intra->field(' ', null, $this->intra->showButton('btnSubmit', $this->intra->translate('Run'), array('type'=>'submit')) )
+            , array('class'=>'eiseIntraActions')) : '');
+
+    return eiseItemTraceable::form($htmlFields, array('class'=>'ei-form-multiple eiseIntraMultiple'));
+
+}
+
+public function getFields($aFields = null){
+
+    $aToGet = ($aFields!==null 
+        ? $aFields 
+        : ($this->conf['flagFormShowAllFields'] 
+            ? array_keys($this->conf['ATR']) 
+            : ($this->staID!==null
+                ? ($this->conf['flagShowOnlyEditable'] 
+                    ? $this->conf['STA'][$this->staID]['satFlagEditable']
+                    : $this->conf['STA'][$this->staID]['satFlagShowInForm']
+                    )
+                : array())
+            )
+        );
+
+    $allowEdit = (($this->staID!==null 
+            ? $this->conf['STA'][$this->staID]['staFlagCanUpdate']
+            : true ) 
+        && $this->intra->arrUsrData['FlagWrite']);
+
+    return $this->getAttributeFields($aToGet, $this->item, array('FlagWrite'=>$allowEdit));
+
+}
+
+function getAttributeFields($fields, $item, $conf = array()){
+
+    $html = '';
+
+    foreach($fields as $field){
+        $atr = $this->conf['ATR'][$field];
+
+        $options = array('type'=>$atr['atrType']
+            , 'FlagWrite'=>(in_array($field, array_keys((array)$this->conf['STA'][$this->staID]['satFlagEditable'])) && $conf['FlagWrite']) );
+
+        if(in_array($atr['atrType'], array('combobox', 'select', 'ajax_dropdown')) ) { 
+            
+                if (preg_match("/^(vw|tbl)_/", $atr["atrDataSource"]) ) {
+                    $options['source'] = $atr["atrDataSource"];
+                } else if (preg_match("/^Array/i", $atr["atrProgrammerReserved"])){
+                    eval ("\$options['source']={$atr["atrProgrammerReserved"]};");
+                }
+                if(strlen($atr["atrProgrammerReserved"])<=3)
+                    $options['source_prefix'] = $atr["atrProgrammerReserved"];
+                $options['defaultText'] = '-';
+                
+        }
+
+        $html .= $this->intra->field($atr["atrTitle{$this->intra->local}"], $field.$conf['suffix'], $item[$field], $options);
+    }
+
+    return $html;
 
 }
 
@@ -817,6 +980,212 @@ public function showActionButtons(){
    
    return $strOut;
 }
+
+function showActionRadios(){
+   
+    $oSQL = $this->oSQL;
+    $strLocal = $this->local;
+    
+    if (!$this->intra->arrUsrData["FlagWrite"])
+        return;
+
+    if(is_array($this->conf['STA'][$this->staID]['ACT']))
+        foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
+            
+            if($rwAct['actFlagDeleted'])
+                continue;
+
+            if(count(array_intersect($this->intra->arrUsrData['roleIDs'], $rwAct['RLA']))==0)
+                continue;
+
+            $arrRepeat = Array(($rwAct["actFlagAutocomplete"] ? "1" : "0") => (!$rwAct["actFlagAutocomplete"] ? $this->intra->translate("Plan") : ""));
+          
+            foreach($arrRepeat as $key => $value){
+                $title = (in_array($rwAct["actID"], array(2, 3))
+                   ? " - ".$rwAct["actTitle{$this->intra->local}"]." - "
+                   : $rwAct["actTitle{$this->intra->local}"].
+                      ($rwAct["actOldStatusID"]!=$rwAct["actNewStatusID"]
+                      ?  " (".$this->conf['STA'][$rwAct["actOldStatusID"]]["staTitle{$this->intra->local}"]
+                        ." > ".$this->conf['STA'][$rwAct["actNewStatusID"]]["staTitle{$this->intra->local}"].")"
+                      :  "")
+                );
+              
+                $strID = "rad_".$rwAct["actID"]."_".
+                  $rwAct["actOldStatusID"]."_".
+                  $rwAct["actNewStatusID"];
+
+                $strOut .= "<input type='radio' name='actRadio' id='$strID' value='".$rwAct["actID"]."' class='eiseIntraRadio'".
+                    " orig=\"{$rwAct["actOldStatusID"]}\" dest=\"{$rwAct["actNewStatusID"]}\"".
+                    ($rwAct["actID"] == 2 || ($key=="1" && count($arrRepeat)>1) ? " checked": "")
+                     .(!$rwAct["actFlagAutocomplete"] ? " autocomplete=\"false\"" : "")." /><label for='$strID' class='eiseIntraRadio'>".($value!="" ? "$value \"" : "")
+                     .$title
+                     .($value!="" ? "\"" : "")."</label><br />\r\n";
+                  
+              
+              
+          }
+       }
+   
+   return $strOut;
+}
+
+function showStatusLog(){
+
+    $html = '<div class="eif-stl">'."\n";
+
+    foreach((array)$this->item["STL"] as $stlGUID => $rwSTL){
+
+        if ($arrConfig['flagHideDraftStatusStay'] && $rwSTL['stlStatusID']==='0')
+            continue;
+
+        $rwSTA = $this->conf['STA'][$rwSTL['staID']];
+
+        $htmlTiming = '<div class="dates"><span class="eiseIntra_stlATA">'
+                        .($rwSTA["staTrackPrecision"] == 'datetime' 
+                            ? $this->intra->datetimeSQL2PHP($rwSTL["stlATA"])
+                            : $this->intra->dateSQL2PHP($rwSTL["stlATA"])).'</span>'."\n"
+                        .'<span class="eiseIntra_stlATD">'
+                        .( $rwSTL["stlATD"] 
+                            ? ($rwSTA["staTrackPrecision"] == 'datetime'
+                                ? $this->intra->datetimeSQL2PHP($rwSTL["stlATD"]) 
+                                : $this->intra->dateSQL2PHP($rwSTL["stlATD"])
+                                )
+                            : $this->intra->translate("current time"))
+                        .'</span></div>'."\n";
+
+        $html .= $this->intra->field(($rwSTL["stlTitle{$this->intra->local}"]!="" 
+                ? $rwSTL["stlTitle{$this->intra->local}"]
+                : $rwSTL["staTitle"]), null, null
+            , array('fieldClass'=>'eif-stl-title'
+                , 'extraHTML'=> $htmlTiming));
+
+    
+        $html .= '<div class="eif-acl">'."\n";
+        $stlATD = ($rwSTL['stlATD'] 
+            ? ($rwSTA["staTrackPrecision"] == 'datetime'
+                ? strtotime($rwSTL['stlATD'])
+                : strtotime($rwSTL['stlATD'].'+1 day')
+                )
+            : mktime()
+            );
+        $stlATA = strtotime($rwSTL["stlATA"]);
+        $html .= $this->showActionInfo($rwSTL['stlArrivalActionID']);
+        foreach( $this->item['ACL'] as $aclGUID=>$rwACL ){
+            $aclATA = strtotime($rwACL['aclATA']);
+            if($rwACL['aclGUID']===$rwSTL['stlArrivalActionID']
+                || $rwACL['aclGUID']===$rwSTL['stlDepartureActionID']
+                || $rwACL['aclActionID'] == 2
+                || !($stlATA <= $aclATA
+                    && $aclATA <= $stlATD)
+                )
+                continue;
+            //$html .= $rwACL['aclActionID'].': '.$stlATA.' <= '.$aclATA.' && '.$aclATA.' <= '.$stlATD.'<br>';
+            $html .= $this->showActionInfo($aclGUID);
+        }
+        $html .= '</div>'."\n";
+        
+       
+
+        continue;
+
+        
+
+        $html .= '<div class="eiseIntraLogData">'."\n";
+        if (isset($rwSTL["ACL"]))
+        foreach ($rwSTL["ACL"] as $rwNAct){
+           //$html .= $this->showActionInfo($rwNAct);
+           $html .= '<pre>'.var_export($rwNAct, true).'</pre>';
+        }
+        $html .= '</div>'."\n";
+        $html .= '</div>'."\n";
+
+
+        if (isset($rwSTL["SAT"]))
+        foreach($rwSTL["SAT"] as $atrID => $rwATV){
+            $rwATV = array_merge($this->conf['ATR'][$atrID], $rwATV);
+            //$html .= $this->intra->field($rwATV["atrTitle{$this->intra->local}"], )
+            $html .= '<pre>'.var_export($rwATV, true).'</pre>';
+        }
+        
+        $html .= $this->showActionInfo($rwSTL["stlArrivalAction"]);
+    }
+
+    $html .= '</div>'."\n";
+
+    return $html;
+}
+
+function showActionInfo($aclGUID){
+
+        $rwACL = $this->item['ACL'][$aclGUID];
+        $rwACT = $this->conf['ACT'][$rwACL['aclActionID']];
+
+        $html = '';
+
+        $htmlTiming = '<div class="dates">'.$this->intra->showDatesPeriod($rwACL['aclATD'], $rwACL['aclATA'], $rwACT['actTrackPrecision']).'</div>'."\n";
+
+        $html .= $this->intra->field(($rwACT["actTitlePast{$this->intra->local}"]!="" 
+                ? $rwACT["actTitlePast{$this->intra->local}"]
+                : $rwACT["actTitlePast"]), null, null, array('fieldClass'=>'eif-acl-title'
+                , 'extraHTML'=> $htmlTiming))
+        ;
+
+        $traced = $this->getTracedData(array_merge($rwACL, $rwACT));
+
+        $html .= $this->getAttributeFields(array_keys((array)$rwACT['aatFlagToTrack']), $traced, array('FlagWrite'=>$allowEdit, 'suffix'=>'_'.$aclGUID));
+
+        return $html;
+
+
+
+        $html .= ($rwACT['aclComments'] ? $this->intra->field($this->intra->translate('Comments', null, $rwACT['aclComments'])) : '');
+
+        eval($actionCallBack.";");
+
+        $html .= "</div>\n";
+        
+        if ($rwACT["aclActionPhase"]<2 && !$this->flagArchive ){
+
+            $html .= '<div align="center">'."\n";
+            
+            if ($rwACT["aclActionPhase"]=="0"){
+                $html .= $this->intra->showButton("start_{$aclGUID}", $this->intra->translate("Start"), array('class'=>"eiseIntraActionButton"));
+            }
+            if ($rwACT["aclActionPhase"]=="1"){
+                $html .= $this->intra->showButton("finish_{$aclGUID}", $this->intra->translate("Finish"), array('class'=>"eiseIntraActionButton"));
+            }
+            $html .= $this->intra->showButton("cancel_{$aclGUID}", $this->intra->translate("Cancel"), array('class'=>"eiseIntraActionButton"));
+        }
+        
+        $html .= "</div>\n";
+
+        return $html;
+
+}
+
+function getTracedData($rwACL){
+    
+    if( $rwACL['aclItemTraced'] )
+        return json_decode($rwACL['aclItemTraced'],true);
+
+    $aRet = [];
+
+    if(count($rwACL['aatFlagToTrack']) && $this->conf['logTable']){
+        $sqlLog = "SELECT * FROM {$this->conf['logTable']} WHERE l{$this->table['prefix']}GUID='{$rwACL['aclGUID']}'";
+        $rwLog = $this->oSQL->f($sqlLog);
+        foreach ((array)$rwACL['aatFlagToTrack'] as $field=>$stuff){
+            $rwATR = $this->conf['ATR'][$field];
+            $aRet[$field] = $rwLog["l{$field}"];
+            if (in_array($rwATR["atrType"], Array("combobox", 'select', "ajax_dropdown"))){
+                $aRet[$rwATR["atrID"]."_text"] = $this->getDropDownText($rwATR, $aRet[$field]);
+            }
+        }
+    }
+
+    return $aRet;
+
+}
+
 
 function getActionDetails($q){
 
@@ -976,64 +1345,6 @@ switch ($da) {
     default: break;
 }
 
-}
-
-
-function getStatusData($stlDepartureActionID){
-    
-    static $nIterations;
-
-    $nIterations = ($stlDepartureActionID===null ? 0 : $nIterations);
-
-    $oSQL = $this->oSQL;
-    $entID = $this->entID;
-    
-    $arrRet = Array();
-    
-    $sqlSTL = "SELECT STL.*
-            , STL_PREVS.stlDepartureActionID AS stlDepartureActionID_prevs
-        FROM stbl_status_log STL
-        LEFT OUTER JOIN stbl_status_log STL_PREVS 
-            ON STL.stlEntityItemID=STL_PREVS.stlEntityItemID 
-                AND STL.stlEntityID=STL_PREVS.stlEntityID 
-                AND STL.stlArrivalActionID=STL_PREVS.stlDepartureActionID
-        WHERE STL.stlEntityItemID=".$oSQL->e($this->id)." AND STL.stlEntityID=".$oSQL->e($this->entID)."
-            AND IFNULL(STL.stlArrivalActionID, '')<>IFNULL(STL.stlDepartureActionID,'')
-            AND STL.stlDepartureActionID ".($stlDepartureActionID===null ? "IS NULL" : "='{$stlDepartureActionID}'");
-    $rsSTL = $oSQL->do_query($sqlSTL);
-    if ($oSQL->n($rsSTL) == 0) return Array();
-    
-    $rwSTL = $oSQL->f($rsSTL);
-
-    //$rwSTL = @array_merge($this->conf['STA'][$rwSTL['stlStatusID']],  $rwSTL);
-        
-    $arrRet = $rwSTL;
-    
-    $stlATD = ($rwSTL["stlATD"]=="" ? date("Y-m-d") : $rwSTL["stlATD"]);   
-    $sqlNAct = "SELECT aclGUID FROM stbl_action_log 
-       WHERE (DATE(aclATA) BETWEEN DATE('{$rwSTL["stlATA"]}') AND DATE('{$stlATD}'))
-         AND aclOldStatusID='{$rwSTL["stlStatusID"]}'
-         AND aclOldStatusID=aclNewStatusID
-       AND aclActionPhase=2
-       AND aclActionID<>2
-       AND aclEntityItemID='{$this->id}'
-       ORDER BY aclInsertDate DESC";
-    //echo "<pre>".$sqlNAct."</pre>";
-    $rsNAct = $oSQL->do_query($sqlNAct);
-    while ($rwNAct = $oSQL->fetch_array($rsNAct)){
-        $arrRet["ACL"][$rwNAct["aclGUID"]] = $this->getActionData($rwNAct["aclGUID"]);
-    }
-    
-    $arrRet["stlArrivalAction"] = $this->getActionData($rwSTL["stlArrivalActionID"]);
-        
-    $this->item["STL"][$rwSTL["stlGUID"]] = $arrRet;
-
-    $nIterations++;
-
-    if ($arrRet['stlDepartureActionID_prevs'] && $nIterations<MAX_STL_LENGTH){
-        $this->getStatusData($arrRet['stlDepartureActionID_prevs']);
-    }
-    
 }
 
 public function getActionData($aclGUID){

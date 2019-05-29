@@ -427,6 +427,14 @@ td     {  	vertical-align: top; padding: 0;}
     z-index: 0;
 }
 
+.eif-form fieldset.has-subtitle {
+    margin-top: @ei-body-font-size * 3.4 !important;
+}
+.eif-form fieldset.has-subtitle legend {
+    height: @ei-body-font-size * 3.4;
+    top: -1 * @ei-body-font-size * 3.4;
+}
+
 .eiseIntraForm legend{
     position: absolute;
     height: 1.4em;
@@ -436,7 +444,7 @@ td     {  	vertical-align: top; padding: 0;}
     left: 0.5em;
     z-index: 0;
 }
-.eiseIntraForm legend > small{
+.eif-form legend > small{
     display: block;
     font-size: 14px;
     line-height: auto;
@@ -476,13 +484,36 @@ td     {  	vertical-align: top; padding: 0;}
     padding-right: 1% !important;
 }
 
-.eiseIntraForm .eiseIntraField.field-delimiter {
+.eif-form .eif-field > label {
+    &:after {
+        content: ":";
+    }
+}
+.eif-form .eif-field.required > label {
+    &:after {
+        content: "*:";
+    }
+}
+
+.eif-form .eif-field- > label,
+.eif-form .eif-field-delimiter > label,
+.eif-form .eif-field-boolean > label,
+.eif-form .eif-field-checkbox > label,
+.eif-form .eif-field-radio > label
+{
+    &:after {
+        content: "";
+    }
+}
+
+
+.eif-field-delimiter {
     padding-left: 10px;
     padding-right: 10px;
 }
 
-.eiseIntraForm label.field-delimiter-label {
-    text-align: left;
+.eif-field-delimiter > label {
+    text-align: left !important;
     width: 100%;
     border-bottom-style: solid;
     border-bottom-width: 1px;
@@ -527,6 +558,38 @@ input[type=checkbox].eiseIntraValue {
 .eiseIntraMultiple fieldset.eiseIntraActions  {
     width: 34.7%;
 }
+
+.eif-stl .eif-acl {
+    margin: 0 5px;
+}
+
+.eif-field-delimiter.eif-stl-title,
+.eif-field-delimiter.eif-acl-title
+  {
+    position: relative;
+
+    & label {
+        font-size: 1em;    
+        font-weight: bold;
+    }
+
+    & .dates {
+        position: absolute;
+        right: 0;
+        top: 0;
+    }
+}
+
+.eif-field-delimiter.eif-acl-title {
+    & label {
+        font-size: 0.9em;    
+    }
+
+    & .dates {
+        font-size: 0.9em;
+    }
+}
+
 .eiseIntraMultiple input.eiseIntraRadio {
     margin-left: 5% !important;
 }

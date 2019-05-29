@@ -897,6 +897,7 @@ makeMandatory: function( obj ) {
             return true; // continue
         
         var label = getFieldLabel($(this));
+        $(this).parents('.eif-field').first().removeClass('required');
         if(label[0] && $.inArray( $(this).attr('id'), arrInitiallyRequiredFields ) < 0){
             label.text(label.text().replace(/\*\:$/, ":"));
             $(this).removeAttr('required');    
@@ -908,8 +909,9 @@ makeMandatory: function( obj ) {
         return;
     
     $(this).find( obj.strMandatorySelector ).each(function(){
-        
+
        var label = getFieldLabel($(this));
+       $(this).parents('.eif-field').first().addClass('required');
        label.text(label.text().replace(/\:$/, "*:"));
        if (!obj.flagDontSetRequired){
             $(this).attr('required', 'required');
@@ -1494,6 +1496,67 @@ adjustFieldsetHeights: function(ixStart, ixFinish){
     });
 
     
+},
+
+upload2batch: function( options ){
+    
+    var title = $(this).text(),
+        fields = [{name: 'DataAction'
+                , type: 'hidden'
+                , value: (options['DataAction'] ? options['DataAction'] : 'upload')}
+            , {name: (options['fileFieldName'] ? options['fileFieldName'] : 'the_file')
+                , type: 'file'
+                , title: (options['fileFieldTitle'] ? options['fileFieldTitle'] : 'Choose file')}];
+
+    if(options['fields'] && options['fields'].isArray())
+        fields = $.extend(fields, options['fields']);
+
+    $(this).eiseIntraForm('createDialog', {
+        title: (options['title'] ? options['title'] : title)
+        , action: (options['action'] ? options['action'] : location.href)
+        , method: 'POST'
+        , fields: fields
+        , onsubmit: function(ev){
+
+                var form = this
+                    , $form = $(this)
+                    , fileInput = $form.find('input[type="file"]')[0]
+                    , file = fileInput.files[0]
+                    , ext = file.name.split('.').pop().toLowerCase()
+                    , $dialog = $form;
+
+                if(file.name.length < 1) {
+                }
+                else if(file.size > 100000000) {
+                    alert("The file is too big: "+file.size);
+                }
+                else if( options['allowedExts'] && Array.isArray(options['allowedExts']) && options['allowedExts'].indexOf(ext) === -1 ) {
+                    alert("It should be file with extension "+options['allowedExts'].join(', '));
+                }
+                else { 
+
+                    $form.find('input[type=submit]').val('Please wait...')
+                        .addClass('btn_spinner')
+                        .prop('disabled', true);
+
+                    $form.eiseIntraBatch('submit', {
+                        timeoutTillAutoClose: null
+                        , flagAutoReload: true
+                        , title: title
+                        , onload: function(){
+                            $dialog.dialog('close').remove();
+                        }
+                    });
+
+                }
+
+                return false;
+
+            }
+    })
+
+    //$(this).eiseIntraBatch({url: 'job_form.php?DataAction=recalcJIT&jobIDs='+strSel, timeoutTillAutoClose: null});
+    return false;
 }
 
 };

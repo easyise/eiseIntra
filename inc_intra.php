@@ -1352,7 +1352,7 @@ function batchStart($conf = array()){
  * @category Data output
  * @category Batch run
  */
-function batchEcho($string){
+function batchEcho($string, $line_end = "\n"){
     $args = func_get_args();
     $to_echo  = call_user_func_array( 
             ($this->conf['auto_translate'] 
@@ -1361,8 +1361,7 @@ function batchEcho($string){
                 )
             , $args) ;
         
-    echo ( $this->conf['batch_htmlspecialchars'] ? htmlspecialchars( $to_echo ) : $to_echo ).
-        ($this->conf['batch_autolinefeed'] ? "\n" : '');
+    echo ( $this->conf['batch_htmlspecialchars'] ? htmlspecialchars( $to_echo ) : $to_echo ).$line_end;
     ob_flush();
     flush();
 }
@@ -1638,10 +1637,14 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
 
         $flagFieldDelimiter = ($name===null && $value===null);
 
+        if($flagFieldDelimiter)
+            $conf['type'] = 'delimiter';
+
         $html .= "<div class=\"eiseIntraField eif-field".
+                ' eif-field-'.$conf['type'].
                 ($name 
                     ? " field-{$name}" 
-                    : ($flagFieldDelimiter ? " field-delimiter" : '' )
+                    : ''
                     ).
                 ($conf['fieldClass'] ? " {$conf['fieldClass']}" : '').
                 "\""
@@ -1656,12 +1659,11 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
 
         if(!in_array($conf['type'], array('boolean', 'checkbox', 'radio')) ) {
             if ($title!==''){
-                $labelClass = ($flagFieldDelimiter ? 'field-delimiter-label' : 'title-'.$name).($conf['labelClass'] ? ' '.$conf['labelClass'] : '');
+                $labelClass = ($name ? 'title-'.$name : '').($conf['labelClass'] ? ' '.$conf['labelClass'] : '');
                 $html .= "<label".($name ? " id=\"title_{$name}\"" : '')." class=\"{$labelClass}\">".(preg_match('/\<[a-z]/i', $title) 
                     ? $title 
-                    : htmlspecialchars($title)).(
-                    trim($title)!='' ? ':' : ''
-                  )."</label>";
+                    : htmlspecialchars($title))
+                ."</label>";
             }
         } else {
             $html .= "<label></label>";
@@ -1789,7 +1791,7 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
 
     if($title!==null){
 
-        $html .= '</div>'."\r\n\r\n";
+        $html .= $conf['extraHTML'].'</div>'."\r\n\r\n";
 
     }
 
@@ -1813,13 +1815,18 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
  */
 public function fieldset($legend=null, $fields='', $conf = array()){
 
+    if($conf['subtitle'])
+        $conf['class'] = 'has-subtitle '.$conf['class'];
+
     return '<fieldset'
         .($conf['id']!='' ? ' id="'.htmlspecialchars($conf['id']).'"' : '')
         .($conf['class']!='' ? ' class="'.htmlspecialchars($conf['class']).'"' : '')
         .($conf['attr']!='' ? ' '.$conf['attr'] : '')
         .'>'
         .($legend 
-            ? "\r\n".'<legend'.($conf['attr_legend']!='' ? ' '.$conf['attr_legend'] : '').'>'.$legend.'</legend>'
+            ? "\r\n".'<legend'.($conf['attr_legend']!='' ? ' '.$conf['attr_legend'] : '').'>'.$legend
+                .($conf['subtitle'] ? '<small>'.$conf['subtitle']."</small>\n" : '')
+                .'</legend>'."\n"
             : '')
         ."\r\n".$fields
         .'</fieldset>'
@@ -2484,8 +2491,9 @@ function dataAction($dataAction, $funcOrObj=null){
 
             if($flagIsAJAX)
                 $this->json($status, $message, $data);
-            if($redirect)
+            if($redirect){
                 $this->redirect($message, $redirect);
+            }
             else {
                 if(!$this->flagBatch)
                     $this->batchStart();
@@ -2572,16 +2580,22 @@ function getDateTimeByOperationTime($operationDate, $time){
         return $operationDate.' '.$time;
 }
 
-function showDatesPeriod($trnStartDate, $trnEndDate){
+function showDatesPeriod($trnStartDate, $trnEndDate, $precision = 'date'){
     $strRet = (!empty($trnStartDate)
-            ? $this->DateSQL2PHP($trnStartDate)
+            ? ($precision == 'datetime' 
+                ? $this->datetimeSQL2PHP($trnStartDate)
+                : $this->dateSQL2PHP($trnStartDate)
+                )
             : ""
             );
     $strRet .= ($strRet!="" && !empty($trnEndDate) && !($trnStartDate==$trnEndDate)
             ? " - "
             : "");
     $strRet .= (!empty($trnEndDate) && !($trnStartDate==$trnEndDate)
-            ? $this->DateSQL2PHP($trnEndDate)
+            ? ($precision == 'datetime' 
+                ? $this->datetimeSQL2PHP($trnEndDate)
+                : $this->dateSQL2PHP($trnEndDate)
+                )
             : ""
             );
     

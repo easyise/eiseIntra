@@ -1,3 +1,6 @@
+/**
+ * eiseIntraEntityItemForm jQuery plugin
+ */
 (function( $ ){
 
 var ajaxActionURL = "ajax_details.php";
@@ -300,10 +303,10 @@ init: function( options ) {
         }
         
         /********** initialize radio buttons ***********/
-        $this.find('fieldset.eiseIntraActions input.eiseIntraRadio').click(function(){
-            
+        var $radios = $this.find('fieldset.eiseIntraActions input.eiseIntraRadio');
+        $radios.click(function(){
+                       
             actionChoosen($(this), $form, function(o){
-
                 $this.eiseIntraForm("makeMandatory", {
                     strMandatorySelector: o.act.mandatorySelector
                     , flagDontSetRequired : (data.conf.flagUpdateMultiple || o.act.actFlagAutocomplete!='1')});
@@ -347,6 +350,22 @@ init: function( options ) {
             console.log(this.dataset.entID);
             fillActionLogAJAX($this, this.dataset.entID);
         });
+
+        $form.submit(function(event) {
+
+            if($radios.length>0){
+                $form.eiseIntraEntityItemForm("checkAction", function(){
+                    if ($form.eiseIntraForm("validate")){
+                        window.setTimeout(function(){$form.find('input[type="submit"], input[type="button"]').each(function(){this.disabled = true;})}, 1);
+                        $form[0].submit();
+                    } else {
+                        $form.eiseIntraEntityItemForm("reset");
+                    }
+                })
+            }
+            return false;
+        
+        })
 
         //comments
         var $controls = $this.find('.eiseIntraComment_contols');
@@ -435,23 +454,6 @@ checkAction: function(callback){
     if (!flagUpdateMultiple && $this.find('#aclGUID').val()!=''){
         callback();
     } else { // if new action - check mandatory fields
-        
-        if (flagUpdateMultiple){
-        
-            var entIDs = '';
-            
-            $("input[name='sel_"+entID+"[]']").each(function(){
-                if ($(this)[0].checked){
-                    entIDs += (entIDs!='' ? "|" : '')+$(this).attr("value");
-                }
-                })
-                
-            if(entIDs==""){
-                alert("Nothing selected");
-                return false;
-            }
-            entItemIDInput.val(entIDs);
-        }
         
         var $radios= $this.find('fieldset.eiseIntraActions input.eiseIntraRadio');
         if ($radios.length>0){
@@ -640,7 +642,103 @@ $.fn.eiseIntraEntityItemForm = function( method ) {
     } else if ( typeof method === 'object' || ! method ) {
         return methods.init.apply( this, arguments );
     } else {
-        $.error( 'Method ' +  method + ' not exists for jQuery.eiseIntraForm' );
+        $.error( 'Method ' +  method + ' not exists for jQuery.eiseIntraEntityItemForm' );
+    } 
+
+};
+
+})( jQuery );
+
+/**
+ * eiseIntraEntityItemList jQuery plugin
+ */
+(function( $ ){
+
+var methods = {
+
+init: function( options ) {
+
+    var $list = this,
+        list = this.eiseList('getListObject');
+
+    $('a[href="#create"]').click(function(){
+        if (confirm("Are you sure you\'d like to create new "+list.conf['entTitle']+"?")){
+           location.href = list.conf['form']+"?DataAction=insert";
+        }
+    });
+
+    $('a[href="#form"]').click(function(){
+        $list.eiseIntraEntityItemList('multipleEditForm', $(this).text())
+    })
+
+},
+
+multipleEditForm: function(title){
+    if(!this.formHTML){
+        var selForm = '.eiseIntraMultiple',
+            $formTemplate = $(selForm);    
+        this.formHTML = (this.formHTML ? this.formHTML : ($formTemplate[0] ? $formTemplate[0].outerHTML : ''));    
+        $formTemplate.remove(); 
+    }
+
+    var entIDs = $('.eiseList').eiseList('getRowSelection');
+
+    if(!entIDs){
+        alert("No items selected");
+        return;
+    }
+
+    var $form = $(this.formHTML).appendTo('body'),
+        entIDField = $('.eiseList').eiseList('getListObject')['conf']['PK'],
+        entIDsField = entIDField+'s';
+
+    $form
+        .prop('title', title)
+        .dialog({
+            modal: false
+            , width: $(window).width()*0.80
+        })
+        .eiseIntraForm()
+        .eiseIntraEntityItemForm({flagUpdateMultiple: true})
+        .off('submit')
+        .on('submit', function(event){
+
+            $form.eiseIntraEntityItemForm("checkAction", function(){
+                if ($form.eiseIntraForm("validate")){
+                    
+                    $form.find('input[name="'+entIDField+'"]').remove();
+                    $form.find('input[name="'+$('body').eiseIntra('conf')['dataActionKey']+'"]').val('updateMultiple');
+                    $('<input type="hidden" name="'+entIDsField+'" value="'+entIDs+'">').appendTo($form);
+                    window.setTimeout(function(){$form.find('input[type="submit"], input[type="button"]').each(function(){this.disabled = true;})}, 1);
+                    $form.eiseIntraBatch('submit', {
+                        flagAutoReload: true
+                        , timeoutTillAutoClose: null
+                        , title: title
+                        , onload: function(){
+                            $form.dialog('close').remove();
+                        }
+                    });
+                } else {
+                    $form.eiseIntraEntityItemForm("reset");
+                }
+            })
+        
+            return false;
+        
+        });
+}
+
+}
+
+$.fn.eiseIntraEntityItemList = function( method ) {  
+
+
+    if ( methods[method] ) {
+        return methods[method].apply( this, Array.prototype.slice.call( arguments, 1 ));
+    } else if ( typeof method === 'object' || ! method ) {
+        return methods.init.apply( this, arguments );
+    } else {
+        $.error( 'Method ' +  method + ' not exists for jQuery.eiseIntraEntityItemList' );
     } 
 
 };
