@@ -1551,6 +1551,12 @@ refresh: function(){
 
 },
 
+getListObject: function(){
+
+    var list = $(this[0]).data('eiseList').eiseList;
+    return list;
+
+},
 getEiseListObject: function(){
 
     var list = $(this[0]).data('eiseList').eiseList;

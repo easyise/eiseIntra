@@ -70,6 +70,16 @@ while ($rwSTP = $oSQL->fetch_array($rsSTP)) {
                 : str_pad('', 12, '*')
                 )
             );
+    $aSource = array();
+    
+    if($rwSTP['stpDataSource']){
+        $strSource = explode('|', $rwSTP['stpDataSource']);
+        $aSource['source'] = $strSource[0];    
+        if($strSource[1])
+            $aSource['source_prefix'] = $strSource[1];    
+    }
+    
+
 
     echo $intra->field($title
         , $rwSTP["stpVarName"]
@@ -77,8 +87,8 @@ while ($rwSTP = $oSQL->fetch_array($rsSTP)) {
         , array_merge($arrConf
             , array(
                 'type' => $rwSTP["stpCharType"]
-                , 'source'=>$rwSTP['stpDataSource']
                 )
+            , $aSource
             ) 
     );
 

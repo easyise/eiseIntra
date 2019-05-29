@@ -64,6 +64,7 @@ public function __construct($id = null,  $conf = array() ){
 
 	$this->table = $this->oSQL->getTableInfo($this->conf['table']);
 	$this->conf['prefix'] = ( isset($conf['prefix']) ? $conf['prefix'] : $this->table['prefix'] );
+	$this->conf['PK'] = implode('', $this->table['PK']);
 
 	$this->id = ( $id===null ? $this->getIDFromQueryString() : $id);
 
@@ -290,6 +291,15 @@ public function delete(){
 
 	$this->redirectTo = $this->conf['list'];
 	$this->msgToUser = $intra->translate('"%s" is deleted', $this->conf['title'.$intra->local]);
+}
+
+/**
+ * This function prevents recursive hooks when object instances are created within existing hook
+ */
+public function preventRecursiveHooks(&$nd = array()){
+	unset($_POST[$this->intra->conf['dataActionKey']]);
+	unset($_POST[$this->intra->conf['dataReadKey']]);
+	unset($nd[$this->conf['PK']]);
 }
 
 /**
