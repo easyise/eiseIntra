@@ -62,7 +62,10 @@ public function update($nd){
     $this->oSQL->q('START TRANSACTION');
     // 1. update master table
     $this->updateTable($nd);
+    $this->updateUnfinishedActions($nd);
     $this->oSQL->q('COMMIT');
+
+
 
     $this->oSQL->q('START TRANSACTION');
     // 2. do the action
@@ -561,6 +564,39 @@ public function doAction($oAct){
     $this->currentAction = $oAct;
     $oAct->execute();
     unset($this->currentAction);
+}
+
+public function updateUnfinishedActions($nd = null){
+
+    if($nd===null)
+        $nd = $_POST;
+
+    foreach($this->item['ACL'] as $aclGUID=>$rwACL){
+        if ($rwACL["aclActionPhase"]>=2)
+            continue;
+
+        $aToUpdate = array();
+
+        $rwACT = $this->conf['ACT'][$rwACL['aclActionID']];
+        
+        foreach((array)$rwACT['aatFlagToTrack'] as $atrID=>$flags){
+            $nd_key = $atrID.'_'.$rwACL['aclGUID'];
+            if(isset($nd[$nd_key])){
+                $aToUpdate[$atrID] = $nd[$nd_key];
+                echo '<pre>'.$nd_key.' '. $nd[$nd_key];
+            }
+        }
+
+        $traced = $this->intra->arrPHP2SQL($aToUpdate, $this->table['columns_types']);
+
+        $sqlACL = "UPDATE stbl_action_log SET aclItemTraced=".$this->oSQL->e(json_encode($traced))."
+            , aclEditDate=NOW(), aclEditBy='{$this->intra->usrID}' 
+        WHERE aclGUID='{$rwACL['aclGUID']}'";
+
+        $this->oSQL->q($sqlACL);
+
+    }
+
 }
 
 public function getData($id = null){
@@ -1082,6 +1118,7 @@ function showStatusLog(){
             if($rwACL['aclGUID']===$rwSTL['stlArrivalActionID']
                 || $rwACL['aclGUID']===$rwSTL['stlDepartureActionID']
                 || $rwACL['aclActionID'] == 2
+                || $rwACL['aclActionPhase'] < 2
                 || !($stlATA <= $aclATA
                     && $aclATA <= $stlATD)
                 )
