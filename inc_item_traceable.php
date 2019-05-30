@@ -247,7 +247,12 @@ private function init(){
         , atsActionID
         FROM stbl_action_status
         INNER JOIN stbl_action ON actID=atsActionID
-        WHERE actEntityID=".$oSQL->e($this->entID)." OR actEntityID IS NULL
+        LEFT OUTER JOIN stbl_status ORIG ON ORIG.staID=atsOldStatusID AND ORIG.staEntityID='{$this->entID}'
+        LEFT OUTER JOIN stbl_status DEST ON DEST.staID=atsOldStatusID AND DEST.staEntityID='{$this->entID}'
+        WHERE (actEntityID='{$this->entID}' 
+            AND IFNULL(ORIG.staFlagDeleted,0)=0
+            AND IFNULL(ORIG.staFlagDeleted,0)=0
+            ) OR actEntityID IS NULL
         ORDER BY atsOldStatusID, actPriority";
     $rsATS = $oSQL->q($sqlATS);
     while($rwATS = $oSQL->f($rsATS)){
@@ -871,7 +876,10 @@ function getAttributeFields($fields, $item, $conf = array()){
         $atr = $this->conf['ATR'][$field];
 
         $options = array('type'=>$atr['atrType']
-            , 'FlagWrite'=>(in_array($field, array_keys((array)$this->conf['STA'][$this->staID]['satFlagEditable'])) && $conf['FlagWrite']) );
+            , 'FlagWrite'=>($conf['forceFlagWrite'] 
+                ? $conf['FlagWrite']
+                : (in_array($field, (array)$this->conf['STA'][$this->staID]['satFlagEditable']) && $conf['FlagWrite']) )
+            );
 
         if(in_array($atr['atrType'], array('combobox', 'select', 'ajax_dropdown')) ) { 
             
@@ -999,7 +1007,7 @@ function showActionRadios(){
                 continue;
 
             $arrRepeat = Array(($rwAct["actFlagAutocomplete"] ? "1" : "0") => (!$rwAct["actFlagAutocomplete"] ? $this->intra->translate("Plan") : ""));
-          
+            
             foreach($arrRepeat as $key => $value){
                 $title = (in_array($rwAct["actID"], array(2, 3))
                    ? " - ".$rwAct["actTitle{$this->intra->local}"]." - "
@@ -1020,13 +1028,12 @@ function showActionRadios(){
                      .(!$rwAct["actFlagAutocomplete"] ? " autocomplete=\"false\"" : "")." /><label for='$strID' class='eiseIntraRadio'>".($value!="" ? "$value \"" : "")
                      .$title
                      .($value!="" ? "\"" : "")."</label><br />\r\n";
-                  
               
-              
-          }
-       }
-   
+            }
+        }
+
    return $strOut;
+
 }
 
 function showStatusLog(){
@@ -1084,30 +1091,6 @@ function showStatusLog(){
         }
         $html .= '</div>'."\n";
         
-       
-
-        continue;
-
-        
-
-        $html .= '<div class="eiseIntraLogData">'."\n";
-        if (isset($rwSTL["ACL"]))
-        foreach ($rwSTL["ACL"] as $rwNAct){
-           //$html .= $this->showActionInfo($rwNAct);
-           $html .= '<pre>'.var_export($rwNAct, true).'</pre>';
-        }
-        $html .= '</div>'."\n";
-        $html .= '</div>'."\n";
-
-
-        if (isset($rwSTL["SAT"]))
-        foreach($rwSTL["SAT"] as $atrID => $rwATV){
-            $rwATV = array_merge($this->conf['ATR'][$atrID], $rwATV);
-            //$html .= $this->intra->field($rwATV["atrTitle{$this->intra->local}"], )
-            $html .= '<pre>'.var_export($rwATV, true).'</pre>';
-        }
-        
-        $html .= $this->showActionInfo($rwSTL["stlArrivalAction"]);
     }
 
     $html .= '</div>'."\n";
@@ -1115,7 +1098,51 @@ function showStatusLog(){
     return $html;
 }
 
-function showActionInfo($aclGUID){
+function showUnfinishedActions(){
+
+    $html = '';
+
+    foreach($this->item['ACL'] as $aclGUID=>$rwACL){
+        if ($rwACL["aclActionPhase"]>=2)
+            continue;
+
+        $flagWrite = $this->intra->arrUsrData['FlagWrite'] 
+            && (count(array_intersect($this->intra->arrUsrData['roleIDs']
+                , (array)$this->conf['ACT'][$rwACL['aclActionID']]['RLA']))>0);
+
+        $html .= $this->showActionInfo($aclGUID
+            , array('FlagWrite' => $flagWrite
+                , 'forceFlagWrite' => true )
+            );
+
+        
+        if($flagWrite) {
+
+            $html .= '<div align="center">'."\n";
+
+            if ($rwACL["aclActionPhase"]=="0"){
+                $html .= $this->intra->showButton("start_{$aclGUID}", $this->intra->translate("Start"), array('class'=>"eiseIntraActionButton"));
+            }
+            if ($rwACL["aclActionPhase"]=="1"){
+                $html .= $this->intra->showButton("finish_{$aclGUID}", $this->intra->translate("Finish"), array('class'=>"eiseIntraActionButton"));
+            }
+            $html .= $this->intra->showButton("cancel_{$aclGUID}", $this->intra->translate("Cancel"), array('class'=>"eiseIntraActionButton"));
+
+            $html .= "</div>\n";
+
+        }
+        
+    }
+
+    return $html;
+
+}
+
+function showActionInfo($aclGUID, $conf = array()){
+
+        $defaultConf = array('forceFlagWrite'=>false);
+
+        $conf = array_merge($defaultConf, $conf);
 
         $rwACL = $this->item['ACL'][$aclGUID];
         $rwACT = $this->conf['ACT'][$rwACL['aclActionID']];
@@ -1132,32 +1159,13 @@ function showActionInfo($aclGUID){
 
         $traced = $this->getTracedData(array_merge($rwACL, $rwACT));
 
-        $html .= $this->getAttributeFields(array_keys((array)$rwACT['aatFlagToTrack']), $traced, array('FlagWrite'=>$allowEdit, 'suffix'=>'_'.$aclGUID));
-
-        return $html;
-
-
+        $html .= $this->getAttributeFields(array_keys((array)$rwACT['aatFlagToTrack']), $traced
+            , array_merge($conf, array('suffix'=>'_'.$aclGUID))
+            );
 
         $html .= ($rwACT['aclComments'] ? $this->intra->field($this->intra->translate('Comments', null, $rwACT['aclComments'])) : '');
 
-        eval($actionCallBack.";");
-
-        $html .= "</div>\n";
-        
-        if ($rwACT["aclActionPhase"]<2 && !$this->flagArchive ){
-
-            $html .= '<div align="center">'."\n";
-            
-            if ($rwACT["aclActionPhase"]=="0"){
-                $html .= $this->intra->showButton("start_{$aclGUID}", $this->intra->translate("Start"), array('class'=>"eiseIntraActionButton"));
-            }
-            if ($rwACT["aclActionPhase"]=="1"){
-                $html .= $this->intra->showButton("finish_{$aclGUID}", $this->intra->translate("Finish"), array('class'=>"eiseIntraActionButton"));
-            }
-            $html .= $this->intra->showButton("cancel_{$aclGUID}", $this->intra->translate("Cancel"), array('class'=>"eiseIntraActionButton"));
-        }
-        
-        $html .= "</div>\n";
+        $html .= eval($actionCallBack.";");
 
         return $html;
 
