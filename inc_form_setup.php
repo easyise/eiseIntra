@@ -39,7 +39,7 @@ include eiseIntraAbsolutePath."inc{$intra->conf['frame']}_top.php";
 ?>
 
 
-<form action="<?php echo $_SERVER["PHP_SELF"]; ?>" method="POST" class="eiseIntraForm">
+<form action="<?php echo $_SERVER["PHP_SELF"]; ?>" method="POST" class="eiseIntraForm eif-form">
 <input type="hidden" name="DataAction" value="update">
 
 <fieldset><legend><?php  echo $intra->translate("System settings"); ; ?></legend>

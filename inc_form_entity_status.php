@@ -105,7 +105,7 @@ $(document).ready(function(){
 });
 </script>
 
-<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" class="eiseIntraForm">
+<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" class="eiseIntraForm eif-form">
 <input type="hidden" name="DataAction" value="update">
 <input type="hidden" name="dbName" value="<?php  echo $dbName ; ?>">
 <input type="hidden" name="staID" value="<?php  echo $staID ; ?>">
