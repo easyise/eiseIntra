@@ -18,20 +18,24 @@ public function __construct($item, $arrAct){
 	if($arrAct['aclGUID']){
 		$this->item->refresh(array('Master', 'ACL'));
         $this->arrAction = $this->item->item['ACL'][$arrAct['aclGUID']];
+        $traced = array();
         foreach($nd as $field=>$value){
             if(strpos($field, '_'.$arrAct['aclGUID'])===False)
                 continue;
-            $nd[str_replace('_'.$arrAct['aclGUID'], '', $field)] = $value;
+            $traced[str_replace('_'.$arrAct['aclGUID'], '', $field)] = $value;
         }
+        $this->conf = $item->conf['ACT'][$this->arrAction['aclActionID']];
+        $this->arrAction = array_merge($this->arrAction
+            , $this->intra->arrPHP2SQL($traced, $this->item->table['columns_types'])
+            , array('aclToDo'=> $nd['aclToDo'])
+            );
 	} else {
 		$this->conf = $item->conf['ACT'][(string)$arrAct['actID']];
+        $nd_SQL = $this->intra->arrPHP2SQL($nd, $this->item->table['columns_types']);
+        $this->arrAction = array_merge($this->conf, $nd_SQL);
 	}
 
-    $nd_SQL = $this->intra->arrPHP2SQL($nd, $this->item->table['columns_types']);
-
-	$this->arrAction = array_merge($this->conf, $nd_SQL);
-
-    switch($this->arrAction['actID']){
+    switch($this->conf['actID']){
         case 0:
         case 3:
             $this->arrAction['aclOldStatusID'] = $this->arrAction['actOldStatusID'][0];
@@ -126,6 +130,31 @@ public function add(){
 
 }
 
+function start(){
+    
+    $oSQL = $this->oSQL;
+    
+    $usrID = $this->intra->usrID;
+    $entID = $this->item->entID;
+    $entItemID = $this->item->id;
+    
+    $sqlUpdACL = "UPDATE stbl_action_log SET 
+        aclActionPhase=1
+        , aclStartBy='{$this->intra->usrID}', aclStartDate=NOW()
+        , aclEditBy='{$this->intra->usrID}', aclEditDate=NOW()
+    WHERE aclGUID='{$this->arrAction['aclGUID']}'";
+    $oSQL->do_query($sqlUpdACL);
+    
+    $sqlUpdEntTable = "UPDATE {$this->item->conf["table"]} SET
+            {$entID}ActionLogID='{$this->arrAction['aclGUID']}'
+            , {$entID}EditBy='{$this->intra->usrID}', {$entID}EditDate=NOW()
+            WHERE {$this->item->conf['PK']}='{$entItemID}'";
+    $oSQL->do_query($sqlUpdEntTable);
+
+    $this->item->onActionStart($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
+
+}
+
 public function validate(){
 
 	$aclOldStatusID = (isset($this->arrAction["aclOldStatusID"]) 
@@ -134,7 +163,7 @@ public function validate(){
 	    );
 
 	if($this->arrAction['actID']<=3){
-	    switch( $this->arrAction['actID'] ){
+	    switch( $this->conf['actID'] ){
 	        case 1:
 	            if($aclOldStatusID>0)
 	                throw new Exception('Item is already created');
@@ -187,7 +216,7 @@ public function finish(){
         aclActionPhase = 2
         , aclItemAfter = ".$this->oSQL->e(json_encode($item_after))."
         {$timestamps}
-        ".($this->arrAction["actID"]!="2" && count($aTraced)>0
+        ".($this->conf["actID"]!="2" && count($aTraced)>0
             ? ", aclItemTraced=".$this->oSQL->e(json_encode($aTraced))
             : ', aclItemTraced=NULL')."
         , aclStartBy=IFNULL(aclStartBy, '{$this->intra->usrID}'), aclStartDate=IFNULL(aclStartDate,NOW())
@@ -197,7 +226,7 @@ public function finish(){
 
     $this->oSQL->q($sqlUpdACL);
     
-    if ($this->arrAction["actID"]!="2") {
+    if ($this->conf["actID"]!="2") {
 
         $tracedFields = $this->intra->getSQLFields($this->item->table, $aTraced);
         $userstamps = $this->getUserStamps();
@@ -212,14 +241,17 @@ public function finish(){
         $this->oSQL->q($sqlMaster);
 
     }
+
+
+
     
     $this->item->onActionFinish($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
 
     // if status is changed or action requires status stay interruption, we insert status log entry and update master table
-    if (((string)$this->arrAction["aclOldStatusID"]!=(string)$this->arrAction["aclNewStatusID"]
-          && (string)$this->arrAction["aclNewStatusID"]!=""
+    if (($this->arrAction["aclOldStatusID"]!==$this->arrAction["aclNewStatusID"]
+          && (string)$this->arrAction["aclNewStatusID"]!=''
         )
-        || $this->arrAction["actFlagInterruptStatusStay"]){
+        || $this->conf["actFlagInterruptStatusStay"]){
 
         $sql = Array();
         $stlGUID = $this->oSQL->get_data($this->oSQL->do_query("SELECT UUID()"));
@@ -244,7 +276,7 @@ public function finish(){
             , stlInsertBy, stlInsertDate, stlEditBy, stlEditDate
             ) SELECT
             '$stlGUID' as stlGUID
-            , '{$this->entID}' as stlEntityID
+            , '{$this->item->entID}' as stlEntityID
             , aclEntityItemID
             , aclNewStatusID as stlStatusID
             , aclGUID as stlArrivalActionID
@@ -261,20 +293,7 @@ public function finish(){
         
         $arrSAT = $this->conf['STA'][$this->arrAction['aclNewStatusID']]['satFlagTrackOnArrival'];
         if (count($arrSAT)>0){
-            $sqlSAT = "INSERT INTO {$this->conf["entTable"]}_log (
-                l{$this->conf['entPrefix']}GUID
-                , l{$this->conf['entPrefix']}EditBy , l{$this->conf['entPrefix']}EditDate, l{$this->conf['entPrefix']}InsertBy, l{$this->conf['entPrefix']}InsertDate
-                ";
-            foreach($arrSAT as $atrID=>$x)
-                $sqlSAT .= ", l{$atrID}";
-            $sqlSAT .= ") SELECT 
-                '$stlGUID' as l{$this->conf['entPrefix']}GUID
-                , '{$this->intra->usrID}' as l{$this->conf['entPrefix']}EditBy , NOW() as l{$this->conf['entPrefix']}EditDate, '{$this->intra->usrID}' as {$this->conf['entPrefix']}InsertBy, NOW() as {$this->conf['entPrefix']}InsertDate
-                ";
-            foreach($arrSAT as $atrID=>$ix)
-                $sqlSAT .= ", {$atrID}";
-            $sqlSAT .= " FROM {$this->item->conf["entTable"]} WHERE {$this->item->table['PK'][0]}='{$this->item->id}'";
-            $sql[] = $sqlSAT;
+        
         }
         
         // after action is done, we update entity table with last status action log id
@@ -398,21 +417,29 @@ public function getTimeStamps(){
     $tsValues = array();
 
     foreach(self::$ts as $ts){
-        $tsValues[$ts] = ($this->arrAction['actTrackPrecision']==='datetime'
-                ? $this->intra->datetimePHP2SQL($this->arrAction[$this->arrAction['aatFlagTimestamp'][$ts]], 'NOW()')
-                : $this->intra->datePHP2SQL($this->arrAction[$this->arrAction['aatFlagTimestamp'][$ts]], 'NOW()')
+        $tsValues[$ts] = ($this->conf['actTrackPrecision']==='datetime'
+                ? $this->intra->datetimePHP2SQL($this->arrAction[$this->conf['aatFlagTimestamp'][$ts]], 'NOW()')
+                : $this->intra->datePHP2SQL($this->arrAction[$this->conf['aatFlagTimestamp'][$ts]], 'NOW()')
                 );
     }
 
-    if(!$this->arrAction['actFlagHasEstimates']){
+    if(!$this->conf['actFlagHasEstimates']){
         $tsValues['ETD'] = $tsValues['ATD'];
         $tsValues['ETA'] = $tsValues['ATA'];
     }
 
-    if($this->arrAction['actFlagDepartureEqArrival']){
+    if($this->conf['actFlagDepartureEqArrival']){
         $tsValues['ETD'] = $tsValues['ETA'];
         $tsValues['ATD'] = $tsValues['ATA'];   
     }
+
+    if(strtotime($this->item->oSQL->unq($tsValues['ATA'])) < strtotime($this->item->oSQL->unq($tsValues['ATD']))){
+        $tsValues['ATA'] = $tsValues['ATD'];
+    }
+    if(strtotime($this->item->oSQL->unq($tsValues['ETA'])) < strtotime($this->item->oSQL->unq($tsValues['ETD']))){
+        $tsValues['ETA'] = $tsValues['ETD'];
+    }
+    
 
     foreach($tsValues as $ts=>$value){
         $sql .= "\n, acl{$ts} = {$value}";
@@ -424,7 +451,7 @@ public function getTimeStamps(){
 
 public function getUserStamps(){
     $sql = '';
-    foreach ( (array)$this->arrAction["aatFlagUserStamp"] as $atrID => $xx ) {
+    foreach ( (array)$this->conf["aatFlagUserStamp"] as $atrID => $xx ) {
         if(array_key_exists($atrID, (array)$this->arrAction["aatFlagToTrack"]))
             continue;
         $sql .= "\n, {$atrID} = ".$oSQL->e($this->intra->usrID);
@@ -436,7 +463,7 @@ public function getTraceData(){
 
     $aRet = array();
 
-    foreach((array)$this->arrAction['aatFlagToTrack'] as $field=>$props){
+    foreach((array)$this->conf['aatFlagToTrack'] as $field=>$props){
         $aRet[$field] = $this->arrAction[$field];
     }
 

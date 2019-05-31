@@ -583,7 +583,6 @@ public function updateUnfinishedActions($nd = null){
             $nd_key = $atrID.'_'.$rwACL['aclGUID'];
             if(isset($nd[$nd_key])){
                 $aToUpdate[$atrID] = $nd[$nd_key];
-                echo '<pre>'.$nd_key.' '. $nd[$nd_key];
             }
         }
 
