@@ -123,7 +123,7 @@ private $arrClassInputTypes =
  * @category Initialization
  */
 public static $defaultConf = array(
-        'versionIntra'=>'2.2.001' 
+        'versionIntra'=>'2.2.002' 
         , 'dateFormat' => "d.m.Y" // 
         , 'timeFormat' => "H:i" // 
         , 'decimalPlaces' => "2"
@@ -1352,7 +1352,7 @@ function batchStart($conf = array()){
  * @category Data output
  * @category Batch run
  */
-function batchEcho($string, $line_end = "\n"){
+function batchEcho($string){
     $args = func_get_args();
     $to_echo  = call_user_func_array( 
             ($this->conf['auto_translate'] 
@@ -1360,8 +1360,10 @@ function batchEcho($string, $line_end = "\n"){
                 : 'sprintf'
                 )
             , $args) ;
-        
-    echo ( $this->conf['batch_htmlspecialchars'] ? htmlspecialchars( $to_echo ) : $to_echo ).$line_end;
+    
+    echo ( $this->conf['batch_htmlspecialchars'] ? htmlspecialchars( $to_echo ) : $to_echo )
+        .( $args[count($args)-1]==='' ? '' : "\n" );
+
     ob_flush();
     flush();
 }

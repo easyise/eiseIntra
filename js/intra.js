@@ -1513,7 +1513,7 @@ upload2batch: function( options ){
 
     $(this).eiseIntraForm('createDialog', {
         title: (options['title'] ? options['title'] : title)
-        , action: (options['action'] ? options['action'] : location.href)
+        , action: (options['action'] ? options['action'] : location.pathname+'?nocache=true')
         , method: 'POST'
         , fields: fields
         , onsubmit: function(ev){
