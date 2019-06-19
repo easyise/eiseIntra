@@ -1642,6 +1642,8 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
         if($flagFieldDelimiter)
             $conf['type'] = 'delimiter';
 
+        $conf['type'] = ((trim($title)!=='' && !isset($conf['type'])) ? 'text' : $conf['type']);
+
         $html .= "<div class=\"eiseIntraField eif-field".
                 ' eif-field-'.$conf['type'].
                 ($name 
