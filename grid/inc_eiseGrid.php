@@ -23,8 +23,9 @@ static $defaultWidthsByType = array(
         , 'real' => '80px'
         , 'money' => '80px'
 
-        , 'date' => '80px'
+        , 'date' => '90px'
         , 'datetime' => '120px'
+        , 'time' => '40px'
 
         , 'boolean' => '30px'
         , 'checkbox' => '30px'
@@ -747,6 +748,10 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                 case "datetime":
                     $_val = $this->DateSQL2PHP( $_val
                         , ($col['format'] ? $col['format'] : ($this->conf['dateFormat']." ".$this->conf['timeFormat'])) );
+                    break;
+                case "time":
+                    $_val = $this->DateSQL2PHP( $_val
+                        , ($col['format'] ? $col['format'] : $this->conf['timeFormat']) );
                     break;
                 case "order":
                     $_val = ($ixRow+1);
