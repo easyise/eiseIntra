@@ -755,7 +755,14 @@ function showMultipleEditForm(strTitle){
         $formTemplate.remove(); 
     }
 
-    var $form = $(this.formHTML).appendTo('body');
+    var $form = $(this.formHTML).appendTo('body'),
+        entIDs = $('.eiseList').eiseList('getRowSelection'),
+        entIDField = $form.find('input[name="entID"]').val()+'ID';
+
+    if(!entIDs){
+        alert("No items selected");
+        return;
+    }
     
     $form
         .prop('title', strTitle)
@@ -765,11 +772,15 @@ function showMultipleEditForm(strTitle){
         })
         .eiseIntraForm()
         .eiseIntraEntityItemForm({flagUpdateMultiple: true})
-        .submit(function(event) {
-            
+        .off('submit')
+        .on('submit', function(event) {
+
             $form.eiseIntraEntityItemForm("checkAction", function(){
                 if ($form.eiseIntraForm("validate")){
                     window.setTimeout(function(){$form.find('input[type="submit"], input[type="button"]').each(function(){this.disabled = true;})}, 1);
+                    console.log(entIDs, 'input[name="'+entIDField+'"]')
+                    $form.find('input[name="'+entIDField+'"]').val(entIDs);
+
                     $form.eiseIntraBatch('submit', {
                         flagAutoReload: true
                         , title: strTitle
