@@ -1500,13 +1500,16 @@ adjustFieldsetHeights: function(ixStart, ixFinish){
 
 upload2batch: function( options ){
     
-    var title = $(this).text(),
+    var defaultOptions = {'maxFileSize': 100000000},
+        title = $(this).text(),
         fields = [{name: 'DataAction'
                 , type: 'hidden'
                 , value: (options['DataAction'] ? options['DataAction'] : 'upload')}
             , {name: (options['fileFieldName'] ? options['fileFieldName'] : 'the_file')
                 , type: 'file'
                 , title: (options['fileFieldTitle'] ? options['fileFieldTitle'] : 'Choose file')}];
+
+    options = $.extend(defaultOptions, (options ? options : {}))
 
     if(options['fields'] && options['fields'].isArray())
         fields = $.extend(fields, options['fields']);
@@ -1527,7 +1530,7 @@ upload2batch: function( options ){
 
                 if(file.name.length < 1) {
                 }
-                else if(file.size > 100000000) {
+                else if(file.size > options['maxFileSize']) {
                     alert("The file is too big: "+file.size);
                 }
                 else if( options['allowedExts'] && Array.isArray(options['allowedExts']) && options['allowedExts'].indexOf(ext) === -1 ) {
