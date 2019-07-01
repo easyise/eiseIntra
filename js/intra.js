@@ -1288,6 +1288,10 @@ createDialog: function( conf ){
         +'<input type="button" value="'+btnCloseTitle+'" class="eif_btnClose">'
         +'</div>');
 
+    if(conf.id){
+        $frm.attr('id', conf.id);
+    }
+
     $frm.eiseIntraForm('init').submit(function(){
 
         var objVals = {};
