@@ -1935,6 +1935,7 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
             ($strAttrib ? " ".$strAttrib : "").
             ($strClass ? ' class="'.$strClass.'"' : "").
             ($arrConfig["required"] ? " required=\"required\"" : "").
+            ($arrConfig["autocomplete"]===false ? " autocomplete=\"off\"" : "").
             ($arrConfig["placeholder"] 
                 ? ' placeholder="'.htmlspecialchars($arrConfig["placeholder"]).'"'
                     .' title="'.htmlspecialchars($arrConfig["placeholder"]).'"'
