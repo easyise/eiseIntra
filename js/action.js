@@ -137,7 +137,7 @@ var eiseIntraActionSubmit = function(event, $form){
                     , onsubmit: function(newValues){
 
                         $form.eiseIntraForm('fill', $.extend(o, newValues), {createMissingAsHidden: true});
-                        $form.submit();
+                        $form.off('submit').submit();
 
                         return false;
                     }
@@ -147,7 +147,7 @@ var eiseIntraActionSubmit = function(event, $form){
 
             }
             $form.eiseIntraForm('fill', o, {createMissingAsHidden: true});
-            $form.submit();
+            $form.off('submit').submit();
 
         });
 
