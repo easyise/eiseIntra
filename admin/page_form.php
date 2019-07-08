@@ -377,9 +377,15 @@ $(document).ready(function(){
     });
 
     $('#usrID_check').change(function(){
-        var val = $(this).val()
-        if(val.length===0)
+        var val = $(this).val(),
+            spans = ['user_roles', 'page_privileges'];
+        if(val.length===0){
+            $.each(spans, function(i, key){
+                $('#span_'+key).text('-');
+            })
             return true;
+        }
+            
 
         $.getJSON(location.pathname+location.search+'&DataAction=get_privileges&usrID='+encodeURIComponent(val), function(response){
             $.each(response.data, function(key, val){
