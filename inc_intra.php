@@ -696,7 +696,7 @@ function checkPermissions( ){
     
     $rsChkPerms = $oSQL->do_query($sqlCheckUser);
     $rwPerms = $oSQL->fetch_array($rsChkPerms);
-        
+
     if (!$rwPerms["FlagRead"]){
         throw new eiseException($this->translate("%s access denied to user %s", ($this->conf['context'] 
                 ? $this->conf['context'] 
@@ -711,7 +711,8 @@ function checkPermissions( ){
         $this->arrUsrData = array_merge( $this->arrUsrData, $rwPage);  
     }
 
-    $_SESSION["last_login_time"] = Date("Y-m-d H:i:s");
+    if(!$this->conf['context'])
+        $_SESSION["last_login_time"] = Date("Y-m-d H:i:s");
     
     $this->usrID = $this->arrUsrData["usrID"];
     $this->conf['usrID'] = $this->arrUsrData["usrID"];

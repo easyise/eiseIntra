@@ -15,6 +15,36 @@ $oSQL->select_db($dbName);
 
 $intra->requireComponent('grid');
 
+$intra->dataRead('get_privileges');
+function get_privileges($q){
+    GLOBAL $intra, $oSQL;
+
+    $page = $oSQL->d("SELECT pagFile FROM stbl_page WHERE pagID=".(int)$q['pagID']);
+
+    $intra_ = new eiseIntra($oSQL, array('context'=>$page, 'usrID'=>$q['usrID']));
+
+    $strRoles = '';
+    foreach($intra_->arrUsrData['roleIDs'] as $i=>$rolID){
+        $strRoles .= ($strRoles ? ",\n" : '').$intra_->arrUsrData['roles'][$i]." ({$rolID})";
+    }
+    if(!$strRoles)
+        $strRoles = $intra->translate('NO ROLES ASSIGNED');
+
+    $strPriveleges = '';
+    foreach ($intra_->arrUsrData as $key => $val) {
+        if(preg_match('/^Flag/', $key) && !is_array($val)){
+            if($val){
+                $strPriveleges .= ($strPriveleges ? ', ' : '').str_replace('Flag', '', $key);
+            }
+        }
+    }
+
+    if(!$strPriveleges)
+        $strPriveleges = $intra->translate('NO PRIVILEGES');
+
+    $intra->json('ok', '', array('user_roles'=>$strRoles, 'page_privileges'=>$strPriveleges));
+}
+
 $grid = new easyGrid($oSQL
 					, "page_role"
                     , Array('arrPermissions' => Array('FlagWrite'=> true)
@@ -310,12 +340,12 @@ include eiseIntraAbsolutePath."inc_top.php";
 ?>
 
 <style type="text/css">
-#flds-general, #flds-privileges {
+#div-general, #flds-privileges {
     display: inline-block;
     vertical-align: top;
 }
 
-#flds-general {
+#div-general {
     width: 37%;
 }
 
@@ -326,12 +356,17 @@ include eiseIntraAbsolutePath."inc_top.php";
 #div-buttons {
   text-align: center;
 }
+#span_user_roles {
+    white-space: pre;
+}
 </style>
 
 <script>
 $(document).ready(function(){  
-    var $frm = $('form#pageForm');
-	$('.eiseGrid').eiseGrid();
+    var $frm = $('form#pageForm').eiseIntraForm();
+	  
+    $('.eiseGrid').eiseGrid();
+    
     $('#btn-del').click(function(){
         if(deletePage()){
             $frm.find('input,textarea,select').filter('[required]:visible').each(function(){
@@ -339,16 +374,30 @@ $(document).ready(function(){
             });
             $frm.submit();
         }
+    });
+
+    $('#usrID_check').change(function(){
+        var val = $(this).val()
+        if(val.length===0)
+            return true;
+
+        $.getJSON(location.pathname+location.search+'&DataAction=get_privileges&usrID='+encodeURIComponent(val), function(response){
+            $.each(response.data, function(key, val){
+                $('#span_'+key).text(val);
+            });
+        })
+
     })
 });
 </script>
 
 
-<form id="pageForm" name="pageForm" class="eiseIntraForm" method="POST" action="<?php echo $_SERVER["PHP_SELF"] ; ?>">
+<form id="pageForm" name="pageForm" class="eiseIntraForm eif-form" method="POST" action="<?php echo $_SERVER["PHP_SELF"] ; ?>">
 <input type="hidden" name="DataAction" id="DataAction" value="update">
 <input type="hidden" name="pagID" value="<?php echo $rwPAG["pagID"] ; ?>">
 <input type="hidden" name="pagOldParentID" value="<?php echo $rwPAG["pagParentID"] ; ?>">
 
+<div id="div-general">
 <fieldset id="flds-general"><legend><?php echo $intra->translate('Page').': '.$rwPAG["pagTitle{$intra->local}"]; ?></legend>
 <?php 
 echo $intra->field('Title', 'pagTitle', $rwPAG["pagTitle"]);
@@ -396,7 +445,18 @@ if ($pagID) {
 </div>
 </fieldset>
 
-<fieldset id="flds-privileges"><legend>Privileges</legend>
+<?php 
+
+echo $intra->fieldset($intra->translate("Check User"), 
+  $intra->field($intra->translate('Choose user'), 'usrID_check', '', array('type'=>'ajax_dropdown', 'source'=>'svw_user')).
+  $intra->field($intra->translate('Roles'), 'user_roles', '-', array('type'=>'textarea', 'FlagWrite'=>false)).
+  $intra->field($intra->translate('Page Priveleges'), 'page_privileges', '-', array('type'=>'textarea', 'FlagWrite'=>false))
+  );
+
+ ?>
+</div>
+
+<fieldset id="flds-privileges" class="normal"><legend>Privileges</legend>
 <div><?php $grid->Execute(); ?></div></fieldset>
 
 
