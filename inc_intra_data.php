@@ -638,6 +638,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
             "idField" => "{$strPrefix}ID"
             , "textField" => "{$strPrefix}Title"
             , "textFieldLocal" => "{$strPrefix}TitleLocal"
+            , "orderField" => "{$strPrefix}Order"
             , "delField" => "{$strPrefix}FlagDeleted"
             );
     } else {
@@ -645,9 +646,19 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
             "idField" => "optValue"
             , "textField" => "optText"
             , "textFieldLocal" => "optTextLocal"
+            , "orderField" => "optOrder"
             , "delField" => "optFlagDeleted"
         );
     }    
+
+    $f = $oSQL->ff("SELECT * FROM `{$strTable}` WHERE 1=0");
+    $fields = array_keys($f);
+    if(!in_array($arrFields['textFieldLocal'], $fields))
+        $arrFields['textFieldLocal'] = $arrFields['textField'];
+    if(!in_array($arrFields['orderField'], $fields))
+        unset($arrFields['orderField']);
+    if(!in_array($arrFields['delField'], $fields))
+        unset($arrFields['delField']);
     
     $sql = "SELECT `".$arrFields["textField{$this->local}"]."` as optText, `{$arrFields["idField"]}` as optValue
         FROM `{$strTable}`";
@@ -676,9 +687,12 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
         }
 
         $sql .= "\r\nWHERE (\r\n{$sqlVariations}\r\n)"
-            .($flagShowDeleted==false ? " AND IFNULL(`{$arrFields["delField"]}`, 0)=0" : "")
+            .( ($flagShowDeleted===false && $arrFields["delField"]) ? " AND IFNULL(`{$arrFields["delField"]}`, 0)=0" : "")
             .$strExtra;
-        $sql .= "\r\nORDER BY `".$arrFields["textField{$this->local}"]."`";
+        if($strPrefix)
+            $sql .= "\r\nORDER BY `".($arrFields['orderField'] ? $arrFields['orderField'] : $arrFields["textField{$this->local}"])."`";
+        else if ( $arrFields['orderField'] ) 
+            $sql .= "\r\nORDER BY `{$arrFields['orderField']}`";
     }
     if(!$flagNoLimits)
         $sql .= "\r\nLIMIT 0, 30";
