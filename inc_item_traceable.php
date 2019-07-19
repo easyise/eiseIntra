@@ -9,6 +9,8 @@ class eiseItemTraceable extends eiseItem {
 const sessKeyPrefix = 'ent:';
 const statusField = 'StatusID';
 
+public $extraActions = array();
+
 protected $defaultDataToObtain = array('Text', 'ACL', 'STL', 'files', 'messages');
 	
 public function __construct($id = null,  $conf = array() ){
@@ -65,12 +67,17 @@ public function update($nd){
     $this->updateUnfinishedActions($nd);
     $this->oSQL->q('COMMIT');
 
-
-
     $this->oSQL->q('START TRANSACTION');
     // 2. do the action
     $this->doAction(new eiseAction($this, $nd));
+    // 3. do extra actions
+    foreach ($this->extraActions as $act) {
+        //die('<pre>'.var_export($act->arrAction, true));
+        $this->doAction($act);
+    }
     $this->oSQL->q('COMMIT');
+
+    
 
 }
 
@@ -251,10 +258,10 @@ private function init(){
         FROM stbl_action_status
         INNER JOIN stbl_action ON actID=atsActionID
         LEFT OUTER JOIN stbl_status ORIG ON ORIG.staID=atsOldStatusID AND ORIG.staEntityID='{$this->entID}'
-        LEFT OUTER JOIN stbl_status DEST ON DEST.staID=atsOldStatusID AND DEST.staEntityID='{$this->entID}'
+        LEFT OUTER JOIN stbl_status DEST ON DEST.staID=atsNewStatusID AND DEST.staEntityID='{$this->entID}'
         WHERE (actEntityID='{$this->entID}' 
             AND IFNULL(ORIG.staFlagDeleted,0)=0
-            AND IFNULL(ORIG.staFlagDeleted,0)=0
+            AND IFNULL(DEST.staFlagDeleted,0)=0
             ) OR actEntityID IS NULL
         ORDER BY atsOldStatusID, actPriority";
     $rsATS = $oSQL->q($sqlATS);
@@ -779,8 +786,8 @@ public function onActionFinish($actID, $oldStatusID, $newStatusID){
 }
 
 /**
- * This function is called after action is "cancelled", i.e. Action Log record has changed its aclActionPhase=3.
- * In case when something went wrong it should throw an exception.
+ * This function is called on event when action is "cancelled", i.e. Action Log record has changed its aclActionPhase=3.
+ * In case when something went wrong it should throw an exception and cancellation will be prevented.
  *
  * @category Events
  *
@@ -1180,8 +1187,8 @@ function showActionInfo($aclGUID, $conf = array()){
 
         $conf = array_merge($defaultConf, $conf);
 
-        $rwACL = $this->item['ACL'][$aclGUID];
-        $rwACT = $this->conf['ACT'][$rwACL['aclActionID']];
+        $rwACL = (array)$this->item['ACL'][$aclGUID];
+        $rwACT = (array)$this->conf['ACT'][$rwACL['aclActionID']];
 
         $html = '';
 
@@ -1405,6 +1412,7 @@ public function getActionData($aclGUID){
        WHERE aclGUID='{$aclGUID}'";
     
     $rwACT = $oSQL->fetch_array($oSQL->do_query($sqlACT));
+    $rwACT['actID'] = $rwACT['aclActionID'];
 
     //$rwACT = @array_merge($this->conf['ACT'][$rwACT['aclActionID']], $rwACT);
     $rwACT = @array_merge($rwACT, array(

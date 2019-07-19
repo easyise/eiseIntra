@@ -78,7 +78,6 @@ public function execute(){
                     $this->start();
                     break;
                 case "cancel":
-                	$this->validate();
                     $this->cancel();
                     break;
             }
@@ -124,6 +123,9 @@ public function add(){
     // 3. Trigger onActionPlan hook
     $this->item->onActionPlan($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
 
+    $this->oSQL->q("UPDATE stbl_action_log SET aclItemTraced = ".$this->oSQL->e(json_encode($this->getTraceData()))." 
+        WHERE aclGUID='{$this->arrAction["aclGUID"]}'");
+
     $this->arrAction['aclActionPhase'] = 0;
 
     return $this->arrAction["aclGUID"];
@@ -140,6 +142,7 @@ function start(){
     
     $sqlUpdACL = "UPDATE stbl_action_log SET 
         aclActionPhase=1
+        , aclItemBefore = ".$this->oSQL->e( json_encode($this->item->item_before) )."
         , aclStartBy='{$this->intra->usrID}', aclStartDate=NOW()
         , aclEditBy='{$this->intra->usrID}', aclEditDate=NOW()
     WHERE aclGUID='{$this->arrAction['aclGUID']}'";
@@ -210,7 +213,7 @@ public function finish(){
 
     $timestamps = $this->getTimeStamps();
     $aTraced = $this->getTraceData();
-        
+
     // update started action as completed
     $sqlUpdACL = "UPDATE stbl_action_log SET
         aclActionPhase = 2
@@ -293,7 +296,7 @@ public function finish(){
         
         $arrSAT = $this->conf['STA'][$this->arrAction['aclNewStatusID']]['satFlagTrackOnArrival'];
         if (count($arrSAT)>0){
-        
+            
         }
         
         // after action is done, we update entity table with last status action log id
@@ -315,6 +318,29 @@ public function finish(){
     $this->item->staID = $this->arrAction['aclNewStatusID'];
 
 }
+
+function cancel(){
+
+    $oSQL = $this->oSQL;
+    
+    $entID = $this->item->conf["entID"];
+    $entItemID = $this->item->id;
+    $aclGUID = $this->arrAction["aclGUID"];
+
+    $this->item->onActionCancel($this->arrAction['aclActionID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
+    
+    if($this->arrAction['aclActionPhase']==0){
+        $oSQL->q("DELETE FROM stbl_action_log WHERE aclGUID='{$this->arrAction['aclGUID']}'");
+    } else {
+        $oSQL->q("UPDATE stbl_action_log SET
+            aclActionPhase=3
+            , aclCancelBy='{$this->intra->usrID}'
+            , aclCancelDate=NOW()
+            WHERE aclGUID='{$this->arrAction['aclGUID']}'");
+    }
+
+}
+
 
 function checkTimeLine(){
 	

@@ -793,7 +793,7 @@ init: function( options ) {
         $this.find('.eiseIntraDelete').click(function(ev){
                 if (confirm("Are you sure you'd like to delete?")){
                     $this.find('input,select,textarea').removeAttr('required');
-                    $this.find('#DataAction').val('delete');
+                    $this.find('input[name="DataAction"]').val('delete');
                     $this.submit();
                     return false;
                 } 
