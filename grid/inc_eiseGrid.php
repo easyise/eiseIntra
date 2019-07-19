@@ -700,7 +700,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     if ((int)$cell['disabled'])
         $cell['class'] .= " eg_disabled";
     
-    $class = "eg-".$col['type'].($cell['class'] != "" ? " ".$cell['class'] : '');
+    $class = "eg-".($col['type']!=='button' ? $col['type'] : 'input-button').($cell['class'] != "" ? " ".$cell['class'] : '');
     
     $strCell = "";
     $strCell .= "\t<td class=\"{$this->name}-{$ixCol} {$class}\"".
@@ -779,6 +779,9 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                 case "order":
                     $_val = ($ixRow+1);
                     break;
+                case "button":
+                    $_val = $col['default'];
+                    break;
                 default:
                     break;
             }
@@ -795,8 +798,12 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                 $aclose = "</a>";
             }
             
-            $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val)."\">";
+            $strCell .= ($col['type']!='button' 
+                ? "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val)."\">"
+                : '');
             switch($col['type']){
+                case 'button':
+                    break;
                 case "boolean":
                 case "checkbox":
                     $strCell .= "<input{$classAttr} type=\"checkbox\" name=\"{$_checkfield}[]\"".($_val==true ? " checked" : "")." disabled>";
@@ -820,6 +827,9 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
             
             $noAutoComplete = false;
             switch($col['type']){
+                case 'button':
+                    $strCell .= "<button name=\"{$_field}[]\">".htmlspecialchars($_val).'</button>';
+                    break;
                 case "order":
                     $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val).
                         "\"><div{$classAttr}><span>".htmlspecialchars($_val)."</span>.</div>";

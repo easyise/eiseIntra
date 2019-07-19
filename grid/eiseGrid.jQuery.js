@@ -142,7 +142,7 @@ eiseGrid.prototype.initLinesStructure = function(){
                 };
 
         oGrid.tbodyTemplate.find('td.'+oGrid.id+'-'+colName).each(function(){
-            linesStructCol.fields[linesStructCol.fields.length] = $(this).find('input').first().attr('name').replace('[]', '');
+            linesStructCol.fields[linesStructCol.fields.length] = $(this).find('input,button').first().attr('name').replace('[]', '');
         });
 
         linesStruct[linesStruct.length] = linesStructCol;
@@ -448,7 +448,7 @@ var __attachFloatingSelect = function( $tbody ){
         var opts = oSelect[0].options;
 
         $(this).parent('td').append(oSelect);
-        
+
         oSelect.css('display', 'block');
         oSelect.offset({
             left: $(this).offset().left
@@ -1318,7 +1318,7 @@ eiseGrid.prototype.text = function(oTr, strFieldName, text){
 }
 
 eiseGrid.prototype.focus = function(oTr, strFieldName){
-    oTr.find('.'+this.id+'-'+strFieldName+' input[type=text]').focus().select();
+    oTr.find('.'+this.id+'-'+strFieldName+' input[type="text"]').focus();
 }
 
 eiseGrid.prototype.verifyInput = function (oTr, strFieldName) {
@@ -1362,10 +1362,10 @@ eiseGrid.prototype.verifyInput = function (oTr, strFieldName) {
                     .replace("Y", "[0-9]{4}")
                     .replace("y", "[0-9]{1,2}");
                 var strRegExTime = this.conf.timeFormat
-                    .replace(new RegExp("\.", "g"), "\\.")
-                    .replace(new RegExp("\:", "g"), "\\:")
-                    .replace(new RegExp("\/", "g"), "\\/")
-                    .replace("h", "[0-9]{1,2}")
+                    .replace(new RegExp("\\.", "g"), "\\.")
+                    .replace(new RegExp("\\:", "g"), "\\:")
+                    .replace(new RegExp("\\/", "g"), "\\/")
+                    .replace("H", "[0-9]{1,2}")
                     .replace("i", "[0-9]{1,2}")
                     .replace("s", "[0-9]{1,2}");
                 
