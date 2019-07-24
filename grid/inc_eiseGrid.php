@@ -788,7 +788,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
         }
         
         //if cell is disabled, static, or there's a HREF, we make hidden input and text value
-        if ((int)$cell['static'] || (int)$cell['disabled'] || $cell['href']!=""){
+        if ((int)$cell['static'] || (int)$cell['disabled'] || ($cell['href']!='' && $_val!==null)){
             
             $aopen = "";$aclose = "";
             if ($cell['href']!=""){
