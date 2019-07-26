@@ -1922,19 +1922,21 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
     $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
     
     $strClass = $this->handleClass($arrConfig);
+    $strClassInput = 'eif-input'.($strClass ? ' '.$strClass : '');
+
+    $id = ($arrConfig['id'] ? $arrConfig['id'] : $strName);
    
     $strAttrib = $arrConfig["strAttrib"];
     if ($flagWrite){
         
         $strType = (in_array($arrConfig['type'], $this->arrHTML5AllowedInputTypes) ? $arrConfig["type"] : 'text');
 
-        $strClass .= (!in_array($arrConfig['type'], $this->arrHTML5AllowedInputTypes) 
-            ? ($strClass!='' ? ' ' : '').'eiseIntra_'.$arrConfig["type"].' eif-input-'.$arrConfig["type"] 
+        $strClassInput .= (!in_array($arrConfig['type'], $this->arrHTML5AllowedInputTypes) 
+            ? ($strClassInput!='' ? ' ' : '').'eiseIntra_'.$arrConfig["type"].' eif-input-'.$arrConfig["type"] 
             : '');
 
-        $strRet = "<input type=\"{$strType}\" name=\"{$strName}\" id=\"{$strName}\"".
+        $strRet = "<input type=\"{$strType}\" name=\"{$strName}\" id=\"{$id}\" class=\"{$strClassInput}\"".
             ($strAttrib ? " ".$strAttrib : "").
-            ($strClass ? ' class="'.$strClass.'"' : "").
             ($arrConfig["required"] ? " required=\"required\"" : "").
             ($arrConfig["autocomplete"]===false ? " autocomplete=\"off\"" : "").
             ($arrConfig["placeholder"] 
@@ -1944,14 +1946,13 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
             ($arrConfig["maxlength"] ? " maxlength=\"{$arrConfig["maxlength"]}\"" : "").
        " value=\"".htmlspecialchars($strValue)."\" />";
     } else {
-        $strRet = "<div id=\"span_{$strName}\"".
-        ($strAttrib ? " ".$strAttrib : "").
-        ($strClass ? ' class="'.$strClass.'"' : "").">"
+        $strRet = "<div id=\"span_{$strName}\" class=\"{$strClass}\"".
+        ($strAttrib ? " ".$strAttrib : "").">"
             .($arrConfig['href'] ? "<a href=\"{$arrConfig['href']}\"".($arrConfig["target"] ? " target=\"{$arrConfig["target"]}\"" : '').">" : '')
             .htmlspecialchars($strValue)
             .($arrConfig['href'] ? "</a>" : '')
         ."</div>\r\n"
-        ."<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\""
+        ."<input type=\"hidden\" name=\"{$strName}\" id=\"{$id}\" class=\"eif-input\""
         ." value=\"".htmlspecialchars($strValue)."\" />";
     }
     
@@ -1975,26 +1976,28 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
     $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
     
     $strClass = $this->handleClass($arrConfig);
-    
+    $strClassInput = 'eif-input'.($strClass ? ' '.$strClass : '');
+
+    $id = ($arrConfig['id'] ? $arrConfig['id'] : $strName);
+
     if ($flagWrite){
-        $strRet .= "<textarea"
-            ." id=\"".($arrConfig['id'] ? $arrConfig['id'] : $strName)."\""
+        $strRet .= "<textarea class=\"{$strClassInput}\""
+            ." id=\"$id\""
             ." name=\"".$strName."\"";
         if($strAttrib) $strRet .= " ".$strAttrib;
-        $strRet .= ($strClass ? ' class="'.$strClass.'"' : '').
-            ($arrConfig["required"] ? " required=\"required\"" : "").
+        $strRet .= ($arrConfig["required"] ? " required=\"required\"" : "").
             ($arrConfig["placeholder"] ? ' placeholder="'.htmlspecialchars($arrConfig['placeholder']).'"' : '').
             ">";
         $strRet .= htmlspecialchars($strValue);
         $strRet .= "</textarea>";
     } else {
-        $strRet = "<div id=\"span_{$strName}\"".
+        $strRet = "<div id=\"span_{$id}\"".
             ($strAttrib ? " ".$strAttrib : "").
             ($strClass ? ' class="'.$strClass.'"' : "").">"
                 .($arrConfig['href'] ? "<a href=\"{$arrConfig['href']}\"".($arrConfig["target"] ? " target=\"{$arrConfig["target"]}\"" : '').">" : '')
                 .htmlspecialchars($strValue)."</div>\r\n"
                 .($arrConfig['href'] ? '</a>' : '')
-            ."<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\""
+            ."<input type=\"hidden\" name=\"{$strName}\" id=\"{$id}\" class=\"eif-input\"" 
             ." value=\"".htmlspecialchars($strValue)."\" />\r\n";
     }
     return $strRet;        
@@ -2089,6 +2092,9 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
     $retVal = "";
     
     $strClass = $this->handleClass($confOptions);
+    $strClassInput = 'eif-input'.($strClass ? ' '.$strClass : '');
+
+    $id = ($confOptions['id'] ? $confOptions['id'] : $strName);
     
     $strAttrib = $confOptions["strAttrib"];
 
@@ -2102,8 +2108,7 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
             : ''
         );
 
-        $retVal .= "<select id=\"".$strName."\" name=\"".$strName."\"".$strAttrib.
-            ($strClass ? ' class="'.$strClass.'"' : "").
+        $retVal .= "<select id=\"{$id}\" class=\"$strClassInput\" name=\"".$strName."\"".$strAttrib.
             ($confOptions["required"] ? " required=\"required\"" : "").">\r\n";
         
         $retVal .= (!$confOptions['defaultTextPosition'] ? $optDefaultText : '');
@@ -2138,14 +2143,14 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
         }
         $valToShow=($valToShow!="" ? $valToShow : $confOptions["defaultText"]);
         
-        $retVal = "<div id=\"span_{$strName}\""
+        $retVal = "<div id=\"span_{$id}\""
             .($strClass ? ' class="'.$strClass.'"' : "")
             .'>'
             .($confOptions['href'] ? "<a href=\"{$confOptions['href']}\"".($confOptions["target"] ? " target=\"{$confOptions["target"]}\"" : '').">" : '')
             .htmlspecialchars($valToShow)
             .($confOptions['href'] ? '</a>' : '')
             ."</div>\r\n".
-        "<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\"".
+        "<input type=\"hidden\" name=\"{$strName}\" id=\"{$id}\" class=\"eif-input\"".
         " value=\"".htmlspecialchars($textToShow)."\" />\r\n";
         
     
@@ -2168,6 +2173,7 @@ function showCheckBox($strName, $strValue, $arrConfig=Array()){
     $flagWrite = $this->isEditable($arrConfig["FlagWrite"]) ;
     
     $strClass = $this->handleClass($arrConfig);
+    $strClassInput = 'eif-input'.($strClass ? ' '.$strClass : '');
 
     $id = ( $arrConfig['id'] ? $arrConfig['id'] : $strName );
 
@@ -2176,12 +2182,11 @@ function showCheckBox($strName, $strValue, $arrConfig=Array()){
     $showValueAttr = ( preg_match('/\[\]$/', $strName) || $arrConfig['showValueAttr'] || $arrConfig['value'] );
     
     $strAttrib = $arrConfig["strAttrib"];
-    $retVal = "<input name=\"{$strName}\" id=\"{$id}\" type=\"checkbox\"".
+    $retVal = "<input name=\"{$strName}\" id=\"{$id}\" class=\"{$strClassInput}\" type=\"checkbox\"".
     ( ( $strValue && !$showValueAttr ) || $arrConfig['checked'] 
         ? " checked=\"checked\" " 
         : "").
     ($showValueAttr ? ' value="'.htmlspecialchars($strValue).'"' : "").
-    ($strClass ? " class=\"{$strClass}\" " : "").
     (!$flagWrite ? " readonly=\"readonly\"" : "").
     ($strAttrib!="" ? $strAttrib : " style='width:auto;'" ).">";
 
@@ -2203,13 +2208,13 @@ function showRadio($strName, $strValue, $arrConfig=Array()){
     $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
     
     $strClass = $this->handleClass($arrConfig);
+    $strClassInput = 'eif-input'.($strClass ? ' '.$strClass : '');
 
     $id = ( $arrConfig['id'] ? $arrConfig['id'] : $strName );
     
     $strAttrib = $arrConfig["strAttrib"];
-    $retVal = "<input name=\"{$strName}\" id=\"{$id}\" type=\"radio\" value=\"".htmlspecialchars($strValue)."\"".
+    $retVal = "<input name=\"{$strName}\" id=\"{$id}\" type=\"radio\" class=\"$strClassInput\" value=\"".htmlspecialchars($strValue)."\"".
     ($arrConfig['checked'] ? " checked=\"checked\" " : "").
-    ($strClass ? " class=\"{$strClass}\" " : "").
     (!$flagWrite ? " readonly=\"readonly\"" : "").
     ($strAttrib!="" ? $strAttrib : " style='width:auto;'" ).">";
 
@@ -2240,7 +2245,7 @@ function showRadioByArray($strRadioName, $strValue, $arrConfig){
     $arrData = $arrConfig["arrOptions"];
     foreach($arrData as $value =>  $text){
         $inpID = $strRadioName."_".$value;
-        $retVal .= "<input type=\"radio\" name=\"{$strRadioName}\" value=\"".htmlspecialchars($value)."\"";
+        $retVal .= "<input type=\"radio\" name=\"{$strRadioName}\" class=\"eif-input\" value=\"".htmlspecialchars($value)."\"";
         if ($strValue!="" && $value===$strValue)
             $retVal .= " checked";
         else if ($strValue=="" && $value==$arrConfig["strDefaultChecked"])
@@ -2296,7 +2301,7 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
     }
     
     $strOut = "";
-    $strOut .= "<input type=\"hidden\" name=\"$strFieldName\" id=\"$strFieldName\" value=\"".htmlspecialchars($strValue)."\">\r\n";
+    $strOut .= "<input type=\"hidden\" name=\"$strFieldName\" class=\"eif-input\" id=\"$strFieldName\" value=\"".htmlspecialchars($strValue)."\">\r\n";
 
     $attr = (preg_match('/\['.preg_quote($strFieldName, '/').'\]/', $arrConfig['href']) 
                 ? 'data-href="'.htmlspecialchars($arrConfig['href']).'" '

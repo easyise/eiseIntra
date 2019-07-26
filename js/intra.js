@@ -510,7 +510,7 @@ var getInput = function(strFieldName){
 
 var getAllInputs = function($form){
 
-    return $form.find('.eiseIntraField input,.eiseIntraField select,.eiseIntraField textarea');
+    return $form.find('.eif-input, .eiseIntraField input,.eiseIntraField select,.eiseIntraField textarea');
 
 }
 
@@ -523,6 +523,7 @@ var getInputType = function($inp){
             if (item.match(/^eiseIntra_/)) {
                 switch(item){
                     case 'eiseIntra_date':
+                    case 'eiseIntra_time':
                     case 'eiseIntra_datetime':
                     case 'eiseIntra_money':
                     case 'eiseIntra_real':
@@ -814,7 +815,7 @@ validate: function( options ) {
     var canSubmit = true,
         conf = $.extend( $(this).data('eiseIntraForm').conf, options ),
         $this = $(this);
-    
+
     getAllInputs($this).each(function() {
 
         var strValue = $(this).val()
@@ -861,7 +862,7 @@ validate: function( options ) {
                 }
             case 'time':
             case 'datetime':
-                
+
                 strRegExDateToUse = (strRegExDateToUse!='' ? strRegExDateToUse : conf.strRegExDate);
 
                 var strRegEx = "^"+(strType.match(/date/) ? strRegExDateToUse : "")+
@@ -1369,6 +1370,7 @@ addField: function( field ){
     switch(type){
         case 'textarea':
             element = $('<textarea>');
+            element.addClass('eif-input');
             break;
         case 'combobox':
         case 'select':
@@ -1388,18 +1390,23 @@ addField: function( field ){
             break;
         case 'password':
             element = $('<input type="password">');
+            element.addClass('eif-input');
             break;
         case 'file':
             element = $('<input type="file">');
+            element.addClass('eif-input');
             break;
         case 'checkbox':
             element = $('<input type="checkbox">');
+            element.addClass('eif-input');
             break;
         case 'radio':
             element = $('<input type="radio">');
+            element.addClass('eif-input');
             break;
         case 'hidden':
             element = $('<input type="hidden">');
+            element.addClass('eif-input');
             break;
         case 'hr':
             element = $('<hr>');
@@ -1409,6 +1416,7 @@ addField: function( field ){
             break;
         default:
             element = $('<input type="text">');
+            element.addClass('eif-input');
             if(field.type!='text'){
                 element.addClass('eiseIntra_'+field.type);
             }
@@ -1446,7 +1454,7 @@ addField: function( field ){
                 .append( $('<label>'+field.title+'</label>').prepend(element).addClass('eiseIntraValue') )
             : $('<div><label>'+field.title+':</label></div>').append(
                 (field.type=='ajax_dropdown'
-                    ? $('<input type="hidden" name="'+field.name+'">').val(field.value)
+                    ? $('<input type="hidden" name="'+field.name+'">').addClass('eif-input').val(field.value)
                     :  null)
                 ).append(element.addClass('eiseIntraValue'))
             ).addClass('eiseIntraField');
