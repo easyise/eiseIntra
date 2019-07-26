@@ -480,9 +480,9 @@ function datePHP2SQL($dtVar, $valueIfEmpty="NULL"){
         preg_match("/^".$this->conf["prgDate"]."$/", $dtVar) 
         ? "'".preg_replace("/".$this->conf["prgDate"]."/", $this->conf["prgDateReplaceTo"], $dtVar)."'" 
         : (
-            preg_match('/^[12][0-9]{3}\-[0-9]{2}-[0-9]{2}([ T][0-9]{1,2}\:[0-9]{2}(\:[0-9]{2}){0,1}){0,1}$/', $dtVar)
+            preg_match('/^[12][0-9]{3}\-[0-9]{2}\-[0-9]{2}([ T][0-9]{1,2}\:[0-9]{2}(\:[0-9]{2}){0,1}){0,1}$/', $dtVar, $m)
             ? "'".$dtVar."'"
-            : $valueIfEmpty 
+            : $valueIfEmpty
         )
         );
     return $result;
