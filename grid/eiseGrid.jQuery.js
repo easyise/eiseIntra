@@ -981,7 +981,7 @@ eiseGrid.prototype.deleteSelectedRows = function(event, callback){
     var allowDelete = true;
 
     if(typeof grid.beforeDeleteCallback === 'function'){
-        if(!grid.beforeDeleteCallback (event))
+        if(!grid.beforeDeleteCallback.call (this, event))
             return false;
     }
 
@@ -998,7 +998,7 @@ eiseGrid.prototype.deleteSelectedRows = function(event, callback){
     });
 
     if(typeof grid.afterDeleteCallback === 'function'){
-        grid.afterDeleteCallback (event);
+        grid.afterDeleteCallback.call (this, event);
     }
 }
 
