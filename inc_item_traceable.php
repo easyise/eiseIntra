@@ -582,10 +582,10 @@ public function updateUnfinishedActions($nd = null){
         if ($rwACL["aclActionPhase"]>=2)
             continue;
 
-        $aToUpdate = array();
+        $aToUpdate = (array)@json_decode($rwACL['aclItemTraced'], true);
 
         $rwACT = $this->conf['ACT'][$rwACL['aclActionID']];
-        
+
         foreach((array)$rwACT['aatFlagToTrack'] as $atrID=>$flags){
             $nd_key = $atrID.'_'.$rwACL['aclGUID'];
             if(isset($nd[$nd_key])){
