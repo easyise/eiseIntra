@@ -683,10 +683,6 @@ init: function( options ) {
             
         });
 
-        $this.find('input[type="submit"]').each(function(){
-            $(this).addClass('eiseIntraSubmit');
-        });
-    
         $this.find('input.eiseIntra_date, input.eiseIntra_datetime').each(function() {
             $(this).attr('autocomplete', 'off');
             $(this).datepicker({
@@ -1285,7 +1281,7 @@ createDialog: function( conf ){
     var btnCloseTitle = (conf.flagUnsubmittable ? 'Close' : 'Cancel');
 
     $frm.append('<div class="eif_actionButtons">'
-        +(conf.flagUnsubmittable ? '' : '<input type="submit" value="OK" class="eiseIntraSubmit">')
+        +(conf.flagUnsubmittable ? '' : '<input type="submit" value="OK">')
         +'<input type="button" value="'+btnCloseTitle+'" class="eif_btnClose">'
         +'</div>');
 
