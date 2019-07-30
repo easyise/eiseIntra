@@ -660,7 +660,13 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
     if(!in_array($arrFields['delField'], $fields))
         unset($arrFields['delField']);
     
-    $sql = "SELECT `".$arrFields["textField{$this->local}"]."` as optText, `{$arrFields["idField"]}` as optValue
+    $sql = "SELECT ".($this->local
+            ? "(CASE WHEN IFNULL(`".$arrFields["textField{$this->local}"]."`, '')='' 
+                THEN `".$arrFields["textField"]."` 
+                ELSE `".$arrFields["textField{$this->local}"]."`
+                END)"
+            : "`".$arrFields["textField"]."`"
+            )." as optText, `{$arrFields["idField"]}` as optValue
         FROM `{$strTable}`";
     
     if ($strValue!=""){ // key-based search
