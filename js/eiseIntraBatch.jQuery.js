@@ -42,6 +42,8 @@ init: function(arg){
         conf.url = arg;
         if($('body')[0].dataset['conf'] && ($.parseJSON($('body')[0].dataset['conf']).flagBatchNoAutoclose) ){
             $.extend(conf, confSimple);
+        } else {
+            $.extend(conf,arguments[1] || {}); 
         }
     } else if( typeof arg==='object' ){
         $.extend(conf,arg); 
