@@ -1713,8 +1713,7 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
                     if(!$ds){
                         if(!$conf['source'])
                             throw new Exception("Source for column {$name} not specified.", 1);
-                            
-                        @eval('$ds = '.$conf['source']);
+                        @eval('$ds = '.$conf['source'].';');
                         if(!$ds){
                             if(!preg_match('/^select\s+/i', $conf['source'])){
                                 $aDS = explode('|', $conf['source']);
@@ -1823,12 +1822,16 @@ public function fieldset($legend=null, $fields='', $conf = array()){
     if($conf['subtitle'])
         $conf['class'] = 'has-subtitle '.$conf['class'];
 
+    if(trim($legend)==='')
+        $legend = null;
+
     return '<fieldset'
         .($conf['id']!='' ? ' id="'.htmlspecialchars($conf['id']).'"' : '')
-        .($conf['class']!='' ? ' class="'.htmlspecialchars($conf['class']).'"' : '')
+        .($conf['class']!='' || $legend===null ? ' class="'.htmlspecialchars($conf['class'])
+            .($legend===null ? ' no-legend' : '').'"' : '')
         .($conf['attr']!='' ? ' '.$conf['attr'] : '')
         .'>'
-        .($legend 
+        .($legend!==null 
             ? "\r\n".'<legend'.($conf['attr_legend']!='' ? ' '.$conf['attr_legend'] : '').'>'.$legend
                 .($conf['subtitle'] ? '<small>'.$conf['subtitle']."</small>\n" : '')
                 .'</legend>'."\n"
@@ -1859,6 +1862,7 @@ public function form($action, $dataAction, $fields, $method='POST', $conf=array(
     return '<form action="'.htmlspecialchars($action).'"'
         .' method="'.htmlspecialchars($method).'"'
         .($conf['id']!='' ? ' id="'.htmlspecialchars($conf['id']).'"' : '')
+        .($conf['target']!='' ? ' target="'.htmlspecialchars($conf['target']).'"' : '')
         .' class="eiseIntraForm eif-form'.($conf['class']!='' ? ' '.$conf['class'] : '').'"'
         .($conf['attr']!='' ? ' '.$conf['attr'] : '')
         .'>'."\r\n"
@@ -2313,6 +2317,7 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
             , array_merge(
                 $arrConfig 
                 , Array("strAttrib" => $attr
+                    , 'id' => $strFieldName."_text"
                     , 'type'=>"ajax_dropdown")
                 )
             );
@@ -2427,8 +2432,12 @@ function loadCSS(){
     
     $cachePreventor = $this->getCachePreventor();
     
-    foreach($arrCSS as $cssHref){
-        echo "<link rel=\"STYLESHEET\" type=\"text/css\" href=\"{$cssHref}?{$cachePreventor}\" media=\"screen\">\r\n";
+    foreach($arrCSS as $css){
+        if(is_array($css)){
+            echo "<link rel=\"STYLESHEET\" type=\"text/css\" href=\"{$css['file']}?{$cachePreventor}\" media=\"{css['media']}\">\r\n";
+        } else {
+            echo "<link rel=\"STYLESHEET\" type=\"text/css\" href=\"{$css}?{$cachePreventor}\" media=\"screen\">\r\n";
+        }
     }
 
 }
@@ -2515,6 +2524,9 @@ function dataAction($dataAction, $funcOrObj=null){
     }
 
 }
+function cancelDataAction(&$nd){
+    unset($_POST[$this->conf['dataActionKey']]);
+}
 
 /**
  * Data read hook function. If $query['DataAction'] array member fits contents of $dataReadValues parameter that can be array or string, 
@@ -2574,6 +2586,9 @@ function dataRead($dataReadValues, $function=null, $arrParam = array()){
             
     }
 
+}
+function cancelDataRead(){
+    unset($_POST[$this->conf['dataReadKey']]);
 }
 
 function getDateTimeByOperationTime($operationDate, $time){
