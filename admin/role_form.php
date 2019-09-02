@@ -98,7 +98,7 @@ switch($DataAction){
                     , 0 AS pgrFlagUpdate
                     , 0 AS pgrFlagDelete
                     FROM stbl_page";
-                    
+                /*    
                 $sql[] = "INSERT INTO stbl_role_action (
                         rlaRoleID
                         , rlaActionID
@@ -106,6 +106,7 @@ switch($DataAction){
                         ".$oSQL->escape_string($_POST["rolID"][$i])." AS rlaRoleID
                         , actID AS rlaActionID
                         FROM stbl_action";       
+                */
             }
         }
                 

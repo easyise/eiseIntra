@@ -535,7 +535,9 @@ class eiseSQL extends mysqli{
                 $rwCol["DataType"] = "boolean";
             
             if (preg_match("/char/i", $rwCol["Type"])
-               || preg_match("/text/i", $rwCol["Type"]))
+               || preg_match("/text/i", $rwCol["Type"])
+               || preg_match("/enum/i", $rwCol["Type"])
+               )
                 $rwCol["DataType"] = "text";
             
             if (preg_match("/binary/i", $rwCol["Type"])
@@ -611,10 +613,12 @@ class eiseSQL extends mysqli{
             }
         }
         
-        $arrColsIX = Array();
+        $arrColsIX = array();
+        $arrColsDict = array();
         $colTypes = array();
         foreach($arrCols as $ix => $col){ 
             $arrColsIX[$col["Field"]] = $col["Field"]; 
+            $arrColsDict[$col["Field"]] = $col;
             if( $col["DataType"]!='activity_stamp' )
                 $colTypes[$col["Field"]] =  $col["DataType"];
         }
@@ -638,6 +642,7 @@ class eiseSQL extends mysqli{
         $arrTable['table'] = $tblName;
         $arrTable['name'] = preg_replace('/^tbl_/', '', $tblName);
         $arrTable['columns_index'] = $arrColsIX;
+        $arrTable['columns_dict'] = $arrColsDict;
         $arrTable['columns_types'] = $colTypes;
         
         $arrTable["PKVars"] = $strPKVars;

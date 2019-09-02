@@ -84,21 +84,7 @@ if ($arrConfig["extraFieldset"]!=""){
 $(document).ready(function(){ 
     $('.eiseIntraForm').
         eiseIntraForm().
-        eiseIntraEntityItemForm({flagUpdateMultiple: false}).
-        submit(function(event) {
-            var $form = $(this);
-            $form.eiseIntraEntityItemForm("checkAction", function(){
-                if ($form.eiseIntraForm("validate")){
-                    window.setTimeout(function(){$form.find('input[type="submit"], input[type="button"]').each(function(){this.disabled = true;})}, 1);
-                    $form[0].submit();
-                } else {
-                    $form.eiseIntraEntityItemForm("reset");
-                }
-            })
-        
-            return false;
-        
-        });
+        eiseIntraEntityItemForm({flagUpdateMultiple: false});
 });
 </script>
 <?php

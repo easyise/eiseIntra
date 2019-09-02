@@ -615,7 +615,6 @@ CREATE TABLE `stbl_user` (
   PRIMARY KEY (`usrID`),
   KEY `IX_Auth` (`usrID`,`usrPass`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='User authentication table';
-('admin', 'Admin', 'Администратор', 'DB', 'fc36d155acdc86b93cfb4c93dc35fbe5', 0, '', '', NULL, 0, 'admin', '2018-11-13 22:10:31', 'admin', '2018-11-13 22:10:31');
 SET FOREIGN_KEY_CHECKS=1;
 
 SET FOREIGN_KEY_CHECKS=0;

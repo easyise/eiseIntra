@@ -124,7 +124,7 @@ switch($DataAction){
         die();
         
     case 'delete':
-    
+
         $oSQL->q('START TRANSACTION');
         $sqlDel = "DELETE FROM `stbl_attribute` WHERE `atrID` = ".$oSQL->e($atrID)." AND `atrEntityID` = ".$oSQL->e($atrEntityID)."";
         $oSQL->q($sqlDel);
@@ -152,7 +152,7 @@ $arrActions[]= Array ('title' => $intra->translate('Back to %s', $rwATR['entTitl
 include eiseIntraAbsolutePath.'inc_top.php';
 ?>
 
-<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" class="eiseIntraForm" id="frmAtr">
+<form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" class="eiseIntraForm eif-form" id="frmAtr">
 <input type="hidden" name="atrID" value="<?php  echo htmlspecialchars($atrID) ; ?>">
 <input type="hidden" name="atrEntityID" value="<?php  echo htmlspecialchars($atrEntityID) ; ?>">
 <input type="hidden" name="DataAction" value="update">

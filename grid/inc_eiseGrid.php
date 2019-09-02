@@ -23,8 +23,9 @@ static $defaultWidthsByType = array(
         , 'real' => '80px'
         , 'money' => '80px'
 
-        , 'date' => '80px'
+        , 'date' => '90px'
         , 'datetime' => '120px'
+        , 'time' => '40px'
 
         , 'boolean' => '30px'
         , 'checkbox' => '30px'
@@ -110,8 +111,14 @@ function __construct($oSQL
     $this->oSQL = $oSQL;
 
     $this->conf = array_merge(self::$defaultConf, $arrConfig);
+
     $this->name = $strName;
-    $this->permissions = $this->conf["arrPermissions"];
+    $this->permissions = (isset($arrConfig["arrPermissions"]) 
+        ? $arrConfig["arrPermissions"]
+        : ( isset($intra->arrUsrData['FlagWrite'])
+            ? array('FlagWrite'=>$intra->arrUsrData['FlagWrite'])
+            : self::$defaultConf['arrPermissions']) 
+        );
     $this->intra = ($this->conf['intra'] ? $this->conf['intra'] : $intra);
     if($this->conf['intra'])
         unset($this->conf['intra']);
@@ -403,7 +410,11 @@ function get_html($allowEdit=true){
                 } else {
                     $ds = @json_decode($fld['source'], true);
                     if(!$ds){
-                        @eval('$ds = '.$fld['source']);
+                        
+                        try {
+                            @eval('$ds = '.$fld['source'].';');
+                        } catch (ParseError $e) {}
+                        
                         if(!$ds){
                             if(!preg_match('/^select\s+/i', $fld['source'])){
                                 $aDS = explode('|', $fld['source']);
@@ -693,7 +704,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     if ((int)$cell['disabled'])
         $cell['class'] .= " eg_disabled";
     
-    $class = "eg-".$col['type'].($cell['class'] != "" ? " ".$cell['class'] : '');
+    $class = "eg-".($col['type']!=='button' ? $col['type'] : 'input-button').($cell['class'] != "" ? " ".$cell['class'] : '');
     
     $strCell = "";
     $strCell .= "\t<td class=\"{$this->name}-{$ixCol} {$class}\"".
@@ -742,6 +753,10 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                     $_val = $this->DateSQL2PHP( $_val
                         , ($col['format'] ? $col['format'] : ($this->conf['dateFormat']." ".$this->conf['timeFormat'])) );
                     break;
+                case "time":
+                    $_val = $this->DateSQL2PHP( $_val
+                        , ($col['format'] ? $col['format'] : $this->conf['timeFormat']) );
+                    break;
                 case "order":
                     $_val = ($ixRow+1);
                     break;
@@ -768,13 +783,16 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                 case "order":
                     $_val = ($ixRow+1);
                     break;
+                case "button":
+                    $_val = $col['default'];
+                    break;
                 default:
                     break;
             }
         }
         
         //if cell is disabled, static, or there's a HREF, we make hidden input and text value
-        if ((int)$cell['static'] || (int)$cell['disabled'] || $cell['href']!=""){
+        if ((int)$cell['static'] || (int)$cell['disabled'] || ($cell['href']!='' && $_val!==null)){
             
             $aopen = "";$aclose = "";
             if ($cell['href']!=""){
@@ -784,8 +802,12 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                 $aclose = "</a>";
             }
             
-            $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val)."\">";
+            $strCell .= ($col['type']!='button' 
+                ? "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val)."\">"
+                : '');
             switch($col['type']){
+                case 'button':
+                    break;
                 case "boolean":
                 case "checkbox":
                     $strCell .= "<input{$classAttr} type=\"checkbox\" name=\"{$_checkfield}[]\"".($_val==true ? " checked" : "")." disabled>";
@@ -809,6 +831,9 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
             
             $noAutoComplete = false;
             switch($col['type']){
+                case 'button':
+                    $strCell .= "<button name=\"{$_field}[]\">".htmlspecialchars($_val).'</button>';
+                    break;
                 case "order":
                     $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val).
                         "\"><div{$classAttr}><span>".htmlspecialchars($_val)."</span>.</div>";
@@ -1000,148 +1025,104 @@ $result = preg_replace("/( 00\:00(\:00){0,1})/", "", $result);
 return($result);
 }
 
-function datePHP2SQL($dtVar, $valueIfEmpty="NULL"){
-// потом сделаю
-}
+function Update($newData = null, $conf = array()){
 
-
-function Update($arrNewData = array(), $conf = array()){
-    
-    GLOBAL $usrID;
-
+    GLOBAL $usrID, $intra;
+    $oSQL = $this->oSQL;
     $defaultConf = array('flagOnDuplicateKeyUpdate'=>false);
-
     $conf = array_merge($defaultConf, $conf);
+    $row_id = $this->getPK();
 
-    if (count($arrNewData)==0){
-        $arrNewData = $_POST;        
+//    $oSQL->startProfiling();
+
+    if (!$newData) {
+        $newData = $_POST;
+        $flagPOST = True;
     }
 
-    $sql = Array();
-    
-    $oSQL=$this->oSQL;
-    $tblName = $this->conf['strTable'];
-    
-    $arrTable = $this->getTableInfo($oSQL->dbname, $tblName);
-    
-    $arrFields = Array();
-    $arrValues = Array();
-    $arrFieldsValues = Array();
-    
-    switch($arrTable['PKtype']){
-       case "auto_increment":
-          break;
-       case "GUID":
-          $arrFields[] = $arrTable['PK'][0];
-          $arrValues[] = "UUID()";
-          break;
-       default:
-          break;
-    }
-    
-    //defining PK field on grid
-    foreach($this->Columns as $i=>$col){
-        if ($this->Columns[$i]['type']=="row_id") 
-            $pkColName = $this->Columns[$i]['field'];
-        
-        if ($col['mandatory'] && !$mndFieldName)
-            $mndFieldName = $col["field"];
-        
-        foreach($arrTable["columns"] as $j=>$tCol) 
-            if ((!$col['disabled'] || ($col['disabled'] && in_array($col['field'], $arrTable['PK'])))
-                && !($col['type']=="row_id" && !$conf['flagOnDuplicateKeyUpdate'])
-                && $col['field'] == $arrTable["columns"][$j]["Field"]
-                ){
-                $arrFields[] = $col['field'];
-                $arrTable["columns"][$j]['DataType'] = ($col['type']=="combobox" || $col['type']=="ajax_dropdown" 
-                    ? "combobox" 
-                    : $arrTable["columns"][$j]['DataType']);
-                $arrValues[] = $this->getSQLValue($arrTable["columns"][$j], true);
-                if($col['type']!="row_id")
-                    $arrFieldsValues[] = $col['field'] ." = ".$this->getSQLValue($arrTable["columns"][$j], true);
-            }
-    }
-    
-    if (!$mndFieldName)
-        $mndFieldName = $pkColName;
-    
+    $arrTable = $oSQL->getTableInfo($this->conf['strTable']);
+    $extraFieldsIns = array();
+    $extraFieldsUpd = array();
     if ($arrTable['hasActivityStamp']){
-        $arrFields[] = $arrTable['prefix']."InsertBy";
-        $arrFields[] = $arrTable['prefix']."InsertDate";
-        $arrFields[] = $arrTable['prefix']."EditBy";
-        $arrFields[] = $arrTable['prefix']."EditDate";
-        $arrValues[] = "'\$usrID'";
-        $arrValues[] = "NOW()";
-        $arrValues[] = "'\$usrID'";
-        $arrValues[] = "NOW()";
-        $arrFieldsValues[] = $arrTable['prefix']."EditBy = '\$usrID'";
-        $arrFieldsValues[] = $arrTable['prefix']."EditDate = NOW()";
+        $extraFieldsIns[$arrTable['prefix']."InsertBy"] = $oSQL->e($intra->usrID);
+        $extraFieldsIns[$arrTable['prefix']."InsertDate"] = 'NOW()';
+        $extraFieldsUpd[$arrTable['prefix']."EditBy"] = $oSQL->e($intra->usrID);
+        $extraFieldsUpd[$arrTable['prefix']."EditDate"] = 'NOW()';
     }
-    
-    //deleted items
-    $strDeleted = $arrNewData["inp_".$this->name."_deleted"];
-    //echo $strDeleted;
-    $arrToDelete = explode("|", $strDeleted);
-    
-    for ($i=0;$i<count($arrToDelete);$i++)
-        if ($arrToDelete[$i]!="") {
-            $sql[] = "DELETE FROM $tblName WHERE ".$this->getMultiPKCondition($arrTable['PK'], $arrToDelete[$i]);
+
+    if( $arrTable['PKtype']=='GUID' && !isset( $arrNewData[$arrTable['PK'][0]]) )
+        $extraFieldsIns[$arrTable['PK'][0]] = 'UUID()';
+
+    foreach (explode("|", $newData["inp_".$this->name."_deleted"]) as $idToDelete)
+        if ($idToDelete!="") {
+            $oSQL->q("DELETE FROM {$this->conf['strTable']} WHERE ".$this->getMultiPKCondition($arrTable['PK'], $idToDelete));
         }
-    
-    // running thru updated
-    for($i=1;$i<count($arrNewData[$pkColName]);$i++)
-        if ($arrNewData["inp_".$this->name."_updated"][$i] && $arrNewData[$mndFieldName][$i]!=""){
 
-            eval ("\$sqlIns = \"INSERT INTO $tblName (\r\n".
-                     "              ".implode("\r\n              , ", $arrFields)."\r\n".
-                     "           ) VALUES (\r\n".
-                     "              ".implode("\r\n              , ", $arrValues)."
-                  )".($conf['flagOnDuplicateKeyUpdate']
-                      ? "\r\nON DUPLICATE KEY UPDATE\r\n".implode("\r\n                  , ", $arrFieldsValues)
-                      : '')
-                  ."\";");
+    $newData_transposed = $this->json($newData, array('flagDontEncode'=>True));
 
-            eval ("\$sqlUpd = \"UPDATE $tblName SET
-                  ".implode("\r\n                  , ", $arrFieldsValues)."\r\n".
-                  "           WHERE ".$this->getMultiPKCondition($arrTable['PK'], $arrNewData[$pkColName][$i])."\";");
+    foreach ($newData_transposed as $ix => $row) {
 
-            if ($arrNewData[$pkColName][$i]=="" || $conf['flagOnDuplicateKeyUpdate']) { //if inserted
-                $sql[] = $sqlIns;
-            } else { //if updated
-                $sql[] = $sqlUpd;
+        if($flagPOST && !$newData["inp_{$this->name}_updated"][$ix+1]){
+            continue;
+        }
+
+        $sqlWhere = $this->getMultiPKCondition($arrTable['PK'], $row[$row_id]);
+
+        if($row[$row_id]){
+            $sqlExists = "SELECT COUNT(*) FROM {$this->conf['strTable']} WHERE {$sqlWhere}";
+            if($oSQL->d($sqlExists)>0)
+                $toDo = "update";
+            else 
+                $toDo = "insert";
+        } else {
+            $toDo = "insert";
+        }
+
+        // unset non-present values
+        foreach ($row as $field => $value) {
+            if(!isset($arrTable['columns_index'][$field]) || !isset($arrTable['columns_types'][$field]))
+                unset($row[$field]);
+        }
+        // get basic sql
+        $sqlFields_base = ltrim($intra->getSQLFields($arrTable, $row), "\n, ");
+
+        if($toDo == 'insert'){
+            $sql =  "INSERT INTO {$this->conf['strTable']} SET {$sqlFields_base}";
+            foreach (array_merge($extraFieldsIns, $extraFieldsUpd) as $field => $value) {
+                if(!isset($arrTable['columns_index'][$field]))
+                    continue;
+                $sql .= "\n, {$field}={$value}";
             }
+        } else {
+            $sql =  "UPDATE {$this->conf['strTable']} SET {$sqlFields_base}";
+            foreach ($extraFieldsUpd as $field => $value) {
+                if(!isset($arrTable['columns_index'][$field]))
+                    continue;
+                $sql .= "\n, {$field}={$value}";
+            }
+            $sql .= "\nWHERE {$sqlWhere}";
         }
-    
-    for ($i=0;$i<count($sql);$i++){
-        $oSQL->do_query($sql[$i]);
+
+        $oSQL->q($sql);
+
     }
-    
-    return true;
+
+//    $oSQL->showProfileInfo();
+//    die('<pre>'.var_export($arrTable, true));
+
 }
 
-function json($newData = null){
+function json( $newData = null, $conf = array() ){
 
     GLOBAL $intra;
+
+    $defaultConf = array('flagDontEncode'=>false);
+    $conf = array_merge($defaultConf, $conf);
 
     if(!$newData)
         $newData = $_POST;
 
-    foreach($this->Columns as $i=>$col){
-        if ($this->Columns[$i]['type']=="row_id") {
-            $pkColName = $this->Columns[$i]['field'];
-            break;
-        }
-    }
-
-    if(!$pkColName){
-        foreach($this->Columns as $i=>$col){
-            if ($this->Columns[$i]['type']=="order") {
-                $ordColName = $this->Columns[$i]['field'];
-                break;
-            }
-        }
-        $pkColName = $ordColName;
-    }
+    $pkColName = $this->getPK();
 
     $aRet = array();
 
@@ -1167,6 +1148,11 @@ function json($newData = null){
                 case "money":
                     $val = $intra->oSQL->unq($intra->decPHP2SQL($newData[$col['field']][$i]));
                     break;
+                case 'combobox':
+                case 'select':
+                case 'ajax_dropdown':
+                    $val = ($newData[$col['field']][$i]!=='' ? $newData[$col['field']][$i] : null);
+                    break;
                 default: 
                     $val = $newData[$col['field']][$i];
                     break;
@@ -1178,61 +1164,32 @@ function json($newData = null){
 
     }
 
-    return json_encode($aRet);
+    return ( $conf['flagDontEncode'] ? $aRet : json_encode($aRet) );
 }
 
-function getSQLValue($col){
-    $strValue = "";
-    
-    $strPost = "\$_POST['".$col["Field"]."'][\$i]";
-    
-    switch($col["DataType"]){
-      case "integer":
-        $strValue = "\".(integer)$strPost.\"";
-        break;
-      case "order":
-        $strValue = "'\".($strPost=='' ? \$i : $strPost).\"'";
-        break;
-      case "real":
-      case "numeric":
-      case "number":
-      case "money":
-        $strValue = "\".(double)str_replace('{$this->conf['decimalSeparator']}', '.', str_replace('{$this->conf['thousandsSeparator']}', '', $strPost)).\"";
-        break;
-      case "boolean":
-      case "checkbox":
-        $strValue = "\".(integer)\$_POST['".$col["Field"]."'][\$i].\"";
-        break;      
-      case "binary":
-        $strValue = "\".mysql_real_escape_string(\$".$col["Field"].").\"";
-        break;
-      case "datetime":
-      case "date":
-        $strValue = "\".DatePHP2SQL($strPost).\"";
-        break;
-      case "activity_stamp":
-        if (preg_match("/By$/i", $col["Field"]))
-           $strValue .= "'\$usrID'";
-        if (preg_match("/Date$/i", $col["Field"]))
-           $strValue .= "NOW()";
-        break;
-      case "FK":
-      case "combobox":
-      case "ajax_dropdown":
-       $strValue = "\".($strPost!=\"\" ? \"'\".$strPost.\"'\" : \"NULL\").\"";
-        break;
-      case "PK":
-      case "text":
-      case "varchar":
-      default:
-        $strValue = "\".\$oSQL->e($strPost).\"";
-        break;
+/**
+ * This function returns row_id column name
+ */
+function getPK(){
+
+    foreach($this->Columns as $i=>$col){
+        if ($this->Columns[$i]['type']=="row_id") {
+            $pkColName = $this->Columns[$i]['field'];
+            break;
+        }
     }
-    //echo "<pre>";
-    //echo $strValue;
-    //print_r($col);
-    
-    return $strValue;
+
+    if(!$pkColName){
+        foreach($this->Columns as $i=>$col){
+            if ($this->Columns[$i]['type']=="order") {
+                $ordColName = $this->Columns[$i]['field'];
+                break;
+            }
+        }
+        $pkColName = $ordColName;
+    }
+
+    return $pkColName;
 }
 
 private function getMultiPKCondition($arrPK, $strValue){
@@ -1253,20 +1210,6 @@ private function getMultiPKCondition($arrPK, $strValue){
     return $sql_;
     
 }
-
-private function getTableInfo($dbName, $tableName){
-    GLOBAL $intra;
-    
-    if (is_object($intra))
-        return $intra->getTableInfo($dbName, $tableName);
-    else 
-        if (function_exists('getTableInfo')){
-            return getTableInfo($dbName, $tableName);
-        }
-        
-        throw new Exception('Unable to retrieve table information using "getTableInfo()" function');
-}
-
 
 private static function confVariations($conf, $variations){
 

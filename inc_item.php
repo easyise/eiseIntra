@@ -64,6 +64,7 @@ public function __construct($id = null,  $conf = array() ){
 
 	$this->table = $this->oSQL->getTableInfo($this->conf['table']);
 	$this->conf['prefix'] = ( isset($conf['prefix']) ? $conf['prefix'] : $this->table['prefix'] );
+	$this->conf['PK'] = implode('', $this->table['PK']);
 
 	$this->id = ( $id===null ? $this->getIDFromQueryString() : $id);
 
@@ -193,7 +194,9 @@ public function form( $fields = null, $conf = array() ){
 
 	$conf = array_merge( array('id'=>$this->table['prefix'], 'flagAddJavaScript'=>True), $conf);
 
-	return $this->intra->form($this->conf['form'], 'update', $fields, 'POST', $conf);
+	return $this->intra->form(($conf['action'] ? $conf['action'] : $this->conf['form'])
+		, ($conf['DataAction'] ? $conf['DataAction'] : 'update')
+		, $fields, 'POST', $conf);
 
 }
 
@@ -274,7 +277,7 @@ public function update($newData){
 	$intra = $this->intra;
 
 	$this->redirectTo = $this->conf['form'].'?'.$this->getURI();
-	$this->msgToUser = $intra->translate('%s is updated', $this->conf['title'.$intra->local]);
+	$this->msgToUser = $intra->translate('"%s" is updated', $this->conf['title'.$intra->local]);
 
 }
 
@@ -289,13 +292,22 @@ public function delete(){
 	$this->oSQL->q($sql);
 
 	$this->redirectTo = $this->conf['list'];
-	$this->msgToUser = $intra->translate('%s is deleted', $this->conf['title'.$intra->local]);
+	$this->msgToUser = $intra->translate('"%s" is deleted', $this->conf['title'.$intra->local]);
+}
+
+/**
+ * This function prevents recursive hooks when object instances are created within existing hook
+ */
+public function preventRecursiveHooks(&$nd = array()){
+	$this->intra->cancelDataAction($nd);
+	$this->intra->cancelDataRead($nd);
+	unset($nd[$this->conf['PK']]);
 }
 
 /**
  * This function transforms data from the input array into SQL ans saves it. Also it calculates delta and returns it.
  */
-public function updateTable($nd){
+public function updateTable($nd, $flagDontConvertToSQL = false){
 
 	$sqlFields = '';
 
@@ -309,13 +321,13 @@ public function updateTable($nd){
 			unset($nd[$field]);
 	}
 
-	$nd_sql = $this->intra->arrPHP2SQL($nd, $this->table['columns_types']);
+	$nd_sql = ($flagDontConvertToSQL ? $nd : $this->intra->arrPHP2SQL($nd, $this->table['columns_types']));
 
 	$sqlFields = $this->intra->getSQLFields($this->table, $nd_sql);
 
 	$sql = "UPDATE {$this->conf['table']} SET ".($this->table['hasActivityStamp']
 		? " {$this->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->conf['prefix']}EditDate=NOW() {$sqlFields}"
-		: ltrim($sqlFields, ' ,'))
+		: ltrim($sqlFields, ", \n"))
 		."\n WHERE ".$this->getSQLWhere();
 
 	$this->oSQL->q($sql);

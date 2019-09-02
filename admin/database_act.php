@@ -10,6 +10,69 @@ $oSQL->select_db($dbName);
 
 switch($DataAction) {
 
+case 'deexcelize_getCreate':
+
+    $datatype = 'varchar(256) NOT NULL DEFAULT \'\'';
+    $nCols = 64;
+    
+    include_once(commonStuffAbsolutePath.'eiseXLSX/eiseXLSX.php');
+
+    try {
+        $xlsx = new eiseXLSX($_FILES['excel']['tmp_name']);
+    } catch(eiseXLSX_Exception $e) {
+        die("ERROR: ".$e->getMessage());
+    }
+
+    $fields = '';
+    for ($i=1; $i <= $nCols; $i++) { 
+        $d = $xlsx->data("R1C{$i}");
+        if(trim($d)!=''){
+            $fields .= ($fields ? "\n\t, " : '').$_POST['prfx'].ucfirst(trim($d))." {$datatype}";
+        } else 
+            break;
+    }
+
+    $sql = "CREATE TABLE {$_POST['table']}(\n{$fields}\n)ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
+    die($sql);
+
+case 'deexcelize':
+    
+    include_once(commonStuffAbsolutePath.'eiseXLSX/eiseXLSX.php');
+
+    /*
+    row id by row number SQL
+    UPDATE tbl_profit_share_mapping psm INNER JOIN (SELECT t.*, 
+       @rownum := @rownum + 1 AS psmID_
+    FROM tbl_profit_share_mapping t, 
+           (SELECT @rownum := 0) r) tt ON tt.psmJobID=psm.psmJobID AND tt.psmSupInvoiceID=psm.psmSupInvoiceID AND tt.psmCode=psm.psmCode
+    SET psm.psmID=psmID_ ;
+    */
+
+    try {
+        $xlsx = new eiseXLSX($_FILES['excel']['tmp_name']);
+        $oSQL->q("DROP TABLE IF EXISTS {$_POST['table']}");
+        $oSQL->q($_POST['tableCreate']);
+        $fields = $oSQL->ff($oSQL->q("SELECT * FROM {$_POST['table']} LIMIT 0,1"));
+        $nRows = $xlsx->getRowCount();
+        for ($i=2; $i <= $nRows ; $i++) { 
+            $nField = 1;
+            $vals = '';
+            foreach($fields as $field){
+                $vals .= ($vals ? ', ' : '').$oSQL->e($xlsx->data("R{$i}C{$nField}"));
+                $nField+=1;
+            }
+            $sql = "INSERT INTO {$_POST['table']} VALUES ({$vals})";
+            $oSQL->q($sql);
+        }
+    } catch(eiseXLSX_Exception $e) {
+        die("ERROR: ".$e->getMessage());
+    }
+
+
+
+    die();
+
 case 'dump':
     
     header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
@@ -195,22 +258,36 @@ case "convert":
 
 case 'applyIntra':
     
-    header("Content-Type: text/plain; charset=UTF-8");
-    header("Expires: 0");
-    header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
+    $intra->batchStart(array('autolinefeed'=>true));
+
+    $intra->batchEcho("Applying eiseIntra core data tables...");
 
     include_once ( eiseIntraAbsolutePath."inc_dbsv.php" );
+
+    if(!$_POST['password'] || ($_POST['password']!==$_POST['password1']))
+        die('Error: admin password not set');
 
     $dbsv = new eiseDBSV(array('intra' => $intra
             , 'dbsvPath'=>eiseIntraAbsolutePath.".SQL"
             , 'DBNAME' => $dbName));
     $frameworkDBVersion = $dbsv->getNewVersion();
 
-    $oSQL->startProfiling();
+    //$oSQL->startProfiling();
 
     $dbsv->parse_mysql_dump(eiseIntraAbsolutePath.".SQL/init.sql");
 
-    $oSQL->showProfileInfo();
+    $sqlUsr = "INSERT INTO stbl_user SET
+        usrID = 'admin'
+        , usrName = 'The Admin'
+        , usrNameLocal = 'Администратор'
+        , usrAuthMethod = 'DB'
+        , usrPass = ".$oSQL->e($intra->password_hash($_POST['password']))."
+        , usrInsertBy = 'admin', usrInsertDate = NOW(), usrEditBy = 'admin', usrEditDate = NOW()";
+    $oSQL->q($sqlUsr);
+
+    //$oSQL->showProfileInfo();
+
+    $intra->batchEcho("All done!");
 
     die();
 

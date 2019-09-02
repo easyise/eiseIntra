@@ -512,6 +512,7 @@ eiseList.prototype.filterByTab = function(tab, conf){
         positionTop = list.div.position().top,
         offsetTop = list.div.offset().top,
         parentHeight = list.parent.outerHeight(),
+        parentPaddingTop = parseInt(this.parent.css('padding-top').replace('px', '')),
         parentPaddingBottom = parseInt(this.parent.css('padding-bottom').replace('px', '')),
         hToSet = parentHeight-positionTop-parentPaddingBottom;
 
@@ -1179,15 +1180,20 @@ eiseList.prototype.toggleRowSelection = function(sel){
     
 }
 
-eiseList.prototype.getRowSelection = function(){
+eiseList.prototype.getRowSelection = function(returnType){
     var list = this;
     var entIDs = '';
+    var entIDs_list = [];
     $("input[name='sel_"+list.id+"[]']").each(function(){
         if (this.checked){
-            entIDs += (entIDs!='' ? "|" : '')+$(this).attr("value");
+            var val = $(this).attr("value");
+            entIDs += (entIDs!='' ? "|" : '')+val;
+            entIDs_list.push(val);
         }
     })
-    return entIDs;
+    return (typeof returnType === 'undefined' 
+        ? entIDs 
+        : entIDs_list);
 }
 
 eiseList.prototype.showInput = function(cell, conf){
@@ -1545,6 +1551,12 @@ refresh: function(){
 
 },
 
+getListObject: function(){
+
+    var list = $(this[0]).data('eiseList').eiseList;
+    return list;
+
+},
 getEiseListObject: function(){
 
     var list = $(this[0]).data('eiseList').eiseList;
@@ -1589,7 +1601,7 @@ $.extend($.fn.eiseList, {
 
 })( jQuery );
 
-$(document).ready(function(){
+$(window).on('load', function(){
 
     $('.eiseList').eiseList();
 

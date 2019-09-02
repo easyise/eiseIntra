@@ -38,7 +38,8 @@
 }
 
 /** Variables */
-@ei-body-font: 13px "Open Sans",Calibri,sans-serif;
+@ei-body-font-size: 13px;
+@ei-body-font: @ei-body-font-size "Open Sans",Calibri,sans-serif;
 @ei-body-color: #000;
 
 @ei-header-background: #3bacee;
@@ -191,7 +192,7 @@
     line-height: 20px;
 }
 
-.eiseIntraForm  .eiseIntraValue input
+.eiseIntraForm  .eiseIntraValue > input
 , .eiseIntraForm  input.eiseIntraValue{
     line-height: 15px;
 }
@@ -226,7 +227,7 @@ fieldset.eiseIntraSubForm  {
 .eiseIntraSubmit {
     font-weight: bold;
     font-size: 1.2em;
-    padding: 0.2em 5em;
+    padding: 0.2em 1em;
     margin: 0.2em;
 }
 

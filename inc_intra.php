@@ -123,7 +123,7 @@ private $arrClassInputTypes =
  * @category Initialization
  */
 public static $defaultConf = array(
-        'versionIntra'=>'2.1.098' 
+        'versionIntra'=>'2.2.006' 
         , 'dateFormat' => "d.m.Y" // 
         , 'timeFormat' => "H:i" // 
         , 'decimalPlaces' => "2"
@@ -574,8 +574,8 @@ function getUserRoles($usrID = null) {
         $this->arrUsrData['roleIDs'] = array_keys($arrRet);
         $this->arrUsrData['roles'] = array_values($arrRet);
     }
-        
-   return $arrRet;
+
+    return $arrRet;
 
 }
 
@@ -696,7 +696,7 @@ function checkPermissions( ){
     
     $rsChkPerms = $oSQL->do_query($sqlCheckUser);
     $rwPerms = $oSQL->fetch_array($rsChkPerms);
-        
+
     if (!$rwPerms["FlagRead"]){
         throw new eiseException($this->translate("%s access denied to user %s", ($this->conf['context'] 
                 ? $this->conf['context'] 
@@ -711,10 +711,13 @@ function checkPermissions( ){
         $this->arrUsrData = array_merge( $this->arrUsrData, $rwPage);  
     }
 
-    $_SESSION["last_login_time"] = Date("Y-m-d H:i:s");
+    if(!$this->conf['context'])
+        $_SESSION["last_login_time"] = Date("Y-m-d H:i:s");
     
     $this->usrID = $this->arrUsrData["usrID"];
     $this->conf['usrID'] = $this->arrUsrData["usrID"];
+
+    $this->arrUsrData_src = $this->arrUsrData;
 
     return $this->arrUsrData;
      
@@ -846,22 +849,24 @@ public function menu($target = null){
            $rwEnt = $this->oSQL->f('SELECT * FROM stbl_entity WHERE entID='.$this->oSQL->e($rw["pagEntityID"]));
         }
         
-        $flagIsEntity = ($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent");
-
         $pagMenuItemClass = $rw['pagMenuItemClass'] ? $rw['pagMenuItemClass'] : $this->getDefaultClass($rw['pagTitle'], $rw['pagFile']);
         
+        $customSubMenu = call_user_func_array(array($this, 'menuItem'), array($rw));
+
         $strRet .= "<li".($rw["pagParentID"]==1 && ($rw["FlagWrite"] || !$this->conf['menuCollapseAll']) && $rw["nChildren"]>0
                 ? ' class="active keep-active"'
                 : "")
             ." id=\"".$rw["pagID"]."\">"
-            .($rw["pagFile"] && !$flagIsEntity
-                ? '<a'.$target.' href="'.$rw["pagFile"].$hrefSuffix.'">'
-                : '<a href="#">')
+            .($rw["pagFile"] ? '<a'.$target.' href="'.$rw["pagFile"].$hrefSuffix.'">' : '<a href="#">')
             ."<i class=\"fa {$pagMenuItemClass}\"></i> "
             ."<span>".$rw["pagTitle{$this->local}"]."</span>"
-            .($rw["nChildren"]>0 ? ' <i class="fa fa-angle-left pull-right"></i>' : '')
+            .($rw["nChildren"]>0 || preg_match('/^\<ul/i', ltrim($customSubMenu))
+                ? ' <i class="fa fa-angle-left pull-right"></i>' 
+                : '')
             .'</a>'
-            .($rw["nChildren"]==0 && !$flagIsEntity ? "</li>" : "")."\n";
+            .$customSubMenu
+            .($rw["nChildren"]==0 ? "</li>" : "")
+            ."\n";
        
         if ($hrefSuffix){
 
@@ -885,18 +890,7 @@ public function menu($target = null){
             }
         }
        
-       if ($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent"){
-          $strRet .= "<ul>\n";
-          $sqlEnt = "SELECT * FROM stbl_entity";
-          $rsEnt = $this->oSQL->do_query($sqlEnt);
-          while ($rwEnt = $this->oSQL->fetch_array($rsEnt)){
-             $strRet .= "<li id='".$rw["pagID"]."_".$rwEnt["entID"]."'><a{$target} href='".
-                $rw["pagFile"]."?entID=".$rwEnt["entID"]."'>".$rwEnt["entTitle{$this->local}"]."</a>\n";
-          }
-          $strRet .= "</ul></li>\n";
-       }
-       
-       $rw_old = $rw;
+        $rw_old = $rw;
     }
     for ($i=$rw_old["iLevelInside"]; $i>1; $i--)
        $strRet .= "</ul>\n\n";
@@ -906,6 +900,18 @@ public function menu($target = null){
     return $strRet;
 
 }
+
+/**
+ * This method is called __before__ each menu item <li> closure. 
+ * You can add custom menu items/submenus in your own app overriding this method in the inherited class.
+ *
+ * @category Navigation
+ *
+ * @param string $rw - row info from stbl_page for current <li>
+ *
+ * @return string HTML with submenu structure
+ */
+public function menuItem($rw){    return '';    }
 
 /**
  * This function returns default icon menu class basng on page URI.
@@ -966,20 +972,14 @@ private function menu_simpleTree($rs, $target){
            $rwEnt = $this->oSQL->f('SELECT * FROM stbl_entity WHERE entID='.$this->oSQL->e($rw["pagEntityID"]));
         }
         
-        $flagIsEntity = ($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent" ? true : false);
         
         $strRet .= "<li".($rw["pagParentID"]==1 && ($rw["FlagWrite"] || !$this->conf['menuCollapseAll'])
                  ? " class='open'"
-                 : "")." id='".$rw["pagID"]."'>".
-          ($rw["pagFile"] && !$flagIsEntity && !($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent")
-            ? "<a{$target} href='".$rw["pagFile"].$hrefSuffix."'>"
-            : "")
-          ."<span>".$rw["pagTitle{$this->local}"]."</span>".
-          ($rw["pagFile"] && !$flagIsEntity
-            ? "</a>"
-            : ""
-            )
-            .($rw["nChildren"]==0 && !($rw["pagFile"]=="entity_form.php" && $rw["pagEntityID"]=="ent") ? "</li>" : "")."\r\n";
+                 : "")." id='".$rw["pagID"]."'>"
+            .($rw["pagFile"] ? "<a{$target} href=\"{$rw["pagFile"]}{$hrefSuffix}\">" : '')
+            ."<span>".$rw["pagTitle{$this->local}"]."</span>"
+            .($rw["pagFile"] ? "</a>" : '')
+            .($rw["nChildren"]==0 ? "</li>" : "")."\r\n";
        
         if ($hrefSuffix){
 
@@ -1039,6 +1039,9 @@ private function menu_simpleTree($rs, $target){
  * @return string HTML for "action menu".  
  */
 function actionMenu($arrActions = array(), $flagShowLink=false){
+
+    if(!$arrActions || count($arrActions)===0)
+        return '';
 
     $strRet .= '<div class="menubar ei-action-menu" id="menubar">'."\r\n";
     foreach ((array)$arrActions as $act) {
@@ -1358,9 +1361,10 @@ function batchEcho($string){
                 : 'sprintf'
                 )
             , $args) ;
-        
-    echo ( $this->conf['batch_htmlspecialchars'] ? htmlspecialchars( $to_echo ) : $to_echo ).
-        ($this->conf['batch_autolinefeed'] ? "\n" : '');
+    
+    echo ( $this->conf['batch_htmlspecialchars'] ? htmlspecialchars( $to_echo ) : $to_echo )
+        .( $args[count($args)-1]==='' ? '' : "\n" );
+
     ob_flush();
     flush();
 }
@@ -1636,10 +1640,16 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
 
         $flagFieldDelimiter = ($name===null && $value===null);
 
+        if($flagFieldDelimiter)
+            $conf['type'] = 'delimiter';
+
+        $conf['type'] = ((trim($title)!=='' && !isset($conf['type'])) ? 'text' : $conf['type']);
+
         $html .= "<div class=\"eiseIntraField eif-field".
+                ' eif-field-'.$conf['type'].
                 ($name 
                     ? " field-{$name}" 
-                    : ($flagFieldDelimiter ? " field-delimiter" : '' )
+                    : ''
                     ).
                 ($conf['fieldClass'] ? " {$conf['fieldClass']}" : '').
                 "\""
@@ -1654,12 +1664,11 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
 
         if(!in_array($conf['type'], array('boolean', 'checkbox', 'radio')) ) {
             if ($title!==''){
-                $labelClass = ($flagFieldDelimiter ? 'field-delimiter-label' : 'title-'.$name).($conf['labelClass'] ? ' '.$conf['labelClass'] : '');
+                $labelClass = ($name ? 'title-'.$name : '').($conf['labelClass'] ? ' '.$conf['labelClass'] : '');
                 $html .= "<label".($name ? " id=\"title_{$name}\"" : '')." class=\"{$labelClass}\">".(preg_match('/\<[a-z]/i', $title) 
                     ? $title 
-                    : htmlspecialchars($title)).(
-                    trim($title)!='' ? ':' : ''
-                  )."</label>";
+                    : htmlspecialchars($title))
+                ."</label>";
             }
         } else {
             $html .= "<label></label>";
@@ -1704,8 +1713,7 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
                     if(!$ds){
                         if(!$conf['source'])
                             throw new Exception("Source for column {$name} not specified.", 1);
-                            
-                        @eval('$ds = '.$conf['source']);
+                        @eval('$ds = '.$conf['source'].';');
                         if(!$ds){
                             if(!preg_match('/^select\s+/i', $conf['source'])){
                                 $aDS = explode('|', $conf['source']);
@@ -1787,7 +1795,7 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
 
     if($title!==null){
 
-        $html .= '</div>'."\r\n\r\n";
+        $html .= $conf['extraHTML'].'</div>'."\r\n\r\n";
 
     }
 
@@ -1811,13 +1819,22 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
  */
 public function fieldset($legend=null, $fields='', $conf = array()){
 
+    if($conf['subtitle'])
+        $conf['class'] = 'has-subtitle '.$conf['class'];
+
+    if(trim($legend)==='')
+        $legend = null;
+
     return '<fieldset'
         .($conf['id']!='' ? ' id="'.htmlspecialchars($conf['id']).'"' : '')
-        .($conf['class']!='' ? ' class="'.htmlspecialchars($conf['class']).'"' : '')
+        .($conf['class']!='' || $legend===null ? ' class="'.htmlspecialchars($conf['class'])
+            .($legend===null ? ' no-legend' : '').'"' : '')
         .($conf['attr']!='' ? ' '.$conf['attr'] : '')
         .'>'
-        .($legend 
-            ? "\r\n".'<legend'.($conf['attr_legend']!='' ? ' '.$conf['attr_legend'] : '').'>'.$legend.'</legend>'
+        .($legend!==null 
+            ? "\r\n".'<legend'.($conf['attr_legend']!='' ? ' '.$conf['attr_legend'] : '').'>'.$legend
+                .($conf['subtitle'] ? '<small>'.$conf['subtitle']."</small>\n" : '')
+                .'</legend>'."\n"
             : '')
         ."\r\n".$fields
         .'</fieldset>'
@@ -1845,6 +1862,7 @@ public function form($action, $dataAction, $fields, $method='POST', $conf=array(
     return '<form action="'.htmlspecialchars($action).'"'
         .' method="'.htmlspecialchars($method).'"'
         .($conf['id']!='' ? ' id="'.htmlspecialchars($conf['id']).'"' : '')
+        .($conf['target']!='' ? ' target="'.htmlspecialchars($conf['target']).'"' : '')
         .' class="eiseIntraForm eif-form'.($conf['class']!='' ? ' '.$conf['class'] : '').'"'
         .($conf['attr']!='' ? ' '.$conf['attr'] : '')
         .'>'."\r\n"
@@ -1908,20 +1926,23 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
     $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
     
     $strClass = $this->handleClass($arrConfig);
+    $strClassInput = 'eif-input'.($strClass ? ' '.$strClass : '');
+
+    $id = ($arrConfig['id'] ? $arrConfig['id'] : $strName);
    
     $strAttrib = $arrConfig["strAttrib"];
     if ($flagWrite){
         
         $strType = (in_array($arrConfig['type'], $this->arrHTML5AllowedInputTypes) ? $arrConfig["type"] : 'text');
 
-        $strClass .= (!in_array($arrConfig['type'], $this->arrHTML5AllowedInputTypes) 
-            ? ($strClass!='' ? ' ' : '').'eiseIntra_'.$arrConfig["type"].' eif-input-'.$arrConfig["type"] 
+        $strClassInput .= (!in_array($arrConfig['type'], $this->arrHTML5AllowedInputTypes) 
+            ? ($strClassInput!='' ? ' ' : '').'eiseIntra_'.$arrConfig["type"].' eif-input-'.$arrConfig["type"] 
             : '');
 
-        $strRet = "<input type=\"{$strType}\" name=\"{$strName}\" id=\"{$strName}\"".
+        $strRet = "<input type=\"{$strType}\" name=\"{$strName}\" id=\"{$id}\" class=\"{$strClassInput}\"".
             ($strAttrib ? " ".$strAttrib : "").
-            ($strClass ? ' class="'.$strClass.'"' : "").
             ($arrConfig["required"] ? " required=\"required\"" : "").
+            ($arrConfig["autocomplete"]===false ? " autocomplete=\"off\"" : "").
             ($arrConfig["placeholder"] 
                 ? ' placeholder="'.htmlspecialchars($arrConfig["placeholder"]).'"'
                     .' title="'.htmlspecialchars($arrConfig["placeholder"]).'"'
@@ -1929,14 +1950,13 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
             ($arrConfig["maxlength"] ? " maxlength=\"{$arrConfig["maxlength"]}\"" : "").
        " value=\"".htmlspecialchars($strValue)."\" />";
     } else {
-        $strRet = "<div id=\"span_{$strName}\"".
-        ($strAttrib ? " ".$strAttrib : "").
-        ($strClass ? ' class="'.$strClass.'"' : "").">"
+        $strRet = "<div id=\"span_{$strName}\" class=\"{$strClass}\"".
+        ($strAttrib ? " ".$strAttrib : "").">"
             .($arrConfig['href'] ? "<a href=\"{$arrConfig['href']}\"".($arrConfig["target"] ? " target=\"{$arrConfig["target"]}\"" : '').">" : '')
             .htmlspecialchars($strValue)
             .($arrConfig['href'] ? "</a>" : '')
         ."</div>\r\n"
-        ."<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\""
+        ."<input type=\"hidden\" name=\"{$strName}\" id=\"{$id}\" class=\"eif-input\""
         ." value=\"".htmlspecialchars($strValue)."\" />";
     }
     
@@ -1960,26 +1980,28 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
     $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
     
     $strClass = $this->handleClass($arrConfig);
-    
+    $strClassInput = 'eif-input'.($strClass ? ' '.$strClass : '');
+
+    $id = ($arrConfig['id'] ? $arrConfig['id'] : $strName);
+
     if ($flagWrite){
-        $strRet .= "<textarea"
-            ." id=\"".($arrConfig['id'] ? $arrConfig['id'] : $strName)."\""
+        $strRet .= "<textarea class=\"{$strClassInput}\""
+            ." id=\"$id\""
             ." name=\"".$strName."\"";
         if($strAttrib) $strRet .= " ".$strAttrib;
-        $strRet .= ($strClass ? ' class="'.$strClass.'"' : '').
-            ($arrConfig["required"] ? " required=\"required\"" : "").
+        $strRet .= ($arrConfig["required"] ? " required=\"required\"" : "").
             ($arrConfig["placeholder"] ? ' placeholder="'.htmlspecialchars($arrConfig['placeholder']).'"' : '').
             ">";
         $strRet .= htmlspecialchars($strValue);
         $strRet .= "</textarea>";
     } else {
-        $strRet = "<div id=\"span_{$strName}\"".
+        $strRet = "<div id=\"span_{$id}\"".
             ($strAttrib ? " ".$strAttrib : "").
             ($strClass ? ' class="'.$strClass.'"' : "").">"
                 .($arrConfig['href'] ? "<a href=\"{$arrConfig['href']}\"".($arrConfig["target"] ? " target=\"{$arrConfig["target"]}\"" : '').">" : '')
                 .htmlspecialchars($strValue)."</div>\r\n"
                 .($arrConfig['href'] ? '</a>' : '')
-            ."<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\""
+            ."<input type=\"hidden\" name=\"{$strName}\" id=\"{$id}\" class=\"eif-input\"" 
             ." value=\"".htmlspecialchars($strValue)."\" />\r\n";
     }
     return $strRet;        
@@ -2074,6 +2096,9 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
     $retVal = "";
     
     $strClass = $this->handleClass($confOptions);
+    $strClassInput = 'eif-input'.($strClass ? ' '.$strClass : '');
+
+    $id = ($confOptions['id'] ? $confOptions['id'] : $strName);
     
     $strAttrib = $confOptions["strAttrib"];
 
@@ -2087,8 +2112,7 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
             : ''
         );
 
-        $retVal .= "<select id=\"".$strName."\" name=\"".$strName."\"".$strAttrib.
-            ($strClass ? ' class="'.$strClass.'"' : "").
+        $retVal .= "<select id=\"{$id}\" class=\"$strClassInput\" name=\"".$strName."\"".$strAttrib.
             ($confOptions["required"] ? " required=\"required\"" : "").">\r\n";
         
         $retVal .= (!$confOptions['defaultTextPosition'] ? $optDefaultText : '');
@@ -2123,14 +2147,14 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
         }
         $valToShow=($valToShow!="" ? $valToShow : $confOptions["defaultText"]);
         
-        $retVal = "<div id=\"span_{$strName}\""
+        $retVal = "<div id=\"span_{$id}\""
             .($strClass ? ' class="'.$strClass.'"' : "")
             .'>'
             .($confOptions['href'] ? "<a href=\"{$confOptions['href']}\"".($confOptions["target"] ? " target=\"{$confOptions["target"]}\"" : '').">" : '')
             .htmlspecialchars($valToShow)
             .($confOptions['href'] ? '</a>' : '')
             ."</div>\r\n".
-        "<input type=\"hidden\" name=\"{$strName}\" id=\"{$strName}\"".
+        "<input type=\"hidden\" name=\"{$strName}\" id=\"{$id}\" class=\"eif-input\"".
         " value=\"".htmlspecialchars($textToShow)."\" />\r\n";
         
     
@@ -2153,6 +2177,7 @@ function showCheckBox($strName, $strValue, $arrConfig=Array()){
     $flagWrite = $this->isEditable($arrConfig["FlagWrite"]) ;
     
     $strClass = $this->handleClass($arrConfig);
+    $strClassInput = 'eif-input'.($strClass ? ' '.$strClass : '');
 
     $id = ( $arrConfig['id'] ? $arrConfig['id'] : $strName );
 
@@ -2161,12 +2186,11 @@ function showCheckBox($strName, $strValue, $arrConfig=Array()){
     $showValueAttr = ( preg_match('/\[\]$/', $strName) || $arrConfig['showValueAttr'] || $arrConfig['value'] );
     
     $strAttrib = $arrConfig["strAttrib"];
-    $retVal = "<input name=\"{$strName}\" id=\"{$id}\" type=\"checkbox\"".
+    $retVal = "<input name=\"{$strName}\" id=\"{$id}\" class=\"{$strClassInput}\" type=\"checkbox\"".
     ( ( $strValue && !$showValueAttr ) || $arrConfig['checked'] 
         ? " checked=\"checked\" " 
         : "").
     ($showValueAttr ? ' value="'.htmlspecialchars($strValue).'"' : "").
-    ($strClass ? " class=\"{$strClass}\" " : "").
     (!$flagWrite ? " readonly=\"readonly\"" : "").
     ($strAttrib!="" ? $strAttrib : " style='width:auto;'" ).">";
 
@@ -2188,13 +2212,13 @@ function showRadio($strName, $strValue, $arrConfig=Array()){
     $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
     
     $strClass = $this->handleClass($arrConfig);
+    $strClassInput = 'eif-input'.($strClass ? ' '.$strClass : '');
 
     $id = ( $arrConfig['id'] ? $arrConfig['id'] : $strName );
     
     $strAttrib = $arrConfig["strAttrib"];
-    $retVal = "<input name=\"{$strName}\" id=\"{$id}\" type=\"radio\" value=\"".htmlspecialchars($strValue)."\"".
+    $retVal = "<input name=\"{$strName}\" id=\"{$id}\" type=\"radio\" class=\"$strClassInput\" value=\"".htmlspecialchars($strValue)."\"".
     ($arrConfig['checked'] ? " checked=\"checked\" " : "").
-    ($strClass ? " class=\"{$strClass}\" " : "").
     (!$flagWrite ? " readonly=\"readonly\"" : "").
     ($strAttrib!="" ? $strAttrib : " style='width:auto;'" ).">";
 
@@ -2225,7 +2249,7 @@ function showRadioByArray($strRadioName, $strValue, $arrConfig){
     $arrData = $arrConfig["arrOptions"];
     foreach($arrData as $value =>  $text){
         $inpID = $strRadioName."_".$value;
-        $retVal .= "<input type=\"radio\" name=\"{$strRadioName}\" value=\"".htmlspecialchars($value)."\"";
+        $retVal .= "<input type=\"radio\" name=\"{$strRadioName}\" class=\"eif-input\" value=\"".htmlspecialchars($value)."\"";
         if ($strValue!="" && $value===$strValue)
             $retVal .= " checked";
         else if ($strValue=="" && $value==$arrConfig["strDefaultChecked"])
@@ -2281,7 +2305,7 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
     }
     
     $strOut = "";
-    $strOut .= "<input type=\"hidden\" name=\"$strFieldName\" id=\"$strFieldName\" value=\"".htmlspecialchars($strValue)."\">\r\n";
+    $strOut .= "<input type=\"hidden\" name=\"$strFieldName\" class=\"eif-input\" id=\"$strFieldName\" value=\"".htmlspecialchars($strValue)."\">\r\n";
 
     $attr = (preg_match('/\['.preg_quote($strFieldName, '/').'\]/', $arrConfig['href']) 
                 ? 'data-href="'.htmlspecialchars($arrConfig['href']).'" '
@@ -2293,6 +2317,7 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
             , array_merge(
                 $arrConfig 
                 , Array("strAttrib" => $attr
+                    , 'id' => $strFieldName."_text"
                     , 'type'=>"ajax_dropdown")
                 )
             );
@@ -2407,8 +2432,12 @@ function loadCSS(){
     
     $cachePreventor = $this->getCachePreventor();
     
-    foreach($arrCSS as $cssHref){
-        echo "<link rel=\"STYLESHEET\" type=\"text/css\" href=\"{$cssHref}?{$cachePreventor}\" media=\"screen\">\r\n";
+    foreach($arrCSS as $css){
+        if(is_array($css)){
+            echo "<link rel=\"STYLESHEET\" type=\"text/css\" href=\"{$css['file']}?{$cachePreventor}\" media=\"{css['media']}\">\r\n";
+        } else {
+            echo "<link rel=\"STYLESHEET\" type=\"text/css\" href=\"{$css}?{$cachePreventor}\" media=\"screen\">\r\n";
+        }
     }
 
 }
@@ -2482,8 +2511,9 @@ function dataAction($dataAction, $funcOrObj=null){
 
             if($flagIsAJAX)
                 $this->json($status, $message, $data);
-            if($redirect)
+            if($redirect){
                 $this->redirect($message, $redirect);
+            }
             else {
                 if(!$this->flagBatch)
                     $this->batchStart();
@@ -2493,6 +2523,9 @@ function dataAction($dataAction, $funcOrObj=null){
         }
     }
 
+}
+function cancelDataAction(&$nd){
+    unset($_POST[$this->conf['dataActionKey']]);
 }
 
 /**
@@ -2554,6 +2587,9 @@ function dataRead($dataReadValues, $function=null, $arrParam = array()){
     }
 
 }
+function cancelDataRead(){
+    unset($_POST[$this->conf['dataReadKey']]);
+}
 
 function getDateTimeByOperationTime($operationDate, $time){
 
@@ -2570,16 +2606,22 @@ function getDateTimeByOperationTime($operationDate, $time){
         return $operationDate.' '.$time;
 }
 
-function showDatesPeriod($trnStartDate, $trnEndDate){
+function showDatesPeriod($trnStartDate, $trnEndDate, $precision = 'date'){
     $strRet = (!empty($trnStartDate)
-            ? $this->DateSQL2PHP($trnStartDate)
+            ? ($precision == 'datetime' 
+                ? $this->datetimeSQL2PHP($trnStartDate)
+                : $this->dateSQL2PHP($trnStartDate)
+                )
             : ""
             );
     $strRet .= ($strRet!="" && !empty($trnEndDate) && !($trnStartDate==$trnEndDate)
             ? " - "
             : "");
     $strRet .= (!empty($trnEndDate) && !($trnStartDate==$trnEndDate)
-            ? $this->DateSQL2PHP($trnEndDate)
+            ? ($precision == 'datetime' 
+                ? $this->datetimeSQL2PHP($trnEndDate)
+                : $this->dateSQL2PHP($trnEndDate)
+                )
             : ""
             );
     

@@ -1,5 +1,7 @@
 <?php
 class eiseAction {
+
+public static $ts = array('ETD', 'ATD', 'ETA', 'ATA');
 	
 public function __construct($item, $arrAct){
 
@@ -7,19 +9,45 @@ public function __construct($item, $arrAct){
 	$this->oSQL = $item->oSQL;
 	$this->intra = $item->intra;
 	$this->entID = $item->conf['entID'];
+
+    $nd = $arrAct;
 	
 	if(!$arrAct['actID'] && !$arrAct['aclGUID'])
 		$arrAct['actID'] = 2;
 
 	if($arrAct['aclGUID']){
-		$this->item->refresh(array('Master', 'ACL'));
-
-
+		$this->item->getAllData(array('Master', 'ACL'));
+        $this->arrAction = $this->item->item['ACL'][$arrAct['aclGUID']];
+        $traced = array();
+        foreach($nd as $field=>$value){
+            if(strpos($field, '_'.$arrAct['aclGUID'])===False)
+                continue;
+            $traced[str_replace('_'.$arrAct['aclGUID'], '', $field)] = $value;
+        }
+        $this->conf = $item->conf['ACT'][$this->arrAction['aclActionID']];
+        $this->arrAction = array_merge($this->arrAction
+            , $this->intra->arrPHP2SQL($traced, $this->item->table['columns_types'])
+            , array('aclToDo'=> $nd['aclToDo'])
+            );
 	} else {
 		$this->conf = $item->conf['ACT'][(string)$arrAct['actID']];
+        $nd_SQL = $this->intra->arrPHP2SQL($nd, $this->item->table['columns_types']);
+        $this->arrAction = array_merge($this->conf, $nd_SQL);
 	}
 
-	$this->arrAction = array_merge($this->conf, $arrAct);
+    switch($this->conf['actID']){
+        case 0:
+        case 3:
+            $this->arrAction['aclOldStatusID'] = $this->arrAction['actOldStatusID'][0];
+            $this->arrAction['aclNewStatusID'] = $this->arrAction['actNewStatusID'][0];
+            break;
+        case 2:
+            $this->arrAction['aclOldStatusID'] = $item->staID;
+            $this->arrAction['aclNewStatusID'] = $item->staID;
+            break;
+        default:
+            break;
+    }
 
 	if(!$this->conf && !$arrAct['aclGUID'])
 		throw new Exception("Action is not defined properly. Debug info: ".var_dump($arrAct, true));
@@ -27,7 +55,7 @@ public function __construct($item, $arrAct){
 }
 
 public function execute(){
-	
+
     // proceed with the action
     if ($this->arrAction["actFlagAutocomplete"] && !$this->arrAction["aclGUID"]){
 
@@ -50,7 +78,6 @@ public function execute(){
                     $this->start();
                     break;
                 case "cancel":
-                	$this->validate();
                     $this->cancel();
                     break;
             }
@@ -73,7 +100,7 @@ public function add(){
     unset($item_before['ACL']);
     unset($item_before['STL']);
 
-    $timestamps = $this->getTimestamps();
+    $timestamps = $this->getTimeStamps();
 
     // 2. insert new ACL
     $sqlInsACL = "INSERT INTO stbl_action_log SET
@@ -87,7 +114,7 @@ public function add(){
             , aclItemBefore = ".$this->oSQL->e(json_encode($item_before))."
             , aclItemDiff = NULL
             , aclItemAfter = NULL
-            , aclItemTraced = ".$this->oSQL->e(json_encode($this->initTraceData()))."
+            , aclItemTraced = ".$this->oSQL->e(json_encode($this->getTraceData()))."
         , aclComments = NULL
         , aclInsertBy = '{$this->intra->usrID}', aclInsertDate = NOW(), aclEditBy='{$this->intra->usrID}', aclEditDate=NOW()";
      
@@ -96,9 +123,47 @@ public function add(){
     // 3. Trigger onActionPlan hook
     $this->item->onActionPlan($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
 
+    $this->oSQL->q("UPDATE stbl_action_log SET aclItemTraced = ".$this->oSQL->e(json_encode($this->getTraceData()))." 
+        WHERE aclGUID='{$this->arrAction["aclGUID"]}'");
+
     $this->arrAction['aclActionPhase'] = 0;
 
     return $this->arrAction["aclGUID"];
+
+}
+
+function start(){
+    
+    $this->arrAction['aclOldStatusID'] = $this->item->staID;
+
+    if (!in_array($this->item->staID,  $this->conf['actOldStatusID']))
+        throw new Exception("Action {$this->conf["actTitle"]} cannot be started for {$this->id} because of its status ({$this->item->staID})");
+
+    if (($oldStatusID!==$newStatusID 
+          && $newStatusID!==""
+        )
+        || $this->conf["actFlagInterruptStatusStay"]){
+
+        $this->onStatusDeparture($this->arrAction['aclOldStatusID']);
+
+    }
+
+    $this->item->onActionStart($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
+
+    $sqlUpdACL = "UPDATE stbl_action_log SET 
+        aclActionPhase=1
+        , aclOldStatusID = '{$this->item->staID}'
+        , aclItemBefore = ".$this->oSQL->e( json_encode($this->item->item_before) )."
+        , aclStartBy='{$this->intra->usrID}', aclStartDate=NOW()
+        , aclEditBy='{$this->intra->usrID}', aclEditDate=NOW()
+    WHERE aclGUID='{$this->arrAction['aclGUID']}'";
+    $this->oSQL->do_query($sqlUpdACL);
+    
+    $sqlUpdEntTable = "UPDATE {$this->item->conf["table"]} SET
+            {$this->item->conf['prefix']}ActionLogID='{$this->arrAction['aclGUID']}'
+            , {$this->item->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->item->conf['prefix']}EditDate=NOW()
+            WHERE {$this->item->conf['PK']}='{$entItemID}'";
+    $this->oSQL->do_query($sqlUpdEntTable);
 
 }
 
@@ -110,7 +175,7 @@ public function validate(){
 	    );
 
 	if($this->arrAction['actID']<=3){
-	    switch( $this->arrAction['actID'] ){
+	    switch( $this->conf['actID'] ){
 	        case 1:
 	            if($aclOldStatusID>0)
 	                throw new Exception('Item is already created');
@@ -149,69 +214,59 @@ public function finish(){
     $this->checkTimeLine();
     $this->checkMandatoryFields();
 
-    $item_before = self::itemCleanUp($this->item->item_before);
+    $item_before = self::itemCleanUp($this->item->item_before, $this->item->conf['prefix']);
 
-    $this->item->refresh();
+    $this->item->getAllData(array('Master'));
 
-    $item_after = self::itemCleanUp($this->item->item);
-        
+    $item_after = self::itemCleanUp($this->item->item, $this->item->conf['prefix']);
+
+    $item_diff = array_diff($item_before, $item_after);
+
+    $timestamps = $this->getTimeStamps();
+    $aTraced = $this->getTraceData();
+
     // update started action as completed
     $sqlUpdACL = "UPDATE stbl_action_log SET
         aclActionPhase = 2
         , aclItemAfter = ".$this->oSQL->e(json_encode($item_after))."
-        , aclATA= IFNULL(aclATA, NOW())
+        , aclItemDiff = ".$this->oSQL->e(json_encode($item_diff))."
+        {$timestamps}
+        ".($this->conf["actID"]!="2" && count($aTraced)>0
+            ? ", aclItemTraced=".$this->oSQL->e(json_encode($aTraced))
+            : ', aclItemTraced=NULL')."
         , aclStartBy=IFNULL(aclStartBy, '{$this->intra->usrID}'), aclStartDate=IFNULL(aclStartDate,NOW())
         , aclFinishBy=IFNULL(aclFinishBy, '{$this->intra->usrID}'), aclFinishDate=IFNULL(aclFinishDate, NOW())
         , aclEditDate=NOW(), aclEditBy='{$this->intra->usrID}'
         WHERE aclGUID='".$this->arrAction["aclGUID"]."'";
-              
+
     $this->oSQL->q($sqlUpdACL);
     
-    if ($this->arrAction["actID"]!="2") {
-        $sqlUpdEntTable = "UPDATE {$this->item->conf['table']} LEFT OUTER JOIN stbl_action_log ON aclGUID='{$this->arrAction['aclGUID']}' SET
+    if ($this->conf["actID"]!="2") {
+
+        $tracedFields = $this->intra->getSQLFields($this->item->table, $aTraced);
+        $userstamps = $this->getUserStamps();
+
+        $sqlMaster = "UPDATE {$this->item->conf['table']} LEFT OUTER JOIN stbl_action_log ON aclGUID='{$this->arrAction['aclGUID']}' SET
             {$this->item->conf['prefix']}ActionLogID=aclGUID
-            , {$this->item->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->item->conf['prefix']}EditDate=NOW()";
+            {$tracedFields}
+            {$userstamps}
+            , {$this->item->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->item->conf['prefix']}EditDate=NOW()
+        WHERE ".$this->item->getSQLWhere();
 
-        // update tracked attributes
-        foreach( (array)$this->arrAction["aatFlagToTrack"] as $atrID=>$xx ){
-            $sqlUpdEntTable .= "\r\n, {$atrID} = (SELECT l{$atrID} FROM {$this->conf["entTable"]}_log WHERE l{$this->conf['entPrefix']}GUID='{$this->arrAction["aclGUID"]}')";
-        }
+        $this->oSQL->q($sqlMaster);
 
-        // update timestamps
-        foreach ( (array)$this->arrAction["aatFlagTimestamp"] as $timestamp => $atrID ) {
-            if(!array_key_exists($atrID, (array)$this->conf["ATR"]))
-                continue;
-            $sqlUpdEntTable .= "\r\n, {$atrID} = acl{$timestamp}";
-        }
-
-        // update userstamps
-        foreach ( (array)$this->arrAction["aatFlagUserStamp"] as $atrID => $xx ) {
-            if(array_key_exists($atrID, (array)$this->arrAction["aatFlagToTrack"]))
-                continue;
-            $sqlUpdEntTable .= "\r\n, {$atrID} = ".$oSQL->e($this->intra->usrID);
-        }
-
-        $sqlUpdEntTable .= "\r\n";    
-        $sqlUpdEntTable .= "WHERE {$this->item->table['PK'][0]}='{$this->item->id}'";
-        $this->oSQL->q($sqlUpdEntTable);
     }
-    
-    // update master table by attrbutes
-    if (count($this->arrAction["aatFlagToTrack"])>0){
-        $sqlUpdMaster = "UPDATE {$this->item->conf['table']} SET 
-            {$this->item->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->item->conf['prefix']}EditDate=NOW()";
-        
-        $sqlUpdMaster .= "\r\nWHERE {$this->item->table['PK'][0]}='{$this->item->id}'";
-        $this->oSQL->q($sqlUpdMaster);
-    }
+
+
+
     
     $this->item->onActionFinish($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
 
     // if status is changed or action requires status stay interruption, we insert status log entry and update master table
-    if (((string)$this->arrAction["aclOldStatusID"]!=(string)$this->arrAction["aclNewStatusID"]
-          && (string)$this->arrAction["aclNewStatusID"]!=""
+    if (($this->arrAction["aclOldStatusID"]!==$this->arrAction["aclNewStatusID"]
+          && (string)$this->arrAction["aclNewStatusID"]!=''
         )
-        || $this->arrAction["actFlagInterruptStatusStay"]){
+        || $this->conf["actFlagInterruptStatusStay"]){
 
         $sql = Array();
         $stlGUID = $this->oSQL->get_data($this->oSQL->do_query("SELECT UUID()"));
@@ -236,7 +291,7 @@ public function finish(){
             , stlInsertBy, stlInsertDate, stlEditBy, stlEditDate
             ) SELECT
             '$stlGUID' as stlGUID
-            , '{$this->entID}' as stlEntityID
+            , '{$this->item->entID}' as stlEntityID
             , aclEntityItemID
             , aclNewStatusID as stlStatusID
             , aclGUID as stlArrivalActionID
@@ -253,20 +308,7 @@ public function finish(){
         
         $arrSAT = $this->conf['STA'][$this->arrAction['aclNewStatusID']]['satFlagTrackOnArrival'];
         if (count($arrSAT)>0){
-            $sqlSAT = "INSERT INTO {$this->conf["entTable"]}_log (
-                l{$this->conf['entPrefix']}GUID
-                , l{$this->conf['entPrefix']}EditBy , l{$this->conf['entPrefix']}EditDate, l{$this->conf['entPrefix']}InsertBy, l{$this->conf['entPrefix']}InsertDate
-                ";
-            foreach($arrSAT as $atrID=>$x)
-                $sqlSAT .= ", l{$atrID}";
-            $sqlSAT .= ") SELECT 
-                '$stlGUID' as l{$this->conf['entPrefix']}GUID
-                , '{$this->intra->usrID}' as l{$this->conf['entPrefix']}EditBy , NOW() as l{$this->conf['entPrefix']}EditDate, '{$this->intra->usrID}' as {$this->conf['entPrefix']}InsertBy, NOW() as {$this->conf['entPrefix']}InsertDate
-                ";
-            foreach($arrSAT as $atrID=>$ix)
-                $sqlSAT .= ", {$atrID}";
-            $sqlSAT .= " FROM {$this->item->conf["entTable"]} WHERE {$this->item->table['PK'][0]}='{$this->item->id}'";
-            $sql[] = $sqlSAT;
+            
         }
         
         // after action is done, we update entity table with last status action log id
@@ -288,6 +330,29 @@ public function finish(){
     $this->item->staID = $this->arrAction['aclNewStatusID'];
 
 }
+
+function cancel(){
+
+    $oSQL = $this->oSQL;
+    
+    $entID = $this->item->conf["entID"];
+    $entItemID = $this->item->id;
+    $aclGUID = $this->arrAction["aclGUID"];
+
+    $this->item->onActionCancel($this->arrAction['aclActionID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
+    
+    if($this->arrAction['aclActionPhase']==0){
+        $oSQL->q("DELETE FROM stbl_action_log WHERE aclGUID='{$this->arrAction['aclGUID']}'");
+    } else {
+        $oSQL->q("UPDATE stbl_action_log SET
+            aclActionPhase=3
+            , aclCancelBy='{$this->intra->usrID}'
+            , aclCancelDate=NOW()
+            WHERE aclGUID='{$this->arrAction['aclGUID']}'");
+    }
+
+}
+
 
 function checkTimeLine(){
 	
@@ -320,9 +385,8 @@ function checkTimeLine(){
 		";
 	if (!$oSQL->get_data($oSQL->do_query($sqlMaxATA))) {
 		throw new Exception("ATA for execueted action cannot be less than ATD");
-		die();
 	}
-	
+
 	return true;
 }
 
@@ -337,64 +401,135 @@ function checkMandatoryFields(){
     $flagAutocomplete = $this->arrAction["actFlagAutocomplete"];
     $aclGUID = $this->arrAction["aclGUID"];
 
-    if(is_array($this->arrAction["aatFlagMandatory"]))
-        foreach($this->arrAction["aatFlagMandatory"] as $atrID => $rwATR){
-                
-            $oldValue = $this->item[$atrID];
+    $aMandatoryFails = array();
+    $aChangedFails = array();
+
+    foreach((array)$this->arrAction["aatFlagMandatory"] as $atrID => $rwATR){
             
-            if ($this->arrAction["aclGUID"]==""){
-                $flagIsMissingOnForm = (int)($this->arrAction['actFlagAutocomplete'] && !isset($this->arrNewData[$atrID]));
-                $sqlCheckMandatory = "SELECT 
-                    CASE WHEN IFNULL({$atrID}, '')='' 
-                    AND NOT ".(int)$flagIsMissingOnForm." 
-                    THEN 0 ELSE 1 END as mandatoryOK 
-                    FROM {$entTable} WHERE {$this->entItemIDField}='{$entItemID}'";
-                $sqlCheckChanges = "SELECT 
-                    CASE WHEN IFNULL({$atrID}, '')='{$rwEnt[$atrID]}' THEN 0 ELSE 1 END as changedOK 
-                    FROM {$entTable} WHERE {$this->entItemIDField}='{$entItemID}'";;
-            } else {
-                
-                $sqlCheckMandatory = "SELECT 
-                    CASE WHEN IFNULL(l{$atrID}, '')='' THEN 0 ELSE 1 END as mandatoryOK 
-                    FROM {$entTable}_log 
-                    WHERE l{$entID}GUID='{$aclGUID}'";
-                //$oldValue = $this->arrAction["ACL"][$aclGUID]["ATV"][$atrID];
-                $sqlCheckChanges = "SELECT 
-                    CASE WHEN IFNULL(l{$atrID}, '')=".$oSQL->escape_string($oldValue)." THEN 0 ELSE 1 END as changedOK 
-                    FROM {$entTable}_log
-                    WHERE l{$entID}GUID='{$aclGUID}'";
-            }
+        $oldValue = $this->item->item[$atrID];
+        
+        if ($this->arrAction["aclGUID"]==""){
+            /*
+            $flagIsMissingOnForm = (int)($this->arrAction['actFlagAutocomplete'] && !isset($this->arrNewData[$atrID]));
+            $sqlCheckMandatory = "SELECT 
+                CASE WHEN IFNULL({$atrID}, '')='' 
+                AND NOT ".(int)$flagIsMissingOnForm." 
+                THEN 0 ELSE 1 END as mandatoryOK 
+                FROM {$entTable} WHERE {$this->entItemIDField}='{$entItemID}'";
+            $sqlCheckChanges = "SELECT 
+                CASE WHEN IFNULL({$atrID}, '')='{$rwEnt[$atrID]}' THEN 0 ELSE 1 END as changedOK 
+                FROM {$entTable} WHERE {$this->entItemIDField}='{$entItemID}'";
+                */
+        } else {
+
+            if($rwATR['aatFlagMandatory'] && !$this->arrAction[$atrID])
+                $aMandatoryFails[] = $atrID;
             
-            if (!$oSQL->get_data($oSQL->do_query($sqlCheckMandatory))){
-                throw new Exception("Mandatory field '{$this->conf['ATR'][$atrID]["atrTitle"]}' is not set for {$entItemID}");
-                die();
-            } 
+            if($rwATR['aatFlagToChange'] && $this->arrAction[$atrID]!=$this->item->item[$atrID])
+                $aChangedFails[] = $atrID;
             
-            if ($rwATR["aatFlagToChange"]){
-                if (!$oSQL->get_data($oSQL->do_query($sqlCheckChanges))){
-                    throw new Exception("Field value for '{$rwATR["atrTitle"]}' cannot be '{$oldValue}', it should be changed for {$entItemID}");
-                    die();
-                } 
-            }
-                
         }
+        
+    }
+
+    if (count($aMandatoryFails)){
+        $strFields = '';
+        foreach($aMandatoryFails as $field)
+            $strFields .= ($strFields ? ', ' : '').$this->item->conf['ATR'][$field]["atrTitle{$this->intra->local}"];
+        throw new Exception($this->intra->translate("These fields are required: %s for %s", $strFields, $this->item->id));
+    } 
+    
+    if (count($aChangedFails)){
+        $strFields = '';
+        foreach($aChangedFails as $field)
+            $strFields .= ($strFields ? ', ' : '').$this->item->conf['ATR'][$field]["atrTitle{$this->intra->local}"];
+        throw new Exception($this->intra->translate("These fields should be changed: %s for %s", $strFields, $this->item->id));
+    }
     
 }
 
-public function getTimestamps(){
+public function getTimeStamps(){
+
+    $sql = '';
+
+    $tsValues = array();
+
+    foreach(self::$ts as $ts){
+        $tsValues[$ts] = ($this->conf['actTrackPrecision']==='datetime'
+                ? $this->intra->datetimePHP2SQL($this->arrAction[$this->conf['aatFlagTimestamp'][$ts]], 'NOW()')
+                : $this->intra->datePHP2SQL($this->arrAction[$this->conf['aatFlagTimestamp'][$ts]], 'NOW()')
+                );
+    }
+
+    if(!$this->conf['actFlagHasEstimates']){
+        $tsValues['ETD'] = $tsValues['ATD'];
+        $tsValues['ETA'] = $tsValues['ATA'];
+    }
+
+    if($this->conf['actFlagDepartureEqArrival']){
+        $tsValues['ETD'] = $tsValues['ETA'];
+        $tsValues['ATD'] = $tsValues['ATA'];   
+    }
+
+    if(strtotime($this->item->oSQL->unq($tsValues['ATA'])) < strtotime($this->item->oSQL->unq($tsValues['ATD']))){
+        $tsValues['ATA'] = $tsValues['ATD'];
+    }
+    if(strtotime($this->item->oSQL->unq($tsValues['ETA'])) < strtotime($this->item->oSQL->unq($tsValues['ETD']))){
+        $tsValues['ETA'] = $tsValues['ETD'];
+    }
+    
+
+    foreach($tsValues as $ts=>$value){
+        $sql .= "\n, acl{$ts} = {$value}";
+    }
+
+    return $sql;
 
 }
 
-public function initTraceData(){
+public function getUserStamps(){
+    $sql = '';
+    foreach ( (array)$this->conf["aatFlagUserStamp"] as $atrID => $xx ) {
+        if(array_key_exists($atrID, (array)$this->arrAction["aatFlagToTrack"]))
+            continue;
+        $sql .= "\n, {$atrID} = ".$oSQL->e($this->intra->usrID);
+    }
+    return $sql;
+}
+
+public function getTraceData(){
+
+    $aRet = array();
+
+    foreach((array)$this->conf['aatFlagToTrack'] as $field=>$props){
+        $aRet[$field] = $this->arrAction[$field];
+    }
+
+    $aRet_SQL = $this->intra->arrPHP2SQL($aRet, $this->item->table['columns_types']);
+
+    return $aRet_SQL;
 
 }
 
 
 
 
-static function itemCleanUp($item){
-	unset($item['ACL']);
+static function itemCleanUp($item, $prefix = ''){
+
+    unset($item['ACL']);
+    unset($item['ACL_Cancelled']);
+	unset($item['files']);
 	unset($item['STL']);
+
+    unset($item[$prefix.'EditBy']);
+    unset($item[$prefix.'EditDate']);
+    unset($item[$prefix.'InsertBy']);
+    unset($item[$prefix.'InsertDate']);
+
+    unset($item[$prefix.'StatusID']);
+    unset($item[$prefix.'StatusActionLogID']);
+    unset($item[$prefix.'ActionLogID']);
+
 	return $item;
 }
 

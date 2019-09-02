@@ -480,9 +480,9 @@ function datePHP2SQL($dtVar, $valueIfEmpty="NULL"){
         preg_match("/^".$this->conf["prgDate"]."$/", $dtVar) 
         ? "'".preg_replace("/".$this->conf["prgDate"]."/", $this->conf["prgDateReplaceTo"], $dtVar)."'" 
         : (
-            preg_match('/^[12][0-9]{3}\-[0-9]{2}-[0-9]{2}([ T][0-9]{1,2}\:[0-9]{2}(\:[0-9]{2}){0,1}){0,1}$/', $dtVar)
+            preg_match('/^[12][0-9]{3}\-[0-9]{2}\-[0-9]{2}([ T][0-9]{1,2}\:[0-9]{2}(\:[0-9]{2}){0,1}){0,1}$/', $dtVar, $m)
             ? "'".$dtVar."'"
-            : $valueIfEmpty 
+            : $valueIfEmpty
         )
         );
     return $result;
@@ -638,6 +638,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
             "idField" => "{$strPrefix}ID"
             , "textField" => "{$strPrefix}Title"
             , "textFieldLocal" => "{$strPrefix}TitleLocal"
+            , "orderField" => "{$strPrefix}Order"
             , "delField" => "{$strPrefix}FlagDeleted"
             );
     } else {
@@ -645,11 +646,27 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
             "idField" => "optValue"
             , "textField" => "optText"
             , "textFieldLocal" => "optTextLocal"
+            , "orderField" => "optOrder"
             , "delField" => "optFlagDeleted"
         );
     }    
+
+    $f = $oSQL->ff("SELECT * FROM `{$strTable}` WHERE 1=0");
+    $fields = array_keys($f);
+    if(!in_array($arrFields['textFieldLocal'], $fields))
+        $arrFields['textFieldLocal'] = $arrFields['textField'];
+    if(!in_array($arrFields['orderField'], $fields))
+        unset($arrFields['orderField']);
+    if(!in_array($arrFields['delField'], $fields))
+        unset($arrFields['delField']);
     
-    $sql = "SELECT `".$arrFields["textField{$this->local}"]."` as optText, `{$arrFields["idField"]}` as optValue
+    $sql = "SELECT ".($this->local
+            ? "(CASE WHEN IFNULL(`".$arrFields["textField{$this->local}"]."`, '')='' 
+                THEN `".$arrFields["textField"]."` 
+                ELSE `".$arrFields["textField{$this->local}"]."`
+                END)"
+            : "`".$arrFields["textField"]."`"
+            )." as optText, `{$arrFields["idField"]}` as optValue
         FROM `{$strTable}`";
     
     if ($strValue!=""){ // key-based search
@@ -676,9 +693,12 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
         }
 
         $sql .= "\r\nWHERE (\r\n{$sqlVariations}\r\n)"
-            .($flagShowDeleted==false ? " AND IFNULL(`{$arrFields["delField"]}`, 0)=0" : "")
+            .( ($flagShowDeleted===false && $arrFields["delField"]) ? " AND IFNULL(`{$arrFields["delField"]}`, 0)=0" : "")
             .$strExtra;
-        $sql .= "\r\nORDER BY `".$arrFields["textField{$this->local}"]."`";
+        if($strPrefix)
+            $sql .= "\r\nORDER BY `".($arrFields['orderField'] ? $arrFields['orderField'] : $arrFields["textField{$this->local}"])."`";
+        else if ( $arrFields['orderField'] ) 
+            $sql .= "\r\nORDER BY `{$arrFields['orderField']}`";
     }
     if(!$flagNoLimits)
         $sql .= "\r\nLIMIT 0, 30";
@@ -710,7 +730,7 @@ public function arrPHP2SQL($arrSrc, $types = array()){
                     $arrRet[$key] = $this->oSQL->unq(($value == null ? 'NULL' : (int)$value));
                     break;
                 case 'real':
-                    $arrRet[$key] = $this->oSQL->unq($this->intra->decPHP2SQL($value));
+                    $arrRet[$key] = $this->oSQL->unq($this->decPHP2SQL($value));
                     break;
                 case 'FK':
                 case 'select':
@@ -776,24 +796,30 @@ public function getSQLFields($tableInfo, $data){
 
     foreach($data as $field=>$value){
         if(in_array($field, $tableInfo['PK']))
-            continue;
+            if( !($tableInfo['PKtype']=='user_defined' && $value !== null) ){
+                continue;
+            } 
+
         if(!in_array($field, $tableInfo['columns_index']))
             continue;
         if( $value === null || ($this->table['columns_types'][$field]=="FK" && !$value) ){
-            $sqlFields .= "\n, {$field}=NULL";
+            if($tableInfo['columns_dict'][$field]['Null']==='YES')
+                $sqlFields .= "\n, {$field}=NULL";
             continue;
         }
-        switch($this->table['columns_types'][$field]){
+        switch($tableInfo['columns_types'][$field]){
             case 'real':
                 $sqlFields .= "\n, {$field}=".(double)$value;
                 break;
             case 'integer':
+            case 'boolean':
                 $sqlFields .= "\n, {$field}=".(integer)$value;
                 break;
             default:
                 $sqlFields .= "\n, {$field}=".$this->oSQL->e($value);
                 break;
         }
+
     }
 
     return $sqlFields;

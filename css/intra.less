@@ -13,6 +13,7 @@ html { height: 100% }
 body{
     margin: 0 0 0 0;
     padding: 0 0 0 0;
+    border: none;
     min-height: 100%;
     height: 100%;
     font: @ei-body-font;
@@ -271,24 +272,42 @@ td     {  	vertical-align: top; padding: 0;}
     cursor: pointer;
 }
 
+
 .ei-pane {
     padding-left: 0;
-    padding-top: @ei-header-height;
-
-    & > iframe#pane {
-        width: 100%;
-        height: 100%;
-        padding-top: @ei-header-height;
-        margin-top: -1 * @ei-header-height;
-    }
+    padding-top: @ei-header-height;  
+    &.no-header {
+        padding-top: 0;
+    }  
 }
 
+
+.ei-pane-frame {
+    position: fixed;
+    left: 0;
+    top: @ei-header-height;
+    right: 0;
+    bottom: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+
+
+    & > iframe {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+    }
+}
 
 #pane {
     padding: 0;
     margin: 0;
     border: 0;
-    position: fixed;
+    position: absolute;
     z-index: 0;
 }
 
@@ -412,6 +431,18 @@ td     {  	vertical-align: top; padding: 0;}
     z-index: 0;
 }
 
+.eif-form fieldset.no-legend {
+    margin-top: 0 !important;
+}
+
+.eif-form fieldset.has-subtitle {
+    margin-top: @ei-body-font-size * 3.4 !important;
+}
+.eif-form fieldset.has-subtitle legend {
+    height: @ei-body-font-size * 3.4;
+    top: -1 * @ei-body-font-size * 3.4;
+}
+
 .eiseIntraForm legend{
     position: absolute;
     height: 1.4em;
@@ -421,11 +452,23 @@ td     {  	vertical-align: top; padding: 0;}
     left: 0.5em;
     z-index: 0;
 }
-.eiseIntraForm legend > small{
+.eif-form legend > small{
     display: block;
     font-size: 14px;
     line-height: auto;
     font-weight: 200;
+}
+
+.eif-form fieldset.normal,
+.eif-form fieldset:first-of-type.normal {
+    margin-top: 1.5em !important;
+}
+.eif-form fieldset.normal > legend
+, .eif-form fieldset.normal:first-of-type > legend {
+    height: 1.4em;
+    top: -1.5em;
+    font-size: 1em;
+    font-weight: bold;
 }
 
 .eiseIntraForm  fieldset.half_screen
@@ -461,13 +504,36 @@ td     {  	vertical-align: top; padding: 0;}
     padding-right: 1% !important;
 }
 
-.eiseIntraForm .eiseIntraField.field-delimiter {
+.eif-form .eif-field > label {
+    &:after {
+        content: ":";
+    }
+}
+.eif-form .eif-field.required > label {
+    &:after {
+        content: "*:";
+    }
+}
+
+.eif-form .eif-field- > label,
+.eif-form .eif-field-delimiter > label,
+.eif-form .eif-field-boolean > label,
+.eif-form .eif-field-checkbox > label,
+.eif-form .eif-field-radio > label
+{
+    &:after {
+        content: "";
+    }
+}
+
+
+.eif-field-delimiter {
     padding-left: 10px;
     padding-right: 10px;
 }
 
-.eiseIntraForm label.field-delimiter-label {
-    text-align: left;
+.eif-field-delimiter > label {
+    text-align: left !important;
     width: 100%;
     border-bottom-style: solid;
     border-bottom-width: 1px;
@@ -512,6 +578,39 @@ input[type=checkbox].eiseIntraValue {
 .eiseIntraMultiple fieldset.eiseIntraActions  {
     width: 34.7%;
 }
+
+.eif-stl .eif-acl {
+    margin: 0 5px;
+}
+
+.eif-field-delimiter.eif-stl-title,
+.eif-field-delimiter.eif-acl-title
+  {
+    position: relative;
+
+    & label {
+        font-size: 1em;    
+        font-weight: bold;
+    }
+
+    & .dates {
+        position: absolute;
+        right: 0;
+        top: 0;
+        white-space: nowrap;
+    }
+}
+
+.eif-field-delimiter.eif-acl-title {
+    & label {
+        font-size: 0.9em;    
+    }
+
+    & .dates {
+        font-size: 0.9em;
+    }
+}
+
 .eiseIntraMultiple input.eiseIntraRadio {
     margin-left: 5% !important;
 }
@@ -858,12 +957,14 @@ div.eiseIntraComment {
 /* /eiseIntraMessages */
 /*****************************************************/
 
+
 .ei-pane {
     height: 100%;
     x-overflow: hidden;
     y-overflow: auto;
 }
-.ei-pane-frame {
+
+.ei-pane-framed {
     min-height: 100%;
     position: relative;
     overflow: visible;

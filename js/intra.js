@@ -65,22 +65,13 @@ var renderMenu = function(){
 
 var sideBarMenuChanged = function(){
 
-    var $iframe = $('.ei-pane iframe');
-
-    $('.ei-pane').css('padding-left', ($('.ei-sidebar-menu.visible')[0] 
-        ? $('.ei-sidebar-menu').outerWidth(true)
-        : '0') 
-    );
-    if($iframe[0]){
-        $iframe.css('padding-left', ($('.ei-sidebar-menu.visible')[0] 
+    var $iframe = $('.ei-pane-frame iframe'),
+        padding = ($('.ei-sidebar-menu.visible')[0] 
             ? $('.ei-sidebar-menu').outerWidth(true)
-            : '0') 
-        );
-        $iframe.css('margin-left', ($('.ei-sidebar-menu.visible')[0] 
-            ? -1 * $('.ei-sidebar-menu').outerWidth(true)
-            : '0')
-        );    
-    }
+            : '0');
+
+    $('.ei-pane-frame').css('left', padding );
+    $('.ei-pane').css('padding-left', padding );
 
 }
 
@@ -506,13 +497,20 @@ var convertDateForDateInput = function($eiForm, inp){
 
 var getInput = function(strFieldName){
 
-    return this.find('[name="'+strFieldName+'"]');
+    if(!strFieldName)
+        return null;
+
+    var ret = this.find('[name="'+strFieldName+'"]');
+    if( !ret[0] )
+        ret = this.find('#'+strFieldName);
+
+    return ret;
 
 }
 
 var getAllInputs = function($form){
 
-    return $form.find('.eiseIntraField input,.eiseIntraField select,.eiseIntraField textarea');
+    return $form.find('.eif-input, .eiseIntraField input,.eiseIntraField select,.eiseIntraField textarea');
 
 }
 
@@ -525,6 +523,7 @@ var getInputType = function($inp){
             if (item.match(/^eiseIntra_/)) {
                 switch(item){
                     case 'eiseIntra_date':
+                    case 'eiseIntra_time':
                     case 'eiseIntra_datetime':
                     case 'eiseIntra_money':
                     case 'eiseIntra_real':
@@ -684,10 +683,6 @@ init: function( options ) {
             
         });
 
-        $this.find('input[type="submit"]').each(function(){
-            $(this).addClass('eiseIntraSubmit');
-        });
-    
         $this.find('input.eiseIntra_date, input.eiseIntra_datetime').each(function() {
             $(this).attr('autocomplete', 'off');
             $(this).datepicker({
@@ -794,12 +789,14 @@ init: function( options ) {
 
         $this.find('.eiseIntraDelete').click(function(ev){
                 if (confirm("Are you sure you'd like to delete?")){
-                    $this.find('input,select').removeAttr('required');
-                    $this.find('#DataAction').val('delete');
+                    $this.find('input,select,textarea').removeAttr('required');
+                    $this.find('input[name="DataAction"]').val('delete');
                     $this.submit();
+                    return false;
                 } 
+                ev.stopImmediatePropagation();
+                return false;
         });
-        
     });
 },
 
@@ -814,7 +811,7 @@ validate: function( options ) {
     var canSubmit = true,
         conf = $.extend( $(this).data('eiseIntraForm').conf, options ),
         $this = $(this);
-    
+
     getAllInputs($this).each(function() {
 
         var strValue = $(this).val()
@@ -861,7 +858,7 @@ validate: function( options ) {
                 }
             case 'time':
             case 'datetime':
-                
+
                 strRegExDateToUse = (strRegExDateToUse!='' ? strRegExDateToUse : conf.strRegExDate);
 
                 var strRegEx = "^"+(strType.match(/date/) ? strRegExDateToUse : "")+
@@ -897,6 +894,7 @@ makeMandatory: function( obj ) {
             return true; // continue
         
         var label = getFieldLabel($(this));
+        $(this).parents('.eif-field').first().removeClass('required');
         if(label[0] && $.inArray( $(this).attr('id'), arrInitiallyRequiredFields ) < 0){
             label.text(label.text().replace(/\*\:$/, ":"));
             $(this).removeAttr('required');    
@@ -908,8 +906,9 @@ makeMandatory: function( obj ) {
         return;
     
     $(this).find( obj.strMandatorySelector ).each(function(){
-        
+
        var label = getFieldLabel($(this));
+       $(this).parents('.eif-field').first().addClass('required');
        label.text(label.text().replace(/\:$/, "*:"));
        if (!obj.flagDontSetRequired){
             $(this).attr('required', 'required');
@@ -1041,10 +1040,10 @@ fill: function(data, options){
 
         $.each(data, function(field, fieldData){
 
-            if( typeof(fieldData)=='object' && typeof(fieldData.v)=='undefined' )
+            if( typeof(fieldData)=='object' && (fieldData && typeof(fieldData.v)=='undefined') )
                 return true; // skip objects without data
 
-            var fData = (typeof(fieldData)=='object' && typeof(fieldData.v)!='undefined' 
+            var fData = (typeof(fieldData)=='object' && (fieldData && typeof(fieldData.v)!='undefined')
                 ? fieldData
                 : {v: fieldData});
 
@@ -1282,9 +1281,13 @@ createDialog: function( conf ){
     var btnCloseTitle = (conf.flagUnsubmittable ? 'Close' : 'Cancel');
 
     $frm.append('<div class="eif_actionButtons">'
-        +(conf.flagUnsubmittable ? '' : '<input type="submit" value="OK" class="eiseIntraSubmit">')
+        +(conf.flagUnsubmittable ? '' : '<input type="submit" value="OK">')
         +'<input type="button" value="'+btnCloseTitle+'" class="eif_btnClose">'
         +'</div>');
+
+    if(conf.id){
+        $frm.attr('id', conf.id);
+    }
 
     $frm.eiseIntraForm('init').submit(function(){
 
@@ -1325,6 +1328,8 @@ createDialog: function( conf ){
 
     if(conf.onclose)
         dlgConf.close = conf.onclose;
+    if(conf.oncreate)
+        dlgConf.create = conf.oncreate;
 
     if(conf.width)
         dlgConf.width = conf.width;
@@ -1361,6 +1366,7 @@ addField: function( field ){
     switch(type){
         case 'textarea':
             element = $('<textarea>');
+            element.addClass('eif-input');
             break;
         case 'combobox':
         case 'select':
@@ -1380,18 +1386,23 @@ addField: function( field ){
             break;
         case 'password':
             element = $('<input type="password">');
+            element.addClass('eif-input');
             break;
         case 'file':
             element = $('<input type="file">');
+            element.addClass('eif-input');
             break;
         case 'checkbox':
             element = $('<input type="checkbox">');
+            element.addClass('eif-input');
             break;
         case 'radio':
             element = $('<input type="radio">');
+            element.addClass('eif-input');
             break;
         case 'hidden':
             element = $('<input type="hidden">');
+            element.addClass('eif-input');
             break;
         case 'hr':
             element = $('<hr>');
@@ -1401,6 +1412,7 @@ addField: function( field ){
             break;
         default:
             element = $('<input type="text">');
+            element.addClass('eif-input');
             if(field.type!='text'){
                 element.addClass('eiseIntra_'+field.type);
             }
@@ -1438,7 +1450,7 @@ addField: function( field ){
                 .append( $('<label>'+field.title+'</label>').prepend(element).addClass('eiseIntraValue') )
             : $('<div><label>'+field.title+':</label></div>').append(
                 (field.type=='ajax_dropdown'
-                    ? $('<input type="hidden" name="'+field.name+'">').val(field.value)
+                    ? $('<input type="hidden" name="'+field.name+'">').addClass('eif-input').val(field.value)
                     :  null)
                 ).append(element.addClass('eiseIntraValue'))
             ).addClass('eiseIntraField');
@@ -1492,6 +1504,70 @@ adjustFieldsetHeights: function(ixStart, ixFinish){
     });
 
     
+},
+
+upload2batch: function( options ){
+    
+    var defaultOptions = {'maxFileSize': 100000000},
+        title = $(this).text(),
+        fields = [{name: 'DataAction'
+                , type: 'hidden'
+                , value: (options['DataAction'] ? options['DataAction'] : 'upload')}
+            , {name: (options['fileFieldName'] ? options['fileFieldName'] : 'the_file')
+                , type: 'file'
+                , title: (options['fileFieldTitle'] ? options['fileFieldTitle'] : 'Choose file')}];
+
+    options = $.extend(defaultOptions, (options ? options : {}))
+
+    if(options['fields'] && options['fields'].isArray())
+        fields = $.extend(fields, options['fields']);
+
+    $(this).eiseIntraForm('createDialog', {
+        title: (options['title'] ? options['title'] : title)
+        , action: (options['action'] ? options['action'] : location.pathname+'?nocache=true')
+        , method: 'POST'
+        , fields: fields
+        , onsubmit: function(ev){
+
+                var form = this
+                    , $form = $(this)
+                    , fileInput = $form.find('input[type="file"]')[0]
+                    , file = fileInput.files[0]
+                    , ext = file.name.split('.').pop().toLowerCase()
+                    , $dialog = $form;
+
+                if(file.name.length < 1) {
+                }
+                else if(file.size > options['maxFileSize']) {
+                    alert("The file is too big: "+file.size);
+                }
+                else if( options['allowedExts'] && Array.isArray(options['allowedExts']) && options['allowedExts'].indexOf(ext) === -1 ) {
+                    alert("It should be file with extension "+options['allowedExts'].join(', '));
+                }
+                else { 
+
+                    $form.find('input[type=submit]').val('Please wait...')
+                        .addClass('btn_spinner')
+                        .prop('disabled', true);
+
+                    $form.eiseIntraBatch('submit', {
+                        timeoutTillAutoClose: null
+                        , flagAutoReload: true
+                        , title: title
+                        , onload: function(){
+                            $dialog.dialog('close').remove();
+                        }
+                    });
+
+                }
+
+                return false;
+
+            }
+    })
+
+    //$(this).eiseIntraBatch({url: 'job_form.php?DataAction=recalcJIT&jobIDs='+strSel, timeoutTillAutoClose: null});
+    return false;
 }
 
 };

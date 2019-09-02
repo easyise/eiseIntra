@@ -123,6 +123,10 @@ $arrActions[]= Array ("title" => "Create table"
 	   , "action" => "javascript:CreateNewTable();"
 	   , "class" => "ss_add"
 	);
+$arrActions[]= Array ("title" => "De-Excelize"
+       , "action" => "#deexcelize"
+       , "class" => "ss_page_excel"
+    );
 
 if(!$arrFlags['hasPages']){
         $arrActions[]= Array ("title" => "Apply eiseIntra"
@@ -149,6 +153,10 @@ $arrActions[]= Array ("title" => "Dump Selected Tables"
        , "action" => "javascript:dumpSelectedTables('{$dbName}')"
        , "class" => "ss_cog_go  "
     );  
+
+  
+
+
 if ($eiseDBSVersion){
     $arrActions[]= Array ("title" => "Get DBSV delta"
        , "action" => "database_act.php?DataAction=getDBSVdelta&dbName={$dbName}"
@@ -308,6 +316,93 @@ $(document).ready(function(){
 
     $('#frm-create-database').submit(fnSubmit)
 
+    $('a[href="#deexcelize"]').click(function(){
+
+        var initiator = this,
+            $initiator = $(this),
+        $dialog = $(this).eiseIntraForm('createDialog', {
+            title: $initiator.text()
+            , method: 'POST'
+            , action: 'database_act.php'+location.search+'&nocache=true'
+            , fields: [{
+                type: 'hidden'
+                , name: 'DataAction'
+                , value: 'deexcelize'
+            },{
+                type: 'file'
+                , name: 'excel'
+                , title: 'XLSX file'
+            },{
+                type: 'text'
+                , name: 'table'
+                , title: 'Table name'
+            },{
+                type: 'text'
+                , name: 'prfx'
+                , title: 'Table prefix'
+            },{
+                type: 'textarea'
+                , name: 'tableCreate'
+                , title: 'Table Create'
+            },
+            ] 
+            , oncreate: function(){
+                var $dlg = $(this);
+                $dlg.find('input[name="excel"]').change(function(){
+                    var filename = $(this).val(),
+                        aFile = filename.split('.'),
+                        ext = aFile[aFile.length - 1],
+                        tableBase = aFile[0].replace(/[\-\s]/gi, '')
+                        table = 'tbl_'+tableBase+'_upload',
+                        prfx = aFile[0].replace(/[aeiou0-9]/gi, '').substr(0,3)+'u';
+                    if(ext.toLowerCase()!='xlsx'){
+                        alert("This is not XLSX file")
+                        return false;
+                    }
+                    
+                    $dlg.find('input[name="table"]').val(table);
+                    $dlg.find('input[name="prfx"]').val(prfx);
+                    
+
+                })
+            }
+            , onsubmit: function(){
+                    if(!$dialog.find('[name="tableCreate"]').val()){
+                        $dialog.find('input[name="DataAction"]').val('deexcelize_getCreate')
+                        $.post({url: 'database_act.php',
+                                data: new FormData($dialog[0]),
+                                success: function(nd){
+                                    $dialog.find('[name="tableCreate"]').val(nd);
+                                },
+                                // Options to tell jQuery not to process data or worry about the content-type
+                                cache: false,
+                                contentType: false,
+                                processData: false
+                            }, 'html');
+                        return false;
+                    } else {
+                        $dialog.find('input[name="DataAction"]').val('deexcelize');
+                        $.post({url: 'database_act.php',
+                                data: new FormData($dialog[0]),
+                                success: function(nd){
+                                    alert("We're done")
+                                    //$dialog.dialog('close').remove();
+                                },
+                                // Options to tell jQuery not to process data or worry about the content-type
+                                cache: false,
+                                contentType: false,
+                                processData: false
+                            }, 'html');
+                    }
+                    return false;
+              }
+
+        });
+
+        return false;
+
+    })
+
 });
 
 function CreateNewTable(){
@@ -355,7 +450,7 @@ var applyIntra = function(){
     $dialog = $(this).eiseIntraForm('createDialog', {
       title: $initiator.text()
       , method: 'POST'
-      , action: 'database_act.php'+location.search
+      , action: 'database_act.php'+location.search+'&nocache=true'
       , fields: [{
         type: 'hidden'
         , name: 'DataAction'

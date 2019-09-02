@@ -142,7 +142,7 @@ eiseGrid.prototype.initLinesStructure = function(){
                 };
 
         oGrid.tbodyTemplate.find('td.'+oGrid.id+'-'+colName).each(function(){
-            linesStructCol.fields[linesStructCol.fields.length] = $(this).find('input').first().attr('name').replace('[]', '');
+            linesStructCol.fields[linesStructCol.fields.length] = $(this).find('input,button').first().attr('name').replace('[]', '');
         });
 
         linesStruct[linesStruct.length] = linesStructCol;
@@ -448,7 +448,7 @@ var __attachFloatingSelect = function( $tbody ){
         var opts = oSelect[0].options;
 
         $(this).parent('td').append(oSelect);
-        
+
         oSelect.css('display', 'block');
         oSelect.offset({
             left: $(this).offset().left
@@ -981,7 +981,7 @@ eiseGrid.prototype.deleteSelectedRows = function(event, callback){
     var allowDelete = true;
 
     if(typeof grid.beforeDeleteCallback === 'function'){
-        if(!grid.beforeDeleteCallback (event))
+        if(!grid.beforeDeleteCallback.call (this, event))
             return false;
     }
 
@@ -998,7 +998,7 @@ eiseGrid.prototype.deleteSelectedRows = function(event, callback){
     });
 
     if(typeof grid.afterDeleteCallback === 'function'){
-        grid.afterDeleteCallback (event);
+        grid.afterDeleteCallback.call (this, event);
     }
 }
 
@@ -1289,8 +1289,8 @@ eiseGrid.prototype.text = function(oTr, strFieldName, text){
         || this.conf.fields[strFieldName].disabled !=undefined
         || (this.conf.fields[strFieldName].href !=undefined && this.value(oTr, strFieldName)!="")
         ){
-            return (oTr.find('.'+this.id+'-'+strFieldName)[0]
-                    ? oTr.find('.'+this.id+'-'+strFieldName).text()
+            return (oTr.find('td[data-field="'+strFieldName+'"]')[0]
+                    ? oTr.find('td[data-field="'+strFieldName+'"]').text()
                     : (oTr.find('input[name="'+strFieldName+'_text[]"]')[0]
                         ? oTr.find('input[name="'+strFieldName+'_text[]"]').val()
                         : oTr.find('input[name="'+strFieldName+'[]"]').val())
@@ -1318,7 +1318,7 @@ eiseGrid.prototype.text = function(oTr, strFieldName, text){
 }
 
 eiseGrid.prototype.focus = function(oTr, strFieldName){
-    oTr.find('.'+this.id+'-'+strFieldName+' input[type=text]').focus().select();
+    oTr.find('.'+this.id+'-'+strFieldName+' input[type="text"]').focus();
 }
 
 eiseGrid.prototype.verifyInput = function (oTr, strFieldName) {
@@ -1362,10 +1362,10 @@ eiseGrid.prototype.verifyInput = function (oTr, strFieldName) {
                     .replace("Y", "[0-9]{4}")
                     .replace("y", "[0-9]{1,2}");
                 var strRegExTime = this.conf.timeFormat
-                    .replace(new RegExp("\.", "g"), "\\.")
-                    .replace(new RegExp("\:", "g"), "\\:")
-                    .replace(new RegExp("\/", "g"), "\\/")
-                    .replace("h", "[0-9]{1,2}")
+                    .replace(new RegExp("\\.", "g"), "\\.")
+                    .replace(new RegExp("\\:", "g"), "\\:")
+                    .replace(new RegExp("\\/", "g"), "\\/")
+                    .replace("H", "[0-9]{1,2}")
                     .replace("i", "[0-9]{1,2}")
                     .replace("s", "[0-9]{1,2}");
                 
@@ -1533,9 +1533,7 @@ eiseGrid.prototype.reset = function(fn){
     
     var oGrid = this;
 
-    this.tableContainer.find('tbody.eg-data').each(function(){ // delete visible rows
-        oGrid.deleteRow($(this));
-    });
+    this.tableContainer.find('tbody.eg-data').remove();
     this.tableContainer.find('tbody.eg-no-rows').css('display', 'table-row-group');
 
     if (typeof(fn)!='undefined'){
@@ -1684,7 +1682,7 @@ eiseGrid.prototype.fill = function(data, fn){
                             if(href){
                                 $elem = __doHREF(props, $div, href)
                             }
-                            $elem.text(text);
+                            $elem.html(text);
                         }
                         break;
                 }
@@ -1821,7 +1819,10 @@ eiseGrid.prototype.excel = function(options){
                     );
                 strTH += '<Cell><Data ss:Type="String">'+grid.conf.fields[grid.conf.fieldIndex[i]].title+'</Data></Cell>\n';
             }
-            var val = grid.value($tr, grid.conf.fieldIndex[i]),
+            var val = (['ajax_dropdown', 'combobox', 'select'].indexOf(grid.conf.fields[grid.conf.fieldIndex[i]]['type'])!==-1 
+                ? grid.text($tr, grid.conf.fieldIndex[i])
+                : grid.value($tr, grid.conf.fieldIndex[i])
+                ),
                 isDateTime = grid.conf.fields[grid.conf.fieldIndex[i]].typeExcel=='DateTime' && val.match(/^([0-9]{4}\-[0-9]{2}\-[0-9]{2})(T[0-9]{2}\:[0-9]{2}(\:[0-9]{2}\:[0-9]*){0,1}){0,1}$/),
                 typeExcel = (grid.conf.fields[grid.conf.fieldIndex[i]].typeExcel=='DateTime' 
                     ? (isDateTime ? 'DateTime' : 'String')
