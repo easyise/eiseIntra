@@ -1,4 +1,80 @@
 <?php
+include eiseIntraAbsolutePath."inc_item_traceable.php";
+
+try {
+    $item = new eiseItemTraceable( $_GET['ID'], array('entID'=>($_POST['entID'] ? $_POST['entID'] : $_GET['entID'])) );
+    $item->conf['logTable'] = $oSQL->d("SHOW TABLES LIKE '{$item->conf['table']}_log'") ;
+} catch (Exception $e) {
+    $intra->redirect('ERROR: '.$e->getMessage(), $intra->backref(false));
+}
+
+$intra->dataAction('updateFullEdit', $item);
+$intra->dataAction('undo', $item);
+$intra->dataAction('undoEdit', $item);
+
+$arrActions[]= Array ("title" => $intra->translate("Normal Edit Mode")
+               , "action" => $item->conf['form'].'?'.$item->getURI()
+               , "class"=> "ss_arrow_left"
+            ); 
+
+if ($intra->arrUsrData['FlagWrite']) {
+    $arrActions[]= Array ("title" => $intra->translate("Undo Last Action")
+          // , "action" => $_SERVER["PHP_SELF"]."?ID=".urlencode($entItemID)."&entID={$entID}&DataAction=undo"
+           , "action" => "javascript:confirmUndo()"
+           , "class"=> "ss_arrow_undo"
+        ); 
+    $arrActions[]= Array ("title" => $intra->translate("Save")." ".$entItem->conf["entTitle{$intra->local}"]
+       , "action" => 'javascript:save()'
+       , "class"=> "bold ss_disk save_button"
+    );
+}
+
+
+
+
+include eiseIntraAbsolutePath."inc_top.php";
+
+$aFields = array();
+
+foreach ($item->conf['ATR'] as $atrID => $arrAtr) {
+    if(in_array($atrID, $item->table['columns_index'])){
+        $aFields[] = $atrID;
+    } 
+}
+
+$htmlAttrs = $item->getAttributeFields($aFields, null, array('FlagWrite'=>$intra->arrUsrData['FlagWrite'], 'forceFlagWrite'=>true));
+
+$fldsMain = $intra->fieldset( "{$item->conf['entTitle'.$intra->local]} {$item->id}", $htmlAttrs, array('class'=>'half_screen') );
+$fldsActivity = $intra->fieldset( $intra->translate('Activity log') 
+    , $item->showStatusLog(array('FlagWrite'=>$intra->arrUsrData['FlagWrite'], 'forceFlagWrite'=>true)) 
+    , array('class'=>'half_screen') );
+
+echo $item->form(
+        $intra->field(null, "undoWarning", $intra->translate('WARNING: Undo will erase all data related to last action. Are you sure?'), array('type'=>'hidden'))."\n".
+        $fldsMain."\n".
+        $fldsActivity
+        , array('action'=>$_SERVER['PHP_SELF'], 'DataAction'=>'updateFullEdit')
+    );
+
+?>
+<script>
+function confirmUndo(){
+    if (confirm($('#undoWarning').val())){
+        location.href = location.href+'&DataAction=undo';
+    }
+}
+function save(){
+    $('.eiseIntraForm')[0].submit();
+}
+</script>
+
+<?php
+
+include eiseIntraAbsolutePath."inc_bottom.php";
+
+die();
+
+
 include eiseIntraAbsolutePath."inc_entity_item_form.php";
 $arrJS[] = eiseIntraRelativePath."action.js";
 
