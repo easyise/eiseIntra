@@ -410,7 +410,11 @@ function get_html($allowEdit=true){
                 } else {
                     $ds = @json_decode($fld['source'], true);
                     if(!$ds){
-                        @eval('$ds = '.$fld['source']);
+                        
+                        try {
+                            @eval('$ds = '.$fld['source'].';');
+                        } catch (ParseError $e) {}
+                        
                         if(!$ds){
                             if(!preg_match('/^select\s+/i', $fld['source'])){
                                 $aDS = explode('|', $fld['source']);

@@ -54,4 +54,5 @@ function getDataFromCommonViews($oSQL, $val, $text, $table, $prefix){GLOBAL $int
 function GetRoleUsers($oSQL, $rolID){GLOBAL $intra; return $intra->getRoleUsers($rolID);}
 function GetUserData($oSQL, $usrID, $strWhatData = "all"){GLOBAL $intra; return $intra->getUserData_All($usrID, $strWhatData);}
 function GetUserNameByID($oSQL, $usrID){GLOBAL $intra; return $intra->getUserData_All($usrID, 'fn_sn');}
+function loadCSS(){GLOBAL $intra; return $intra->loadCSS();}
 ?>

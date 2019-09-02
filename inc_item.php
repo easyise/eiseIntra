@@ -194,7 +194,9 @@ public function form( $fields = null, $conf = array() ){
 
 	$conf = array_merge( array('id'=>$this->table['prefix'], 'flagAddJavaScript'=>True), $conf);
 
-	return $this->intra->form($this->conf['form'], 'update', $fields, 'POST', $conf);
+	return $this->intra->form(($conf['action'] ? $conf['action'] : $this->conf['form'])
+		, ($conf['DataAction'] ? $conf['DataAction'] : 'update')
+		, $fields, 'POST', $conf);
 
 }
 
@@ -297,15 +299,15 @@ public function delete(){
  * This function prevents recursive hooks when object instances are created within existing hook
  */
 public function preventRecursiveHooks(&$nd = array()){
-	unset($_POST[$this->intra->conf['dataActionKey']]);
-	unset($_POST[$this->intra->conf['dataReadKey']]);
+	$this->intra->cancelDataAction($nd);
+	$this->intra->cancelDataRead($nd);
 	unset($nd[$this->conf['PK']]);
 }
 
 /**
  * This function transforms data from the input array into SQL ans saves it. Also it calculates delta and returns it.
  */
-public function updateTable($nd){
+public function updateTable($nd, $flagDontConvertToSQL = false){
 
 	$sqlFields = '';
 
@@ -319,7 +321,7 @@ public function updateTable($nd){
 			unset($nd[$field]);
 	}
 
-	$nd_sql = $this->intra->arrPHP2SQL($nd, $this->table['columns_types']);
+	$nd_sql = ($flagDontConvertToSQL ? $nd : $this->intra->arrPHP2SQL($nd, $this->table['columns_types']));
 
 	$sqlFields = $this->intra->getSQLFields($this->table, $nd_sql);
 

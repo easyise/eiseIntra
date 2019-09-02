@@ -16,7 +16,7 @@ public function __construct($item, $arrAct){
 		$arrAct['actID'] = 2;
 
 	if($arrAct['aclGUID']){
-		$this->item->refresh(array('Master', 'ACL'));
+		$this->item->getAllData(array('Master', 'ACL'));
         $this->arrAction = $this->item->item['ACL'][$arrAct['aclGUID']];
         $traced = array();
         foreach($nd as $field=>$value){
@@ -134,27 +134,36 @@ public function add(){
 
 function start(){
     
-    $oSQL = $this->oSQL;
-    
-    $usrID = $this->intra->usrID;
-    $entID = $this->item->entID;
-    $entItemID = $this->item->id;
-    
+    $this->arrAction['aclOldStatusID'] = $this->item->staID;
+
+    if (!in_array($this->item->staID,  $this->conf['actOldStatusID']))
+        throw new Exception("Action {$this->conf["actTitle"]} cannot be started for {$this->id} because of its status ({$this->item->staID})");
+
+    if (($oldStatusID!==$newStatusID 
+          && $newStatusID!==""
+        )
+        || $this->conf["actFlagInterruptStatusStay"]){
+
+        $this->onStatusDeparture($this->arrAction['aclOldStatusID']);
+
+    }
+
+    $this->item->onActionStart($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
+
     $sqlUpdACL = "UPDATE stbl_action_log SET 
         aclActionPhase=1
+        , aclOldStatusID = '{$this->item->staID}'
         , aclItemBefore = ".$this->oSQL->e( json_encode($this->item->item_before) )."
         , aclStartBy='{$this->intra->usrID}', aclStartDate=NOW()
         , aclEditBy='{$this->intra->usrID}', aclEditDate=NOW()
     WHERE aclGUID='{$this->arrAction['aclGUID']}'";
-    $oSQL->do_query($sqlUpdACL);
+    $this->oSQL->do_query($sqlUpdACL);
     
     $sqlUpdEntTable = "UPDATE {$this->item->conf["table"]} SET
-            {$entID}ActionLogID='{$this->arrAction['aclGUID']}'
-            , {$entID}EditBy='{$this->intra->usrID}', {$entID}EditDate=NOW()
+            {$this->item->conf['prefix']}ActionLogID='{$this->arrAction['aclGUID']}'
+            , {$this->item->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->item->conf['prefix']}EditDate=NOW()
             WHERE {$this->item->conf['PK']}='{$entItemID}'";
-    $oSQL->do_query($sqlUpdEntTable);
-
-    $this->item->onActionStart($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
+    $this->oSQL->do_query($sqlUpdEntTable);
 
 }
 
@@ -205,11 +214,13 @@ public function finish(){
     $this->checkTimeLine();
     $this->checkMandatoryFields();
 
-    $item_before = self::itemCleanUp($this->item->item_before);
+    $item_before = self::itemCleanUp($this->item->item_before, $this->item->conf['prefix']);
 
-    $this->item->refresh();
+    $this->item->getAllData(array('Master'));
 
-    $item_after = self::itemCleanUp($this->item->item);
+    $item_after = self::itemCleanUp($this->item->item, $this->item->conf['prefix']);
+
+    $item_diff = array_diff($item_before, $item_after);
 
     $timestamps = $this->getTimeStamps();
     $aTraced = $this->getTraceData();
@@ -218,6 +229,7 @@ public function finish(){
     $sqlUpdACL = "UPDATE stbl_action_log SET
         aclActionPhase = 2
         , aclItemAfter = ".$this->oSQL->e(json_encode($item_after))."
+        , aclItemDiff = ".$this->oSQL->e(json_encode($item_diff))."
         {$timestamps}
         ".($this->conf["actID"]!="2" && count($aTraced)>0
             ? ", aclItemTraced=".$this->oSQL->e(json_encode($aTraced))
@@ -502,9 +514,22 @@ public function getTraceData(){
 
 
 
-static function itemCleanUp($item){
-	unset($item['ACL']);
+static function itemCleanUp($item, $prefix = ''){
+
+    unset($item['ACL']);
+    unset($item['ACL_Cancelled']);
+	unset($item['files']);
 	unset($item['STL']);
+
+    unset($item[$prefix.'EditBy']);
+    unset($item[$prefix.'EditDate']);
+    unset($item[$prefix.'InsertBy']);
+    unset($item[$prefix.'InsertDate']);
+
+    unset($item[$prefix.'StatusID']);
+    unset($item[$prefix.'StatusActionLogID']);
+    unset($item[$prefix.'ActionLogID']);
+
 	return $item;
 }
 
