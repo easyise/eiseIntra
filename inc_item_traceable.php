@@ -75,11 +75,7 @@ public function update($nd){
     $this->oSQL->q('START TRANSACTION');
     // 2. do the action
     $this->doAction(new eiseAction($this, $nd));
-    // 3. do extra actions
-    foreach ($this->extraActions as $act) {
-        //die('<pre>'.var_export($act->arrAction, true));
-        $this->doAction($act);
-    }
+    
     $this->oSQL->q('COMMIT');
 
 }
@@ -661,6 +657,12 @@ public function doAction($oAct){
     $this->currentAction = $oAct;
     $oAct->execute();
     unset($this->currentAction);
+    // do extra actions
+    foreach ($this->extraActions as $act) {
+        $this->currentAction = $act;
+        $act->execute();
+        unset($this->currentAction);
+    }
 }
 
 public function updateUnfinishedActions($nd = null){
