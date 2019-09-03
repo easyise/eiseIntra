@@ -1713,7 +1713,10 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
                     if(!$ds){
                         if(!$conf['source'])
                             throw new Exception("Source for column {$name} not specified.", 1);
-                        @eval('$ds = '.$conf['source'].';');
+                        try {
+                            @eval('$ds = '.$conf['source'].';');
+                        } catch (ParseError $e) {}
+                        
                         if(!$ds){
                             if(!preg_match('/^select\s+/i', $conf['source'])){
                                 $aDS = explode('|', $conf['source']);
