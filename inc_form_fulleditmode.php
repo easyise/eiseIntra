@@ -1,5 +1,5 @@
 <?php
-include eiseIntraAbsolutePath."inc_item_traceable.php";
+include_once eiseIntraAbsolutePath."inc_item_traceable.php";
 
 try {
     $item = new eiseItemTraceable( $_GET['ID'], array('entID'=>($_POST['entID'] ? $_POST['entID'] : $_GET['entID'])) );

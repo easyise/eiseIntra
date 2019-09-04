@@ -154,7 +154,7 @@ public function undo($nd){
     // 4. remove all collected "update" actions
     if (count($aUpdates)){
         $strToDel = "'".implode("','", $aUpdates)."'";
-        $this->oSQL->q("DELETE FROM atbl_action_log WHERE aclGUID IN ({$strToDel})");
+        $this->oSQL->q("DELETE FROM stbl_action_log WHERE aclGUID IN ({$strToDel})");
     }
 
     // $this->oSQL->showProfileInfo();
