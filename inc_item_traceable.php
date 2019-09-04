@@ -157,12 +157,12 @@ public function undo($nd){
         $this->oSQL->q("DELETE FROM stbl_action_log WHERE aclGUID IN ({$strToDel})");
     }
 
-    // $this->oSQL->showProfileInfo();
-    // die('<pre>'.var_export($this->item['ACL'], true));
+    $this->oSQL->showProfileInfo();
+    die('<pre>'.var_export($this->item['ACL'], true));
 
     $this->oSQL->q('COMMIT');
 
-    $this->msgToUser = $this->intra->translate('Action is undoed');
+    $this->msgToUser = $this->intra->translate('Action is undone');
     $this->redirectTo = $_SERVER['PHP_SELF'].'?entID='.$this->entID."&ID=".urlencode($this->id);
 
 }
@@ -670,7 +670,7 @@ public function updateUnfinishedActions($nd = null){
     if($nd===null)
         $nd = $_POST;
 
-    foreach($this->item['ACL'] as $aclGUID=>$rwACL){
+    foreach((array)$this->item['ACL'] as $aclGUID=>$rwACL){
         if ($rwACL["aclActionPhase"]>=2)
             continue;
 
