@@ -1236,9 +1236,11 @@ function showUnfinishedActions(){
         if ($rwACL["aclActionPhase"]>=2)
             continue;
 
+        $act = $this->conf['ACT'][$rwACL['aclActionID']];
+
         $flagWrite = $this->intra->arrUsrData['FlagWrite'] 
             && (count(array_intersect($this->intra->arrUsrData['roleIDs']
-                , (array)$this->conf['ACT'][$rwACL['aclActionID']]['RLA']))>0);
+                , (array)$act['RLA']))>0);
 
         $html .= $this->showActionInfo($aclGUID
             , array('FlagWrite' => $flagWrite
@@ -1250,10 +1252,10 @@ function showUnfinishedActions(){
 
             $html .= '<div align="center">'."\n";
 
-            if ($rwACL["aclActionPhase"]=="0"){
+            if ($rwACL["aclActionPhase"]=="0" && !$act['actFlagDepartureEqArrival']){
                 $html .= $this->intra->showButton("start_{$aclGUID}", $this->intra->translate("Start"), array('class'=>"eiseIntraActionButton"));
             }
-            if ($rwACL["aclActionPhase"]=="1"){
+            if ($rwACL["aclActionPhase"]=="1" || $act['actFlagDepartureEqArrival']){
                 $html .= $this->intra->showButton("finish_{$aclGUID}", $this->intra->translate("Finish"), array('class'=>"eiseIntraActionButton"));
             }
             $html .= $this->intra->showButton("cancel_{$aclGUID}", $this->intra->translate("Cancel"), array('class'=>"eiseIntraActionButton"));
@@ -1281,11 +1283,17 @@ function showActionInfo($aclGUID, $conf = array()){
 
         $htmlTiming = '<div class="dates">'.$this->intra->showDatesPeriod($rwACL['aclATD'], $rwACL['aclATA'], $rwACT['actTrackPrecision']).'</div>'."\n";
 
-        $html .= $this->intra->field(($rwACT["actTitlePast{$this->intra->local}"]!="" 
+        $actTitle = ($rwACL['aclActionPhase']==2 
+            ? ($rwACT["actTitlePast{$this->intra->local}"]!="" 
                 ? $rwACT["actTitlePast{$this->intra->local}"]
-                : $rwACT["actTitlePast"]), null, null, array('fieldClass'=>'eif-acl-title'
-                , 'extraHTML'=> $htmlTiming))
-        ;
+                : $rwACT["actTitlePast"])
+            : ($rwACT["actTitle{$this->intra->local}"]!="" 
+                ? $rwACT["actTitle{$this->intra->local}"]
+                : $rwACT["actTitle"])
+            );
+
+        $html .= $this->intra->field($actTitle, null, null, array('fieldClass'=>'eif-acl-title'
+                , 'extraHTML'=> $htmlTiming));
 
         $traced = $this->getTracedData(array_merge($rwACL, $rwACT));
 

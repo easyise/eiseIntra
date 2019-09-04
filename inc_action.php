@@ -257,8 +257,7 @@ public function finish(){
 
     }
 
-
-
+    $this->item->getAllData(array('Master'));
     
     $this->item->onActionFinish($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
 
