@@ -1371,6 +1371,8 @@ addField: function( field ){
         case 'combobox':
         case 'select':
             element = $('<select>');
+            if(field.defaultText)
+                element.append($('<option value="">'+field.defaultText+'</option>'));
             if(typeof field.options == 'string' && field.options.match(/^\s*\<option/i)){
                 element.append($(field.options));
 

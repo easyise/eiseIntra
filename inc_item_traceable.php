@@ -99,7 +99,6 @@ public function updateFullEdit($nd){
 public function undo($nd){
 
     $this->oSQL->q('START TRANSACTION');
-    // $this->oSQL->startProfiling();
 
     // 1. pick last non-edit action and collect all edit actions for removal
     $aUpdates = array();
@@ -154,7 +153,7 @@ public function undo($nd){
     // 4. remove all collected "update" actions
     if (count($aUpdates)){
         $strToDel = "'".implode("','", $aUpdates)."'";
-        $this->oSQL->q("DELETE FROM atbl_action_log WHERE aclGUID IN ({$strToDel})");
+        $this->oSQL->q("DELETE FROM stbl_action_log WHERE aclGUID IN ({$strToDel})");
     }
 
     // $this->oSQL->showProfileInfo();
@@ -162,7 +161,7 @@ public function undo($nd){
 
     $this->oSQL->q('COMMIT');
 
-    $this->msgToUser = $this->intra->translate('Action is undoed');
+    $this->msgToUser = $this->intra->translate('Action is undone');
     $this->redirectTo = $_SERVER['PHP_SELF'].'?entID='.$this->entID."&ID=".urlencode($this->id);
 
 }
@@ -670,7 +669,7 @@ public function updateUnfinishedActions($nd = null){
     if($nd===null)
         $nd = $_POST;
 
-    foreach($this->item['ACL'] as $aclGUID=>$rwACL){
+    foreach((array)$this->item['ACL'] as $aclGUID=>$rwACL){
         if ($rwACL["aclActionPhase"]>=2)
             continue;
 

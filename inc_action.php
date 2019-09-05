@@ -123,8 +123,10 @@ public function add(){
     // 3. Trigger onActionPlan hook
     $this->item->onActionPlan($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
 
-    $this->oSQL->q("UPDATE stbl_action_log SET aclItemTraced = ".$this->oSQL->e(json_encode($this->getTraceData()))." 
-        WHERE aclGUID='{$this->arrAction["aclGUID"]}'");
+    $aToTrace = $this->getTraceData();
+    if(count($this->getTraceData()))
+        $this->oSQL->q("UPDATE stbl_action_log SET aclItemTraced = ".$this->oSQL->e(json_encode($aToTrace))." 
+            WHERE aclGUID='{$this->arrAction["aclGUID"]}'");
 
     $this->arrAction['aclActionPhase'] = 0;
 
@@ -216,31 +218,9 @@ public function finish(){
 
     $item_before = self::itemCleanUp($this->item->item_before, $this->item->conf['prefix']);
 
-    $this->item->getAllData(array('Master'));
-
-    $item_after = self::itemCleanUp($this->item->item, $this->item->conf['prefix']);
-
-    $item_diff = array_diff($item_before, $item_after);
-
     $timestamps = $this->getTimeStamps();
     $aTraced = $this->getTraceData();
 
-    // update started action as completed
-    $sqlUpdACL = "UPDATE stbl_action_log SET
-        aclActionPhase = 2
-        , aclItemAfter = ".$this->oSQL->e(json_encode($item_after))."
-        , aclItemDiff = ".$this->oSQL->e(json_encode($item_diff))."
-        {$timestamps}
-        ".($this->conf["actID"]!="2" && count($aTraced)>0
-            ? ", aclItemTraced=".$this->oSQL->e(json_encode($aTraced))
-            : ', aclItemTraced=NULL')."
-        , aclStartBy=IFNULL(aclStartBy, '{$this->intra->usrID}'), aclStartDate=IFNULL(aclStartDate,NOW())
-        , aclFinishBy=IFNULL(aclFinishBy, '{$this->intra->usrID}'), aclFinishDate=IFNULL(aclFinishDate, NOW())
-        , aclEditDate=NOW(), aclEditBy='{$this->intra->usrID}'
-        WHERE aclGUID='".$this->arrAction["aclGUID"]."'";
-
-    $this->oSQL->q($sqlUpdACL);
-    
     if ($this->conf["actID"]!="2") {
 
         $tracedFields = $this->intra->getSQLFields($this->item->table, $aTraced);
@@ -256,10 +236,6 @@ public function finish(){
         $this->oSQL->q($sqlMaster);
 
     }
-
-    $this->item->getAllData(array('Master'));
-    
-    $this->item->onActionFinish($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
 
     // if status is changed or action requires status stay interruption, we insert status log entry and update master table
     if (($this->arrAction["aclOldStatusID"]!==$this->arrAction["aclNewStatusID"]
@@ -326,7 +302,29 @@ public function finish(){
 
     }
 
-    $this->item->staID = $this->arrAction['aclNewStatusID'];
+    $this->item->getAllData(array('Master'));
+
+    $item_after = self::itemCleanUp($this->item->item, $this->item->conf['prefix']);
+
+    $item_diff = array_diff($item_before, $item_after);
+
+    // update started action as completed
+    $sqlUpdACL = "UPDATE stbl_action_log SET
+        aclActionPhase = 2
+        , aclItemAfter = ".$this->oSQL->e(json_encode($item_after))."
+        , aclItemDiff = ".$this->oSQL->e(json_encode($item_diff))."
+        {$timestamps}
+        ".($this->conf["actID"]!="2" && count($aTraced)>0
+            ? ", aclItemTraced=".$this->oSQL->e(json_encode($aTraced))
+            : ', aclItemTraced=NULL')."
+        , aclStartBy=IFNULL(aclStartBy, '{$this->intra->usrID}'), aclStartDate=IFNULL(aclStartDate,NOW())
+        , aclFinishBy=IFNULL(aclFinishBy, '{$this->intra->usrID}'), aclFinishDate=IFNULL(aclFinishDate, NOW())
+        , aclEditDate=NOW(), aclEditBy='{$this->intra->usrID}'
+        WHERE aclGUID='".$this->arrAction["aclGUID"]."'";
+
+    $this->oSQL->q($sqlUpdACL);
+    
+    $this->item->onActionFinish($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
 
 }
 
