@@ -99,7 +99,6 @@ public function updateFullEdit($nd){
 public function undo($nd){
 
     $this->oSQL->q('START TRANSACTION');
-    // $this->oSQL->startProfiling();
 
     // 1. pick last non-edit action and collect all edit actions for removal
     $aUpdates = array();
@@ -157,8 +156,8 @@ public function undo($nd){
         $this->oSQL->q("DELETE FROM stbl_action_log WHERE aclGUID IN ({$strToDel})");
     }
 
-    $this->oSQL->showProfileInfo();
-    die('<pre>'.var_export($this->item['ACL'], true));
+    // $this->oSQL->showProfileInfo();
+    // die('<pre>'.var_export($this->item['ACL'], true));
 
     $this->oSQL->q('COMMIT');
 
