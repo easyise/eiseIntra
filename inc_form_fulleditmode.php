@@ -1,6 +1,7 @@
 <?php
 include_once eiseIntraAbsolutePath."inc_item_traceable.php";
 
+/*
 try {
     $item = new eiseItemTraceable( $_GET['ID'], array('entID'=>($_POST['entID'] ? $_POST['entID'] : $_GET['entID'])) );
     $item->conf['logTable'] = $oSQL->d("SHOW TABLES LIKE '{$item->conf['table']}_log'") ;
@@ -73,6 +74,7 @@ function save(){
 include eiseIntraAbsolutePath."inc_bottom.php";
 
 die();
+*/
 
 
 include eiseIntraAbsolutePath."inc_entity_item_form.php";
