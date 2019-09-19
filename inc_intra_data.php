@@ -633,32 +633,46 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
     
     $oSQL = $this->oSQL;
 
-    if ($strPrefix!=""){
-        $arrFields = Array(
-            "idField" => "{$strPrefix}ID"
-            , "textField" => "{$strPrefix}Title"
-            , "textFieldLocal" => "{$strPrefix}TitleLocal"
-            , "orderField" => "{$strPrefix}Order"
-            , "delField" => "{$strPrefix}FlagDeleted"
-            );
-    } else {
-        $arrFields = Array(
-            "idField" => "optValue"
-            , "textField" => "optText"
-            , "textFieldLocal" => "optTextLocal"
-            , "orderField" => "optOrder"
-            , "delField" => "optFlagDeleted"
-        );
-    }    
+    static $tableFieldCache;  
 
-    $f = $oSQL->ff("SELECT * FROM `{$strTable}` WHERE 1=0");
-    $fields = array_keys($f);
-    if(!in_array($arrFields['textFieldLocal'], $fields))
-        $arrFields['textFieldLocal'] = $arrFields['textField'];
-    if(!in_array($arrFields['orderField'], $fields))
-        unset($arrFields['orderField']);
-    if(!in_array($arrFields['delField'], $fields))
-        unset($arrFields['delField']);
+    $cacheKey = $strPrefix.'|'.$strTable;
+
+    if($tableFieldCache[$cacheKey]){
+
+        $arrFields = $tableFieldCache[$cacheKey];
+
+    } else {
+
+        if ($strPrefix!=""){
+            $arrFields = Array(
+                "idField" => "{$strPrefix}ID"
+                , "textField" => "{$strPrefix}Title"
+                , "textFieldLocal" => "{$strPrefix}TitleLocal"
+                , "orderField" => "{$strPrefix}Order"
+                , "delField" => "{$strPrefix}FlagDeleted"
+                );
+        } else {
+            $arrFields = Array(
+                "idField" => "optValue"
+                , "textField" => "optText"
+                , "textFieldLocal" => "optTextLocal"
+                , "orderField" => "optOrder"
+                , "delField" => "optFlagDeleted"
+            );
+        }  
+
+        $f = $oSQL->ff("SELECT * FROM `{$strTable}` WHERE 1=0");
+        $fields = array_keys($f);
+        if(!in_array($arrFields['textFieldLocal'], $fields))
+            $arrFields['textFieldLocal'] = $arrFields['textField'];
+        if(!in_array($arrFields['orderField'], $fields))
+            unset($arrFields['orderField']);
+        if(!in_array($arrFields['delField'], $fields))
+            unset($arrFields['delField']);
+
+        $tableFieldCache[$cacheKey] = $arrFields;
+
+    }
     
     $sql = "SELECT ".($this->local
             ? "(CASE WHEN IFNULL(`".$arrFields["textField{$this->local}"]."`, '')='' 
