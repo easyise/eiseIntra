@@ -446,6 +446,43 @@ init: function(options){
 
 }
 
+, parseDate: function(strDate, options){
+
+    var conf = $(this).data('eiseIntra').conf,
+        reDateFormat_iso = new RegExp(conf.strRegExDate_dateInput),
+        reDateFormat = new RegExp(conf.strRegExDate),
+        reTimeFormat = new RegExp(conf.strRegExTime),
+        strReplace = conf['prgDateReplaceTo'].replace(/\\/g, '$');
+
+    if(strDate.match(reDateFormat)){
+        strDate = strDate.replace(new RegExp(conf.strRegExDate), strReplace)
+    }
+
+    var aDate = strDate.match(reDateFormat_iso),
+        aTime = strDate.match(reTimeFormat),
+        strDate = (aDate ? aDate[1]+'-'+aDate[2].padStart(2, '0')+'-'+aDate[3].padStart(2, '0') : ''),
+        strToParse = strDate+'T'+(aTime ? aTime[1].padStart(2, '0')+':'+aTime[2].padStart(2, '0')+(aTime[3] ? ':'+aTime[3].padStart(2, '0') : '') : '00:00'),
+        dtRet = new Date(strToParse);
+
+    if(!aDate)
+        return null;
+
+    if( options && options['OperationDayShift'] && conf['stpOperationDayStart']){
+        var strOpsDayStart = strDate+'T'+conf['stpOperationDayStart'],
+            dtOpsDayStart = new Date(strOpsDayStart);
+
+        if(dtRet < dtOpsDayStart){
+            var dtNextDay = new Date(dtRet);
+            dtNextDay.setDate(dtRet.getDate()+1);
+            dtRet = dtNextDay;
+        }
+
+    }
+
+    return dtRet
+    
+}
+
 }
 
 
