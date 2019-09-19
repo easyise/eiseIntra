@@ -426,45 +426,76 @@ td     {  	vertical-align: top; padding: 0;}
 /********************************************************************/
 
 /********************************************************************/
-.eiseIntraForm  fieldset{
+.eiseIntraForm  fieldset
+,  .eif-fieldset {
     position: relative;
     z-index: 0;
+    background-color: @eif-fieldset-background-color;
+    margin-left: @eif-fieldset-margin-left;
+    margin-right: @eif-fieldset-margin-right;
+    margin-top: @eif-fieldset-margin-top;
+    padding-left: @eif-fieldset-padding-left;
+    padding-top: @eif-fieldset-padding-top;
+    padding-right: @eif-fieldset-padding-right;
+    padding-bottom: @eif-fieldset-padding-bottom;
+    border-width: @eif-fieldset-border-width;
+    border-style: @eif-fieldset-border-style;
+    border-radius: @eif-fieldset-border-radius;
+    border-color: @eif-fieldset-border-color;
 }
 
-.eif-form fieldset.no-legend {
+.eif-form fieldset.no-legend
+, .eif-fieldset.no-legend {
     margin-top: 0 !important;
 }
 
-.eif-form fieldset.has-subtitle {
+.eif-form fieldset.has-subtitle
+, .eif-fieldset.has-subtitle {
     margin-top: @ei-body-font-size * 3.4 !important;
 }
-.eif-form fieldset.has-subtitle legend {
+.eif-form fieldset.has-subtitle legend
+, .eif-fieldset.has-subtitle legend {
     height: @ei-body-font-size * 3.4;
     top: -1 * @ei-body-font-size * 3.4;
 }
 
-.eiseIntraForm legend{
+.eiseIntraForm legend
+, .eif-fieldset legend
+{
     position: absolute;
-    height: 1.4em;
-    line-height: 1.4em;
-    position: absolute;
-    top: -1.5em;
-    left: 0.5em;
     z-index: 0;
+    height: @eif-fieldset-legend-height;
+    line-height: @eif-fieldset-legend-line-height;
+    top: @eif-fieldset-legend-top;
+    left: @eif-fieldset-legend-left;
+    font-weight: @eif-fieldset-legend-font-weight;
 }
-.eif-form legend > small{
+.eif-fieldset legend > small{
     display: block;
     font-size: 14px;
     line-height: auto;
     font-weight: 200;
 }
 
-.eif-form fieldset.normal,
-.eif-form fieldset:first-of-type.normal {
+.eiseIntraForm fieldset:first-of-type
+, .eif-fieldset:first-of-type 
+{
+    margin-top: @eif-fieldset-big-margin-top;
+}
+
+.eiseIntraForm fieldset:first-of-type legend
+, .eif-fieldset:first-of-type legend {
+    font-size: @eif-fieldset-big-legend-font-size;
+    line-height: @eif-fieldset-big-legend-line-height;
+}
+
+
+.eif-fieldset.normal,
+.eif-fieldset:first-of-type.normal {
     margin-top: 1.5em !important;
 }
-.eif-form fieldset.normal > legend
-, .eif-form fieldset.normal:first-of-type > legend {
+.eif-fieldset.normal > legend
+, .eif-fieldset.normal:first-of-type > legend {
     height: 1.4em;
     top: -1.5em;
     font-size: 1em;
@@ -472,6 +503,7 @@ td     {  	vertical-align: top; padding: 0;}
 }
 
 .eiseIntraForm  fieldset.half_screen
+, .eif-fieldset.half_screen
 {
     width: 48%;
     display: inline-block;
@@ -479,6 +511,7 @@ td     {  	vertical-align: top; padding: 0;}
 }
 
 .eiseIntraForm  fieldset.third_screen
+, .eif-fieldset.third_screen
 {
     width: 31%; 
     display: inline-block;
@@ -491,7 +524,11 @@ td     {  	vertical-align: top; padding: 0;}
     overflow: hidden;
 }
 
-.eiseIntraForm  fieldset label,.eiseIntraForm  fieldset .eiseIntraValue {
+.eiseIntraForm  fieldset label
+, .eiseIntraForm  fieldset .eiseIntraValue 
+, .eif-fieldset label
+, .eif-fieldset .eiseIntraValue 
+{
     display: inline-block;
     vertical-align: top;
 }

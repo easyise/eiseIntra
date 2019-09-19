@@ -1830,8 +1830,8 @@ public function fieldset($legend=null, $fields='', $conf = array()){
 
     return '<fieldset'
         .($conf['id']!='' ? ' id="'.htmlspecialchars($conf['id']).'"' : '')
-        .($conf['class']!='' || $legend===null ? ' class="'.htmlspecialchars($conf['class'])
-            .($legend===null ? ' no-legend' : '').'"' : '')
+        .' class="eif-fieldset'.($conf['class'] ? ' ' : '').htmlspecialchars($conf['class'])
+            .($legend===null ? ' no-legend' : '').'"'
         .($conf['attr']!='' ? ' '.$conf['attr'] : '')
         .'>'
         .($legend!==null 
