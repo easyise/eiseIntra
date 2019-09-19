@@ -70,7 +70,6 @@ function eiseGrid(gridDIV){
 
     __initControlBar.call(this);
 
-
     this.initLinesStructure();
 
     //clickable TH 
@@ -1205,6 +1204,7 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text){
     
     var strType = this.conf.fields[strFieldName].type;
     var strTitle = this.conf.fields[strFieldName].title;
+    var strHref = this.conf.fields[strFieldName].href;
 
     var oGrid = this;
     
@@ -1251,33 +1251,36 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text){
         }
         oInp = oTr.find('input[name="'+strFieldName+'[]"]').first();
         oInp.val(strValue);
-        if (strTitle && oInp.next()[0]!=undefined){
-            switch(strType){
-                case "checkbox":
-                case "boolean":
-                    if(strValue=="1"){
-                        oInp.next().attr("checked", "checked");
-                    } else 
-                        oInp.next().removeAttr("checked");
-                    return;
-                case 'combobox':
-                    var oSelectSelector = '#select-'+(oInp.attr('name').replace(/(\[\S+\]){0,1}\[\]/, ''))
-                        , oSelect = oGrid.tbodyTemplate.find(oSelectSelector)[0]
-                        , options = oSelect.options;
-                    for (var i = options.length - 1; i >= 0; i--) {
-                        if(options[i].value == strValue){
-                            text = options[i].text
-                            break;
-                        }
-                    };
-                    
-                            
-                default:
-                    if (oInp.next()[0].tagName=="INPUT")
-                        oInp.next().val((text!=undefined ? text : strValue));
-                    else 
-                        oInp.next().html((text!=undefined ? text : strValue));
-                    break;
+        
+        if (strTitle){
+            if(oInp.next()[0]!=undefined){
+                switch(strType){
+                    case "checkbox":
+                    case "boolean":
+                        if(strValue=="1"){
+                            oInp.next().attr("checked", "checked");
+                        } else 
+                            oInp.next().removeAttr("checked");
+                        return;
+                    case 'combobox':
+                        var oSelectSelector = '#select-'+(oInp.attr('name').replace(/(\[\S+\]){0,1}\[\]/, ''))
+                            , oSelect = oGrid.tbodyTemplate.find(oSelectSelector)[0]
+                            , options = oSelect.options;
+                        for (var i = options.length - 1; i >= 0; i--) {
+                            if(options[i].value == strValue){
+                                text = options[i].text
+                                break;
+                            }
+                        };
+                        
+                                
+                    default:
+                        if (oInp.next()[0].tagName=="INPUT")
+                            oInp.next().val((text!=undefined ? text : strValue));
+                        else 
+                            oInp.next().html((text!=undefined ? text : strValue));
+                        break;
+                }
             }
         }
         this.recalcTotals(strFieldName);
@@ -1289,11 +1292,12 @@ eiseGrid.prototype.text = function(oTr, strFieldName, text){
         || this.conf.fields[strFieldName].disabled !=undefined
         || (this.conf.fields[strFieldName].href !=undefined && this.value(oTr, strFieldName)!="")
         ){
-            return (oTr.find('td[data-field="'+strFieldName+'"]')[0]
-                    ? oTr.find('td[data-field="'+strFieldName+'"]').text()
-                    : (oTr.find('input[name="'+strFieldName+'_text[]"]')[0]
+            return (oTr.find('input[name="'+strFieldName+'_text[]"]')[0]
                         ? oTr.find('input[name="'+strFieldName+'_text[]"]').val()
-                        : oTr.find('input[name="'+strFieldName+'[]"]').val())
+                        : (oTr.find('td[data-field="'+strFieldName+'"]')[0]
+                            ? oTr.find('td[data-field="'+strFieldName+'"]').text()
+                            : oTr.find('input[name="'+strFieldName+'[]"]').val()
+                            )
                     );
         } else {
             switch (this.conf.fields[strFieldName].type){
@@ -1315,6 +1319,18 @@ eiseGrid.prototype.text = function(oTr, strFieldName, text){
             }
             
         }
+}
+
+eiseGrid.prototype.href = function($tr, field, href){
+
+    var oGrid = this;
+
+    if(!href){
+        href = this.conf.fields[field].href
+    }
+
+
+
 }
 
 eiseGrid.prototype.focus = function(oTr, strFieldName){
@@ -2073,17 +2089,14 @@ init: function( conf ) {
         var data, dataId, conf_,
                 $this = $(this);
 
-        $this.eiseGrid('conf', conf);
         data = $this.data('eiseGrid') || {};
-        conf_ = data.conf;
-
+        
         // If the plugin hasn't been initialized yet
         if ( !data.eiseGrid ) {
             dataId = +new Date;
 
             data = {
                 eiseGrid_data: true
-                , conf: conf_
                 , id: dataId
                 , eiseGrid : new eiseGrid($this)
             };
@@ -2102,13 +2115,7 @@ init: function( conf ) {
             $this.data('eiseGrid', data);
         } // !data.eiseGrid
 
-        if(typeof(data.conf.onDblClick)=='function'){
-            data.eiseGrid.dblclickCallback = data.conf.onDblClick;    
-        }
-        if(typeof(data.conf.onAddRow)=='function'){
-            data.eiseGrid.addRowCallback = data.conf.onAddRow;    
-        }
-        
+        $this.eiseGrid('conf', conf || {});
 
     });
 
@@ -2133,16 +2140,23 @@ destroy: function( ) {
 },
 conf: function( conf ) {
 
-    this.each(function() {
-        var $this = $(this),
-            data = $this.data( 'eiseGrid' ) || {},
-            conf_ = data.conf || {};
+    if(!conf){
+        return $(this[0]).data('eiseGrid').eiseGrid.conf;
+    }
 
-        // deep extend (merge) default settings, per-call conf, and conf set with:
-        // html10 data-eiseGrid conf JSON and $('selector').eiseGrid( 'conf', {} );
-        conf_ = $.extend( true, {}, $.fn.eiseGrid.defaults, conf_, conf || {} );
-        data.conf = conf_;
-        $.data( this, 'eiseGrid', data );
+    this.each(function() {
+
+        var grid = $(this).data('eiseGrid').eiseGrid;
+
+        grid.conf = $.extend(grid.conf, conf)
+
+        if(typeof(conf.onDblClick)=='function'){
+            grid.dblclickCallback = data.conf.onDblClick;    
+        }
+        if(typeof(conf.onAddRow)=='function'){
+            grid.addRowCallback = data.conf.onAddRow;    
+        }
+
     });
 
     return this;

@@ -376,7 +376,7 @@ function get_html($allowEdit=true){
                     $this->arrWidth[$key] = self::$defaultWidthsByType['text'] ;
             }
 
-            $strCols .= "<col class=\"{$this->name}-{$key}\" style=\"width:{$this->arrWidth[$key]}\">\n";
+            $strCols .= "<col class=\"{$this->name}-{$key}\" data-field=\"{$key}\" style=\"width:{$this->arrWidth[$key]}\">\n";
 
             $nColNumber++;
             
@@ -677,29 +677,28 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
         $cell['disabled'] = (is_string($cell['disabled']) ? 0 : $cell['disabled']) ;
         $cell['href'] = "" ;
     } else // calculate row-dependent options: class, static/disabled, or href 
-        foreach($this->Rows[$ixRow] as $rowKey=>$rowValue){
-            $cell['class'] = str_replace("[{$rowKey}]", $rowValue, $cell['class']);
-            $cell['static'] = (is_string($cell['static']) ? str_replace("[{$rowKey}]", $rowValue, $cell['static']) : $cell['static']);
-            $cell['disabled'] = (is_string($cell['disabled']) ? str_replace("[{$rowKey}]", $rowValue, $cell['disabled']) : $cell['disabled']) ;
-            if ($cell['source'])
-                $cell['source'] = (is_string($cell['source']) ? str_replace("[{$rowKey}]", $rowValue, $cell['source']) : $cell['source']) ;
-            if ($cell['extra'])
-                $cell['extra'] = (is_string($cell['extra']) ? str_replace("[{$rowKey}]", $rowValue, $cell['extra']) : $cell['extra']) ;
-            if ($cell['placeholder'])
-                $cell['placeholder'] = (is_string($cell['placeholder']) ? str_replace("[{$rowKey}]", $rowValue, $cell['placeholder']) : $cell['placeholder']) ;
-            if ($cell['href']){
-                $cell['href'] = (strpos($cell['href'], "[{$rowKey}]")!==null // if argument exists in HRef
-                    ? ($val==''||$rowValue==''
-                        ? $cell['href'] 
-                        : str_replace("[{$rowKey}]"
-                            , (strpos($cell['href'], "[{$rowKey}]")===0 
-                                ? $rowValue // avoid urlencode() for first argument
-                                : urlencode($rowValue)), $cell['href']))
-                    : $cell['href']
-                );
-                $cell['target'] = str_replace("[{$rowKey}]", $rowValue, $cell['target']);
+        foreach(array('class', 'static', 'readonly', 'source', 'extra', 'placeholder', 'href') as $prop){
+            foreach($this->Rows[$ixRow] as $rowKey=>$rowValue){
+                if(!isset($cell[$prop]))
+                    continue;
+
+                if($prop=='href'){
+                    $cell['href'] = (strpos($cell['href'], "[{$rowKey}]")!==null // if argument exists in HRef
+                        ? ($val==''||$rowValue==''
+                            ? $cell['href'] 
+                            : str_replace("[{$rowKey}]"
+                                , (strpos($cell['href'], "[{$rowKey}]")===0 
+                                    ? $rowValue // avoid urlencode() for first argument
+                                    : urlencode($rowValue)), $cell['href']))
+                        : $cell['href']
+                    );
+                    $cell['target'] = str_replace("[{$rowKey}]", $rowValue, $cell['target']);
+                } else 
+                    $cell[$prop] = (is_string($cell[$prop]) ? str_replace("[{$rowKey}]", $rowValue, $cell[$prop]) : $cell[$prop]);
+                
             }
         }
+        
     
     if ((int)$cell['disabled'])
         $cell['class'] .= " eg_disabled";
@@ -901,6 +900,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                 default:
                     $strCell .= "<input{$classAttr} type=\"text\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val)."\""
                             .($noAutoComplete ? " autocomplete=\"off\"" : '')
+                            .($cell['readonly'] ? " readonly=\"true\"" : '')
                             .($cell['placeholder'] ? ' placeholder="'.htmlspecialchars($cell['placeholder']).'"' : '')
                             .">";
                     break;
