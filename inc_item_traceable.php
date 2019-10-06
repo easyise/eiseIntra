@@ -52,6 +52,8 @@ public function __construct($id = null,  $conf = array() ){
         $this->staID = $this->item[$this->conf['statusField']];
     }
 
+    $this->conf['attr_types'] = array_merge($this->table['columns_types'], $this->conf['attr_types']);
+
 	$this->intra->dataRead(array('getActionDetails', 'getFiles', 'getFile', 'getMessages','sendMessage'), $this);
 	$this->intra->dataAction(array('insert', 'update', 'updateMultiple', 'delete', 'attachFile', 'deleteFile'), $this);
 
@@ -233,6 +235,7 @@ private function init(){
     
     // read attributes
     $this->conf['ATR'] = array();
+    $this->conf['attr_types'] = array();
     $sqlAtr = "SELECT * 
         FROM stbl_attribute 
         WHERE atrEntityID=".$oSQL->e($this->entID)."
@@ -241,6 +244,7 @@ private function init(){
     $rsAtr = $oSQL->q($sqlAtr);
     while($rwAtr = $oSQL->f($rsAtr)){
         $this->conf['ATR'][$rwAtr['atrID']] = $rwAtr;
+        $this->conf['attr_types'][$rwAtr['atrID']] = $rwAtr['atrType'];
     }
 
     // read status_attribute
@@ -681,27 +685,8 @@ public function updateUnfinishedActions($nd = null){
 
 public function updateAction($rwACL, $nd){
 
-    $rwACT = $this->conf['ACT'][$rwACL['aclActionID']];
-
-    if(!count((array)$rwACT['aatFlagToTrack']))
-        return;
-
-    $aToUpdate = (array)@json_decode($rwACL['aclItemTraced'], true);
-
-    foreach((array)$rwACT['aatFlagToTrack'] as $atrID=>$flags){
-        $nd_key = $atrID.'_'.$rwACL['aclGUID'];
-        if(isset($nd[$nd_key])){
-            $aToUpdate[$atrID] = $nd[$nd_key];
-        }
-    }
-
-    $traced = $this->intra->arrPHP2SQL($aToUpdate, $this->table['columns_types']);
-
-    $sqlACL = "UPDATE stbl_action_log SET aclItemTraced=".$this->oSQL->e(json_encode($traced))."
-        , aclEditDate=NOW(), aclEditBy='{$this->intra->usrID}' 
-    WHERE aclGUID='{$rwACL['aclGUID']}'";
-
-    $this->oSQL->q($sqlACL);
+    $act = new eiseAction($this, $rwACL);
+    $act->update($nd);
 
 }
 
