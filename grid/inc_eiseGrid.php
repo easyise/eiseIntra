@@ -813,7 +813,9 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                     break;
                 case "combobox":
                 case "ajax_dropdown":
-                    $strCell .= "<div{$classAttr}>".$aopen.htmlspecialchars($this->getSelectValue($cell, $row, $suffix)).$aclose."</div>";
+                    $_text = $this->getSelectValue($cell, $row, $suffix);
+                    $strCell .= "<div{$classAttr}>".$aopen.@htmlspecialchars($_text).$aclose."</div>";
+                    $strCell .= "<input type=\"hidden\" name=\"{$_textfield}[]\" value=\"".@htmlspecialchars($_text)."\">";
                     break;
                 case "textarea":
                     $strCell .= "<div{$classAttr}>".$aopen.str_replace("\r\n", "<br>", htmlspecialchars($_val)).$aclose."</div>";
