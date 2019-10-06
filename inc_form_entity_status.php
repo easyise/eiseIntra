@@ -16,8 +16,11 @@ $ffSta = $oSQL->ff($rsSta);
 
 switch($DataAction){
     case "update":
+
+        $oSQL->q('START TRANSACTION');
+        $oSQL->startProfiling();
        
-        $sql[] = "UPDATE stbl_status SET
+        $sqlUpd = "UPDATE stbl_status SET
             staTitle = ".$oSQL->escape_string($_POST['staTitle'])."
             , staTitleLocal = ".$oSQL->escape_string($_POST['staTitleLocal'])."
             , staTrackPrecision = ".$oSQL->escape_string($_POST['staTrackPrecision'])."
@@ -27,52 +30,48 @@ switch($DataAction){
 			  , staFlagDeleted = '".($_POST['staFlagDeleted']=='on' ? 1 : 0)."'
             , staEditBy = '$usrID', staEditDate = NOW()
             WHERE staID = '{$staID}'AND staEntityID = '{$entID}'";
+
+        $oSQL->q($sqlUpd);
        
-	   if ($_POST['staFlagDeleted']=='on'){
-	      $sql[] = "UPDATE stbl_action INNER JOIN stbl_action_status ON atsActionID=actID SET actFlagDeleted=1 
-		     WHERE actEntityID='{$entID}' 
-			 AND (atsOldStatusID='".$_POST["staID"]."' OR atsNewStatusID='".$_POST["staID"]."')";
-	   }
-	   
-       $sql[] = "DELETE FROM stbl_status_attribute WHERE satStatusID='$staID' AND satEntityID='$entID'";
-       
-       for ($i=1; $i< count($_POST["atrID"]); $i++){
-            $sql[] = "INSERT INTO stbl_status_attribute (
-                satStatusID
-                , satEntityID
-                , satAttributeID
-                , satFlagEditable
-                , satFlagShowInForm
-                , satFlagShowInList
-                , satFlagTrackOnArrival
-                , satInsertBy, satInsertDate, satEditBy, satEditDate
-                ) VALUES (
-                '$staID'
-                , '$entID'
-                , '".$_POST["atrID"][$i]."'
-                , '".(int)$_POST["satFlagEditable"][$i]."'
-                , '".(int)$_POST["satFlagShowInForm"][$i]."'
-                , '".(int)$_POST["satFlagShowInList"][$i]."'
-                , '".(int)$_POST["satFlagTrackOnArrival"][$i]."'
-                , '$usrID', NOW(), '$usrID', NOW())";
-          }
-       
-       /*
-       echo "<pre>";
-       print_r($sql);
-       print_r($_POST);
-       echo "</pre>";
-       die();
-//     */  
-       
-       for($i=0;$i<count($sql);$i++)
-          $oSQL->do_query($sql[$i]);
-          
-       SetCookie("UserMessage", $entID." ".$intra->translate("is updated"));
-       header("Location: ".$_SERVER["PHP_SELF"]."?dbName=$dbName&staID=$staID&entID=".urlencode($entID));
-       
-       die();
-        break;
+        if ($_POST['staFlagDeleted']=='on'){
+	        $sqlAct = "UPDATE stbl_action INNER JOIN stbl_action_status ON atsActionID=actID SET actFlagDeleted=1 
+                WHERE actEntityID='{$entID}' 
+                AND (atsOldStatusID='".$_POST["staID"]."' OR atsNewStatusID='".$_POST["staID"]."')";
+            $oSQL->q($sqlAct);
+	    }
+
+	           
+        for ($i=1; $i< count($_POST["atrID"]); $i++){
+
+            if(!$_POST['atrID'][$i])
+                continue;
+
+            $atrID = $oSQL->unq($oSQL->e($_POST['atrID'][$i]));
+            $creterio = "satAttributeID='{$atrID}', satStatusID={$staID}, satEntityID='{$entID}'";
+            $sqlExists = "SELECT satID FROM stbl_status_attribute WHERE ".preg_replace('/\, /', ' AND ', $creterio);
+
+            $fields = "
+                satEditBy='{$intra->usrID}', satEditDate=NOW()
+                , satFlagEditable=".(int)$_POST["satFlagEditable"][$i]."
+                , satFlagShowInForm=".(int)$_POST["satFlagShowInForm"][$i]."
+                , satFlagShowInList=".(int)$_POST["satFlagShowInList"][$i]."
+                , satFlagTrackOnArrival=".(int)$_POST["satFlagTrackOnArrival"][$i]
+                ;
+
+            if( !($satID = $oSQL->d($sqlExists)) ){
+                $sqlSAT = "INSERT INTO stbl_status_attribute SET {$fields}, {$creterio}, satInsertBy='{$intra->usrID}', satInsertDate=NOW()";
+            } else {
+                $sqlSAT = "UPDATE stbl_status_attribute SET {$fields} WHERE satID={$satID}";
+            }
+
+            $oSQL->q($sqlSAT);
+            
+        }
+        
+        $oSQL->q('COMMIT');
+        
+        $intra->redirect($entID." ".$intra->translate("is updated"), $_SERVER["PHP_SELF"]."?dbName=$dbName&staID=$staID&entID=".urlencode($entID));
+
     default:
         break;
 }
@@ -242,12 +241,27 @@ $gridSAT->Columns[] = Array(
 );
 
 $gridSAT->Columns[] = Array(
+        'title' => $intra->translate("Field")
+        , 'field' => "atrID_"
+        , 'type' => "text"
+        , 'static' => true
+);
+
+$gridSAT->Columns[] = Array(
         'title' => $intra->translate("Attribute")
         , 'field' => "atrTitle{$intra->local}"
         , 'type' => "text"
         , 'disabled' => true
         , 'width' => "100%"
 );
+
+$gridSAT->Columns[] = Array(
+        'title' => $intra->translate("Type")
+        , 'field' => "atrType"
+        , 'type' => "text"
+        , 'static' => true
+);
+
 
 $gridSAT->Columns[] = Array(
         'title' => $intra->translate("Track?")
@@ -278,6 +292,7 @@ WHERE atrEntityID='$entID'
 ORDER BY atrOrder";
 $rsSAT = $oSQL->do_query($sqlSAT);
 while ($rwSAT = $oSQL->fetch_array($rsSAT)){
+    $rwSAT['atrID_'] = $rwSAT['atrID'];
     $rwSAT["satAllowed"] = ($rwSAT["satID"] ? "1" : "0");
     $gridSAT->Rows[] = $rwSAT;
 }

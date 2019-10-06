@@ -76,30 +76,38 @@ $gridAAT->Columns[] = Array(
 );
 
 $gridAAT->Columns[] = Array(
-        'title' => ""
+        'title' => "Field"
         , 'field' => "atrID"
         , 'type' => "text"
+        , 'static' => true
 );
 
 $gridAAT->Columns[] = Array(
         'title' => $intra->translate("Attribute")
         , 'field' => "atrTitle"
         , 'type' => "text"
-        , 'disabled' => true
+        , 'static' => true
         , 'mandatory' =>  true
         , 'width' => "100%"
 );
-
+$gridAAT->Columns[] = Array(
+        'title' => "Type"
+        , 'field' => "atrType"
+        , 'type' => "text"
+        , 'static' => true
+);
 $gridAAT->Columns[] = Array(
         'title' => $intra->translate("Track?")
         , 'field' => "aatFlagToTrack"
         , 'type' => "checkbox"
+        , 'filterable' => true
 );
 
 $gridAAT->Columns[] = Array(
         'title' => $intra->translate("Mandatory?")
         , 'field' => "aatFlagMandatory"
         , 'type' => "checkbox"
+        , 'filterable' => true
 );
 
 
@@ -107,6 +115,7 @@ $gridAAT->Columns[] = Array(
         'title' => $intra->translate("ToChange?")
         , 'field' => "aatFlagToChange"
         , 'type' => "checkbox"
+        , 'filterable' => true
 );
 
 $gridAAT->Columns[] = Array(
@@ -118,6 +127,7 @@ $gridAAT->Columns[] = Array(
         'title' => $intra->translate("UserStamp")
         , 'field' => "aatFlagUserStamp"
         , 'type' => "checkbox"
+        , 'filterable' => true
 );
 
 $gridAAT->Columns[] = Array(
@@ -129,6 +139,7 @@ $gridAAT->Columns[] = Array(
             , "ETA"=>"ETA"
             , "ATD"=>"ATD"
             , "ATA"=>"ATA")
+        , 'filterable' => true
 );
 switch($DataAction){
     case "clone":
