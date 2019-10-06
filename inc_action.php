@@ -26,12 +26,13 @@ public function __construct($item, $arrAct){
         }
         $this->conf = $item->conf['ACT'][$this->arrAction['aclActionID']];
         $this->arrAction = array_merge($this->arrAction
-            , $this->intra->arrPHP2SQL($traced, $this->item->table['columns_types'])
+            , $this->intra->arrPHP2SQL($traced, $this->item->conf['attr_types'])
             , array('aclToDo'=> $nd['aclToDo'])
             );
+
 	} else {
 		$this->conf = $item->conf['ACT'][(string)$arrAct['actID']];
-        $nd_SQL = $this->intra->arrPHP2SQL($nd, $this->item->table['columns_types']);
+        $nd_SQL = $this->intra->arrPHP2SQL($nd, $this->item->conf['attr_types']);
         $this->arrAction = array_merge($this->conf, $nd_SQL);
 	}
 
@@ -91,19 +92,65 @@ public function execute(){
 
 }
 
+public function update($nd = null){
+
+    $aToUpdate_old = (array)@json_decode($this->arrAction['aclItemTraced'], true);
+    $aToUpdate = array();
+
+    foreach((array)$this->conf['aatFlagToTrack'] as $atrID=>$flags){
+        $nd_key = $atrID.'_'.$this->arrAction['aclGUID'];
+        if(isset($this->arrAction[$nd_key])){
+            $aToUpdate[$atrID] = $this->arrAction[$nd_key];
+            echo $atrID.'qq';
+        }
+        if(isset($nd[$nd_key])){
+            $aToUpdate[$atrID] = $nd[$nd_key];
+        } elseif (isset($nd[$atrID])) {
+            $aToUpdate[$atrID] = $nd[$atrID];
+            echo $atrID.'zz';
+        }
+        if ($this->item->conf['ATR'][$atrID]['atrType']=='boolean') { // booleans are not transferrable via HTTP
+            $aToUpdate[$atrID] = (isset($aToUpdate[$atrID]) ? $aToUpdate[$atrID] : '0');
+        }
+    }
+
+    $timestamps = $this->getTimeStamps($aToUpdate);
+
+    $traced = $this->intra->arrPHP2SQL($aToUpdate, $this->item->conf['attr_types']);
+
+    $sqlACL = "UPDATE stbl_action_log SET # eiseAction::update() {$this->arrAction['actTitle']}
+        aclEditDate=NOW(), aclEditBy='{$this->intra->usrID}' 
+        ".(count($aToUpdate) ? ", aclItemTraced=".$this->oSQL->e(json_encode($traced)) : '')."
+        {$timestamps}
+    WHERE aclGUID='{$this->arrAction['aclGUID']}'";
+
+    $this->oSQL->q($sqlACL);
+
+}
+
 public function add(){
 
     // 1. obtaining aclGUID
-    $this->arrAction["aclGUID"] = $this->oSQL->d("SELECT UUID()");
+    $this->arrAction["aclGUID"] = $this->oSQL->d("SELECT UUID() # add action {$this->arrAction['actTitle']}");
 
     $item_before = $this->item->item_before;
     unset($item_before['ACL']);
     unset($item_before['STL']);
 
-    $timestamps = $this->getTimeStamps();
+    $aToTrace = array();
+
+    foreach((array)$this->conf['aatFlagToTrack'] as $field=>$props){
+
+        $aToTrace[$field] = (isset($this->item->item[$field]) && !$props['aatFlagEmptyOnInsert']
+            ? $this->item->item[$field]
+            : null
+            );
+    }
+
+    $timestamps = $this->getTimeStamps($aToTrace);
 
     // 2. insert new ACL
-    $sqlInsACL = "INSERT INTO stbl_action_log SET
+    $sqlInsACL = "INSERT INTO stbl_action_log SET # add action {$this->arrAction['actTitle']}
         aclGUID = '{$this->arrAction["aclGUID"]}'
         , aclActionID = ".(int)$this->arrAction["actID"]."
         , aclEntityItemID = '".$this->item->id."'
@@ -114,19 +161,16 @@ public function add(){
             , aclItemBefore = ".$this->oSQL->e(json_encode($item_before))."
             , aclItemDiff = NULL
             , aclItemAfter = NULL
-            , aclItemTraced = ".$this->oSQL->e(json_encode($this->getTraceData()))."
+            , aclItemTraced = ".$this->oSQL->e(json_encode($aToTrace))."
         , aclComments = NULL
         , aclInsertBy = '{$this->intra->usrID}', aclInsertDate = NOW(), aclEditBy='{$this->intra->usrID}', aclEditDate=NOW()";
      
     $this->oSQL->q($sqlInsACL);  
+
+    $this->arrAction = array_merge($this->arrAction, $this->oSQL->f("SELECT * FROM stbl_action_log WHERE aclGUID='{$this->arrAction['aclGUID']}'"));
     
     // 3. Trigger onActionPlan hook
     $this->item->onActionPlan($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
-
-    $aToTrace = $this->getTraceData();
-    if(count($this->getTraceData()))
-        $this->oSQL->q("UPDATE stbl_action_log SET aclItemTraced = ".$this->oSQL->e(json_encode($aToTrace))." 
-            WHERE aclGUID='{$this->arrAction["aclGUID"]}'");
 
     $this->arrAction['aclActionPhase'] = 0;
 
@@ -445,16 +489,18 @@ function checkMandatoryFields(){
     
 }
 
-public function getTimeStamps(){
+public function getTimeStamps($nd = null){
 
     $sql = '';
 
     $tsValues = array();
 
+    $a = array_merge($this->arrAction, (array)@json_decode($this->arrAction['aclItemTraced'], true), (array)$nd);
+
     foreach(self::$ts as $ts){
         $tsValues[$ts] = ($this->conf['actTrackPrecision']==='datetime'
-                ? $this->intra->datetimePHP2SQL($this->arrAction[$this->conf['aatFlagTimestamp'][$ts]], 'NOW()')
-                : $this->intra->datePHP2SQL($this->arrAction[$this->conf['aatFlagTimestamp'][$ts]], 'NOW()')
+                ? $this->intra->datetimePHP2SQL($a[$this->conf['aatFlagTimestamp'][$ts]], 'NOW()')
+                : $this->intra->datePHP2SQL($a[$this->conf['aatFlagTimestamp'][$ts]], 'NOW()')
                 );
     }
 
@@ -497,9 +543,10 @@ public function getUserStamps(){
 public function getTraceData(){
 
     $aRet = array();
+    $aTraced = @json_decode($this->arrAction['aclItemTraced'], true);
 
     foreach((array)$this->conf['aatFlagToTrack'] as $field=>$props){
-        $aRet[$field] = $this->arrAction[$field];
+        $aRet[$field] = (isset($this->arrAction[$field]) ? $this->arrAction[$field] : $aTraced[$field]);
     }
 
     $aRet_SQL = $this->intra->arrPHP2SQL($aRet, $this->item->table['columns_types']);
