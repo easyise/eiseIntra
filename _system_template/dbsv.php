@@ -1,5 +1,5 @@
 <?php 
-include ("../common/eiseIntra/inc_intra.php");
+include ("./vendor/eiseIntra/inc_intra.php");
 include ("./common/config.php");
 include eiseIntraAbsolutePath."inc_dbsv.php";
 
@@ -21,5 +21,3 @@ if ( !$dbsv->authorized ){
 }
 
 $dbsv->Execute();
-
-?>

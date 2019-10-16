@@ -257,6 +257,18 @@ function Execute(){
 /**************************************************************************/
 <?php
     $oSQL = $this->oSQL;
+
+    if(!$oSQL->d("SHOW TABLES LIKE 'stbl_version'")){
+        $oSQL->q("CREATE TABLE `stbl_version` (
+          `verNumber` int(11) NOT NULL AUTO_INCREMENT,
+          `verDesc` text DEFAULT NULL,
+          `verFlagVersioned` tinyint(4) NOT NULL DEFAULT 0,
+          `verDate` datetime DEFAULT NULL,
+          PRIMARY KEY (`verNumber`)
+        ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8")   ; 
+    }
+
+    
     
     $sqlVer = "SELECT MAX(verNumber) as verNumber FROM stbl_version";
     $rsVer = $oSQL->do_query($sqlVer);
