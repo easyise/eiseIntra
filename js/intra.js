@@ -806,7 +806,11 @@ init: function( options ) {
                 },
                 change: function(event, ui){
                 }
-    		});
+    		})
+            .autocomplete( "instance" )._renderItem  = function( ul, item ) {
+                var liClass = ( item['class'] ?  ' class="'+item['class']+'"' : '');
+                return $( "<li"+liClass+">" ).text( item.label ).appendTo( ul );
+            };
             
         });
         
