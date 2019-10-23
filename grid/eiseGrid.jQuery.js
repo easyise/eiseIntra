@@ -481,7 +481,11 @@ var __attachFloatingSelect = function( $tbody ){
             $(this).remove();
         });
         
-        oSelect.focus();
+        oSelect.click();
+
+        window.setTimeout(function(){
+            oSelect.focus();
+        }, 100)
 
         oGrid.bindKeyPress(oSelect);
                 
@@ -543,7 +547,7 @@ var __attachAutocomplete = function(oTr) {
                     $.getJSON(urlFull, function(response_json){
                         
                         response($.map(response_json.data, function(item) {
-                                return {  label: item.optText, value: item.optValue  }
+                                return {  label: item.optText, value: item.optValue, class: item.optClass  }
                             }));
                         });
                         
@@ -559,12 +563,17 @@ var __attachAutocomplete = function(oTr) {
                     event.preventDefault();
                     if (ui.item){
                         $(inp).val(ui.item.label);
-                        $inpVal.val(ui.item.value);
+                        $inpVal.val(ui.item.value || ui.item.label);
                         $inpVal.change();
                     } else 
                         $inpVal.val("");
                 }
-            });
+            })
+            .autocomplete( "instance" )._renderItem  = function( ul, item ) {
+                var liClass = ( item['class'] ?  ' class="'+item['class']+'"' : '');
+                return $( "<li"+liClass+">" ).text( item.label ).appendTo( ul );
+            };
+
         }
     });
     } catch (e) {}
@@ -1201,7 +1210,6 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text){
         $.error( 'Field ' +  strFieldName + ' does not exist in eiseGrid ' + this.id );
     }
         
-    
     var strType = this.conf.fields[strFieldName].type;
     var strTitle = this.conf.fields[strFieldName].title;
     var strHref = this.conf.fields[strFieldName].href;
@@ -1334,7 +1342,7 @@ eiseGrid.prototype.href = function($tr, field, href){
 }
 
 eiseGrid.prototype.focus = function(oTr, strFieldName){
-    oTr.find('.'+this.id+'-'+strFieldName+' input[type="text"]').focus();
+    oTr.find('.'+this.id+'-'+strFieldName+' input[type="text"]').focus().click();
 }
 
 eiseGrid.prototype.verifyInput = function (oTr, strFieldName) {
