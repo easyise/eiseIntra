@@ -179,7 +179,7 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
 
     parent::__construct($oSQL, $this->conf);
 
-    self::buildLess();
+    $this->buildLess();
 
     $this->requireComponent('base');
 
@@ -1111,10 +1111,15 @@ function requireComponent($components){
             case 'base':
                 $arrJS[] = jQueryPath."jquery-".jQueryVersion.".min.js";
                 $arrJS[] = jQueryUIPath.'jquery-ui.min.js';
+                if($this->conf['useBootstrap'])
+                    $arrJS[] = eiseIntraLibRelativePath.'bootstrap/dist/js/bootstrap.min.js';
                 $arrJS[] = eiseIntraLibRelativePath."sidebar-menu/sidebar-menu.js";
                 $arrJS[] = eiseIntraJSPath."intra.js";
                 $arrJS[] = eiseIntraJSPath."intra_execute.js";
-                $arrCSS[] = eiseIntraCSSPath.'themes/'.$eiseIntraCSSTheme.'/style.css';
+                $arrCSS[] = ($this->conf['useBootstrap']
+                    ? eiseIntraCSSPath.'themes/'.$eiseIntraCSSTheme.'/style.bootstrap.css'
+                    : eiseIntraCSSPath.'themes/'.$eiseIntraCSSTheme.'/style.css'
+                );
                 break;
                 
             case 'simpleTree':
@@ -2784,7 +2789,7 @@ static function getKeyboardVariations($src){
  *
  * @category Utilities
  */
-static function buildLess(){
+protected function buildLess(){
 
     GLOBAL $eiseIntraCSSTheme, $eiseIntraFlagBuildLess, $eiseIntraLessToBuild;
 
@@ -2792,7 +2797,7 @@ static function buildLess(){
         return;
 
     if(!isset($eiseIntraLessToBuild)){
-        $eiseIntraLessToBuild = array('grid', 'list', 'style');
+        $eiseIntraLessToBuild = array('grid', 'list', 'style'.($this->conf['useBootstrap'] ? '.bootstrap' : ''));
         //$eiseIntraLessToBuild = array('style');
     }
     
