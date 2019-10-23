@@ -15,6 +15,11 @@ public function __construct($item, $arrAct){
 	if(!$arrAct['actID'] && !$arrAct['aclGUID'])
 		$arrAct['actID'] = 2;
 
+    $types = array();
+    foreach(self::$ts as $_ts)
+        $types['acl'.$_ts] = 'datetime';
+    $types = array_merge($types, $this->item->conf['attr_types']);
+
 	if($arrAct['aclGUID']){
 		$this->item->getAllData(array('Master', 'ACL'));
         $this->arrAction = $this->item->item['ACL'][$arrAct['aclGUID']];
@@ -26,13 +31,13 @@ public function __construct($item, $arrAct){
         }
         $this->conf = $item->conf['ACT'][$this->arrAction['aclActionID']];
         $this->arrAction = array_merge($this->arrAction
-            , $this->intra->arrPHP2SQL($traced, $this->item->conf['attr_types'])
+            , $this->intra->arrPHP2SQL($traced, $types)
             , array('aclToDo'=> $nd['aclToDo'])
             );
 
 	} else {
 		$this->conf = $item->conf['ACT'][(string)$arrAct['actID']];
-        $nd_SQL = $this->intra->arrPHP2SQL($nd, $this->item->conf['attr_types']);
+        $nd_SQL = $this->intra->arrPHP2SQL($nd, $types);
         $this->arrAction = array_merge($this->conf, $nd_SQL);
 	}
 
@@ -101,20 +106,29 @@ public function update($nd = null){
         $nd_key = $atrID.'_'.$this->arrAction['aclGUID'];
         if(isset($this->arrAction[$nd_key])){
             $aToUpdate[$atrID] = $this->arrAction[$nd_key];
-            echo $atrID.'qq';
         }
         if(isset($nd[$nd_key])){
             $aToUpdate[$atrID] = $nd[$nd_key];
         } elseif (isset($nd[$atrID])) {
             $aToUpdate[$atrID] = $nd[$atrID];
-            echo $atrID.'zz';
         }
-        if ($this->item->conf['ATR'][$atrID]['atrType']=='boolean') { // booleans are not transferrable via HTTP
+        if (in_array($this->item->conf['ATR'][$atrID]['atrType'], array('boolean', 'checkbox'))) { // booleans are not transferrable via HTTP
             $aToUpdate[$atrID] = (isset($aToUpdate[$atrID]) ? $aToUpdate[$atrID] : '0');
         }
     }
 
+    $aToUpdate = array_merge($aToUpdate_old, $aToUpdate);
+
     $timestamps = $this->getTimeStamps($aToUpdate);
+    $aclComments = (isset($this->arrAction['aclComments_'.$this->arrAction['aclGUID']])
+        ? $this->arrAction['aclComments_'.$this->arrAction['aclGUID']]
+        : (isset($nd['aclComments_'.$this->arrAction['aclGUID']])
+            ? $nd['aclComments_'.$this->arrAction['aclGUID']]
+            : (isset($nd['aclComments'])
+                ? $nd['aclComments']
+                : null)
+            )
+        );
 
     $traced = $this->intra->arrPHP2SQL($aToUpdate, $this->item->conf['attr_types']);
 
@@ -122,6 +136,7 @@ public function update($nd = null){
         aclEditDate=NOW(), aclEditBy='{$this->intra->usrID}' 
         ".(count($aToUpdate) ? ", aclItemTraced=".$this->oSQL->e(json_encode($traced)) : '')."
         {$timestamps}
+        , aclComments = ".($aclComments ? $this->oSQL->e($aclComments) : 'NULL')."
     WHERE aclGUID='{$this->arrAction['aclGUID']}'";
 
     $this->oSQL->q($sqlACL);
@@ -145,6 +160,11 @@ public function add(){
             ? $this->item->item[$field]
             : null
             );
+
+        $aToTrace[$field] = ($this->arrAction[$field]!==null
+            ? $this->arrAction[$field]
+            : $aToTrace[$field]
+            );
     }
 
     $timestamps = $this->getTimeStamps($aToTrace);
@@ -162,7 +182,7 @@ public function add(){
             , aclItemDiff = NULL
             , aclItemAfter = NULL
             , aclItemTraced = ".$this->oSQL->e(json_encode($aToTrace))."
-        , aclComments = NULL
+        , aclComments = ".($this->arrAction['aclComments'] ? $this->oSQL->e($this->arrAction['aclComments']) : 'NULL')."
         , aclInsertBy = '{$this->intra->usrID}', aclInsertDate = NOW(), aclEditBy='{$this->intra->usrID}', aclEditDate=NOW()";
      
     $this->oSQL->q($sqlInsACL);  
@@ -220,7 +240,7 @@ public function validate(){
 	    : $this->item->item["{$this->item->conf['prefix']}StatusID"]
 	    );
 
-	if($this->arrAction['actID']<=3){
+	if($this->arrAction['actID']<=4){
 	    switch( $this->conf['actID'] ){
 	        case 1:
 	            if($aclOldStatusID>0)
@@ -296,6 +316,9 @@ public function finish(){
         ".($this->conf["actID"]!="2" && count($aTraced)>0
             ? ", aclItemTraced=".$this->oSQL->e(json_encode($aTraced))
             : ', aclItemTraced=NULL')."
+        ".($this->arrAction['aclComments']
+            ? ", aclComments=".$this->oSQL->e($this->arrAction['aclComments'])
+            : '')."
         , aclStartBy=IFNULL(aclStartBy, '{$this->intra->usrID}'), aclStartDate=IFNULL(aclStartDate,NOW())
         , aclFinishBy=IFNULL(aclFinishBy, '{$this->intra->usrID}'), aclFinishDate=IFNULL(aclFinishDate, NOW())
         , aclEditDate=NOW(), aclEditBy='{$this->intra->usrID}'
@@ -486,6 +509,9 @@ function checkMandatoryFields(){
             $strFields .= ($strFields ? ', ' : '').$this->item->conf['ATR'][$field]["atrTitle{$this->intra->local}"];
         throw new Exception($this->intra->translate("These fields should be changed: %s for %s", $strFields, $this->item->id));
     }
+
+    if($this->conf['actFlagComment'] && !$this->arrAction['aclComments'])
+        throw new Exception($this->intra->translate("Action '%s' requires a comment", $this->conf['actTitle'.$this->intra->local]));
     
 }
 

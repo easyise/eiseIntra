@@ -1,7 +1,7 @@
 <?php
 include_once eiseIntraAbsolutePath."inc_item_traceable.php";
 
-/*
+///*
 try {
     $item = new eiseItemTraceable( $_GET['ID'], array('entID'=>($_POST['entID'] ? $_POST['entID'] : $_GET['entID'])) );
     $item->conf['logTable'] = $oSQL->d("SHOW TABLES LIKE '{$item->conf['table']}_log'") ;
@@ -10,6 +10,7 @@ try {
 }
 
 $intra->dataAction('updateFullEdit', $item);
+$intra->dataAction('superaction', $item);
 $intra->dataAction('undo', $item);
 $intra->dataAction('undoEdit', $item);
 
@@ -24,10 +25,18 @@ if ($intra->arrUsrData['FlagWrite']) {
            , "action" => "javascript:confirmUndo()"
            , "class"=> "ss_arrow_undo"
         ); 
+
+    $arrActions[]= Array ("title" => $intra->translate("Superaction!")
+       , "action" => '#superaction'
+       , "class"=> "bold ss_lightning_go"
+    );
+
     $arrActions[]= Array ("title" => $intra->translate("Save")." ".$entItem->conf["entTitle{$intra->local}"]
        , "action" => 'javascript:save()'
        , "class"=> "bold ss_disk save_button"
     );
+
+    
 }
 
 
@@ -50,8 +59,16 @@ $fldsActivity = $intra->fieldset( $intra->translate('Activity log')
     , $item->showStatusLog(array('FlagWrite'=>$intra->arrUsrData['FlagWrite'], 'forceFlagWrite'=>true)) 
     , array('class'=>'half_screen') );
 
+$aStatuses = array();
+foreach($item->conf['STA'] as $val=>$props){
+    if($props['staFlagDeleted'])
+        continue;
+    $aStatuses[] = array('v'=>$val, 't'=>$props['staTitle'.$intra->local]);
+}
 echo $item->form(
         $intra->field(null, "undoWarning", $intra->translate('WARNING: Undo will erase all data related to last action. Are you sure?'), array('type'=>'hidden'))."\n".
+        $intra->field(null, "aclOldStatusID_text", $item->conf['STA'][$item->staID]['staTitle'.$intra->local], array('type'=>'hidden'))."\n".
+        $intra->field(null, "aStatuses", json_encode($aStatuses), array('type'=>'hidden'))."\n".
         $fldsMain."\n".
         $fldsActivity
         , array('action'=>$_SERVER['PHP_SELF'], 'DataAction'=>'updateFullEdit')
@@ -59,6 +76,63 @@ echo $item->form(
 
 ?>
 <script>
+$(document).ready(function(){
+    $('a[href="#superaction"]').click(function(){
+
+        var aStatuses = JSON.parse($('#aStatuses').val());
+
+        $(this).eiseIntraForm('createDialog', {
+            title: $(this).text()
+            , action: location.href
+            , method: 'POST'
+            , width: '400px'
+            , fields: [
+                {name: 'DataAction'
+                    , type: 'hidden'
+                    , value: 'superaction'}
+                , {name: 'entID', type: 'hidden', value: $('#entID').val()}
+                , {name: 'aclOldStatusID'
+                    , type: 'hidden'
+                    , value: $('#aclOldStatusID').val()}
+                , {title: 'Current Status'
+                    , name: 'aclOldStatusID_text'
+                    , type: 'text'
+                    , value: $('#aclOldStatusID_text').val()
+                    }
+                , {title: 'New Status'
+                    , name: 'aclNewStatusID'
+                    , type: 'combobox'
+                    , defaultText: '- pls select'
+                    , options: aStatuses
+                    }
+                , {title: 'Arrival Time'
+                    , name: 'aclATA'
+                    , type: 'datetime'
+                    , required: true
+                    , value: $('body').eiseIntra('formatDate', (new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000))).toISOString(), 'datetime')
+                    }
+                , {title: 'Comment'
+                    , name: 'aclComments'
+                    , type: 'textarea'
+                    , required: true
+                    }
+                    ]
+            , onsubmit: function(){
+                if(!$(this).find('select[name="aclNewStatusID"]').val() 
+                    || !$(this).find('input[name="aclATA"]').val() 
+                    || !$(this).find('[name="aclComments"]').val() 
+                    ){
+                    alert("New Status, Arrival Time and Comments should be specified.");
+                    return false;
+                }
+                return ($(this).eiseIntraForm('validate'));
+
+            }
+        })
+        return false;
+    })
+})
+
 function confirmUndo(){
     if (confirm($('#undoWarning').val())){
         location.href = location.href+'&DataAction=undo';
@@ -74,7 +148,7 @@ function save(){
 include eiseIntraAbsolutePath."inc_bottom.php";
 
 die();
-*/
+//*/
 
 
 include eiseIntraAbsolutePath."inc_entity_item_form.php";

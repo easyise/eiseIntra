@@ -98,6 +98,27 @@ public function updateFullEdit($nd){
 
 }
 
+public function superaction($nd){
+
+    $oSQL = $this->oSQL;
+    $oSQL->q('START TRANSACTION');
+    $oSQL->startProfiling();
+
+    try {
+        $act = new eiseAction($this, array('actID'=>4
+                , 'aclNewStatusID'=>$nd['aclNewStatusID']
+                , 'aclATA'=>$nd['aclATA']
+                , 'aclComments'=>$nd['aclComments']));
+        $act->execute();
+    } catch (Exception $e) {
+        echo $e->getMessage();
+    }
+
+    //$oSQL->showProfileInfo();
+    $oSQL->q('COMMIT');
+    parent::update($nd);
+}
+
 public function undo($nd){
 
     $this->oSQL->q('START TRANSACTION');
