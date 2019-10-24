@@ -54,14 +54,13 @@ $grid = new easyGrid($oSQL
                     );
                         
 $grid->Columns[]=Array(
-	'field'=>"pgrID"
+	'field'=>"rolID"
 	,'type'=>'row_id'
 );
 $grid->Columns[] = Array(
 	'title'=>'Role'
-	, 'field'=>'pgrRoleID'
+	, 'field'=>'rolFullTitle'
 	, 'type'=>'combobox'
-	, 'sql'=>"SELECT rolID as optValue, CONCAT(rolID,' | ',rolTitle$strLocal) as optText FROM stbl_role"
 	, 'disabled'=>true
     , 'mandatory' => true
     , 'width' => '50%'
@@ -97,11 +96,15 @@ $grid->Columns[]=Array(
   , 'width' => '10%'
 );
 
-$sql = "SELECT stbl_page_role.* 
-FROM stbl_role LEFT OUTER JOIN stbl_page_role ON rolID=pgrRoleID
-WHERE pgrPageID='$pagID'";
+$sql = "SELECT * 
+FROM stbl_role LEFT OUTER JOIN stbl_page_role ON rolID=pgrRoleID AND pgrPageID='$pagID'
+GROUP BY rolID
+ORDER BY rolID";
 $rs = $oSQL->do_query($sql);
-while ($rw = $oSQL->fetch_array($rs)) $grid->Rows[] = $rw;
+while ($rw = $oSQL->fetch_array($rs)) {
+    $rw['rolFullTitle'] = $rw['rolID'].' | '.($rw['rolTitle'.$intra->local] ? $rw['rolTitle'.$intra->local] :  $rw['rolTitle']);
+    $grid->Rows[] = $rw; 
+}
 $oSQL->free_result($rs);
 
 /*------------------------------------------- Page tree function------------------------------------------------------*/
@@ -220,15 +223,45 @@ switch($DataAction){
 							
         } else {
 
+            $oSQL->startProfiling();
+
             $rwPage = $oSQL->f($rsPage);
             $oSQL->q("UPDATE stbl_page SET {$fields} WHERE pagID={$pagID}");
-            $grid->Update();
+            
+            foreach($_POST['inp_page_role_updated'] as $i=>$updated){
+                if(!$updated)
+                    continue;
+                $rolID = $_POST['rolID'][$i];
+                $sqlCheck = "SELECT pgrID FROM stbl_page_role WHERE pgrPageID={$pagID} AND pgrRoleID=".$oSQL->e($rolID);
+                $pgrID = $oSQL->d($sqlCheck);
+                $fields = ", pgrFlagRead = '".(int)($_POST['pgrFlagRead'][$i])."'
+                        , pgrFlagCreate = '".(int)($_POST['pgrFlagCreate'][$i])."'
+                        , pgrFlagUpdate = '".(int)($_POST['pgrFlagUpdate'][$i])."'
+                        , pgrFlagDelete = '".(int)($_POST['pgrFlagDelete'][$i])."'
+                        , pgrFlagWrite = '".(int)($_POST['pgrFlagWrite'][$i])."'";
+                if($pgrID){
+                    $sql = "UPDATE stbl_page_role SET
+                        pgrEditBy = '$intra->usrID', pgrEditDate = NOW()
+                        {$fields}   
+                    WHERE `pgrID` = ".(int)($pgrID);
+                } else {
+                    $sql = "INSERT INTO stbl_page_role SET
+                        pgrPageID={$pagID}, pgrRoleID=".$oSQL->e($rolID)."
+                        , pgrInsertBy = '$intra->usrID', pgrInsertDate = NOW()
+                        , pgrEditBy = '$intra->usrID', pgrEditDate = NOW()
+                        {$fields}";
+                }
+                $oSQL->q($sql);
+            }
 
             if ($_POST["pagParentID"]!=$rwPage["pagParentID"]) {
                   RecalculatePageTree($oSQL, NULL, $iCounter);
             }
                
         }
+
+        // $oSQL->showProfileInfo();
+        // die();
         
         $oSQL->q('COMMIT');
         
