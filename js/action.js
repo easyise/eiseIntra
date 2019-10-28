@@ -154,14 +154,28 @@ var eiseIntraActionSubmit = function(event, $form){
 }
 
 var fillActionLogAJAX = function($form, extra_entID){
-    
+
     var entID = (extra_entID ?  extra_entID : $form.data('eiseIntraForm').entID);
     var entItemID = $form.data('eiseIntraForm').entItemID;
 
-    var strURL = ajaxActionURL+"?DataAction=getActionLog&entItemID="+encodeURIComponent(entItemID)+
-        "&entID="+encodeURIComponent(entID);
+    if(!this.htmlStatusLog){
+        var $f = $('#eiseIntraActionLog, #eif_actionLog');
+        if($f[0]){
+            this.htmlStatusLog = $f[0].outerHTML;
+            $f.remove();
+        }
+    }
 
-    $('#eiseIntraActionLog').dialog({
+    if(!this.htmlStatusLog)
+        return
+
+    var $elem = $(this.htmlStatusLog),
+        strURL = !$elem.hasClass('eif-action-log') 
+            ? ajaxActionURL+"?DataAction=getActionLog&entItemID="+encodeURIComponent(entItemID)+
+                "&entID="+encodeURIComponent(entID)
+            : location.pathname+location.search+"&DataAction=getActionLog";
+
+    $elem.dialog({
                 modal: true
                 , width: '40%'
             })
@@ -347,8 +361,7 @@ init: function( options ) {
         
         //current status title: clickable and shows history by AJAX
         $this.find('.eif_curStatusTitle').click(function(){
-            console.log(this.dataset.entID);
-            fillActionLogAJAX($this, this.dataset.entID);
+            fillActionLogAJAX.call(this, $this, this.dataset.entID);
         });
 
         $form.submit(function(event) {
