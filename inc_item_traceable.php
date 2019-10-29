@@ -63,11 +63,15 @@ public function update($nd){
 
     parent::update($nd);
 
+    // $this->oSQL->startProfiling();
+
     $this->oSQL->q('START TRANSACTION');
     // 1. update master table
     $nd_ = $nd;
+    $atrs = array_keys($this->conf['ATR']);
+    $editable = (array)$this->conf['STA'][$this->staID]['satFlagEditable'];
     foreach ($nd_ as $key => $value) {
-        if(!in_array($key, $this->conf['STA'][$this->staID]['satFlagEditable']))
+        if(in_array($key, $atrs) && !in_array($key, $editable))
             unset($nd_[$key]);
     }
     $this->updateTable($nd_);
@@ -77,6 +81,9 @@ public function update($nd){
     $this->oSQL->q('START TRANSACTION');
     // 2. do the action
     $this->doAction(new eiseAction($this, $nd));
+
+    // $this->oSQL->showProfileInfo();
+    // die();
     
     $this->oSQL->q('COMMIT');
 
@@ -633,7 +640,8 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
         , 'order_field' => "Comments"
         , 'limitOutput' => 49
         );
-     
+
+    if (!in_array($entID."EditDate", $arrExcludeCols))  
     $lst->Columns[] = array('title' => "Updated"
             , 'type'=>"date"
             , 'field' => $entID."EditDate"
@@ -744,7 +752,7 @@ function getAllData($toRetrieve = null){
         $this->staID = (int)$this->item["{$this->entID}StatusID"];
 
     if(in_array('Master', $toRetrieve))
-        parent::getData();
+        $this->getData();
 
     if(in_array('Text', $toRetrieve))    
         foreach($this->conf["ATR"] as $atrID=>$rwATR){
@@ -831,6 +839,19 @@ public function refresh(){
 }
 
 
+/**
+ * This function is called before action is "planned", i.e. record is added to the Action Log. 
+ * It is usable to modify action data before it is occured in the database.
+ *
+ * @category Events
+ *
+ * @param string $actID - action ID
+ * @param int $oldStatusID - status ID to be moved from
+ * @param int $newStatusID - destintation status ID 
+ */
+function beforeActionPlan($actID, $oldStatusID, $newStatusID){
+    //parent::onActionPlan($actID, $oldStatusID, $newStatusID);
+}
 /**
  * This function is called after action is "planned", i.e. record is added to the Action Log. 
  * In case when something went wrong it should throw an exception.
@@ -1132,8 +1153,6 @@ function getAttributeFields($fields, $item = null, $conf = array()){
 
 public function arrActionButtons(){
 
-    GLOBAL $arrActions;
-   
     $oSQL = $this->oSQL;
     $strLocal = $this->local;
     
@@ -1177,49 +1196,22 @@ public function arrActionButtons(){
 
 
    
-   return $strOut;
+   return $arrActions;
 }
 
-public function getActionButtons(){
-    return $this->showActionButtons();
-}
 public function showActionButtons(){
-   
-    $oSQL = $this->oSQL;
-    $strLocal = $this->local;
-    
-    if (!$this->intra->arrUsrData["FlagWrite"])
-        return;
 
-    if($this->staID!==null){
-        if(is_array($this->conf['STA'][$this->staID]['ACT'])){
-            foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
+    $ret = '';
+    $actions = $this->arrActionButtons();
 
-                if(count(array_intersect($this->intra->arrUsrData['roleIDs'], (array)$rwAct['RLA']))==0)
-                    continue;
-
-                $title = $rwAct["actTitle{$this->intra->local}"];
-                  
-                $strID = "btn_".$rwAct["actID"]."_".
-                      $rwAct["actOldStatusID"]."_".
-                      $rwAct["actNewStatusID"];
-
-                $strOut .= "<input type='".($rwAct['actID']==3 ? 'button' : 'submit')."' class=\"".($rwAct['actID']==3 ? ' eiseIntraDelete' : 'eiseIntraActionSubmit')."\" name='actButton' id='$strID' value='"
-                        .htmlspecialchars($title)."'".
-                        " act_id=\"{$rwAct["actID"]}\" orig=\"{$rwAct["actOldStatusID"]}\" dest=\"{$rwAct["actNewStatusID"]}\">";
-                  
-            }
-        }
-    } else {
-        $strOut .= '<input type="submit" class="eiseIntraActionSubmit" name="actButton\" id="btn_1__0" value="'
-                        .$this->intra->translate('Create').'"'.
-                        ' act_id="1" orig="" dest="0">';
+    foreach ((array)$actions as $key => $act) {
+        $ret .= $this->intra->showButton($act['id'], $act['title'], array('class'=>($act['dataset']['action']['actID']==3 ? 'eiseIntraDelete' : 'eiseIntraActionSubmit'), 'dataset'=>$act['dataset']));
     }
 
-
+    return $ret;
    
-   return $strOut;
 }
+public function getActionButtons(){  return $this->showActionButtons(); }
 
 function showActionRadios(){
    

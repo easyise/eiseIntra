@@ -20,8 +20,9 @@ public function __construct($item, $arrAct){
         $types['acl'.$_ts] = 'datetime';
     $types = array_merge($types, $this->item->conf['attr_types']);
 
+    $this->item->getAllData(array('Master', 'Text','ACL'));
+
 	if($arrAct['aclGUID']){
-		$this->item->getAllData(array('Master', 'ACL'));
         $this->arrAction = $this->item->item['ACL'][$arrAct['aclGUID']];
         $traced = array();
         foreach($nd as $field=>$value){
@@ -145,8 +146,11 @@ public function update($nd = null){
 
 public function add(){
 
+    // 0. Trigger beforeActionPlan hook
+    $this->item->beforeActionPlan($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
+
     // 1. obtaining aclGUID
-    $this->arrAction["aclGUID"] = $this->oSQL->d("SELECT UUID() # add action {$this->arrAction['actTitle']}");
+    $this->arrAction["aclGUID"] = ($this->arrAction["aclGUID"] ? $this->arrAction["aclGUID"] : $this->oSQL->d("SELECT UUID() # add action {$this->arrAction['actTitle']}"));
 
     $item_before = $this->item->item_before;
     unset($item_before['ACL']);
