@@ -1058,13 +1058,7 @@ function actionMenu($arrActions = array(), $flagShowLink=false){
                     );
                 $strRet .= " class=\"{$iconClass}{$act['class']}\"";
             }
-            if(is_array($act['dataset'])){
-                foreach ($act['dataset'] as $key => $value) {
-                    if(!preg_match('/^[0-9]/', $key)){
-                        $strRet .= " data-{$key}=\"".htmlspecialchars(is_array($value) ? json_encode($value) : $value).'"';
-                    }
-                }
-            }
+            $strRet .= self::processHTMLDataset($act);
            
             $isJS = preg_match("/javascript\:(.+)$/", $act['action'], $arrJSAction);
 
@@ -2035,8 +2029,6 @@ function showButton($name, $value, $arrConfig=array()){
     if(!is_array($arrConfig)){
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
-    
-
 
     $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
     
@@ -2045,6 +2037,9 @@ function showButton($name, $value, $arrConfig=array()){
     $strClass = $this->handleClass($arrConfig);
     $this->conf['addEiseIntraValueClass'] = $o;
 
+    $extraAttr = $this->conf['strAttrib'];
+    $extraAttr .= self::processHTMLDataset($arrConfig);
+
     $value = ($this->conf['auto_translate'] ? $this->translate($value) : $value);
 
     if($arrConfig['type']=='submit'){
@@ -2052,6 +2047,7 @@ function showButton($name, $value, $arrConfig=array()){
             .($strName!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
             .' class="eiseIntraSubmit'.($strClass!='' ? ' ' : '').$strClass.'"'
             .(!$flagWrite ? ' disabled' : '')
+            .$extraAttr
             .' value="'.htmlspecialchars($value).'">';
     } else {
         if($arrConfig['type']=='delete')
@@ -2060,11 +2056,27 @@ function showButton($name, $value, $arrConfig=array()){
             .($name!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
             .' class="'.$strClass.'"'
             .(!$flagWrite ? ' disabled' : '')
+            .$extraAttr
             .'>'.htmlspecialchars($value).'</button>';
     }
 
     return $strRet;
 
+}
+
+/**
+ * @ignore
+ */
+static function processHTMLDataset($arr){
+    $strRet = '';
+    if(is_array($arr['dataset'])){
+        foreach ($arr['dataset'] as $key => $value) {
+            if(!preg_match('/^[0-9]/', $key)){
+                $strRet .= " data-{$key}=\"".htmlspecialchars(is_array($value) ? json_encode($value) : $value).'"';
+            }
+        }
+    }
+    return $strRet;
 }
 
 /**
