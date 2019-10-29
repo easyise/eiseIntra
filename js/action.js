@@ -328,7 +328,7 @@ init: function( options ) {
 
         })
         /********** initialize submit buttons ***********/
-        $this.find('input.eiseIntraActionSubmit').click( function(ev) { eiseIntraActionSubmit.call(this, ev, $this) });
+        $this.find('input.eiseIntraActionSubmit, button.eiseIntraActionSubmit').click( function(ev) { eiseIntraActionSubmit.call(this, ev, $this) });
 
         $('a[href="#ei_action"]').click( function(ev) { eiseIntraActionSubmit.call(this, ev, $this); return false; });
         $('a[href="#ei_messages"]').click( function(ev) {
