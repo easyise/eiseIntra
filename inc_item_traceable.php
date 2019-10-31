@@ -278,10 +278,11 @@ private function init(){
     // read status_attribute
     $this->conf['STA'] = array();
     $sqlSat = "SELECT stbl_status.*,stbl_status_attribute.*  
-            FROM stbl_status_attribute 
+        FROM stbl_status_attribute 
                 RIGHT OUTER JOIN stbl_status ON staID=satStatusID AND satEntityID=staEntityID
-                LEFT OUTER JOIN stbl_attribute ON atrID=satAttributeID AND atrFlagDeleted=0
+                LEFT OUTER JOIN stbl_attribute ON atrID=satAttributeID
         WHERE staEntityID=".$oSQL->e($this->entID)."
+            AND IFNULL(atrFlagDeleted,0)=0
         ORDER BY staID, atrOrder";
     $rsSat = $oSQL->q($sqlSat);
     while($rwSat = $oSQL->f($rsSat)){
@@ -731,11 +732,11 @@ public function getData($id = null){
 }
 
 function getAllData($toRetrieve = null){
-    
+
     if(!$this->id)
         return array();
 
-    $toRetrieve = !is_array($toRetrieve) ? array($toRetrieve) : $toRetrieve;
+    $toRetrieve = ($toRetrieve!==null && !is_array($toRetrieve)) ? array($toRetrieve) : $toRetrieve;
 
     if($toRetrieve===null)
         $toRetrieve = $this->defaultDataToObtain;
@@ -1329,7 +1330,7 @@ function showUnfinishedActions(){
 
     $html = '';
 
-    foreach($this->item['ACL'] as $aclGUID=>$rwACL){
+    foreach((array)$this->item['ACL'] as $aclGUID=>$rwACL){
         if ($rwACL["aclActionPhase"]>=2)
             continue;
 

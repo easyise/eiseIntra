@@ -40,7 +40,7 @@ switch($DataAction){
             $oSQL->q($sqlAct);
 	    }
 
-	           
+        $aAtr = array();   
         for ($i=1; $i< count($_POST["atrID"]); $i++){
 
             if(!$_POST['atrID'][$i])
@@ -65,8 +65,16 @@ switch($DataAction){
             }
 
             $oSQL->q($sqlSAT);
+            $aAtr[] = $_POST['atrID'][$i];
             
         }
+        $sqlSat  = "DELETE FROM stbl_status_attribute WHERE satStatusID={$staID}
+            AND satEntityID='{$entID}'
+            AND satAttributeID NOT IN ('".implode("','", $aAtr)."')";
+        $oSQL->q($sqlSat);
+
+        // $oSQL->showProfileInfo();
+        // die();
         
         $oSQL->q('COMMIT');
         
