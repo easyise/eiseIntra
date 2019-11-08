@@ -832,7 +832,7 @@ init: function( options ) {
                 if (confirm("Are you sure you'd like to delete?")){
                     $this.find('input,select,textarea').removeAttr('required');
                     $this.find('input[name="DataAction"]').val('delete');
-                    $this.submit();
+                    $this.off('submit').submit();
                     return false;
                 } 
                 ev.stopImmediatePropagation();
