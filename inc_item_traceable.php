@@ -95,8 +95,8 @@ public function updateFullEdit($nd){
     // 1. update master table
     $this->updateTable($nd);
     foreach($this->item['ACL'] as $aclGUID=>$rwACL){
-        
-        $this->updateAction($rwACL, $nd);
+        if($rwACL['aclActionPhase']==2 && $rwACL['aclActionID']>4)
+            $this->updateAction($rwACL, $nd);
 
     }
     $this->oSQL->q('COMMIT');
@@ -193,6 +193,75 @@ public function undo($nd){
 
     $this->msgToUser = $this->intra->translate('Action is undone');
     $this->redirectTo = $_SERVER['PHP_SELF'].'?entID='.$this->entID."&ID=".urlencode($this->id);
+
+}
+
+public function remove_stl($data){
+
+    $this->redirectTo = $_SERVER['PHP_SELF'].'?entID='.$this->entID."&ID=".urlencode($this->id);
+
+    $stl_remove = null;
+    foreach ($this->item['STL'] as $stlGUID => $rwSTL) {
+        if($stlGUID==$data['stlGUID']){
+            $stl_remove = $rwSTL;
+        }
+    }
+
+    $this->oSQL->q('START TRANSACTION');
+
+    if(!$stl_remove['stlATD'])
+         throw new Exception("Please use UNDO to remove status {$stl_remove['stlTitle']}", 1);
+    
+    // remove status log entry
+    $sqlDelStl = "DELETE FROM stbl_status_log WHERE stlGUID='{$stl_remove['stlGUID']}'";
+    $this->oSQL->q($sqlDelStl);
+
+    // remove action log 
+    $sqlDelStl = "DELETE FROM stbl_action_log WHERE aclGUID='{$stl_remove['stlArrivalActionID']}'";
+    $this->oSQL->q($sqlDelStl);
+
+    $this->msgToUser = $this->intra->translate("Status {$stl_remove['stlTitle']} is removed");
+
+    $this->oSQL->q('COMMIT');
+
+}
+
+public function remove_acl($data){
+
+    $this->redirectTo = $_SERVER['PHP_SELF'].'?entID='.$this->entID."&ID=".urlencode($this->id);
+
+    $stl_remove = null;
+    $acl_remove = null;
+    foreach ($this->item['STL'] as $stlGUID => $rwSTL) {
+        if($rwSTL['stlArrivalActionID']==$data['aclGUID']){
+            $stl_remove = $rwSTL;
+            break;
+        }
+    }
+
+    foreach ($this->item['ACL'] as $aclGUID => $rwACL) {
+        if ($aclGUID == $data['aclGUID']) {
+            $acl_remove = $rwACL;
+            break;
+        }
+    }
+
+    if($stl_remove && !$stl_remove['stlATD'])
+        throw new Exception("Please use UNDO to remove action log entry \"{$this->conf['ACT'][$acl_remove['aclActionID']]['actTitlePast']}\"", 1);
+
+    $this->oSQL->q('START TRANSACTION');
+
+    // remove status log entry
+    $sqlDelStl = "DELETE FROM stbl_status_log WHERE stlGUID='{$stl_remove['stlGUID']}'";
+    $this->oSQL->q($sqlDelStl);
+
+    // remove action log 
+    $sqlDelStl = "DELETE FROM stbl_action_log WHERE aclGUID='{$acl_remove['aclGUID']}'";
+    $this->oSQL->q($sqlDelStl);
+
+    $this->msgToUser = $this->intra->translate("Action \"{$this->conf['ACT'][$acl_remove['aclActionID']]['actTitlePast']}\" is removed");
+
+    $this->oSQL->q('COMMIT');
 
 }
 
@@ -1267,10 +1336,12 @@ function showStatusLog($conf = array()){
 
     foreach((array)$this->item["STL"] as $stlGUID => $rwSTL){
 
-        if ($arrConfig['flagHideDraftStatusStay'] && $rwSTL['stlStatusID']==='0')
+        if ($conf['flagHideDraftStatusStay'] && $rwSTL['stlStatusID']==='0')
             continue;
 
         $rwSTA = $this->conf['STA'][$rwSTL['staID']];
+
+        $htmlRemove = ($conf['flagFullEdit'] ? '&nbsp;<a href="#remove_stl" class="remove">[x]</a>' : '');
 
         $htmlTiming = '<div class="dates"><span class="eiseIntra_stlATA">'
                         .($rwSTA["staTrackPrecision"] == 'datetime' 
@@ -1283,12 +1354,14 @@ function showStatusLog($conf = array()){
                                 : $this->intra->dateSQL2PHP($rwSTL["stlATD"])
                                 )
                             : $this->intra->translate("current time"))
-                        .'</span></div>'."\n";
+                        .'</span>'.$htmlRemove.'</div>'."\n";
 
         $html .= $this->intra->field(($rwSTL["stlTitle{$this->intra->local}"]!="" 
                 ? $rwSTL["stlTitle{$this->intra->local}"]
                 : $rwSTL["staTitle"]), null, null
             , array('fieldClass'=>'eif-stl-title'
+                , 'title' => $rwSTL['stlGUID']
+                , 'dataset' => array('guid'=>$stlGUID)
                 , 'extraHTML'=> $htmlTiming));
 
     
@@ -1379,7 +1452,9 @@ function showActionInfo($aclGUID, $conf = array()){
 
         $html = '';
 
-        $htmlTiming = '<div class="dates">'.$this->intra->showDatesPeriod($rwACL['aclATD'], $rwACL['aclATA'], $rwACT['actTrackPrecision']).'</div>'."\n";
+        $htmlRemove = ($conf['flagFullEdit'] ? '&nbsp;<a href="#remove_acl" class="remove">[x]</a>' : '');
+
+        $htmlTiming = '<div class="dates">'.$this->intra->showDatesPeriod($rwACL['aclATD'], $rwACL['aclATA'], $rwACT['actTrackPrecision']).$htmlRemove.'</div>'."\n";
 
         $actTitle = ($rwACL['aclActionPhase']==2 
             ? ($rwACT["actTitlePast{$this->intra->local}"]!="" 
@@ -1390,10 +1465,34 @@ function showActionInfo($aclGUID, $conf = array()){
                 : $rwACT["actTitle"])
             );
 
+        $fieldTitle = ($rwACL['aclFinishBy'] 
+            ? $rwACL['aclFinishBy'] 
+            : ($rwACL['aclStartBy']
+                ? $rwACL['aclStartBy']
+                : $rwACL['aclInsertBy'])
+            )
+            .'@'.$rwACL['aclEditDate'].' '.$aclGUID;
+
+
         $html .= $this->intra->field($actTitle, null, null, array('fieldClass'=>'eif-acl-title'
-                , 'extraHTML'=> $htmlTiming));
+                , 'extraHTML'=> $htmlTiming
+                , 'dataset' => array('guid'=>$aclGUID)
+                , 'title'=>$fieldTitle)
+        );
 
         $traced = $this->getTracedData(array_merge($rwACL, $rwACT));
+
+        if($conf['flagFullEdit']){
+            if($rwACT['actFlagHasEstimates']){
+                if(!$rwACT['actFlagDepartureEqArrival'])
+                    $html .= ( !$rwACT['aatFlagTimestamp']['ETD'] ? $this->intra->field('ETD', 'aclETD_'.$aclGUID, $rwACL['aclETD'], array('type'=>$rwACT['actTrackPrecision'])) : '');
+                $html .= ( !$rwACT['aatFlagTimestamp']['ETA'] ? $this->intra->field('ETA', 'aclETA_'.$aclGUID, $rwACL['aclETA'], array('type'=>$rwACT['actTrackPrecision'])) : '');
+            } 
+            if(!$rwACT['actFlagDepartureEqArrival'])
+                $html .= ( !$rwACT['aatFlagTimestamp']['ATD'] ? $this->intra->field('ATD', 'aclATD_'.$aclGUID, $rwACL['aclATD'], array('type'=>$rwACT['actTrackPrecision'])) : '');
+            $html .= ( !$rwACT['aatFlagTimestamp']['ATA'] ? $this->intra->field('ATA', 'aclATA_'.$aclGUID, $rwACL['aclATA'], array('type'=>$rwACT['actTrackPrecision'])) : '');
+        }
+
 
         $html .= $this->getAttributeFields(array_keys((array)$rwACT['aatFlagToTrack']), $traced
             , array_merge($conf, array('suffix'=>'_'.$aclGUID))

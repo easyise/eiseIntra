@@ -103,7 +103,7 @@ public function update($nd = null){
     $aToUpdate_old = (array)@json_decode($this->arrAction['aclItemTraced'], true);
     $aToUpdate = array();
 
-    foreach((array)$this->conf['aatFlagToTrack'] as $atrID=>$flags){
+    foreach(array_merge(array_keys((array)$this->conf['aatFlagToTrack']), array('aclATA','aclATD','aclETA','aclETD')) as $atrID){
         $nd_key = $atrID.'_'.$this->arrAction['aclGUID'];
         if(isset($this->arrAction[$nd_key])){
             $aToUpdate[$atrID] = $this->arrAction[$nd_key];
@@ -519,18 +519,19 @@ function checkMandatoryFields(){
     
 }
 
-public function getTimeStamps($nd = null){
+public function getTimeStamps($nd = null, &$tsValues = array()){
 
     $sql = '';
-
-    $tsValues = array();
 
     $a = array_merge($this->arrAction, (array)@json_decode($this->arrAction['aclItemTraced'], true), (array)$nd);
 
     foreach(self::$ts as $ts){
+        $val_ts = $a[$this->conf['aatFlagTimestamp'][$ts]];
+        //$val_ATA = $a['acl'.$ts];
+        $val = $val_ATA ? $val_ATA : $val_ts;
         $tsValues[$ts] = ($this->conf['actTrackPrecision']==='datetime'
-                ? $this->intra->datetimePHP2SQL($a[$this->conf['aatFlagTimestamp'][$ts]], 'NOW()')
-                : $this->intra->datePHP2SQL($a[$this->conf['aatFlagTimestamp'][$ts]], 'NOW()')
+                ? $this->intra->datetimePHP2SQL($val, 'NOW()')
+                : $this->intra->datePHP2SQL($val, 'NOW()')
                 );
     }
 
