@@ -1259,6 +1259,9 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text){
         }
         oInp = oTr.find('input[name="'+strFieldName+'[]"]').first();
         oInp.val(strValue);
+        if(oInp[0].type=='hidden'){
+            oInp.change();
+        }
         
         if (strTitle){
             if(oInp.next()[0]!=undefined){
