@@ -1644,6 +1644,8 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
 
         $conf['type'] = ((trim($title)!=='' && !isset($conf['type'])) ? 'text' : $conf['type']);
 
+        $dataset = self::processHTMLDataset($conf);
+
         $html .= "<div class=\"eiseIntraField eif-field".
                 ' eif-field-'.$conf['type'].
                 ($name 
@@ -1657,7 +1659,12 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
                 : ($conf['id']
                     ? ' id="'.$conf['id'].'"'
                     : '')
-                ).">";
+                )
+            .($conf['title'] 
+                ? ' title="'.htmlspecialchars($conf['title']).'"'
+                : ''
+                )
+            .$dataset.">";
 
         $title = ($this->conf['auto_translate'] ? $this->translate($title) : $title);
 
