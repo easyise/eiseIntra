@@ -47,7 +47,6 @@ function eiseGrid(gridDIV){
     this.lastClickedRowIx = null;
     this.selectedRowIx = [];
 
-
     this.onChange = []; // on change selector arrays
     this.goneIDs = []; // IDs of deleted rows
 
@@ -58,7 +57,8 @@ function eiseGrid(gridDIV){
     this.flagHardWidth = true; //when all columns has defined width in px
     
     var oGrid = this;
-
+    
+    
     this.tbodies.each(function(){
         oGrid.initRow( $(this) );
     });
@@ -67,7 +67,8 @@ function eiseGrid(gridDIV){
 
     if (this.tbodies.length==0)
         this.tableContainer.find('.eg-no-rows').css('display', 'table-row-group');
-
+    
+    __initRex.call(this);
     __initControlBar.call(this);
 
     this.initLinesStructure();
@@ -643,6 +644,67 @@ var _setCaretPos = function(oField, posToSet){
 
     oField.focus();
     oField.setSelectionRange(iCaretPos, iCaretPos);
+
+}
+
+/**
+ * Initialize regular expressions
+ */
+var __initRex = function(){
+
+    this.rex = {};
+    this.rex_replace = {};
+
+    var grid = this,
+        types = ['date', 'time', 'datetime'],
+        strRegExDate = this.conf.dateFormat
+                    .replace(new RegExp('\\.', "g"), "\\.")
+                    .replace(new RegExp("\\/", "g"), "\\/")
+                    .replace("d", "([0-9]{1,2})")
+                    .replace("m", "([0-9]{1,2})")
+                    .replace("Y", "([0-9]{4})")
+                    .replace("y", "([0-9]{1,2})"),
+        strRegExTime = this.conf.timeFormat
+                    .replace(new RegExp("\\.", "g"), "\\.")
+                    .replace(new RegExp("\\:", "g"), "\\:")
+                    .replace(new RegExp("\\/", "g"), "\\/")
+                    .replace("H", "([0-9]{1,2})")
+                    .replace("i", "([0-9]{1,2})")
+                    .replace("s", "([0-9]{1,2})"),
+        aStrFormat = {'date':this.conf.dateFormat, 'time': this.conf.timeFormat
+        , 'datetime': this.conf.dateFormat+' '+this.conf.timeFormat },
+        aStrFormatISO = {'date':'Y-m-d', 'time': 'H:i:s', 'datetime': 'Y-m-dTH:i:s' }
+        aStrRex = {'date':strRegExDate, 'time': strRegExTime, 'datetime': strRegExDate+' '+strRegExTime };
+
+    types.forEach(function(type){
+        var a = [], replacements = {}, formatISO = aStrFormatISO[type];
+        ['Y', 'm', 'd', 'y', 'H', 'i', 's'].forEach(function(key){
+            var o = {'key': key, 'io': aStrFormat[type].indexOf(key)};
+            if( o.io>=0 ) {
+                a.push(o);
+            }
+        });
+        a.sort(function(elem_a, elem_b){
+            return (elem_a.io - elem_b.io);
+        })
+        a.forEach(function(elem, ix){
+            replacements[elem.key] = '$'+(ix+1);
+        });
+        ['Y', 'm', 'd', 'y', 'H', 'i', 's', ].forEach(function(key){
+            if(replacements[key]){
+                formatISO = formatISO.replace(key, (key=='y'
+                    ? '20'+replacements[key] 
+                    : replacements[key])
+                );
+            } else 
+                if(aStrFormat[type].indexOf(key)<0)
+                    formatISO = formatISO.replace(key, '');
+                
+        });
+
+        grid.rex[type] = new RegExp('^'+aStrRex[type]+'$')
+        grid.rex_replace[type] = formatISO.replace(/[^0-9]+$/, '');
+    })
 
 }
 
@@ -1227,10 +1289,14 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text){
             case "real":
             case "double":
             case "money":
-               strValue = strValue
+               return strValue
                 .replace(new RegExp("\\"+this.conf.decimalSeparator, "g"), '.')
                 .replace(new RegExp("\\"+this.conf.thousandsSeparator, "g"), '');
                 return parseFloat(strValue);
+            case 'date':
+            case 'time':
+            case 'datetime':
+                return strValue.replace(this.rex[strType], this.rex_replace[strType]);
             default:
                 return strValue;
         }
@@ -1352,7 +1418,8 @@ eiseGrid.prototype.verifyInput = function (oTr, strFieldName) {
     
     var selector = '.'+this.id+'-'+strFieldName+' input[name="'+strFieldName+'[]"]';
     var $inp = oTr.find(selector).first(),
-        strValue = $inp.val();
+        strValue = $inp.val(),
+        strInpType = this.conf.fields[strFieldName].type;
     if (strValue!=undefined){ //input mask compliance
 
         if(this.conf.validators){
@@ -1362,7 +1429,7 @@ eiseGrid.prototype.verifyInput = function (oTr, strFieldName) {
 
         }
         
-        switch (this.conf.fields[strFieldName].type){
+        switch (strInpType){
             case "money":
             case "numeric":
             case "real":
@@ -1381,26 +1448,7 @@ eiseGrid.prototype.verifyInput = function (oTr, strFieldName) {
             case 'time':
             case 'datetime':
                  
-                var strRegExDate = this.conf.dateFormat
-                    .replace(new RegExp('\\.', "g"), "\\.")
-                    .replace(new RegExp("\\/", "g"), "\\/")
-                    .replace("d", "[0-9]{1,2}")
-                    .replace("m", "[0-9]{1,2}")
-                    .replace("Y", "[0-9]{4}")
-                    .replace("y", "[0-9]{1,2}");
-                var strRegExTime = this.conf.timeFormat
-                    .replace(new RegExp("\\.", "g"), "\\.")
-                    .replace(new RegExp("\\:", "g"), "\\:")
-                    .replace(new RegExp("\\/", "g"), "\\/")
-                    .replace("H", "[0-9]{1,2}")
-                    .replace("i", "[0-9]{1,2}")
-                    .replace("s", "[0-9]{1,2}");
-                
-                var strRegEx = "^"+(this.conf.fields[strFieldName].type.match(/date/) ? strRegExDate : "")+
-                    (this.conf.fields[strFieldName].type=="datetime" ? " " : "")+
-                    (this.conf.fields[strFieldName].type.match(/time/) ? strRegExTime : "")+"$";
-                
-                if (strValue!="" && strValue.match(new RegExp(strRegEx))==null){
+                if (strValue!="" && strValue.match(this.rex[strInpType])==null){
                     alert ("Field '"+this.conf.fields[strFieldName].type+"' should contain date value formatted as "+this.conf.dateFormat+".");
                     this.focus(oTr, strFieldName);
                     return false;
