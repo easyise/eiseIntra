@@ -86,6 +86,80 @@ var adjustIframe = function(){
     }   
 }
 
+var __initRex = function(conf_){
+
+    conf_.rex = {}
+    conf_.rexISO = {}
+    conf_.rex_replace = {}
+    conf_.rex_replace2loc = {}
+
+    var __getRexNReplacement = function(orig, dest, type){
+
+        var reg = orig
+                    .replace(new RegExp('\\.', "g"), "\\.")
+                    .replace(new RegExp("\\/", "g"), "\\/")
+                    .replace(new RegExp("\\:", "g"), "\\:")
+                    .replace(new RegExp("\\-", "g"), "\\-")
+                    .replace("d", "([0-9]{1,2})")
+                    .replace("m", "([0-9]{1,2})")
+                    .replace("Y", "([0-9]{4})")
+                    .replace("y", "([0-9]{2})")
+                    .replace("H", "([0-9]{1,2})")
+                    .replace("i", "([0-9]{2})")
+                    .replace("s", "([0-9]{2})")
+            , a = []
+            , replacements = {};
+        ['Y', 'm', 'd', 'y', 'H', 'i', 's'].forEach(function(key){
+            var o = {'key': key, 'io': orig.indexOf(key)};
+            if( o.io>=0 ) {
+                a.push(o);
+            }
+        });
+        a.sort(function(elem_a, elem_b){
+            return (elem_a.io - elem_b.io);
+        })
+        a.forEach(function(elem, ix){
+            replacements[elem.key] = '$'+(ix+1);
+        });
+
+        (['Y', 'm', 'd', 'y', 'H', 'i', 's', ]).forEach(function(key){
+            if(replacements[key]){
+                dest = dest.replace(key, (key=='y'
+                    ? '20'+replacements[key] 
+                    : replacements[key])
+                );
+            } else 
+                if(dest.indexOf(key)<0)
+                    dest = dest.replace(key, '');
+                
+        });
+
+        return {rex: new RegExp('^'+reg+'$')
+            , replacement: dest.replace(/[^0-9]+$/, '')
+        };
+
+    };
+
+    var types = ['date', 'time', 'datetime']
+        , aStrFormat = {'date':conf_.dateFormat
+            , 'time': conf_.timeFormat
+            , 'datetime': conf_.dateFormat+' '+conf_.timeFormat 
+        }
+        , aStrFormatISO = {'date':'Y-m-d', 'time': 'H:i:s', 'datetime': 'Y-m-dTH:i:s' }
+
+    types.forEach(function(type){
+
+        var oLocale2ISO =  __getRexNReplacement(aStrFormat[type], aStrFormatISO[type], type),
+            oISO2Locale =  __getRexNReplacement(aStrFormatISO[type], aStrFormat[type], type);
+
+        conf_.rex[type] = oLocale2ISO.rex
+        conf_.rexISO[type] = oISO2Locale.rex
+        conf_.rex_replace[type] = oLocale2ISO.replacement;
+        conf_.rex_replace2loc[type] = oISO2Locale.replacement;
+
+    })
+}
+
 var methods = {
 
 /**
@@ -112,27 +186,7 @@ init: function(options){
         
     if ( ! data ) {
 
-        if(conf.dateFormat){
-            conf.strRegExDate = conf.dateFormat
-                        .replace(new RegExp('\\.', "g"), "\\.")
-                        .replace(new RegExp("\\/", "g"), "\\/")
-                        .replace("d", "([0-9]{1,2})")
-                        .replace("m", "([0-9]{1,2})")
-                        .replace("Y", "([0-9]{4})")
-                        .replace("y", "([0-9]{2})");
-            
-            conf.strRegExDate_dateInput = "([0-9]{4})\-([0-9]{1,2})\-([0-9]{1,2})";
-            conf.dateFormat_dateInput = "Y-m-d";
-
-            conf.strRegExTime = conf.timeFormat
-                .replace(new RegExp("\\.", "g"), "\\.")
-                .replace(new RegExp("\\:", "g"), "\\:")
-                .replace(new RegExp("\\/", "g"), "\\/")
-                .replace("h", "([0-9]{1,2})")
-                .replace("H", "([0-9]{1,2})")
-                .replace("i", "([0-9]{1,2})")
-                .replace("s", "([0-9]{1,2})");
-        }
+        __initRex(conf);
 
         conf.menuKey = conf.system+'_menu';
         conf.tlMenuKey = conf.system+'_tlmenu';
@@ -404,6 +458,7 @@ init: function(options){
 
         if(typeof value!=='undefined'){
             conf[property] = value;
+            $(this).data('eiseIntra', conf)
         }
 
         return retVal;
@@ -418,48 +473,40 @@ init: function(options){
     return $('.ei-pane').height() - $('#menubar').outerHeight(true);
 }
 
-, formatDate: function(value, format){
-    format = (!format ? 'date' : format);
-    var conf = $(this).data('eiseIntra').conf,
-        flagTime = ( format.match(/time$/) !== null ),
-        re = conf.strRegExDate_dateInput+( flagTime
-            ? '\\s*T{0,1}'+conf.strRegExTime
-            : ''),
-        isoFormatMatch = (typeof value=='string' ? value.match(new RegExp(re)) : false),
-        datetime = value;
+, initRex: function(conf_){
 
-    if(isoFormatMatch){
-        datetime = conf.dateFormat.replace("d", isoFormatMatch[3])
-                                .replace("m", isoFormatMatch[2])
-                                .replace("Y", isoFormatMatch[1])
-                                .replace("y", isoFormatMatch[3].substr(-2))+
-                (flagTime 
-                    ? ' '+conf.timeFormat.replace("h", isoFormatMatch[4]) // no AM/PM yet
-                        .replace("H", isoFormatMatch[4])
-                        .replace("i", isoFormatMatch[5])
-                        .replace("s", isoFormatMatch[6])
-                    : '');
+    if(!conf_)
+        conf_ = this.conf
 
-    }
-
-    return datetime;
+    __initRex(conf_)
 
 }
 
-, parseDate: function(strDate, options){
+, formatDate: function(value, format){
+
+    var conf = $(this).data('eiseIntra').conf;
+
+    return (value.match(conf.rexISO[format]) ? value.replace(conf.rexISO[format], conf.rex_replace2loc[format]) :  value);
+
+}
+
+, parseDate: function(strDateTime, options){
 
     var conf = $(this).data('eiseIntra').conf,
-        reDateFormat_iso = new RegExp(conf.strRegExDate_dateInput),
-        reDateFormat = new RegExp(conf.strRegExDate),
-        reTimeFormat = new RegExp(conf.strRegExTime),
-        strReplace = conf['prgDateReplaceTo'].replace(/\\/g, '$');
+        aDateTime = strDateTime.split(/[T\s]+/),
+        strDateSrc = aDateTime[0],
+        strTimeSrc = aDateTime[1];
 
-    if(strDate.match(reDateFormat)){
-        strDate = strDate.replace(new RegExp(conf.strRegExDate), strReplace)
+    if(strDateSrc.match(conf.rex['date'])){
+        strDateSrc = strDateSrc.replace(conf.rex['date'], conf.rex_replace['date']);
+    } else {
+        if(!strDateSrc.match(conf.rexISO['date']))
+            return null;
     }
+        
 
-    var aDate = strDate.match(reDateFormat_iso),
-        aTime = strDate.match(reTimeFormat),
+    var aDate = strDateSrc.match(conf.rexISO['date']),
+        aTime = (strTimeSrc ? strTimeSrc.match(conf.rex['time']) : null),
         strDate = (aDate ? aDate[1]+'-'+aDate[2].padStart(2, '0')+'-'+aDate[3].padStart(2, '0') : ''),
         strToParse = strDate+'T'+(aTime ? aTime[1].padStart(2, '0')+':'+aTime[2].padStart(2, '0')+(aTime[3] ? ':'+aTime[3].padStart(2, '0') : '') : '00:00'),
         dtRet = new Date(strToParse);
@@ -1088,12 +1135,19 @@ fill: function(data, options){
                 ? fieldData
                 : {v: fieldData});
 
-            var $inp = $form.find('#'+field);
+            if(!fData.t && data[field+'_text']!==null)
+                fData.t = data[field+'_text'];
+
+            var $inp = $form.find('#'+field) 
+                , $span = $form.find('#span_'+field)
+                , html = '';
+
             if (!$inp[0]){
                 if(options && options.createMissingAsHidden){
                     $inp = $('<input type="hidden">').attr('id', field).attr('name', field).appendTo($form);
-                } else 
+                } else {
                     return true; // continue
+                }
             }
 
             switch($inp[0].nodeName){
@@ -1111,6 +1165,8 @@ fill: function(data, options){
                             break;
                         default:
                             $inp.val(fData.v);
+                            html = fData.t ? fData.t : fData.v;
+                            break;
                     } 
                     
                     $inpNext = $inp.next('input#'+field+'_text');
@@ -1128,7 +1184,6 @@ fill: function(data, options){
                     }
                     break;
                 default:
-                    var html = '';
                     if(fData.h && fData.v!=''){
                         html = '<a href="'+fData.h+'"'
                             +(fData.tr 
@@ -1140,8 +1195,13 @@ fill: function(data, options){
                     $inp.html(html);
                     break;
             }
+            if($span[0])
+                $span.html(html);
+
             $inp.addClass('eif_filled');
-            
+
+
+
         })
     
     })
