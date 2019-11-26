@@ -299,9 +299,11 @@ public function delete(){
  * This function prevents recursive hooks when object instances are created within existing hook
  */
 public function preventRecursiveHooks(&$nd = array()){
+
 	$this->intra->cancelDataAction($nd);
 	$this->intra->cancelDataRead($nd);
 	unset($nd[$this->conf['PK']]);
+
 }
 
 /**

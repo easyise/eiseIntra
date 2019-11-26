@@ -123,7 +123,7 @@ private $arrClassInputTypes =
  * @category Initialization
  */
 public static $defaultConf = array(
-        'versionIntra'=>'2.2.006' 
+        'versionIntra'=>'2.2.008' 
         , 'dateFormat' => "d.m.Y" // 
         , 'timeFormat' => "H:i" // 
         , 'decimalPlaces' => "2"
@@ -2516,6 +2516,9 @@ function dataAction($dataAction, $funcOrObj=null){
 
         } elseif(is_object($funcOrObj)){
 
+            if(self::isRecursion())
+                return;
+
             $obj = $funcOrObj;
             $method = $newData[$this->conf['dataActionKey']];
             $ret = array();
@@ -2591,6 +2594,9 @@ function dataRead($dataReadValues, $function=null, $arrParam = array()){
             $ret = call_user_func_array($function, array_merge(Array($query), $arrParam) );
         } elseif( is_object($function) ){
 
+            if(self::isRecursion())
+                return;
+
             $obj = $function;
             $method = $query[$this->conf['dataReadKey']];
             $ret = array();
@@ -2616,6 +2622,19 @@ function dataRead($dataReadValues, $function=null, $arrParam = array()){
 }
 function cancelDataRead(){
     unset($_POST[$this->conf['dataReadKey']]);
+}
+
+public static function isRecursion(){
+    $aCallsUnique = array();
+    foreach (debug_backtrace() as $call) {
+        $class_func_curr = ($call['class'] ? $call['class'].'::' : '').$call['function'];
+        $aCallsUnique[$class_func_curr] += 1;
+    }
+    foreach($aCallsUnique as $nCalls){
+        if($nCalls>1)
+            return true;
+    }
+    return false;
 }
 
 function getDateTimeByOperationTime($operationDate, $time){
