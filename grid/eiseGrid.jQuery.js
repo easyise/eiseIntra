@@ -390,9 +390,16 @@ eiseGrid.prototype.initRow = function( $tbody ){
 
     $.each(oGrid.conf.fields, function(fld){ // change evend on eiseGrid input should cause row marked as changed
         $tbody.find("input[name='"+fld+"[]']").bind('change', function(){ 
+            
+            if(this.__handlingTheChange)
+                return;
+            this.__handlingTheChange = true;
+
             oGrid.updateRow( $tbody ); 
+
             var $inp = $(this),
                 arrFnOnChange = oGrid.onChange[fld];
+                
             if(arrFnOnChange ){
                 for(var ifn=0; ifn<arrFnOnChange.length; ifn++){
                     var fn_onChange = arrFnOnChange[ifn];
@@ -401,6 +408,7 @@ eiseGrid.prototype.initRow = function( $tbody ){
                     }
                 }
             }
+            delete this.__handlingTheChange;
         })
     });
 
@@ -1456,7 +1464,7 @@ eiseGrid.prototype.verifyInput = function (oTr, strFieldName) {
             case 'time':
             case 'datetime':
                  
-                if (strValue!="" && strValue.match(this.conf.rex[strInpType])==null){
+                if (strValue!="" && strValue.match(this.conf.пrex[strInpType])==null){
                     alert ("Field '"+this.conf.fields[strFieldName].type+"' should contain date value formatted as "+this.conf.dateFormat+".");
                     this.focus(oTr, strFieldName);
                     return false;
