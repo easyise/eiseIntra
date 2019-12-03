@@ -458,7 +458,7 @@ init: function(options){
 
         if(typeof value!=='undefined'){
             conf[property] = value;
-            $(this).data('eiseIntra', conf)
+            $(this).data('eiseIntra', {conf: conf} )
         }
 
         return retVal;
