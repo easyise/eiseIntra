@@ -650,6 +650,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
                 , "textFieldLocal" => "{$strPrefix}TitleLocal"
                 , "orderField" => "{$strPrefix}Order"
                 , "delField" => "{$strPrefix}FlagDeleted"
+                , "classField" => "{$strPrefix}Class"
                 );
         } else {
             $arrFields = Array(
@@ -658,6 +659,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
                 , "textFieldLocal" => "optTextLocal"
                 , "orderField" => "optOrder"
                 , "delField" => "optFlagDeleted"
+                , "classField" => "optClass"
             );
         }  
 
@@ -665,10 +667,10 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
         $fields = array_keys($f);
         if(!in_array($arrFields['textFieldLocal'], $fields))
             $arrFields['textFieldLocal'] = $arrFields['textField'];
-        if(!in_array($arrFields['orderField'], $fields))
-            unset($arrFields['orderField']);
-        if(!in_array($arrFields['delField'], $fields))
-            unset($arrFields['delField']);
+        foreach(array_keys($arrFields) as $af){
+            if(!in_array($arrFields[$af], $fields))
+                unset($arrFields[$af]);
+        }
 
         $tableFieldCache[$cacheKey] = $arrFields;
 
@@ -680,7 +682,11 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
                 ELSE `".$arrFields["textField{$this->local}"]."`
                 END)"
             : "`".$arrFields["textField"]."`"
-            )." as optText, `{$arrFields["idField"]}` as optValue
+            )." as optText
+            , `{$arrFields["idField"]}` as optValue
+            ".(isset($arrFields['classField']) 
+                ? ", {$arrFields["classField"]} as optClass"
+                : '')."
         FROM `{$strTable}`";
     
     if ($strValue!=""){ // key-based search

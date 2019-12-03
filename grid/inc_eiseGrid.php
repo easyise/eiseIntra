@@ -674,6 +674,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     if ($ixRow===null){ //for template row: all calcualted class are grounded, static/disabled set to 0, href grounded
         $cell['class'] = $cell['staticClass'];
         $cell['static'] = (is_string($cell['static']) ? 0 : $cell['static']);
+        $cell['readonly'] = (is_string($cell['readonly']) ? 0 : $cell['readonly']);
         $cell['disabled'] = (is_string($cell['disabled']) ? 0 : $cell['disabled']) ;
         $cell['href'] = "" ;
     } else // calculate row-dependent options: class, static/disabled, or href 
@@ -683,9 +684,9 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                     continue;
 
                 if($prop=='href'){
-                    $cell['href'] = (strpos($cell['href'], "[{$rowKey}]")!==null // if argument exists in HRef
+                    $cell['href'] = (strpos($cell['href'], "[{$rowKey}]")!==false // if argument exists in HRef
                         ? ($val==''||$rowValue==''
-                            ? $cell['href'] 
+                            ? '' 
                             : str_replace("[{$rowKey}]"
                                 , (strpos($cell['href'], "[{$rowKey}]")===0 
                                     ? $rowValue // avoid urlencode() for first argument
@@ -813,7 +814,9 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                     break;
                 case "combobox":
                 case "ajax_dropdown":
-                    $strCell .= "<div{$classAttr}>".$aopen.htmlspecialchars($this->getSelectValue($cell, $row, $suffix)).$aclose."</div>";
+                    $_text = $this->getSelectValue($cell, $row, $suffix);
+                    $strCell .= "<div{$classAttr}>".$aopen.@htmlspecialchars($_text).$aclose."</div>";
+                    $strCell .= "<input type=\"hidden\" name=\"{$_textfield}[]\" value=\"".@htmlspecialchars($_text)."\">";
                     break;
                 case "textarea":
                     $strCell .= "<div{$classAttr}>".$aopen.str_replace("\r\n", "<br>", htmlspecialchars($_val)).$aclose."</div>";

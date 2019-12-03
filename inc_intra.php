@@ -123,7 +123,7 @@ private $arrClassInputTypes =
  * @category Initialization
  */
 public static $defaultConf = array(
-        'versionIntra'=>'2.2.006' 
+        'versionIntra'=>'2.2.008' 
         , 'dateFormat' => "d.m.Y" // 
         , 'timeFormat' => "H:i" // 
         , 'decimalPlaces' => "2"
@@ -179,7 +179,7 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
 
     parent::__construct($oSQL, $this->conf);
 
-    self::buildLess();
+    $this->buildLess();
 
     $this->requireComponent('base');
 
@@ -1058,13 +1058,7 @@ function actionMenu($arrActions = array(), $flagShowLink=false){
                     );
                 $strRet .= " class=\"{$iconClass}{$act['class']}\"";
             }
-            if(is_array($act['dataset'])){
-                foreach ($act['dataset'] as $key => $value) {
-                    if(!preg_match('/^[0-9]/', $key)){
-                        $strRet .= " data-{$key}=\"".htmlspecialchars(is_array($value) ? json_encode($value) : $value).'"';
-                    }
-                }
-            }
+            $strRet .= self::processHTMLDataset($act);
            
             $isJS = preg_match("/javascript\:(.+)$/", $act['action'], $arrJSAction);
 
@@ -1111,10 +1105,15 @@ function requireComponent($components){
             case 'base':
                 $arrJS[] = jQueryPath."jquery-".jQueryVersion.".min.js";
                 $arrJS[] = jQueryUIPath.'jquery-ui.min.js';
+                if($this->conf['useBootstrap'])
+                    $arrJS[] = eiseIntraLibRelativePath.'bootstrap/dist/js/bootstrap.min.js';
                 $arrJS[] = eiseIntraLibRelativePath."sidebar-menu/sidebar-menu.js";
                 $arrJS[] = eiseIntraJSPath."intra.js";
                 $arrJS[] = eiseIntraJSPath."intra_execute.js";
-                $arrCSS[] = eiseIntraCSSPath.'themes/'.$eiseIntraCSSTheme.'/style.css';
+                $arrCSS[] = ($this->conf['useBootstrap']
+                    ? eiseIntraCSSPath.'themes/'.$eiseIntraCSSTheme.'/style.bootstrap.css'
+                    : eiseIntraCSSPath.'themes/'.$eiseIntraCSSTheme.'/style.css'
+                );
                 break;
                 
             case 'simpleTree':
@@ -1645,6 +1644,8 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
 
         $conf['type'] = ((trim($title)!=='' && !isset($conf['type'])) ? 'text' : $conf['type']);
 
+        $dataset = self::processHTMLDataset($conf);
+
         $html .= "<div class=\"eiseIntraField eif-field".
                 ' eif-field-'.$conf['type'].
                 ($name 
@@ -1658,7 +1659,12 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
                 : ($conf['id']
                     ? ' id="'.$conf['id'].'"'
                     : '')
-                ).">";
+                )
+            .($conf['title'] 
+                ? ' title="'.htmlspecialchars($conf['title']).'"'
+                : ''
+                )
+            .$dataset.">";
 
         $title = ($this->conf['auto_translate'] ? $this->translate($title) : $title);
 
@@ -2030,8 +2036,6 @@ function showButton($name, $value, $arrConfig=array()){
     if(!is_array($arrConfig)){
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
-    
-
 
     $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
     
@@ -2040,6 +2044,9 @@ function showButton($name, $value, $arrConfig=array()){
     $strClass = $this->handleClass($arrConfig);
     $this->conf['addEiseIntraValueClass'] = $o;
 
+    $extraAttr = $this->conf['strAttrib'];
+    $extraAttr .= self::processHTMLDataset($arrConfig);
+
     $value = ($this->conf['auto_translate'] ? $this->translate($value) : $value);
 
     if($arrConfig['type']=='submit'){
@@ -2047,6 +2054,7 @@ function showButton($name, $value, $arrConfig=array()){
             .($strName!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
             .' class="eiseIntraSubmit'.($strClass!='' ? ' ' : '').$strClass.'"'
             .(!$flagWrite ? ' disabled' : '')
+            .$extraAttr
             .' value="'.htmlspecialchars($value).'">';
     } else {
         if($arrConfig['type']=='delete')
@@ -2055,11 +2063,27 @@ function showButton($name, $value, $arrConfig=array()){
             .($name!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
             .' class="'.$strClass.'"'
             .(!$flagWrite ? ' disabled' : '')
+            .$extraAttr
             .'>'.htmlspecialchars($value).'</button>';
     }
 
     return $strRet;
 
+}
+
+/**
+ * @ignore
+ */
+static function processHTMLDataset($arr){
+    $strRet = '';
+    if(is_array($arr['dataset'])){
+        foreach ($arr['dataset'] as $key => $value) {
+            if(!preg_match('/^[0-9]/', $key)){
+                $strRet .= " data-{$key}=\"".htmlspecialchars(is_array($value) ? json_encode($value) : $value).'"';
+            }
+        }
+    }
+    return $strRet;
 }
 
 /**
@@ -2492,6 +2516,9 @@ function dataAction($dataAction, $funcOrObj=null){
 
         } elseif(is_object($funcOrObj)){
 
+            if(self::isRecursion())
+                return;
+
             $obj = $funcOrObj;
             $method = $newData[$this->conf['dataActionKey']];
             $ret = array();
@@ -2567,6 +2594,9 @@ function dataRead($dataReadValues, $function=null, $arrParam = array()){
             $ret = call_user_func_array($function, array_merge(Array($query), $arrParam) );
         } elseif( is_object($function) ){
 
+            if(self::isRecursion())
+                return;
+
             $obj = $function;
             $method = $query[$this->conf['dataReadKey']];
             $ret = array();
@@ -2592,6 +2622,19 @@ function dataRead($dataReadValues, $function=null, $arrParam = array()){
 }
 function cancelDataRead(){
     unset($_POST[$this->conf['dataReadKey']]);
+}
+
+public static function isRecursion(){
+    $aCallsUnique = array();
+    foreach (debug_backtrace() as $call) {
+        $class_func_curr = ($call['class'] ? $call['class'].'::' : '').$call['function'];
+        $aCallsUnique[$class_func_curr] += 1;
+    }
+    foreach($aCallsUnique as $nCalls){
+        if($nCalls>1)
+            return true;
+    }
+    return false;
 }
 
 function getDateTimeByOperationTime($operationDate, $time){
@@ -2784,7 +2827,7 @@ static function getKeyboardVariations($src){
  *
  * @category Utilities
  */
-static function buildLess(){
+protected function buildLess(){
 
     GLOBAL $eiseIntraCSSTheme, $eiseIntraFlagBuildLess, $eiseIntraLessToBuild;
 
@@ -2792,7 +2835,7 @@ static function buildLess(){
         return;
 
     if(!isset($eiseIntraLessToBuild)){
-        $eiseIntraLessToBuild = array('grid', 'list', 'style');
+        $eiseIntraLessToBuild = array('grid', 'list', 'style'.($this->conf['useBootstrap'] ? '.bootstrap' : ''));
         //$eiseIntraLessToBuild = array('style');
     }
     

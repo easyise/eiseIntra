@@ -1,7 +1,7 @@
 <?php
 include_once eiseIntraAbsolutePath."inc_item_traceable.php";
 
-/*
+///*
 try {
     $item = new eiseItemTraceable( $_GET['ID'], array('entID'=>($_POST['entID'] ? $_POST['entID'] : $_GET['entID'])) );
     $item->conf['logTable'] = $oSQL->d("SHOW TABLES LIKE '{$item->conf['table']}_log'") ;
@@ -10,8 +10,11 @@ try {
 }
 
 $intra->dataAction('updateFullEdit', $item);
+$intra->dataAction('superaction', $item);
 $intra->dataAction('undo', $item);
 $intra->dataAction('undoEdit', $item);
+$intra->dataAction('remove_acl', $item);
+$intra->dataAction('remove_stl', $item);
 
 $arrActions[]= Array ("title" => $intra->translate("Normal Edit Mode")
                , "action" => $item->conf['form'].'?'.$item->getURI()
@@ -24,10 +27,18 @@ if ($intra->arrUsrData['FlagWrite']) {
            , "action" => "javascript:confirmUndo()"
            , "class"=> "ss_arrow_undo"
         ); 
+
+    $arrActions[]= Array ("title" => $intra->translate("Superaction!")
+       , "action" => '#superaction'
+       , "class"=> "bold ss_lightning_go"
+    );
+
     $arrActions[]= Array ("title" => $intra->translate("Save")." ".$entItem->conf["entTitle{$intra->local}"]
        , "action" => 'javascript:save()'
        , "class"=> "bold ss_disk save_button"
     );
+
+    
 }
 
 
@@ -47,21 +58,112 @@ $htmlAttrs = $item->getAttributeFields($aFields, null, array('FlagWrite'=>$intra
 
 $fldsMain = $intra->fieldset( "{$item->conf['entTitle'.$intra->local]} {$item->id}", $htmlAttrs, array('class'=>'half_screen') );
 $fldsActivity = $intra->fieldset( $intra->translate('Activity log') 
-    , $item->showStatusLog(array('FlagWrite'=>$intra->arrUsrData['FlagWrite'], 'forceFlagWrite'=>true)) 
+    , $item->showStatusLog(array('FlagWrite'=>$intra->arrUsrData['FlagWrite'], 'forceFlagWrite'=>true, 'flagFullEdit'=>true)) 
     , array('class'=>'half_screen') );
 
+$aStatuses = array();
+foreach($item->conf['STA'] as $val=>$props){
+    if($props['staFlagDeleted'])
+        continue;
+    $aStatuses[] = array('v'=>$val, 't'=>$props['staTitle'.$intra->local]);
+}
 echo $item->form(
         $intra->field(null, "undoWarning", $intra->translate('WARNING: Undo will erase all data related to last action. Are you sure?'), array('type'=>'hidden'))."\n".
+        $intra->field(null, "aclOldStatusID_text", $item->conf['STA'][$item->staID]['staTitle'.$intra->local], array('type'=>'hidden'))."\n".
+        $intra->field(null, "aStatuses", json_encode($aStatuses), array('type'=>'hidden'))."\n".
         $fldsMain."\n".
         $fldsActivity
         , array('action'=>$_SERVER['PHP_SELF'], 'DataAction'=>'updateFullEdit')
     );
 
 ?>
+<style type="text/css">
+a.remove {
+    text-decoration: none;
+}
+a.remove:hover {
+    font-weight: bold;
+}
+a.remove:visited {
+    color: inherit;
+}
+</style>
 <script>
+$(document).ready(function(){
+    $('a[href="#superaction"]').click(function(){
+
+        var aStatuses = JSON.parse($('#aStatuses').val());
+
+        $(this).eiseIntraForm('createDialog', {
+            title: $(this).text()
+            , action: location.href
+            , method: 'POST'
+            , width: '400px'
+            , fields: [
+                {name: 'DataAction'
+                    , type: 'hidden'
+                    , value: 'superaction'}
+                , {name: 'entID', type: 'hidden', value: $('#entID').val()}
+                , {name: 'aclOldStatusID'
+                    , type: 'hidden'
+                    , value: $('#aclOldStatusID').val()}
+                , {title: 'Current Status'
+                    , name: 'aclOldStatusID_text'
+                    , type: 'text'
+                    , value: $('#aclOldStatusID_text').val()
+                    }
+                , {title: 'New Status'
+                    , name: 'aclNewStatusID'
+                    , type: 'combobox'
+                    , defaultText: '- pls select'
+                    , options: aStatuses
+                    }
+                , {title: 'Arrival Time'
+                    , name: 'aclATA'
+                    , type: 'datetime'
+                    , required: true
+                    , value: $('body').eiseIntra('formatDate', (new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000))).toISOString(), 'datetime')
+                    }
+                , {title: 'Comment'
+                    , name: 'aclComments'
+                    , type: 'textarea'
+                    , required: true
+                    }
+                    ]
+            , onsubmit: function(){
+                if(!$(this).find('select[name="aclNewStatusID"]').val() 
+                    || !$(this).find('input[name="aclATA"]').val() 
+                    || !$(this).find('[name="aclComments"]').val() 
+                    ){
+                    alert("New Status, Arrival Time and Comments should be specified.");
+                    return false;
+                }
+                return ($(this).eiseIntraForm('validate'));
+
+            }
+        })
+        return false;
+    });
+    $('a[href="#remove_stl"], a[href="#remove_acl"]').click(function(){
+        var initiator = this,
+            $initiator = $(this),
+            DataAction = $initiator.attr('href').replace('#', ''),
+            acl_stl = DataAction.replace('remove_', ''),
+            $parent = $initiator.parents('.eif-field'),
+            guid = $parent[0].dataset['guid'],
+            href = location.pathname+location.search+'&DataAction='+DataAction+'&'+acl_stl+'GUID='+guid;
+
+            if(confirm("Are you sure you'd like to remove \""+$parent.find('label').text()+"\"?\n"+$parent.attr('title')))
+                location.href = href;
+
+        return false;
+
+    });
+})
+
 function confirmUndo(){
     if (confirm($('#undoWarning').val())){
-        location.href = location.href+'&DataAction=undo';
+        location.href = location.pathname+location.search+'&DataAction=undo';
     }
 }
 function save(){
@@ -74,7 +176,7 @@ function save(){
 include eiseIntraAbsolutePath."inc_bottom.php";
 
 die();
-*/
+//*/
 
 
 include eiseIntraAbsolutePath."inc_entity_item_form.php";

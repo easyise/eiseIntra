@@ -47,7 +47,6 @@ function eiseGrid(gridDIV){
     this.lastClickedRowIx = null;
     this.selectedRowIx = [];
 
-
     this.onChange = []; // on change selector arrays
     this.goneIDs = []; // IDs of deleted rows
 
@@ -58,7 +57,8 @@ function eiseGrid(gridDIV){
     this.flagHardWidth = true; //when all columns has defined width in px
     
     var oGrid = this;
-
+    
+    
     this.tbodies.each(function(){
         oGrid.initRow( $(this) );
     });
@@ -67,7 +67,8 @@ function eiseGrid(gridDIV){
 
     if (this.tbodies.length==0)
         this.tableContainer.find('.eg-no-rows').css('display', 'table-row-group');
-
+    
+    __initRex.call(this);
     __initControlBar.call(this);
 
     this.initLinesStructure();
@@ -389,9 +390,16 @@ eiseGrid.prototype.initRow = function( $tbody ){
 
     $.each(oGrid.conf.fields, function(fld){ // change evend on eiseGrid input should cause row marked as changed
         $tbody.find("input[name='"+fld+"[]']").bind('change', function(){ 
+            
+            if(this.__handlingTheChange)
+                return;
+            this.__handlingTheChange = true;
+
             oGrid.updateRow( $tbody ); 
+
             var $inp = $(this),
                 arrFnOnChange = oGrid.onChange[fld];
+                
             if(arrFnOnChange ){
                 for(var ifn=0; ifn<arrFnOnChange.length; ifn++){
                     var fn_onChange = arrFnOnChange[ifn];
@@ -400,6 +408,7 @@ eiseGrid.prototype.initRow = function( $tbody ){
                     }
                 }
             }
+            delete this.__handlingTheChange;
         })
     });
 
@@ -481,7 +490,11 @@ var __attachFloatingSelect = function( $tbody ){
             $(this).remove();
         });
         
-        oSelect.focus();
+        oSelect.click();
+
+        window.setTimeout(function(){
+            oSelect.focus();
+        }, 100)
 
         oGrid.bindKeyPress(oSelect);
                 
@@ -543,7 +556,7 @@ var __attachAutocomplete = function(oTr) {
                     $.getJSON(urlFull, function(response_json){
                         
                         response($.map(response_json.data, function(item) {
-                                return {  label: item.optText, value: item.optValue  }
+                                return {  label: item.optText, value: item.optValue, class: item.optClass  }
                             }));
                         });
                         
@@ -559,12 +572,17 @@ var __attachAutocomplete = function(oTr) {
                     event.preventDefault();
                     if (ui.item){
                         $(inp).val(ui.item.label);
-                        $inpVal.val(ui.item.value);
+                        $inpVal.val(ui.item.value || ui.item.label);
                         $inpVal.change();
                     } else 
                         $inpVal.val("");
                 }
-            });
+            })
+            .autocomplete( "instance" )._renderItem  = function( ul, item ) {
+                var liClass = ( item['class'] ?  ' class="'+item['class']+'"' : '');
+                return $( "<li"+liClass+">" ).text( item.label ).appendTo( ul );
+            };
+
         }
     });
     } catch (e) {}
@@ -635,6 +653,74 @@ var _setCaretPos = function(oField, posToSet){
     oField.focus();
     oField.setSelectionRange(iCaretPos, iCaretPos);
 
+}
+
+/**
+ * Initialize regular expressions
+ */
+var __initRex = function(){
+
+    if(typeof $.fn.eiseIntra !== 'undefined'){
+        $('body').eiseIntra('initRex', this.conf)
+    } else {
+        var conf_ = this.conf
+
+        conf_.rex = {}
+        conf_.rex_replace = {}
+
+        var types = ['date', 'time', 'datetime'],
+            strRegExDate = conf_.dateFormat
+                        .replace(new RegExp('\\.', "g"), "\\.")
+                        .replace(new RegExp("\\/", "g"), "\\/")
+                        .replace("d", "([0-9]{1,2})")
+                        .replace("m", "([0-9]{1,2})")
+                        .replace("Y", "([0-9]{4})")
+                        .replace("y", "([0-9]{1,2})"),
+            strRegExTime = conf_.timeFormat
+                        .replace(new RegExp("\\.", "g"), "\\.")
+                        .replace(new RegExp("\\:", "g"), "\\:")
+                        .replace(new RegExp("\\/", "g"), "\\/")
+                        .replace("H", "([0-9]{1,2})")
+                        .replace("i", "([0-9]{1,2})")
+                        .replace("s", "([0-9]{1,2})"),
+            aStrFormat = {'date':conf_.dateFormat
+                , 'time': conf_.timeFormat
+                , 'datetime': conf_.dateFormat+' '+conf_.timeFormat 
+            }
+            , aStrFormatISO = {'date':'Y-m-d', 'time': 'H:i:s', 'datetime': 'Y-m-dTH:i:s' }
+            , aStrRex = {'date':strRegExDate, 'time': strRegExTime, 'datetime': strRegExDate+' '+strRegExTime };
+
+        types.forEach(function(type){
+            var a = [], replacements = {}, formatISO = aStrFormatISO[type];
+            ['Y', 'm', 'd', 'y', 'H', 'i', 's'].forEach(function(key){
+                var o = {'key': key, 'io': aStrFormat[type].indexOf(key)};
+                if( o.io>=0 ) {
+                    a.push(o);
+                }
+            });
+            a.sort(function(elem_a, elem_b){
+                return (elem_a.io - elem_b.io);
+            })
+            a.forEach(function(elem, ix){
+                replacements[elem.key] = '$'+(ix+1);
+            });
+            ['Y', 'm', 'd', 'y', 'H', 'i', 's', ].forEach(function(key){
+                if(replacements[key]){
+                    formatISO = formatISO.replace(key, (key=='y'
+                        ? '20'+replacements[key] 
+                        : replacements[key])
+                    );
+                } else 
+                    if(aStrFormat[type].indexOf(key)<0)
+                        formatISO = formatISO.replace(key, '');
+                    
+            });
+
+            conf_.rex[type] = new RegExp('^'+aStrRex[type]+'$')
+            conf_.rex_replace[type] = formatISO.replace(/[^0-9]+$/, '');
+
+        })
+    }
 }
 
 var __initControlBar = function(){
@@ -1201,7 +1287,6 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text){
         $.error( 'Field ' +  strFieldName + ' does not exist in eiseGrid ' + this.id );
     }
         
-    
     var strType = this.conf.fields[strFieldName].type;
     var strTitle = this.conf.fields[strFieldName].title;
     var strHref = this.conf.fields[strFieldName].href;
@@ -1216,13 +1301,18 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text){
             case "integer":
             case "int":
             case "numeric":
+            case "number":
             case "real":
             case "double":
             case "money":
                strValue = strValue
-                .replace(new RegExp("\\"+this.conf.decimalSeparator, "g"), '.')
-                .replace(new RegExp("\\"+this.conf.thousandsSeparator, "g"), '');
+                    .replace(new RegExp("\\"+this.conf.decimalSeparator, "g"), '.')
+                    .replace(new RegExp("\\"+this.conf.thousandsSeparator, "g"), '');
                 return parseFloat(strValue);
+            case 'date':
+            case 'time':
+            case 'datetime':
+                return strValue.replace(this.conf.rex[strType], this.conf.rex_replace[strType]);
             default:
                 return strValue;
         }
@@ -1251,6 +1341,9 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text){
         }
         oInp = oTr.find('input[name="'+strFieldName+'[]"]').first();
         oInp.val(strValue);
+        if(oInp[0].type=='hidden'){
+            oInp.change();
+        }
         
         if (strTitle){
             if(oInp.next()[0]!=undefined){
@@ -1334,14 +1427,15 @@ eiseGrid.prototype.href = function($tr, field, href){
 }
 
 eiseGrid.prototype.focus = function(oTr, strFieldName){
-    oTr.find('.'+this.id+'-'+strFieldName+' input[type="text"]').focus();
+    oTr.find('.'+this.id+'-'+strFieldName+' input[type="text"]').focus().click();
 }
 
 eiseGrid.prototype.verifyInput = function (oTr, strFieldName) {
     
     var selector = '.'+this.id+'-'+strFieldName+' input[name="'+strFieldName+'[]"]';
     var $inp = oTr.find(selector).first(),
-        strValue = $inp.val();
+        strValue = $inp.val(),
+        strInpType = this.conf.fields[strFieldName].type;
     if (strValue!=undefined){ //input mask compliance
 
         if(this.conf.validators){
@@ -1351,7 +1445,7 @@ eiseGrid.prototype.verifyInput = function (oTr, strFieldName) {
 
         }
         
-        switch (this.conf.fields[strFieldName].type){
+        switch (strInpType){
             case "money":
             case "numeric":
             case "real":
@@ -1370,26 +1464,7 @@ eiseGrid.prototype.verifyInput = function (oTr, strFieldName) {
             case 'time':
             case 'datetime':
                  
-                var strRegExDate = this.conf.dateFormat
-                    .replace(new RegExp('\\.', "g"), "\\.")
-                    .replace(new RegExp("\\/", "g"), "\\/")
-                    .replace("d", "[0-9]{1,2}")
-                    .replace("m", "[0-9]{1,2}")
-                    .replace("Y", "[0-9]{4}")
-                    .replace("y", "[0-9]{1,2}");
-                var strRegExTime = this.conf.timeFormat
-                    .replace(new RegExp("\\.", "g"), "\\.")
-                    .replace(new RegExp("\\:", "g"), "\\:")
-                    .replace(new RegExp("\\/", "g"), "\\/")
-                    .replace("H", "[0-9]{1,2}")
-                    .replace("i", "[0-9]{1,2}")
-                    .replace("s", "[0-9]{1,2}");
-                
-                var strRegEx = "^"+(this.conf.fields[strFieldName].type.match(/date/) ? strRegExDate : "")+
-                    (this.conf.fields[strFieldName].type=="datetime" ? " " : "")+
-                    (this.conf.fields[strFieldName].type.match(/time/) ? strRegExTime : "")+"$";
-                
-                if (strValue!="" && strValue.match(new RegExp(strRegEx))==null){
+                if (strValue!="" && strValue.match(this.conf.пrex[strInpType])==null){
                     alert ("Field '"+this.conf.fields[strFieldName].type+"' should contain date value formatted as "+this.conf.dateFormat+".");
                     this.focus(oTr, strFieldName);
                     return false;
@@ -1944,8 +2019,10 @@ eiseGrid.prototype._sortFunction = function(tbodies, field, order, type){
             case 'combobox':
             case 'select':
                 values[i] = grid.text($tbody, field);
+                break;
             default:
-                values[i] = grid.value($tbody, field);        
+                values[i] = grid.value($tbody, field);  
+                break;      
         }        
 
     };
@@ -2093,25 +2170,7 @@ init: function( conf ) {
         
         // If the plugin hasn't been initialized yet
         if ( !data.eiseGrid ) {
-            dataId = +new Date;
-
-            data = {
-                eiseGrid_data: true
-                , id: dataId
-                , eiseGrid : new eiseGrid($this)
-            };
-
-            // create element and append to body
-            var $eiseGrid_data = $('<div />', {
-                'class': 'eiseGrid_data'
-                , 'id': this.id+'_data'
-            }).appendTo( 'body' );
-
-            // Associate created element with invoking element
-            $eiseGrid_data.data( 'eiseGrid', {target: $this, id: dataId} );
-            // And vice versa
-            data.eiseGrid_data = $eiseGrid_data;
-
+            data = { eiseGrid : new eiseGrid($this) };
             $this.data('eiseGrid', data);
         } // !data.eiseGrid
 
@@ -2126,13 +2185,8 @@ destroy: function( ) {
     this.each(function() {
 
         var $this = $(this),
-                data = $this.data( 'eiseGrid' );
-
-        // Remove created elements, unbind namespaced events, and remove data
-        $(document).unbind( '.eiseGrid_data' );
+            data = $this.data( 'eiseGrid' );
         data.eiseGrid.remove();
-        $this.unbind( '.eiseGrid_data' )
-        .removeData( 'eiseGrid_data' );
 
     });
 
@@ -2194,6 +2248,10 @@ getSelectedRows: function (){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     return grid.activeRow;
 }, 
+getRowID: function ($tr){
+    var grid = $(this[0]).data('eiseGrid').eiseGrid;
+    return grid.getRowID($tr);
+},
 getSelectedRowID: function ($tr){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     var $lastSelectedRow = grid.activeRow[grid.lastClickedRowIx];

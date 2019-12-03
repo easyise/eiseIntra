@@ -52,7 +52,9 @@ public function __construct($id = null,  $conf = array() ){
         $this->staID = $this->item[$this->conf['statusField']];
     }
 
-	$this->intra->dataRead(array('getActionDetails', 'getFiles', 'getFile', 'getMessages','sendMessage'), $this);
+    $this->conf['attr_types'] = array_merge($this->table['columns_types'], $this->conf['attr_types']);
+
+	$this->intra->dataRead(array('getActionLog', 'getActionDetails', 'getFiles', 'getFile', 'getMessages','sendMessage'), $this);
 	$this->intra->dataAction(array('insert', 'update', 'updateMultiple', 'delete', 'attachFile', 'deleteFile'), $this);
 
 }
@@ -61,11 +63,15 @@ public function update($nd){
 
     parent::update($nd);
 
+    // $this->oSQL->startProfiling();
+
     $this->oSQL->q('START TRANSACTION');
     // 1. update master table
     $nd_ = $nd;
+    $atrs = array_keys($this->conf['ATR']);
+    $editable = (array)$this->conf['STA'][$this->staID]['satFlagEditable'];
     foreach ($nd_ as $key => $value) {
-        if(!in_array($key, $this->conf['STA'][$this->staID]['satFlagEditable']))
+        if(in_array($key, $atrs) && !in_array($key, $editable))
             unset($nd_[$key]);
     }
     $this->updateTable($nd_);
@@ -75,6 +81,9 @@ public function update($nd){
     $this->oSQL->q('START TRANSACTION');
     // 2. do the action
     $this->doAction(new eiseAction($this, $nd));
+
+    // $this->oSQL->showProfileInfo();
+    // die();
     
     $this->oSQL->q('COMMIT');
 
@@ -86,14 +95,35 @@ public function updateFullEdit($nd){
     // 1. update master table
     $this->updateTable($nd);
     foreach($this->item['ACL'] as $aclGUID=>$rwACL){
-        
-        $this->updateAction($rwACL, $nd);
+        if($rwACL['aclActionPhase']==2 && $rwACL['aclActionID']>4)
+            $this->updateAction($rwACL, $nd);
 
     }
     $this->oSQL->q('COMMIT');
 
     parent::update($nd);
 
+}
+
+public function superaction($nd){
+
+    $oSQL = $this->oSQL;
+    $oSQL->q('START TRANSACTION');
+    $oSQL->startProfiling();
+
+    try {
+        $act = new eiseAction($this, array('actID'=>4
+                , 'aclNewStatusID'=>$nd['aclNewStatusID']
+                , 'aclATA'=>$nd['aclATA']
+                , 'aclComments'=>$nd['aclComments']));
+        $act->execute();
+    } catch (Exception $e) {
+        echo $e->getMessage();
+    }
+
+    //$oSQL->showProfileInfo();
+    $oSQL->q('COMMIT');
+    parent::update($nd);
 }
 
 public function undo($nd){
@@ -166,6 +196,75 @@ public function undo($nd){
 
 }
 
+public function remove_stl($data){
+
+    $this->redirectTo = $_SERVER['PHP_SELF'].'?entID='.$this->entID."&ID=".urlencode($this->id);
+
+    $stl_remove = null;
+    foreach ($this->item['STL'] as $stlGUID => $rwSTL) {
+        if($stlGUID==$data['stlGUID']){
+            $stl_remove = $rwSTL;
+        }
+    }
+
+    $this->oSQL->q('START TRANSACTION');
+
+    if(!$stl_remove['stlATD'])
+         throw new Exception("Please use UNDO to remove status {$stl_remove['stlTitle']}", 1);
+    
+    // remove status log entry
+    $sqlDelStl = "DELETE FROM stbl_status_log WHERE stlGUID='{$stl_remove['stlGUID']}'";
+    $this->oSQL->q($sqlDelStl);
+
+    // remove action log 
+    $sqlDelStl = "DELETE FROM stbl_action_log WHERE aclGUID='{$stl_remove['stlArrivalActionID']}'";
+    $this->oSQL->q($sqlDelStl);
+
+    $this->msgToUser = $this->intra->translate("Status {$stl_remove['stlTitle']} is removed");
+
+    $this->oSQL->q('COMMIT');
+
+}
+
+public function remove_acl($data){
+
+    $this->redirectTo = $_SERVER['PHP_SELF'].'?entID='.$this->entID."&ID=".urlencode($this->id);
+
+    $stl_remove = null;
+    $acl_remove = null;
+    foreach ($this->item['STL'] as $stlGUID => $rwSTL) {
+        if($rwSTL['stlArrivalActionID']==$data['aclGUID']){
+            $stl_remove = $rwSTL;
+            break;
+        }
+    }
+
+    foreach ($this->item['ACL'] as $aclGUID => $rwACL) {
+        if ($aclGUID == $data['aclGUID']) {
+            $acl_remove = $rwACL;
+            break;
+        }
+    }
+
+    if($stl_remove && !$stl_remove['stlATD'])
+        throw new Exception("Please use UNDO to remove action log entry \"{$this->conf['ACT'][$acl_remove['aclActionID']]['actTitlePast']}\"", 1);
+
+    $this->oSQL->q('START TRANSACTION');
+
+    // remove status log entry
+    $sqlDelStl = "DELETE FROM stbl_status_log WHERE stlGUID='{$stl_remove['stlGUID']}'";
+    $this->oSQL->q($sqlDelStl);
+
+    // remove action log 
+    $sqlDelStl = "DELETE FROM stbl_action_log WHERE aclGUID='{$acl_remove['aclGUID']}'";
+    $this->oSQL->q($sqlDelStl);
+
+    $this->msgToUser = $this->intra->translate("Action \"{$this->conf['ACT'][$acl_remove['aclActionID']]['actTitlePast']}\" is removed");
+
+    $this->oSQL->q('COMMIT');
+
+}
+
 public function updateMultiple($nd){
     
     $this->intra->batchStart();
@@ -214,7 +313,7 @@ private function init(){
         .$this->entID;
 
     if($_SESSION[$sessKey]){
-    //if(false){
+    // if(false){
         $this->conf = array_merge($this->conf, $_SESSION[$sessKey]);
         return $this->conf;
     }
@@ -233,6 +332,7 @@ private function init(){
     
     // read attributes
     $this->conf['ATR'] = array();
+    $this->conf['attr_types'] = array();
     $sqlAtr = "SELECT * 
         FROM stbl_attribute 
         WHERE atrEntityID=".$oSQL->e($this->entID)."
@@ -241,15 +341,17 @@ private function init(){
     $rsAtr = $oSQL->q($sqlAtr);
     while($rwAtr = $oSQL->f($rsAtr)){
         $this->conf['ATR'][$rwAtr['atrID']] = $rwAtr;
+        $this->conf['attr_types'][$rwAtr['atrID']] = $rwAtr['atrType'];
     }
 
     // read status_attribute
     $this->conf['STA'] = array();
     $sqlSat = "SELECT stbl_status.*,stbl_status_attribute.*  
-            FROM stbl_status_attribute 
+        FROM stbl_status_attribute 
                 RIGHT OUTER JOIN stbl_status ON staID=satStatusID AND satEntityID=staEntityID
-                INNER JOIN stbl_attribute ON atrID=satAttributeID AND atrFlagDeleted=0
+                LEFT OUTER JOIN stbl_attribute ON atrID=satAttributeID
         WHERE staEntityID=".$oSQL->e($this->entID)."
+            AND IFNULL(atrFlagDeleted,0)=0
         ORDER BY staID, atrOrder";
     $rsSat = $oSQL->q($sqlSat);
     while($rwSat = $oSQL->f($rsSat)){
@@ -265,7 +367,7 @@ private function init(){
                 if(!isset($arrActUpd)){
                     $arrActUpd = $oSQL->f($oSQL->q('SELECT * FROM stbl_action WHERE actID=2'));
                     $arrActUpd['RLA'] = $arrRoles;
-                }                    
+                }     
                 $this->conf['STA'][$rwSat['staID']]['ACT'][2] = array_merge($arrActUpd, array('actOldStatusID'=>$rwSat['staID'], 'actNewStatusID'=>$rwSat['staID']));
             }
             if($arrSta['staFlagCanDelete']){
@@ -608,7 +710,8 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
         , 'order_field' => "Comments"
         , 'limitOutput' => 49
         );
-     
+
+    if (!in_array($entID."EditDate", $arrExcludeCols))  
     $lst->Columns[] = array('title' => "Updated"
             , 'type'=>"date"
             , 'field' => $entID."EditDate"
@@ -681,27 +784,8 @@ public function updateUnfinishedActions($nd = null){
 
 public function updateAction($rwACL, $nd){
 
-    $rwACT = $this->conf['ACT'][$rwACL['aclActionID']];
-
-    if(!count((array)$rwACT['aatFlagToTrack']))
-        return;
-
-    $aToUpdate = (array)@json_decode($rwACL['aclItemTraced'], true);
-
-    foreach((array)$rwACT['aatFlagToTrack'] as $atrID=>$flags){
-        $nd_key = $atrID.'_'.$rwACL['aclGUID'];
-        if(isset($nd[$nd_key])){
-            $aToUpdate[$atrID] = $nd[$nd_key];
-        }
-    }
-
-    $traced = $this->intra->arrPHP2SQL($aToUpdate, $this->table['columns_types']);
-
-    $sqlACL = "UPDATE stbl_action_log SET aclItemTraced=".$this->oSQL->e(json_encode($traced))."
-        , aclEditDate=NOW(), aclEditBy='{$this->intra->usrID}' 
-    WHERE aclGUID='{$rwACL['aclGUID']}'";
-
-    $this->oSQL->q($sqlACL);
+    $act = new eiseAction($this, $rwACL);
+    $act->update($nd);
 
 }
 
@@ -717,9 +801,11 @@ public function getData($id = null){
 }
 
 function getAllData($toRetrieve = null){
-    
+
     if(!$this->id)
         return array();
+
+    $toRetrieve = ($toRetrieve!==null && !is_array($toRetrieve)) ? array($toRetrieve) : $toRetrieve;
 
     if($toRetrieve===null)
         $toRetrieve = $this->defaultDataToObtain;
@@ -736,7 +822,7 @@ function getAllData($toRetrieve = null){
         $this->staID = (int)$this->item["{$this->entID}StatusID"];
 
     if(in_array('Master', $toRetrieve))
-        parent::getData();
+        $this->getData();
 
     if(in_array('Text', $toRetrieve))    
         foreach($this->conf["ATR"] as $atrID=>$rwATR){
@@ -753,14 +839,15 @@ function getAllData($toRetrieve = null){
         $this->item["ACL"]  = Array();
         $sqlACL = "SELECT * FROM stbl_action_log 
                 WHERE aclEntityItemID='{$this->id}'
-                ORDER BY aclATA DESC, aclOldStatusID DESC";
+                ORDER BY IFNULL(aclATA, NOW()) DESC, aclOldStatusID DESC";
         $rsACL = $this->oSQL->do_query($sqlACL);
         while($rwACL = $this->oSQL->fetch_array($rsACL)){
             if($rwACL['aclActionPhase']<=2)
                 $this->item["ACL"][$rwACL["aclGUID"]] = $this->getActionData($rwACL["aclGUID"]);
             else 
                 $this->item["ACL_Cancelled"][$rwACL["aclGUID"]] = $this->getActionData($rwACL["aclGUID"]);
-        }    
+        } 
+
     }    
     
     // collect status log and nested actions
@@ -822,6 +909,19 @@ public function refresh(){
 }
 
 
+/**
+ * This function is called before action is "planned", i.e. record is added to the Action Log. 
+ * It is usable to modify action data before it is occured in the database.
+ *
+ * @category Events
+ *
+ * @param string $actID - action ID
+ * @param int $oldStatusID - status ID to be moved from
+ * @param int $newStatusID - destintation status ID 
+ */
+function beforeActionPlan($actID, $oldStatusID, $newStatusID){
+    //parent::onActionPlan($actID, $oldStatusID, $newStatusID);
+}
 /**
  * This function is called after action is "planned", i.e. record is added to the Action Log. 
  * In case when something went wrong it should throw an exception.
@@ -930,7 +1030,8 @@ public function form($fields = '',  $arrConfig=Array()){
         if(!$this->conf['STA'][$this->staID]['staFlagCanUpdate']){
             $this->intra->arrUsrData['FlagWrite'] = false;
         }
-        $fields = $this->getFields();
+        $fields = $this->getStatusField()
+            .$this->getFields();
         $this->intra->arrUsrData['FlagWrite'] = $oldFW;
     }
 
@@ -965,6 +1066,99 @@ public function form4list(){
 
     return eiseItemTraceable::form($htmlFields, array('class'=>'ei-form-multiple eiseIntraMultiple'));
 
+}
+
+public function getStatusField(){
+
+    return ($this->conf['flagNoStatusField'] 
+        ? ''
+        : '<div class="statusTitle">'.$this->intra->translate('Status').': <span class="eif_curStatusTitle"><u>'.$this->conf['STA'][$this->staID]["staTitle{$this->intra->local}"].'</u></span></div>'
+        );
+
+}
+
+public function getActionLogSkeleton(){
+
+    return '<div id="eiseIntraActionLog" class="eif-action-log" title="'.$this->intra->translate('Action Log').'">'."\n"
+            ."<table class='eiseIntraActionLogTable'>\r\n"."<tbody class=\"eif_ActionLog\">"
+            ."<tr class=\"eif_template eif_evenodd\">\r\n"
+            ."<td class=\"eif_actTitlePast\"></td>\r\n"
+            ."<td class=\"eif_aclEditBy\"></td>"
+            ."<td class=\"eif_aclATA\" style=\"text-align:right;\"></td>"
+            ."</tr>"
+            ."<tr class=\"eif_template eif_evenodd eif_invisible\">"
+            ."<td class=\"eif_commentsTitle\">".$this->intra->translate("Comments").":</td>\r\n"
+            ."<td colspan='2' class=\"eif_aclComments\"></td>"
+            ."</tr>"
+            ."<tr class=\"eif_notfound\">"
+            ."<td colspan='3'>".$this->intra->translate("No Events Found")."</td>"
+            ."</tr>"
+            ."<tr class=\"eif_spinner\">"
+            ."<td colspan='3'></td>"
+            ."</tr>"
+            ."</tbody></table>\r\n"
+            ."</div>\r\n";
+
+}
+
+public function getActionLog($q){
+
+    if(!$this->item['ACL'])
+        $this->getAllData('ACL');
+
+    $aRet = array();$aActionIDs = array();
+    foreach ((array)$this->item['ACL'] as $aclGUID => $acl) {
+
+
+        if($acl['aclActionID']==2 && !$q['flagFull'])
+            continue;
+
+        if($acl['aclActionPhase']>2)
+            continue;
+
+        $act = $this->conf['ACT'][$acl['aclActionID']];
+        $sta_old = $this->conf['STA'][$acl['aclOldStatusID']];
+        $sta_new = $this->conf['STA'][$acl['aclNewStatusID']];
+
+        $rw = array('alGUID' => $acl['aclGUID']
+            , 'actID' => $acl['aclActionID']
+            , 'aclActionPhase' => $acl['aclActionPhase']
+            , 'aclOldStatusID' => $acl['aclOldStatusID']
+            , 'aclOldStatusID_text' => $sta_old ? $sta_old['staTitle'.$this->intra->local] : ''
+            , 'aclNewStatusID' => $acl['aclNewStatusID']
+            , 'aclNewStatusID_text' => $sta_new ? $sta_new['staTitle'.$this->intra->local] : ''
+            , 'actTitle' => $act['actTitle'.$this->intra->local]
+            , 'actTitlePast' => $act['actTitlePast'.$this->intra->local]
+            , 'aclComments' => $acl['aclComments']
+            , 'aclEditBy' => $this->intra->translate('%s by %s', ucfirst($acl['actTitlePast'.$this->intra->local]), $this->intra->getUserData($acl['aclEditBy']))
+            , 'aclEditDate' => $this->intra->datetimeSQL2PHP($acl["aclEditDate"])
+            , 'aclATA' => date("{$this->intra->conf['dateFormat']}"
+                    .(strtotime($acl["aclATA"])!=strtotime(date('Y-m-d', strtotime($acl["aclATA"]))) ? " {$this->intra->conf['timeFormat']}" : '')
+                , strtotime($acl["aclATA"]))
+            );
+        $aActionIDs[] = $acl['actID'];
+        $aRet[] = $rw;
+
+    }
+
+    if(!in_array(1, $aActionIDs)){
+        $aRet[] = array('alGUID' => null
+                    , 'actID' => 1
+                    , 'aclActionPhase' => 2
+                    , 'aclOldStatusID' => null
+                    , 'aclOldStatusID_text' => ''
+                    , 'aclNewStatusID' => $acl['aclNewStatusID']
+                    , 'aclNewStatusID_text' => $this->conf['STA'][0]['staTitle'.$this->intra->local]
+                    , 'actTitle' => $this->intra->translate('Create')
+                    , 'actTitlePast' => $this->intra->translate('Created')
+                    , 'aclComments' => $acl['aclComments']
+                    , 'aclEditBy' => $this->intra->translate('%s by %s', ucfirst($acl['actTitlePast'.$this->intra->local]), $this->intra->getUserData($this->item[$this->prefix.'InsertBy']))
+                    , 'aclEditDate' => $this->intra->datetimeSQL2PHP($this->item[$this->prefix.'InsertDate'])
+                    , 'aclATA' => $this->intra->datetimeSQL2PHP($this->item[$this->prefix.'InsertDate'])
+                    );
+    }
+
+    return $aRet;
 }
 
 public function getFields($aFields = null){
@@ -1029,8 +1223,6 @@ function getAttributeFields($fields, $item = null, $conf = array()){
 
 public function arrActionButtons(){
 
-    GLOBAL $arrActions;
-   
     $oSQL = $this->oSQL;
     $strLocal = $this->local;
     
@@ -1074,46 +1266,22 @@ public function arrActionButtons(){
 
 
    
-   return $strOut;
+   return $arrActions;
 }
 
 public function showActionButtons(){
-   
-    $oSQL = $this->oSQL;
-    $strLocal = $this->local;
-    
-    if (!$this->intra->arrUsrData["FlagWrite"])
-        return;
 
-    if($this->staID!==null){
-        if(is_array($this->conf['STA'][$this->staID]['ACT'])){
-            foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
+    $ret = '';
+    $actions = $this->arrActionButtons();
 
-                if(count(array_intersect($this->intra->arrUsrData['roleIDs'], (array)$rwAct['RLA']))==0)
-                    continue;
-
-                $title = $rwAct["actTitle{$this->intra->local}"];
-                  
-                $strID = "btn_".$rwAct["actID"]."_".
-                      $rwAct["actOldStatusID"]."_".
-                      $rwAct["actNewStatusID"];
-
-                $strOut .= "<input type='".($rwAct['actID']==3 ? 'button' : 'submit')."' class=\"".($rwAct['actID']==3 ? ' eiseIntraDelete' : 'eiseIntraActionSubmit')."\" name='actButton' id='$strID' value='"
-                        .htmlspecialchars($title)."'".
-                        " act_id=\"{$rwAct["actID"]}\" orig=\"{$rwAct["actOldStatusID"]}\" dest=\"{$rwAct["actNewStatusID"]}\">";
-                  
-            }
-        }
-    } else {
-        $strOut .= '<input type="submit" class="eiseIntraActionSubmit" name="actButton\" id="btn_1__0" value="'
-                        .$this->intra->translate('Create').'"'.
-                        ' act_id="1" orig="" dest="0">';
+    foreach ((array)$actions as $key => $act) {
+        $ret .= $this->intra->showButton($act['id'], $act['title'], array('class'=>($act['dataset']['action']['actID']==3 ? 'eiseIntraDelete' : 'eiseIntraActionSubmit'), 'dataset'=>$act['dataset']));
     }
 
-
+    return $ret;
    
-   return $strOut;
 }
+public function getActionButtons(){  return $this->showActionButtons(); }
 
 function showActionRadios(){
    
@@ -1168,10 +1336,12 @@ function showStatusLog($conf = array()){
 
     foreach((array)$this->item["STL"] as $stlGUID => $rwSTL){
 
-        if ($arrConfig['flagHideDraftStatusStay'] && $rwSTL['stlStatusID']==='0')
+        if ($conf['flagHideDraftStatusStay'] && $rwSTL['stlStatusID']==='0')
             continue;
 
         $rwSTA = $this->conf['STA'][$rwSTL['staID']];
+
+        $htmlRemove = ($conf['flagFullEdit'] ? '&nbsp;<a href="#remove_stl" class="remove">[x]</a>' : '');
 
         $htmlTiming = '<div class="dates"><span class="eiseIntra_stlATA">'
                         .($rwSTA["staTrackPrecision"] == 'datetime' 
@@ -1184,12 +1354,14 @@ function showStatusLog($conf = array()){
                                 : $this->intra->dateSQL2PHP($rwSTL["stlATD"])
                                 )
                             : $this->intra->translate("current time"))
-                        .'</span></div>'."\n";
+                        .'</span>'.$htmlRemove.'</div>'."\n";
 
         $html .= $this->intra->field(($rwSTL["stlTitle{$this->intra->local}"]!="" 
                 ? $rwSTL["stlTitle{$this->intra->local}"]
                 : $rwSTL["staTitle"]), null, null
             , array('fieldClass'=>'eif-stl-title'
+                , 'title' => $rwSTL['stlGUID']
+                , 'dataset' => array('guid'=>$stlGUID)
                 , 'extraHTML'=> $htmlTiming));
 
     
@@ -1231,7 +1403,7 @@ function showUnfinishedActions(){
 
     $html = '';
 
-    foreach($this->item['ACL'] as $aclGUID=>$rwACL){
+    foreach((array)$this->item['ACL'] as $aclGUID=>$rwACL){
         if ($rwACL["aclActionPhase"]>=2)
             continue;
 
@@ -1280,7 +1452,9 @@ function showActionInfo($aclGUID, $conf = array()){
 
         $html = '';
 
-        $htmlTiming = '<div class="dates">'.$this->intra->showDatesPeriod($rwACL['aclATD'], $rwACL['aclATA'], $rwACT['actTrackPrecision']).'</div>'."\n";
+        $htmlRemove = ($conf['flagFullEdit'] ? '&nbsp;<a href="#remove_acl" class="remove">[x]</a>' : '');
+
+        $htmlTiming = '<div class="dates">'.$this->intra->showDatesPeriod($rwACL['aclATD'], $rwACL['aclATA'], $rwACT['actTrackPrecision']).$htmlRemove.'</div>'."\n";
 
         $actTitle = ($rwACL['aclActionPhase']==2 
             ? ($rwACT["actTitlePast{$this->intra->local}"]!="" 
@@ -1291,10 +1465,34 @@ function showActionInfo($aclGUID, $conf = array()){
                 : $rwACT["actTitle"])
             );
 
+        $fieldTitle = ($rwACL['aclFinishBy'] 
+            ? $rwACL['aclFinishBy'] 
+            : ($rwACL['aclStartBy']
+                ? $rwACL['aclStartBy']
+                : $rwACL['aclInsertBy'])
+            )
+            .'@'.$rwACL['aclEditDate'].' '.$aclGUID;
+
+
         $html .= $this->intra->field($actTitle, null, null, array('fieldClass'=>'eif-acl-title'
-                , 'extraHTML'=> $htmlTiming));
+                , 'extraHTML'=> $htmlTiming
+                , 'dataset' => array('guid'=>$aclGUID)
+                , 'title'=>$fieldTitle)
+        );
 
         $traced = $this->getTracedData(array_merge($rwACL, $rwACT));
+
+        if($conf['flagFullEdit']){
+            if($rwACT['actFlagHasEstimates']){
+                if(!$rwACT['actFlagDepartureEqArrival'])
+                    $html .= ( !$rwACT['aatFlagTimestamp']['ETD'] ? $this->intra->field('ETD', 'aclETD_'.$aclGUID, $rwACL['aclETD'], array('type'=>$rwACT['actTrackPrecision'])) : '');
+                $html .= ( !$rwACT['aatFlagTimestamp']['ETA'] ? $this->intra->field('ETA', 'aclETA_'.$aclGUID, $rwACL['aclETA'], array('type'=>$rwACT['actTrackPrecision'])) : '');
+            } 
+            if(!$rwACT['actFlagDepartureEqArrival'])
+                $html .= ( !$rwACT['aatFlagTimestamp']['ATD'] ? $this->intra->field('ATD', 'aclATD_'.$aclGUID, $rwACL['aclATD'], array('type'=>$rwACT['actTrackPrecision'])) : '');
+            $html .= ( !$rwACT['aatFlagTimestamp']['ATA'] ? $this->intra->field('ATA', 'aclATA_'.$aclGUID, $rwACL['aclATA'], array('type'=>$rwACT['actTrackPrecision'])) : '');
+        }
+
 
         $html .= $this->getAttributeFields(array_keys((array)$rwACT['aatFlagToTrack']), $traced
             , array_merge($conf, array('suffix'=>'_'.$aclGUID))
