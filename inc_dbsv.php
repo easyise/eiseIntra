@@ -119,7 +119,7 @@ $(document).ready(function(){
     }, 1);
 });
 </script>
-<body>
+<body data-conf="<?php  echo htmlspecialchars(json_encode($intra->conf)) ; ?>">
 
 <div style="margin: 0 auto;width:33%">
 
