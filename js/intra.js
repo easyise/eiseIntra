@@ -107,6 +107,7 @@ var __initRex = function(conf_){
                     .replace("H", "([0-9]{1,2})")
                     .replace("i", "([0-9]{2})")
                     .replace("s", "([0-9]{2})")
+                    .replace('T', '[T ]')
             , a = []
             , replacements = {};
         ['Y', 'm', 'd', 'y', 'H', 'i', 's'].forEach(function(key){

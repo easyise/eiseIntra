@@ -1757,7 +1757,10 @@ eiseGrid.prototype.fill = function(data, fn){
                     case 'date':
                     case 'datetime':
                     case 'time':
-                        val = text = $('body').eiseIntra('formatDate', val, props.type);
+                        val = text = (val.match(oGrid.conf.rexISO[props.type]) 
+                            ? val.replace(oGrid.conf.rexISO[props.type], oGrid.conf.rex_replace2loc[props.type])
+                            : val);
+                        // console.log(val, oGrid.conf.rexISO[props.type])
                     default:
                         var textInput = $td.find('input[type=text]')[0];
                         if(textInput){
