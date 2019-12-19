@@ -1263,6 +1263,7 @@ private function getSearchCondition(&$col){
             }
           break;
         case "numeric":
+        case "integer":
         case "number":
         case "money":
           if (preg_match("/^([\<\>\=]{0,1})(\-){0,1}[0-9]+([\.][0-9]+){0,1}$/", $strFlt, $arrMatch)) {
