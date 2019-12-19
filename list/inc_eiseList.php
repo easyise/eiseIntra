@@ -255,6 +255,18 @@ public function getColumn($field, &$key=''){
     return null;
 }
 
+/**
+ * This function removes column by field name.
+ */
+public function removeColumn($field){
+    foreach($this->Columns as $ix=>$col){
+        if($col['field']==$field){
+            unset($this->Columns[$ix]);
+            return $col;
+        }
+    }
+}
+
 public function handleDataRequest(){ // handle requests and return them with Ajax, Excel, XML, PDF, whatsoever user can ask
     
     $DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
