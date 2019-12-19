@@ -1258,7 +1258,11 @@ private function getSearchCondition(&$col){
                         $strCondition = " {$col['searchExpression']} IN ('".implode("', '", $arrList)."')";
                     else
                         $strCondition = " {$col['searchExpression']} LIKE ".$oSQL->escape_string($strFlt, "for_search");
-                } else
+                } elseif ($strFlt=='*' || $strFlt=='%'){
+                    $strCondition = " {$col['searchExpression']} <> ''";
+                } elseif ($strFlt=='='){
+                    $strCondition = " {$col['searchExpression']} = '' OR {$col['searchExpression']} IS NULL";
+                }else
                     $strCondition = " {$col['searchExpression']} LIKE ".$oSQL->escape_string($strFlt, "for_search");
             }
           break;
