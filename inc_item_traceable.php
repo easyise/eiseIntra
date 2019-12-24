@@ -747,7 +747,7 @@ public function insert($nd){
 
     $this->oSQL->q('START TRANSACTION');
 
-    $this->newItem();
+    $this->newItem($nd);
 
     $this->oSQL->q('COMMIT');
 
