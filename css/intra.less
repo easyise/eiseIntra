@@ -378,6 +378,25 @@ td     {  	vertical-align: top; padding: 0;}
     }   
 }
 
+.ei-dashboard {
+    overflow: hidden;
+    & .menubar {
+        position: unset;
+        text-align: center;
+        & .menubutton {
+            float: none;
+            display: inline-block;
+            & a {
+                width: 150px;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                text-align: left;
+            }
+        }
+    }
+    
+}
+
 #sysmsg {
     display: none;
     overflow: visible;

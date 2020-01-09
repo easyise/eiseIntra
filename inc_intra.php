@@ -1043,7 +1043,7 @@ function actionMenu($arrActions = array(), $flagShowLink=false){
     if(!$arrActions || count($arrActions)===0)
         return '';
 
-    $strRet .= '<div class="menubar ei-action-menu" id="menubar">'."\r\n";
+    $strRet .= '<div class="menubar ei-action-menu">'."\r\n";
     foreach ((array)$arrActions as $act) {
             $strRet .=  "<div class=\"menubutton\">";
             $strRet .= "<a href=\"{$act['action']}\"".($act['id'] ? ' id="'.$act['id'].'"' : '');

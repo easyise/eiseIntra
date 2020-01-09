@@ -260,6 +260,16 @@ init: function(options){
         $this.eiseIntra('cleanStorage');
     });
 
+    $('.menubutton > a[href="#dashboard"]').click(function(){
+        $('.ei-dashboard').dialog({modal: true
+            , title: $(this).text()
+            , width: '420'
+            , buttons: [{text: 'Close', click: function(){
+                $(this).dialog('close');
+            }}]
+            });
+    })
+
     return this;
 
 }
