@@ -1308,7 +1308,7 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text){
                strValue = strValue
                     .replace(new RegExp("\\"+this.conf.decimalSeparator, "g"), '.')
                     .replace(new RegExp("\\"+this.conf.thousandsSeparator, "g"), '');
-                return parseFloat(strValue);
+                return (!isNaN(parseFloat(strValue)) ? parseFloat(strValue) : '');
             case 'date':
             case 'time':
             case 'datetime':
