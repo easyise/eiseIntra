@@ -1979,11 +1979,11 @@ initFileUpload: function(){
     }
 
     function _init_delete(){
-        $hrefFileDelete.click(function(){
+        $hrefFileDelete.off('click').click(function(){
             var $idField = $(this).find('.eif_filGUID');
 
             if($idField[0] && confirm('Are you sure you\'d like to delete?')){
-                $.getJSON(location.pathname+'?DataAction=deleteFile&filGUID='+encodeURIComponent($idField.val())
+                $.getJSON(location.pathname+location.search+'&DataAction=deleteFile&filGUID='+encodeURIComponent($idField.val())
                     , function(response){
                         $('body').eiseIntra('showMessage', response.message);
                         $tbody.eiseIntraAJAX('fillTable', response.data, {flagClear: true});

@@ -1,0 +1,1 @@
+ALTER TABLE stbl_message ADD COLUMN msgMetadata text NULL  COMMENT 'Metadata' AFTER msgText;

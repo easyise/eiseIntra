@@ -2738,7 +2738,9 @@ static function getFullHREF($iframeHREF){
             : ''
             )
         .$prjDir.'/'
-        .'index.php?pane='.urlencode($iframeHREF);
+        // .'index.php?pane='.urlencode($iframeHREF)
+        .$iframeHREF
+        ;
     return $strURL;
 }
 

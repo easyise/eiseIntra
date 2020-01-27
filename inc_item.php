@@ -382,8 +382,14 @@ public function attachFile($nd){
             $filGUID = $oSQL->d("SELECT UUID() as GUID");
             $filename = Date("Y/m/").$filGUID.".att";
                                 
-            if(!file_exists($filesPath.Date("Y/m")))
-                mkdir($filesPath.Date("Y/m"), 0777, true);
+            if(!file_exists($filesPath.Date("Y/m"))){
+                $d = @mkdir($filesPath.Date("Y/m"), 0777, true);
+                if(!$d){
+                	$error = "ERROR: Unable to create directory: ".$filesPath.Date("Y/m");
+                	break;
+                }
+                	
+            }
             
             copy($f["tmp_name"], $filesPath.$filename);
             
@@ -413,6 +419,29 @@ public function attachFile($nd){
     $files = $this->getFiles(array('selectedGUIDs'=>$guids));
 
     return $files;
+
+}
+
+function deleteFile($q){
+
+	$intra = $this->intra;
+	$oSQL = $this->oSQL;
+
+    $oSQL->q("START TRANSACTION");
+    $rwFile = $oSQL->f("SELECT * FROM stbl_file WHERE filGUID='{$q['filGUID']}'");
+
+    $filesPath = self::checkFilePath($this->intra->conf["stpFilesPath"]);
+
+    @unlink($filesPath.$rwFile["filNamePhysical"]);
+
+    $oSQL->do_query("DELETE FROM stbl_file WHERE filGUID='{$q['filGUID']}'");
+    $nFiles = 
+    $oSQL->q("COMMIT");
+
+    $this->msgToUser = $intra->translate("Deleted files: %s", $nFiles);
+    $this->redirectTo = eiseIntra::getFullHREF($this->conf['form'].'?'.$this->getURI());
+
+    return $this->getFiles();
 
 }
 
@@ -569,7 +598,7 @@ function formMessages(){
 
     $entID = ($this->conf['entID'] ? $this->conf['entID'] : $this->conf['prefix']);
 
-    $strRes = '<div id="ei_messages" title="'.$this->intra->translate('Messages').'">'."\n";
+    $strRes = '<div id="ei_messages" class="eif-messages-dialog" title="'.$this->intra->translate('Messages').'">'."\n";
 
     $strRes .= '<div class="eiseIntraMessage eif_template eif_evenodd">'."\n";
     $strRes .= '<div class="eif_msgInsertDate"></div>';
@@ -592,7 +621,7 @@ function formMessages(){
         
     $strRes .= "</div>\r\n";
 
-    $strRes .= '<form id="ei_message_form" title="'.$this->intra->translate('New Message').'" class="eiseIntraForm" method="POST">'."\n";
+    $strRes .= '<form id="ei_message_form" class="eif-message-form" title="'.$this->intra->translate('New Message').'" class="eiseIntraForm" method="POST">'."\n";
     $strRes .= '<input type="hidden" name="DataAction" id="DataAction_attach" value="sendMessage">'."\r\n";
     $strRes .= '<input type="hidden" name="entID" id="entID_Message" value="'.$entID.'">'."\r\n";
     $strRes .= '<input type="hidden" name="entItemID" id="entItemID_Message" value="'.$this->id.'">'."\r\n";
@@ -606,6 +635,10 @@ function formMessages(){
         <input type="button" id="msgClose" value="'.$this->intra->translate('Close').'">
         </div>';
     $strRes .= "</form>\r\n";
+
+    if( file_exists(dirname($_SERVER['SCRIPT_FILENAME']).DIRECTORY_SEPARATOR.'bat_messagesend.php') ){
+    	$strRes .= "\n".'<script type="text/javascript">$(document).ready(function(){ $.get("bat_messagesend.php?nc="+Math.random()*1000); });</script>'."\n";
+    }
 
     $this->intra->arrUsrData['FlagWrite'] = $oldFlagWrite;
 
@@ -641,6 +674,20 @@ public function sendMessage($nd){
     if($fields['msgPassword']){
         list($login, $password) = $this->intra->decodeAuthstring($_SESSION['authstring']);
     }
+
+    $metadata = array('title'=>$this->conf['title'.$intra->local]
+    	, 'href'=>eiseIntra::getFullHREF($this->conf['form'].'?'.$this->getURI())
+    	);
+    if(isset($nd['msgMetadata'])){
+    	$metadata = array_merge(
+    		$metadata, 
+    		(is_array($nd['msgMetadata']) 
+    			?  $nd['msgMetadata']
+    			: (array)json_decode($nd['msgMetadata'], true)
+    			)
+    		);
+    }
+
     $sqlMsg = "INSERT INTO stbl_message SET
         msgEntityID = ".$oSQL->e($entID)."
         , msgEntityItemID = ".($nd['entItemID']!="" ? $oSQL->e($this->id) : "NULL")."
@@ -651,15 +698,125 @@ public function sendMessage($nd){
         , msgText = ".$oSQL->e($nd['msgText']).
         ($fields['msgPassword'] ? ", msgPassword=".$oSQL->e($intra->encrypt($password)) : '')
         ."
+        , msgMetadata = ".$oSQL->e(json_encode($metadata, true))."
         , msgSendDate = NULL
         , msgReadDate = NULL
         , msgFlagDeleted = 0
         , msgInsertBy = '$intra->usrID', msgInsertDate = NOW(), msgEditBy = '$intra->usrID', msgEditDate = NOW()";
     $oSQL->q($sqlMsg);
 
-    $this->redirectTo = $this->conf['form'].'?'.$this->getURI();
-	$this->msgToUser = $intra->translate('Message sent');
+	$intra->redirect($intra->translate('Message sent'), $this->conf['form'].'?'.$this->getURI());
 
 }
+
+static function sendMessages($conf){
+    
+    GLOBAL $intra;
+
+    $oSQL = $intra->oSQL;
+
+    $oSQL->q('START TRANSACTION');
+    $oSQL->q("UPDATE stbl_message SET msgSendDate=NOW()
+            , msgStatus='Sending' 
+            WHERE msgSendDate IS NULL");
+   	$oSQL->q('COMMIT');
+
+    // scan table for unsent messages
+    $sqlMsg = "SELECT * FROM stbl_message 
+        WHERE msgStatus='Sending' AND msgInsertDate>DATE_ADD(NOW(), INTERVAL -1 DAY) ORDER BY msgFromUserID, msgInsertDate DESC";
+    $rsMsg = $oSQL->q($sqlMsg);
+    $fieldsMsg = $oSQL->ff($rsMsg);
+
+    include_once(commonStuffAbsolutePath.'/eiseMail/inc_eisemail.php');
+
+    $username = '';
+    $arrMessages = array();
+
+    while($rwMsg = $oSQL->f($rsMsg)){
+
+        if($username != $rwMsg['msgFromUserID']){
+
+            $rwUsr_From = $intra->getUserData_All($rwMsg['msgFromUserID'], 'all');
+            $arrAuth = array();
+            if($conf['authenticate']){
+                $arrAuth['login'] = ($conf['authenticate']=='email'
+                    ? $rwUsr_From['usrEmail']
+                    : $rwUsr_From['usrID'] );
+            }
+            $username = $rwMsg['msgFromUserID'];
+            $senders[$rwMsg['msgFromUserID']]  = new eiseMail(array_merge($conf, $arrAuth));
+
+        }
+
+        $rwUsr_To = $intra->getUserData_All($rwMsg['msgToUserID'], 'all');
+        $rwUsr_CC = $intra->getUserData_All($rwMsg['msgCCUserID'], 'all');
+
+        $rwMsg['system'] = $conf['system'];
+        $metadata = json_decode($rwMsg['msgMetadata'], true);
+        if($metadata && is_array($metadata)){
+        	$rwMsg = array_merge($rwMsg, $metadata);
+        }
+
+        if( $conf['login']){
+            $dd = 'acme.com';
+            $a1 = imap_rfc822_parse_adrlist($conf['login'], $dd);
+            $a2 = imap_rfc822_parse_adrlist($rwUsr_From['usrID'], $dd);
+            $o1 = $a1[0]; $o2 = $a2[0];
+            if(strtolower($o1->mailbox)!=strtolower($o2->mailbox))
+                continue;
+        } 
+
+        $msg = array('From'=> ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : '')
+            , 'To' => ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\"  <".$rwUsr_To['usrEmail'].">" : '')
+            , 'Text' => $rwMsg['msgText']
+            );
+        if ($rwMsg['msgCCUserID'])
+            $msg['Cc'] = "\"".$rwUsr_CC['usrName']."\"  <".$rwUsr_CC['usrEmail'].">";
+
+        $msg = array_merge($msg, $rwMsg);
+
+        if($conf['authenticate'] && $rwMsg['msgPassword'])
+            $senders[$rwMsg['msgFromUserID']]->conf['password'] = $intra->decrypt($rwMsg['msgPassword']);
+
+        $senders[$rwMsg['msgFromUserID']]->addMessage($msg);
+
+    }
+
+    foreach($senders as $user=>$sender){
+
+        if($conf['authenticate'] && !$sender->conf['password']){
+            foreach($sender->arrMessages as &$msg){
+                $msg['error'] = 'No password';
+                $arrMessages[] = $msg;    
+            }
+            continue;
+        }
+
+        try {
+            $sentMessages = $sender->send();
+            $arrMessages = array_merge($arrMessages, $sentMessages);
+        } catch (eiseMailException $e){
+            $strError = $e->getMessage();
+            $arrMessages = array_merge($arrMessages, $e->getMessages());
+        }
+    }
+
+    foreach((array)$arrMessages as $msg){
+        $sqlMarkSent = "UPDATE stbl_message SET msgSendDate=".($msg['send_time'] ? "'".date('Y-m-d H:i:s', $msg['send_time'])."'" : 'NULL' )."
+            , msgStatus=".($msg['error'] ? $oSQL->e($msg['error']) : $oSQL->e('Sent'))."
+            , msgPassword=NULL
+            , msgEditDate=NOW()
+            , msgEditBy='{$msg['msgFromUserID']}'
+            WHERE msgID=".$oSQL->e($msg['msgID']);
+        $oSQL->q($sqlMarkSent);
+
+    }
+
+
+    if($strError)
+        throw new Exception($strError);
+
+}
+
 
 }
