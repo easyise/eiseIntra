@@ -261,13 +261,19 @@ init: function(options){
     });
 
     $('.menubutton > a[href="#dashboard"]').click(function(){
-        $('.ei-dashboard').dialog({modal: true
+        var $dlg = $('.ei-dashboard').dialog({modal: true
             , title: $(this).text()
             , width: '420'
+            , open: function(){
+                $(this).find('a').click(function(){
+                    $dlg.dialog('close');
+                })
+            }
             , buttons: [{text: 'Close', click: function(){
                 $(this).dialog('close');
             }}]
             });
+        return false;
     })
 
     return this;
@@ -292,7 +298,7 @@ init: function(options){
         $("#frameContent").css ("padding-top", hActionMenu+"px");
 
         if($('.ei-pane')[0]){
-            $('.ei-action-menu').css('margin-top', '-'+hActionMenu+'px');
+            $('.ei-action-menu').first().css('margin-top', '-'+hActionMenu+'px');
             $('.ei-pane').css('padding-top', (parseInt($('.ei-pane').css('padding-top').replace('px', '')) + hActionMenu)+'px');            
         }
 
