@@ -1485,12 +1485,12 @@ function showActionInfo($aclGUID, $conf = array()){
         if($conf['flagFullEdit']){
             if($rwACT['actFlagHasEstimates']){
                 if(!$rwACT['actFlagDepartureEqArrival'])
-                    $html .= ( !$rwACT['aatFlagTimestamp']['ETD'] ? $this->intra->field('ETD', 'aclETD_'.$aclGUID, $rwACL['aclETD'], array('type'=>$rwACT['actTrackPrecision'])) : '');
-                $html .= ( !$rwACT['aatFlagTimestamp']['ETA'] ? $this->intra->field('ETA', 'aclETA_'.$aclGUID, $rwACL['aclETA'], array('type'=>$rwACT['actTrackPrecision'])) : '');
+                    $html .= ( !$rwACT['aatFlagTimestamp']['ETD'] || $rwACT['aatFlagTimestamp']['ETD']=='aclETD' ? $this->intra->field('ETD', 'aclETD_'.$aclGUID, $rwACL['aclETD'], array('type'=>$rwACT['actTrackPrecision'])) : '');
+                $html .= ( !$rwACT['aatFlagTimestamp']['ETA'] || $rwACT['aatFlagTimestamp']['ETA']=='aclETA' ? $this->intra->field('ETA', 'aclETA_'.$aclGUID, $rwACL['aclETA'], array('type'=>$rwACT['actTrackPrecision'])) : '');
             } 
             if(!$rwACT['actFlagDepartureEqArrival'])
-                $html .= ( !$rwACT['aatFlagTimestamp']['ATD'] ? $this->intra->field('ATD', 'aclATD_'.$aclGUID, $rwACL['aclATD'], array('type'=>$rwACT['actTrackPrecision'])) : '');
-            $html .= ( !$rwACT['aatFlagTimestamp']['ATA'] ? $this->intra->field('ATA', 'aclATA_'.$aclGUID, $rwACL['aclATA'], array('type'=>$rwACT['actTrackPrecision'])) : '');
+                $html .= ( !$rwACT['aatFlagTimestamp']['ATD'] || $rwACT['aatFlagTimestamp']['ATD']=='aclATD'  ? $this->intra->field('ATD', 'aclATD_'.$aclGUID, $rwACL['aclATD'], array('type'=>$rwACT['actTrackPrecision'])) : '');
+            $html .= ( !$rwACT['aatFlagTimestamp']['ATA'] || $rwACT['aatFlagTimestamp']['ATA']=='aclATA' ? $this->intra->field('ATA', 'aclATA_'.$aclGUID, $rwACL['aclATA'], array('type'=>$rwACT['actTrackPrecision'])) : '');
         }
 
 

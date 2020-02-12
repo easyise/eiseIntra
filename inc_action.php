@@ -142,6 +142,13 @@ public function update($nd = null){
 
     $this->oSQL->q($sqlACL);
 
+    $sqlSTL = "UPDATE stbl_status_log LEFT OUTER JOIN stbl_action_log ON stlEntityItemID=aclEntityItemID AND aclGUID=stlArrivalActionID # eiseAction::update() {$this->arrAction['actTitle']}
+        SET stlATA=aclATA
+            , stlEditDate=NOW()
+            , stlEditBy = '{$this->item->intra->usrID}'
+        WHERE aclEntityItemID='{$this->item->id}' AND stlArrivalActionID='{$this->arrAction['aclGUID']}'";
+    $this->oSQL->q($sqlSTL);
+
 }
 
 public function add(){
