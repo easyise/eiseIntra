@@ -1,0 +1,1 @@
+ALTER TABLE stbl_entity ADD COLUMN entMatrix text NULL  COMMENT 'Entity Matrix' AFTER entTitleLocal;

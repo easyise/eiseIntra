@@ -702,7 +702,7 @@ $gridATR->Execute();
 
 </fieldset>
 
-<fieldset id="flds-act"><legend><?php echo $intra->translate('Action matrix') ?>:</legend>
+<fieldset id="flds-act"><legend><?php echo $intra->translate('Actions') ?>:</legend>
 <?php 
 $sqlAct = "SELECT actID
     , actTitle{$strLocal} as actTitle
