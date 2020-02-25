@@ -588,7 +588,10 @@ if ($easyAdmin){
 	   , "action" => "codegen_form.php?entID=$entID&dbName=$dbName&tblName=".$rwEnt["entTable"]."&toGen=EntityReport"
 	   , "class"=> "ss_page_white_word"
 	);
-	
+$arrActions[]= Array ("title" => "Action Matrix"
+         , "action" => "matrix_form.php?entID=$entID&dbName=$dbName"
+         , "class"=> "ss_chart_organisation "
+      );	
 }
 
 include eiseIntraAbsolutePath."inc_top.php";
