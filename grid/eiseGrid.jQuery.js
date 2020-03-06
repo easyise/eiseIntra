@@ -541,12 +541,13 @@ var __attachAutocomplete = function(oTr) {
                 .each(function(){  this.addEventListener('input', function(ev){   if( typeof initComplete === 'undefined'){  ev.stopImmediatePropagation();  }     }, false);      }) // IE11 hack
                 .autocomplete({
                 source: function(request,response) {
+
+                    $inpVal.change();
                     
                     // reset old value
                     if(request.term.length<3){
                         response({});
                         $inpVal.val('');
-                        $inpVal.change();
                         return;
                     }
 
@@ -1655,17 +1656,35 @@ eiseGrid.prototype.spinner = function(arg){
     }
 }
 
-eiseGrid.prototype.fill = function(data, fn){
-
+eiseGrid.prototype.getRowDataTemplateJSON = function(minify){
     var oGrid = this,
-        rowsAdded = [],
-        __getHREF = function(href, data){
+        json = '{';
+    $.each(oGrid.conf.fields, function(field, props){
+        json += '\t"'+field+'": {"v": ""'+(props.type ? ', "__comments": "'+props.type +'"' : '')
+        var extra = '';
+        if(['combobox', 'ajax_dropdown'].indexOf(props.type)!=-1){
+            extra += '\n\t\t"t": "" , "__source": "'+props.source+'"'
+        }
+        if(props.href){
+            extra += '\n\t\t"h": "" , "__href": "'+props.href+'"'
+        }
+
+        json += (extra ? extra+'\n\t' : '')+'},\n'
+    });
+    json += "}";
+    return (minify ? JSON.stringify(JSON.parse(json)) : json);
+}
+
+eiseGrid.prototype.fillRow = function($tr, row ){
+
+    var oGrid = this
+        , __getHREF = function(href, data){
             $.each(data, function(field, value){
                 href = href.replace('['+field+']', value);
             })
             return href;
-        },
-        __doHREF = function(props, $parent, href){
+        }
+        , __doHREF = function(props, $parent, href){
             var $elem = $('<a>').appendTo($parent);
             $elem[0].href = href;
             if(props.target)
@@ -1673,7 +1692,102 @@ eiseGrid.prototype.fill = function(data, fn){
             return $elem;
         };
 
+    $.each(oGrid.conf.fields, function(field, props){
 
+        var $td = $tr.find('td[data-field="'+field+'"]'),
+            $div = $td.find('div'),
+            $inp = $tr.find('input[name="'+field+'[]"]'),
+            $inpText = $td.find('input[type="text"]');
+
+        if(!$td[0] && !$inp[0])
+            return true; // continue
+
+        if( props.type == 'order' && !row[field] ){
+            var ord = ($trAfter.hasClass('eg-data')
+                    ? parseInt($trAfter.find('.eg-order').text().replace(/[^0-9]+/gi, '')) 
+                    : 0)+1;
+            if($div[0])
+                $div.text(ord);
+            if($inp[0])
+                $inp.val(ord);
+        }
+
+
+        if ( !row[field] )
+            return true; // continue
+
+        var val = (typeof(row[field])=='object' ? row[field].v : row[field]),
+            text = (row[field].t 
+                ? row[field].t 
+                : (typeof row[field+'_text'] !== 'undefined'
+                    ? row[field+'_text']
+                    : (props.type=='combobox' && props.source && props.source[val]
+                        ? props.source[val]
+                        : val)
+                )),
+            href = (row[field].h
+                ? row[field].h
+                : (row[field+'_href'] 
+                    ? row[field+'_href']
+                    : (props.href 
+                        ? __getHREF(props.href, row)
+                        : ''
+                        )
+                    )
+                ),
+            theClass = (row[field].c
+                ? row[field].c
+                : row[field+'_class'])
+            ;
+
+        if($inp[0])
+            $inp.val(val);
+        if(theClass){
+            $.each(theClass.split(/\s+/), function(ix, cls){
+                $td.addClass(cls)
+            })
+        }
+
+        switch(props.type){
+            case 'boolean':
+            case 'checkbox':
+                if(val==1)
+                    $td.find('input[type=checkbox]')[0].checked = true;
+                break;
+            case 'date':
+            case 'datetime':
+            case 'time':
+                val = text = (val.match(oGrid.conf.rexISO[props.type]) 
+                    ? val.replace(oGrid.conf.rexISO[props.type], oGrid.conf.rex_replace2loc[props.type])
+                    : val);
+                // console.log(val, oGrid.conf.rexISO[props.type])
+            default:
+                var textInput = $td.find('input[type=text]')[0];
+                if(textInput){
+                    if(!href)
+                        $(textInput).val(text);
+                    else {
+                        $(textInput).remove();
+                        __doHREF(props, $td, href).text(text)
+                    }
+
+                } else {         
+                    var $elem = $div;
+                    if(href){
+                        $elem = __doHREF(props, $div, href)
+                    }
+                    $elem.html(text);
+                }
+                break;
+        }
+
+    });
+}
+
+eiseGrid.prototype.fill = function(data, fn){
+
+    var oGrid = this,
+        rowsAdded = [];
 
     this.tableContainer.find('.eg-spinner').css('display', 'none');
 
@@ -1687,101 +1801,12 @@ eiseGrid.prototype.fill = function(data, fn){
 
         oGrid.tableContainer.find('.eg-no-rows').css('display', 'none');
 
-        $.each(data, function(ix, row){
+        $.each(data, function(ix, rowData){
 
             var $tr = oGrid.newRow($trAfter)
                 .css('display', 'table-row-group');
 
-            $.each(oGrid.conf.fields, function(field, props){
-
-                var $td = $tr.find('td[data-field="'+field+'"]'),
-                    $div = $td.find('div'),
-                    $inp = $tr.find('input[name="'+field+'[]"]'),
-                    $inpText = $td.find('input[type="text"]');
-
-                if(!$td[0] && !$inp[0])
-                    return true; // continue
-
-                if( props.type == 'order' && !row[field] ){
-                    var ord = ($trAfter.hasClass('eg-data')
-                            ? parseInt($trAfter.find('.eg-order').text().replace(/[^0-9]+/gi, '')) 
-                            : 0)+1;
-                    if($div[0])
-                        $div.text(ord);
-                    if($inp[0])
-                        $inp.val(ord);
-                }
-
-
-                if ( !row[field] )
-                    return true; // continue
-
-                var val = (typeof(row[field])=='object' ? row[field].v : row[field]),
-                    text = (row[field].t 
-                        ? row[field].t 
-                        : (typeof row[field+'_text'] !== 'undefined'
-                            ? row[field+'_text']
-                            : (props.type=='combobox' && props.source && props.source[val]
-                                ? props.source[val]
-                                : val)
-                        )),
-                    href = (row[field].h
-                        ? row[field].h
-                        : (row[field+'_href'] 
-                            ? row[field+'_href']
-                            : (props.href 
-                                ? __getHREF(props.href, row)
-                                : ''
-                                )
-                            )
-                        ),
-                    theClass = (row[field].c
-                        ? row[field].c
-                        : row[field+'_class'])
-                    ;
-
-                if($inp[0])
-                    $inp.val(val);
-                if(theClass){
-                    $.each(theClass.split(/\s+/), function(ix, cls){
-                        $td.addClass(cls)
-                    })
-                }
-
-                switch(props.type){
-                    case 'boolean':
-                    case 'checkbox':
-                        if(val==1)
-                            $td.find('input[type=checkbox]')[0].checked = true;
-                        break;
-                    case 'date':
-                    case 'datetime':
-                    case 'time':
-                        val = text = (val.match(oGrid.conf.rexISO[props.type]) 
-                            ? val.replace(oGrid.conf.rexISO[props.type], oGrid.conf.rex_replace2loc[props.type])
-                            : val);
-                        // console.log(val, oGrid.conf.rexISO[props.type])
-                    default:
-                        var textInput = $td.find('input[type=text]')[0];
-                        if(textInput){
-                            if(!href)
-                                $(textInput).val(text);
-                            else {
-                                $(textInput).remove();
-                                __doHREF(props, $td, href).text(text)
-                            }
-
-                        } else {         
-                            var $elem = $div;
-                            if(href){
-                                $elem = __doHREF(props, $div, href)
-                            }
-                            $elem.html(text);
-                        }
-                        break;
-                }
-
-            });
+            oGrid.fillRow($tr, rowData)
 
             $trAfter = $tr;
 
@@ -2483,6 +2508,11 @@ spinner: function(arg){
     return this;
 },
 
+fillRow: function($rw, rowData){
+    var grid = $(this[0]).data('eiseGrid').eiseGrid;
+    grid.fillRow($rw, rowData);
+    return this;
+},
 fill: function(data, fn){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     grid.fill(data, fn);
@@ -2570,6 +2600,26 @@ excel: function(options){
     grid.excel(options);
     return this;
 },
+
+/**
+ * This function returns an object with row data in {xx: {v: , t: }}, pasteable to othe grid with fill() function 
+ */
+getRow: function($tbody){
+
+    var grid = $(this).data('eiseGrid').eiseGrid,
+        retObj = {};
+
+    $.each(grid.conf.fields, function(key, field){
+        var obj = {v: null}
+        if(field.type=='ajax_dropdown' || field.type=='combobox' )
+            obj.t = grid.text($tbody, key);
+        obj.v = grid.value($tbody, key);
+        retObj[key] = obj
+    });
+
+    return retObj;
+
+}
 
 };
 
