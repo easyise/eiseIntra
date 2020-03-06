@@ -746,6 +746,9 @@ public function arrPHP2SQL($arrSrc, $types = array()){
                 case 'datetime':
                     $arrRet[$key] = $this->oSQL->unq($this->datetimePHP2SQL($value));
                     break;
+                case 'time':
+                    $arrRet[$key] = (preg_match('/^[0-9]{1,2}\:[0-9]{2}(\:[0-9]{2}){0,1}$/', $value) ? $value : null);
+                    break;
                 case 'integer':
                     $arrRet[$key] = $this->oSQL->unq(($value == null ? 'NULL' : (int)$value));
                     break;
