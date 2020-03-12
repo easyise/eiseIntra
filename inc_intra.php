@@ -913,6 +913,22 @@ public function menu($target = null){
  */
 public function menuItem($rw){    return '';    }
 
+public function getCurrentUserInfo(){
+    $html = '';
+    $html .= '<div class="ei-current-user-info">';
+    $html .= '<span class="ui-helper-hidden-accessible"><input type="text"/></span>';
+    $html .= '<div class="ei-usrName">'.$this->arrUsrData['usrName'.$this->local].'</div>';
+    $html .= '<div class="ei-usrRoles">'.$this->translate('Roles:').'</div>';
+    $html .= '<ul class="ei-roles">';
+    foreach ($this->arrUsrData['roles'] as $ix => $roleTitle) {
+        $html .= "<li><span class=\"ei-rolTitle\">{$roleTitle}</span> <small>({$this->arrUsrData['roleIDs'][$ix]})</small></li>";
+    }
+    $html .= '</ul>';
+    $html .= '<div class="ei-logout"><a href="login.php">'.$this->translate('Logout').' <i class="fa fa-sign-out"> </i></a></div>';
+    $html .= '</div>';
+    return $html;
+}
+
 /**
  * This function returns default icon menu class basng on page URI.
  * @ignore
