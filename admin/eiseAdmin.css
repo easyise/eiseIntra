@@ -29,3 +29,60 @@
 #query_explainer {
 	display: none;
 }
+
+.auth_matrix {
+    border:1px solid #06183D;
+    width:100%;
+    background-color: #FFF;
+}
+
+.auth_matrix td {
+    border:1px solid #06183D;
+}
+
+.auth_matrix th {
+    border:1px solid #06183D;
+    background-color:#DDD;
+    color:#06183D;
+    text-align:left;
+    height: 18px;
+    margin: 2px;
+    padding:2px 2px 2px 23px;
+}
+
+.auth_matrix th:first-child {
+padding-left:.3em;
+}
+
+.auth_matrix ul, ul.attachment {
+    list-style: none;
+    text-indent: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.auth_matrix li {
+    padding-left:18px;
+    overflow: hidden;
+    text-align: left;
+}
+
+.auth-matrix-same{
+    background-color: #DDD;
+}
+.auth_matrix_deleted{
+    text-decoration: line-through;
+    color: #646464;
+}
+
+.auth_matrix ul.actions li{
+    white-space: nowrap;
+}
+
+.auth_matrix  ul.roles {
+    margin-left: 20px;
+    font-size: 0.75em;
+}
+.auth_matrix  ul.roles > li {
+    height: auto;
+}

@@ -12,6 +12,7 @@ $rwEnt = $oSQL->fetch_array($rsEnt);
 
 $easyAdmin = ($authmethod==='mysql');
 $flagEiseIntra = (boolean) $oSQL->d("SHOW TABLES LIKE 'stbl_action_status'");
+$flagEiseIntra = true;
 
 $gridSTA = new eiseGrid($oSQL
         ,'sta'
@@ -590,7 +591,7 @@ if ($easyAdmin){
 	   , "class"=> "ss_page_white_word"
 	);
 $arrActions[]= Array ("title" => "Action Matrix"
-         , "action" => "matrix_form.php?entID=$entID&dbName=$dbName"
+         , "action" => "actionmatrix_form.php?entID=$entID&dbName=$dbName"
          , "class"=> "ss_chart_organisation "
       );	
 }
@@ -708,6 +709,9 @@ $gridATR->Execute();
 
 <fieldset id="flds-act"><legend><?php echo $intra->translate('Actions') ?>:</legend>
 <?php 
+
+$flagActionStatus = $oSQL->d("SHOW TABLES LIKE 'stbl_ation_status'");
+
 $sqlAct = "SELECT actID
     , actTitle{$strLocal} as actTitle
     , actTitlePast{$strLocal} as actTitlePast
@@ -715,7 +719,7 @@ $sqlAct = "SELECT actID
     , actFlagDeleted
     ".$roleFields."
 ".(
-$flagEiseIntra
+$flagActionStatus
 ? "
   , actPriority
   , actFlagAutocomplete

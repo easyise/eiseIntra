@@ -340,6 +340,11 @@ private function init(){
         ORDER BY atrOrder";
     $rsAtr = $oSQL->q($sqlAtr);
     while($rwAtr = $oSQL->f($rsAtr)){
+        // izintra compat fix
+        if(isset($rwAtr['atrPrefix']) && in_array($rwAtr['atrType'], array('combobox', 'ajax_dropdown') )) {
+            $rwAtr['atrDataSource'] = $rwAtr['atrProgrammerReserved'];
+            $rwAtr['atrProgrammerReserved'] = ($rwAtr['atrPrefix'] ? $rwAtr['atrPrefix'] : null);
+        }
         $this->conf['ATR'][$rwAtr['atrID']] = $rwAtr;
         $this->conf['attr_types'][$rwAtr['atrID']] = $rwAtr['atrType'];
     }
@@ -393,7 +398,10 @@ private function init(){
     // read action_attribute
     $this->conf['ACT'] = array();
     $sqlAAt = "SELECT stbl_action.*
-        , (SELECT GROUP_CONCAT(rlaRoleID) FROM stbl_role_action WHERE rlaActionID=actID) as actRoles
+        ".($oSQL->d("SHOW TABLES LIKE 'stbl_role_action'")
+            ? ", (SELECT GROUP_CONCAT(rlaRoleID) FROM stbl_role_action WHERE rlaActionID=actID) as actRoles"
+            : '')
+        ."
         , stbl_action_attribute.* FROM stbl_action
         LEFT OUTER JOIN stbl_action_attribute 
             INNER JOIN stbl_attribute ON atrID=aatAttributeID AND atrFlagDeleted=0
@@ -409,7 +417,7 @@ private function init(){
                     $arrAct[$key] = $val;
             }
             
-            $this->conf['ACT'][$rwAAt['actID']] = array_merge($arrAct, array('RLA'=>explode(',', $arrAct['actRoles'])));
+            $this->conf['ACT'][$rwAAt['actID']] = array_merge($arrAct, array('RLA'=>($arrAct['actRoles'] ? explode(',', $arrAct['actRoles']) : array())));
             $this->conf['ACT'][$rwAAt['actID']]['actOldStatusID'] = array();
             $this->conf['ACT'][$rwAAt['actID']]['actNewStatusID'] = array();
 
@@ -439,18 +447,32 @@ private function init(){
     }
 
     // read action-status
-    $sqlATS = "SELECT atsOldStatusID
-        , atsNewStatusID
-        , atsActionID
-        FROM stbl_action_status
-        INNER JOIN stbl_action ON actID=atsActionID
-        LEFT OUTER JOIN stbl_status ORIG ON ORIG.staID=atsOldStatusID AND ORIG.staEntityID='{$this->entID}'
-        LEFT OUTER JOIN stbl_status DEST ON DEST.staID=atsNewStatusID AND DEST.staEntityID='{$this->entID}'
-        WHERE (actEntityID='{$this->entID}' 
-            AND IFNULL(ORIG.staFlagDeleted,0)=0
-            AND IFNULL(DEST.staFlagDeleted,0)=0
-            ) OR actEntityID IS NULL
-        ORDER BY atsOldStatusID, actPriority";
+    if ($oSQL->d("SHOW TABLES LIKE 'stbl_action_status'")) {
+        $sqlATS = "SELECT atsOldStatusID
+            , atsNewStatusID
+            , atsActionID
+            FROM stbl_action_status
+            INNER JOIN stbl_action ON actID=atsActionID
+            LEFT OUTER JOIN stbl_status ORIG ON ORIG.staID=atsOldStatusID AND ORIG.staEntityID='{$this->entID}'
+            LEFT OUTER JOIN stbl_status DEST ON DEST.staID=atsNewStatusID AND DEST.staEntityID='{$this->entID}'
+            WHERE (actEntityID='{$this->entID}' 
+                AND IFNULL(ORIG.staFlagDeleted,0)=0
+                AND IFNULL(DEST.staFlagDeleted,0)=0
+                ) OR actEntityID IS NULL
+            ORDER BY atsOldStatusID, actPriority";
+    } else {
+        $sqlATS = "SELECT actOldStatusID as atsOldStatusID
+            , actNewStatusID as atsNewStatusID
+            , actID as atsActionID
+            FROM stbl_action
+            LEFT OUTER JOIN stbl_status ORIG ON ORIG.staID=actOldStatusID AND ORIG.staEntityID='{$this->entID}'
+            LEFT OUTER JOIN stbl_status DEST ON DEST.staID=actNewStatusID AND DEST.staEntityID='{$this->entID}'
+            WHERE (actEntityID='{$this->entID}' 
+                AND IFNULL(ORIG.staFlagDeleted,0)=0
+                AND IFNULL(DEST.staFlagDeleted,0)=0
+                ) OR actEntityID IS NULL
+            ORDER BY actOldStatusID, actPriority";
+    }
     $rsATS = $oSQL->q($sqlATS);
     while($rwATS = $oSQL->f($rsATS)){
         $this->conf['ACT'][$rwATS['atsActionID']]['aclOldStatusID'] = (isset($this->conf['ACT'][$rwATS['atsActionID']]['aclOldStatusID']) ? $this->conf['ACT'][$rwATS['atsActionID']]['aclOldStatusID'] : $rwATS['atsOldStatusID']);
@@ -467,6 +489,11 @@ private function init(){
             unset($this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3]);
             $this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3] = $arrActDel;
         }
+    }
+
+    // matrix
+    foreach((array)$this->conf['entMatrix'] as $mtx){
+        $this->conf['ACT'][$mtx['mtxActionID']]['MTX'][] = $mtx;
     }
 
     $_SESSION[$sessKey] = $this->conf;
