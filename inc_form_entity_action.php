@@ -1,4 +1,5 @@
 <?php 
+include 'inc_actionmatrix.php';
 $intra->requireComponent('jquery-ui', 'grid');
 
 $DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['DataAction'] );
@@ -264,10 +265,11 @@ switch($DataAction){
         die();
     
     case "update":
-        
+
+
         $oSQL->q("START TRANSACTION");
         
-        $sql[] = "UPDATE stbl_action SET
+        $sqlUpd = "UPDATE stbl_action SET
             actTitle = ".$oSQL->escape_string($_POST['actTitle'])."
             , actTitleLocal = ".$oSQL->escape_string($_POST['actTitleLocal'])."
             , actTitlePast = ".$oSQL->escape_string($_POST['actTitlePast'])."
@@ -285,11 +287,19 @@ switch($DataAction){
             , actFlagDeleted = '".($_POST['actFlagDeleted']=='on' ? 1 : 0)."'
             , actEditBy = '$usrID', actEditDate = NOW()
             WHERE actID = '".$_POST['actID']."'";
+        $oSQL->q($sqlUpd);
+
+
+
+        $mtx = new eiseActionMatrix($rwAct['entID']);
+        $mtx->saveActionGrid($_POST['actID'], $_POST);
+        
+        if ($oSQL->f("SHOW TABLES LIKE 'stbl_action_status'")){
+            $gridATS->Update();    
+        }
+        
        
-       $gridATS->Update();
-       
-       $sql[] = "DELETE FROM stbl_action_attribute WHERE aatActionID='$actID'";
-       
+        $sql[] = "DELETE FROM stbl_action_attribute WHERE aatActionID='$actID'";
         for ($i=0; $i< count($_POST["atrID"]); $i++)
             if ($_POST["atrID"][$i]) {
              $sql[] = "INSERT INTO stbl_action_attribute (
@@ -314,20 +324,24 @@ switch($DataAction){
                 , '$usrID', NOW(), '$usrID', NOW())";
                 
         }
-      
-      $sql[] = "DELETE FROM stbl_role_action WHERE rlaActionID='".$_POST['actID']."'";
-      
-      $sqlROL = "SELECT * FROM stbl_role";
-      $rsROL = $oSQL->do_query($sqlROL);
-      while ($rwROL = $oSQL->fetch_array($rsROL)){
-           if($_POST["RLA_{$rwROL["rolID"]}"]=="on")
-            $sql[] = "INSERT INTO stbl_role_action (
-                rlaRoleID
-                , rlaActionID
-                ) VALUES (
-                '{$rwROL["rolID"]}'
-                , '{$_POST['actID']}');";
-      }
+        
+
+        if ($oSQL->f("SHOW TABLES LIKE 'stbl_role_action'")){
+            $sql[] = "DELETE FROM stbl_role_action WHERE rlaActionID='".$_POST['actID']."'";
+            
+            $sqlROL = "SELECT * FROM stbl_role";
+            $rsROL = $oSQL->do_query($sqlROL);
+            while ($rwROL = $oSQL->fetch_array($rsROL)){
+                if($_POST["RLA_{$rwROL["rolID"]}"]=="on")
+                $sql[] = "INSERT INTO stbl_role_action (
+                        rlaRoleID
+                        , rlaActionID
+                        ) VALUES (
+                        '{$rwROL["rolID"]}'
+                        , '{$_POST['actID']}');";
+            }
+        }
+        
     /*
         echo "<pre>";
         print_r($sql);
@@ -335,13 +349,13 @@ switch($DataAction){
         echo "</pre>";
         die();
      //*/
-     for($i=0;$i<count($sql);$i++)
-          $oSQL->do_query($sql[$i]);
+        for($i=0;$i<count($sql);$i++)
+            $oSQL->do_query($sql[$i]);
         
         $oSQL->q("COMMIT");
         
-       SetCookie("UserMessage", "Action ".$intra->translate("is updated"));
-       header("Location: ".$_SERVER["PHP_SELF"]."?dbName=$dbName&actID=$actID");
+        SetCookie("UserMessage", "Action ".$intra->translate("is updated"));
+        header("Location: ".$_SERVER["PHP_SELF"]."?dbName=$dbName&actID=$actID");
        
      
         break;
@@ -389,6 +403,9 @@ $(document).ready(function(){
 <?php  echo $intra->showTextBox("actTitleLocal", $rwAct["actTitleLocal"]) ; ?>
 </div>
 
+<?php 
+if ($oSQL->f("SHOW TABLES LIKE 'stbl_action_status'")):
+?>
 <div class="eiseIntraField"><label><?php echo $intra->translate("Status shift") ?>:</label>
 <div class="eiseIntraValue">
 <?php  
@@ -401,6 +418,23 @@ $gridATS->Execute();
 ?>
 </div>
 </div>
+
+<?php
+// stbl_action_status
+else:
+    echo $intra->field($intra->translate("Origin status"), 'actOldStatusID', $rwAct, array('type'=>'combobox', 'source'=>"SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='".$rwAct["actEntityID"]."'", 'defaultText'=>'-'));
+    echo $intra->field($intra->translate("Dest status"), 'actNewStatusID', $rwAct, array('type'=>'combobox', 'source'=>"SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='".$rwAct["actEntityID"]."'", 'defaultText'=>'-'));
+    
+    $mtx = new eiseActionMatrix($rwAct['entID']);
+
+    echo $intra->field($intra->translate("Action Matrix"), null);
+
+    echo $mtx->actionGrid($rwAct['actID']);
+
+// stbl_action_status
+endif;
+ ?>
+
 
 <div class="eiseIntraField"><label><?php echo $intra->translate("Title Past Tense") ?>:</label>
 <?php  echo $intra->showTextBox("actTitlePast", $rwAct["actTitlePast"]) ; ?>
@@ -418,22 +452,27 @@ $gridATS->Execute();
 <?php  echo $intra->showTextArea("actDescriptionLocal", $rwAct["actDescriptionLocal"]) ; ?>
 </div>
 
+
+<?php if ($oSQL->f("SHOW TABLES LIKE 'stbl_role_action'")): ?>
+
 <div class="eiseIntraField"><label><?php echo $intra->translate("Can be run by") ?>:</label>
 <div class="eiseIntraValue">
 <?php  
-$sqlRol = "SELECT * FROM stbl_role LEFT OUTER JOIN stbl_role_action ON rlaActionID=$actID AND rolID=rlaRoleID";
-$rsRol = $oSQL->do_query($sqlRol);
-while ($rwRol = $oSQL->fetch_array($rsRol)){
-   ?>
-   <input type="checkbox" id="RLA_<?php  echo $rwRol["rolID"] ; ?>" 
-   style="width:auto;"
-   name="RLA_<?php  echo $rwRol["rolID"] ; ?>"<?php  echo ($rwRol["rlaID"] ? " checked" : "") ; ?>>
-   <label for="RLA_<?php  echo $rwRol["rolID"] ; ?>"><?php  echo $rwRol["rolTitle{$intra->local}"] ; ?></label><br>
-   <?php
-} 
+    $sqlRol = "SELECT * FROM stbl_role LEFT OUTER JOIN stbl_role_action ON rlaActionID=$actID AND rolID=rlaRoleID";
+    $rsRol = $oSQL->do_query($sqlRol);
+    while ($rwRol = $oSQL->fetch_array($rsRol)){
+       ?>
+       <input type="checkbox" id="RLA_<?php  echo $rwRol["rolID"] ; ?>" 
+       style="width:auto;"
+       name="RLA_<?php  echo $rwRol["rolID"] ; ?>"<?php  echo ($rwRol["rlaID"] ? " checked" : "") ; ?>>
+       <label for="RLA_<?php  echo $rwRol["rolID"] ; ?>"><?php  echo $rwRol["rolTitle{$intra->local}"] ; ?></label><br>
+       <?php
+    } 
+
 ?>
 </div>
 </div>
+<?php endif; ?>
 
 <div class="eiseIntraField"><label><?php echo $intra->translate("Require Comment") ?>:</label>
 <?php  echo $intra->showCheckBox("actFlagComment", $rwAct["actFlagComment"]) ; ?>

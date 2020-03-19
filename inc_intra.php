@@ -2570,7 +2570,8 @@ function dataAction($dataAction, $funcOrObj=null){
     }
 
 }
-function cancelDataAction(&$nd){
+function cancelDataAction(&$nd=null){
+    unset($nd[$this->conf['dataActionKey']]);
     unset($_POST[$this->conf['dataActionKey']]);
 }
 

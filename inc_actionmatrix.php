@@ -16,13 +16,15 @@ public function __construct($ent){
 
     GLOBAL $intra;
 
+    $intra->cancelDataAction();
+
     if(is_object($ent)){
         $this->ent = $ent;
         $this->intra = $ent->intra;
         $this->oSQL = $ent->oSQL;
         $this->conf=  $ent->conf;
     } else {
-        $this->ent = new eiseItemTraceable(null, array('entID'=>$ent));
+        $this->ent = new eiseItemTraceable(null, array('entID'=>$ent, 'flagDontCacheConfig'=>true));
         $this->intra = $this->ent->intra;
         $this->oSQL = $this->ent->oSQL;
         $this->conf = $this->ent->conf;
@@ -38,7 +40,7 @@ public function __construct($ent){
     }
 
     if($this->ent->conf['entMatrix']){
-        $this->mtx = json_decode($rwEnt['entMatrix'], true);
+        $this->mtx = json_decode($this->ent->conf['entMatrix'], true);
     } elseif($this->oSQL->d("SHOW TABLES LIKE '{$this->ent->conf['entTable']}_matrix'")) {
         $sqlMtx = "SELECT * FROM {$this->ent->conf['entTable']}_matrix";
         $rsMtx = $this->oSQL->q($sqlMtx);
@@ -62,7 +64,80 @@ public function __construct($ent){
     	$this->mtxByAction[$rwMTX['mtxActionID']][] = $rwMTX;
     }
 
+    include_once eiseIntraAbsolutePath.'/grid/inc_eiseGrid.php';
+
+    $gridMTX = new eiseGrid($this->oSQL
+        , 'mtx'
+        , array('arrPermissions' => Array('FlagWrite'=>$this->intra->arrUsrData['FlagWrite'])
+                , 'controlBarButtons' => 'add|moveup|movedown|delete'
+                )
+        );
+
+	$gridMTX->Columns[] = array('title' => '##',
+		'field' => 'mtxOrder',
+		'type' => 'order');
+	$gridMTX->Columns[] = array('title' => 'Role',
+		'field' => 'mtxRoleID',
+		'type' => 'combobox',
+		'source' => 'stbl_role',
+		'source_prefix' => 'rol',
+		);
+
+	foreach ($this->mtxDataAttrs as $ix=>$field) {
+		$atr = $this->conf['ATR'][$field];
+		$col = array('title'=>$atr['atrTitle'.$this->intra->local].', '.preg_replace('/[^\<\>\=]/', '', $atr['atrMatrix'])
+			, 'field'=>$this->mtxDataFields[$ix]
+			, 'type'=>$atr['atrType']);
+		if(in_array($atr['atrType'], array('combobox', 'select', 'ajax_dropdown'))){
+			$col['source'] = $atr["atrDataSource"];
+			$col['source_prefix'] = $atr["atrProgrammerReserved"];
+			$col['defaultText'] = '%';
+		}
+		$gridMTX->Columns[] = $col;
+	}
+
+	$this->gridMTX = $gridMTX;
+
     // die('<pre>'.var_export($this->mtxDataFields, true));
+
+}
+
+function actionGrid($actID){
+	$html = '';
+
+	$rows = array();
+	
+	$gridMTX = $this->gridMTX;
+
+	foreach ((array)$this->mtxByAction[$actID] as $rwMTX) {
+		$gridMTX->Rows[] = $rwMTX;
+	}
+
+	$html .= $gridMTX->get_html();
+
+	return $html;
+}
+
+function saveActionGrid($actID, $nd){
+
+	$oSQL = $this->oSQL;
+	$intra = $this->intra;
+
+	$mtx = $this->mtx;
+
+	foreach ($mtx as $ix=>$rwMTX) {
+		if($rwMTX['mtxActionID']==$actID)
+			unset($mtx[$ix]);
+	}
+
+	$action_matrix = $this->gridMTX->json($newData, array('flagDontEncode'=>True));
+	foreach ($action_matrix as $ix => $rwMTX) {
+		$action_matrix[$ix]['mtxActionID'] = $actID;
+	}
+	$mtx = array_merge($mtx, $action_matrix);
+
+	$sqlMTX = "UPDATE stbl_entity SET entMatrix = ".$oSQL->e(json_encode($mtx))." WHERE entID=".$oSQL->e($this->conf['entID']);
+	$oSQL->q($sqlMTX);
 
 }
 

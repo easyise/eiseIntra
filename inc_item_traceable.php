@@ -312,8 +312,7 @@ private function init(){
         ($this->intra->conf['systemID'] ? $this->intra->conf['systemID'].':' : '')
         .$this->entID;
 
-    if($_SESSION[$sessKey]){
-    // if(false){
+    if($_SESSION[$sessKey] && !$this->conf['flagDontCacheConfig']){
         $this->conf = array_merge($this->conf, $_SESSION[$sessKey]);
         return $this->conf;
     }
@@ -492,8 +491,10 @@ private function init(){
     }
 
     // matrix
-    foreach((array)$this->conf['entMatrix'] as $mtx){
-        $this->conf['ACT'][$mtx['mtxActionID']]['MTX'][] = $mtx;
+    if($this->conf['entMatrix']){
+        foreach((array)json_decode($this->conf['entMatrix'], true) as $mtx){
+            $this->conf['ACT'][$mtx['mtxActionID']]['MTX'][] = $mtx;
+        }    
     }
 
     $_SESSION[$sessKey] = $this->conf;
