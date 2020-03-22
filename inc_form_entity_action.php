@@ -20,7 +20,7 @@ $gridATS = new easyGrid($oSQL
                 , 'strTable' => 'stbl_action_status'
                 , 'strPrefix' => 'ats'
                 , 'flagStandAlone' => true
-                , 'controlBarButtons' => 'add|delete'
+                , 'controlBarButtons' => 'add|moveup|movedown|delete'
                 )
         );
 
@@ -37,20 +37,23 @@ $gridATS->Columns[] = Array(
 );
         
 $gridATS->Columns[] = Array(
+        'title' => $intra->translate("##")
+        , 'field' => "atsOrder"
+        , 'type' => "order"
+);        
+$gridATS->Columns[] = Array(
         'title' => $intra->translate("Old Status")
         , 'field' => "atsOldStatusID"
         , 'type' => "combobox"
         , 'sql' => "SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='".$rwAct["actEntityID"]."'"
         , "defaultText" => "any"
         , "mandatory" => true
+        , 'width' => '100%'
 );
 
 $gridATS->Columns[] = Array(
-        'title' => $intra->translate("New Status")
+        'title' => ''
         , 'field' => "atsNewStatusID"
-        , 'type' => "combobox"
-        , 'sql' => "SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='".$rwAct["actEntityID"]."'"
-        , "defaultText" => "any"
 );
 
   
@@ -274,6 +277,8 @@ switch($DataAction){
             , actTitleLocal = ".$oSQL->escape_string($_POST['actTitleLocal'])."
             , actTitlePast = ".$oSQL->escape_string($_POST['actTitlePast'])."
             , actTitlePastLocal = ".$oSQL->escape_string($_POST['actTitlePastLocal'])."
+            , actOldStatusID = ".($_POST['atsOldStatusID'][1] ? $oSQL->escape_string($_POST['atsOldStatusID'][1]) : 'NULL')."
+            , actNewStatusID = ".($_POST['actNewStatusID'] ? $oSQL->escape_string($_POST['actNewStatusID']) : 'NULL')."
             , actDescription = ".$oSQL->escape_string($_POST['actDescription'])."
             , actDescriptionLocal = ".$oSQL->escape_string($_POST['actDescriptionLocal'])."
             , actFlagDeleted = '".(integer)$_POST['actFlagDeleted']."'
@@ -295,7 +300,10 @@ switch($DataAction){
         $mtx->saveActionGrid($_POST['actID'], $_POST);
         
         if ($oSQL->f("SHOW TABLES LIKE 'stbl_action_status'")){
-            $gridATS->Update();    
+            foreach ($_POST['atsID'] as $i => $val) {
+                $_POST['atsNewStatusID'][$i] = $_POST['actNewStatusID'];
+            }
+            $gridATS->Update($_POST);    
         }
         
        
@@ -359,6 +367,39 @@ switch($DataAction){
        
      
         break;
+
+    case 'delete':
+
+        $oSQL->q('START TRANSACTION');
+
+        $oSQL->startProfiling();
+
+        if ($oSQL->f("SHOW TABLES LIKE 'stbl_action_status'")){
+            $oSQL->q('DELETE FROM stbl_action_status WHERE atsActionID='.$oSQL->e($actID)) ;
+        }
+        
+        
+        $oSQL->q("DELETE FROM stbl_action_attribute WHERE aatActionID=".$oSQL->e($actID));
+
+        if ($oSQL->f("SHOW TABLES LIKE 'stbl_role_action'")){
+            $oSQL->q("DELETE FROM stbl_role_action WHERE rlaActionID='".$_POST['actID']."'");
+        }
+
+        if($oSQL->d("SHOW TABLES LIKE '{$rwAct['entTable']}_matrix'")) {
+            $oSQL->q("DELETE FROM {$rwAct['entTable']}_matrix WHERE mtxEventID=".$oSQL->e($actID));
+        }
+
+        $oSQL->q("DELETE FROM stbl_action WHERE actID=".$oSQL->e($actID));
+
+
+        // $oSQL->showProfileInfo();
+
+        $oSQL->q('COMMIT');
+
+        SetCookie("UserMessage", "Action ".$intra->translate("is updated"));
+        header("Location: entity_form.php?dbName=$dbName&entID={$rwAct['entID']}");
+        
+        break;
     default:
         break;
 }
@@ -380,6 +421,15 @@ include eiseIntraAbsolutePath."inc_top.php";
 <script>
 $(document).ready(function(){  
     $('.eiseGrid').eiseGrid();
+    $('.eiseIntraDelete').click(function(){
+        if(!confirm('Really delele?'))
+            return false;
+        $(':input[required]:visible').each(function(){
+            $(this).removeAttr('required');
+        });
+        $('input[name="DataAction"]').val('delete');
+        return true;
+    })
 });
 </script>
 
@@ -404,36 +454,26 @@ $(document).ready(function(){
 </div>
 
 <?php 
-if ($oSQL->f("SHOW TABLES LIKE 'stbl_action_status'")):
-?>
-<div class="eiseIntraField"><label><?php echo $intra->translate("Status shift") ?>:</label>
-<div class="eiseIntraValue">
-<?php  
-$sqlATS = "SELECT * FROM stbl_action_status WHERE atsActionID='{$rwAct["actID"]}'";
-$rsATS = $oSQL->do_query($sqlATS);
-while ($rwATS = $oSQL->fetch_array($rsATS)){
-   $gridATS->Rows[] = $rwATS;
+if ($oSQL->f("SHOW TABLES LIKE 'stbl_action_status'")){
+    $sqlATS = "SELECT * FROM stbl_action_status WHERE atsActionID='{$rwAct["actID"]}'";
+    $rsATS = $oSQL->do_query($sqlATS);
+    while ($rwATS = $oSQL->fetch_array($rsATS)){
+       $gridATS->Rows[] = $rwATS;
+    }
+    $fldOrigin = $intra->field($intra->translate("Origin statuses"), null, $gridATS->get_html());    
+} else {
+    $fldOrigin = $intra->field($intra->translate("Origin status"), 'actOldStatusID', $rwAct, array('type'=>'combobox', 'source'=>"SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='".$rwAct["actEntityID"]."'", 'defaultText'=>'-'));
 }
-$gridATS->Execute();
+
+echo $fldOrigin; 
+echo $intra->field($intra->translate("Dest status"), 'actNewStatusID', $rwAct, array('type'=>'combobox', 'source'=>"SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='".$rwAct["actEntityID"]."'", 'defaultText'=>'same'));
+
+$mtx = new eiseActionMatrix($rwAct['entID']);
+
+echo $intra->field($intra->translate("Action Matrix"), null);
+
+echo $mtx->actionGrid($rwAct['actID']);
 ?>
-</div>
-</div>
-
-<?php
-// stbl_action_status
-else:
-    echo $intra->field($intra->translate("Origin status"), 'actOldStatusID', $rwAct, array('type'=>'combobox', 'source'=>"SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='".$rwAct["actEntityID"]."'", 'defaultText'=>'-'));
-    echo $intra->field($intra->translate("Dest status"), 'actNewStatusID', $rwAct, array('type'=>'combobox', 'source'=>"SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='".$rwAct["actEntityID"]."'", 'defaultText'=>'-'));
-    
-    $mtx = new eiseActionMatrix($rwAct['entID']);
-
-    echo $intra->field($intra->translate("Action Matrix"), null);
-
-    echo $mtx->actionGrid($rwAct['actID']);
-
-// stbl_action_status
-endif;
- ?>
 
 
 <div class="eiseIntraField"><label><?php echo $intra->translate("Title Past Tense") ?>:</label>
@@ -527,6 +567,7 @@ $gridAAT->Execute();
 <tr>
 <td colspan="2" align="center">
 <input type="submit" value="<?php echo $intra->translate('Save') ?>" class="eiseIntraSubmit">
+<input type="submit" value="<?php echo $intra->translate('Delete') ?>" class="eiseIntraDelete">
 </td>
 </tr>
 </table>

@@ -825,7 +825,7 @@ public function getSQLFields($tableInfo, $data){
 
         if(!in_array($field, $tableInfo['columns_index']))
             continue;
-        if( $value === null || ($this->table['columns_types'][$field]=="FK" && !$value) ){
+        if( $value === null || ($tableInfo['columns_types'][$field]=="FK" && !$value) ){
             if($tableInfo['columns_dict'][$field]['Null']==='YES')
                 $sqlFields .= "\n, {$field}=NULL";
             continue;

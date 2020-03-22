@@ -64,6 +64,10 @@ public function __construct($ent){
     	$this->mtxByAction[$rwMTX['mtxActionID']][] = $rwMTX;
     }
 
+    foreach ($this->mtxByAction as $actID => $rwMTX) {
+    	usort($this->mtxByAction[$actID], array(get_class($this), '_cmp_rwMTX'));
+    }
+
     include_once eiseIntraAbsolutePath.'/grid/inc_eiseGrid.php';
 
     $gridMTX = new eiseGrid($this->oSQL
@@ -100,6 +104,10 @@ public function __construct($ent){
 
     // die('<pre>'.var_export($this->mtxDataFields, true));
 
+}
+
+function _cmp_rwMTX($a, $b){
+	return ($a['mtxRoleID'] > $b['mtxRoleID'] ? 1 : -1);
 }
 
 function actionGrid($actID){
@@ -148,14 +156,21 @@ function table(){
 
 	$html = '';
 
-	$dstID[] = 0;
-	$dstTitle[] = $strLocal ? "Новый" : "New";
+	$dstID = array();
+	$dstTitle = array();
+
+	if($this->conf['STA'][0]['staID']!=='0'){
+		$dstID[] = 0;
+		$dstTitle[] = $strLocal ? "Новый" : "New";
+	}
 	
 	foreach ($this->conf['STA'] as $rw) {
 		$dstID[] = $rw["staID"];
-		$dstTitle[] = $rw["staTitle$strLocal"];
+		$dstTitle[] = $rw["staTitle{$intra->local}"];
 	}
 	$strTableID = md5(time());
+
+	// die('<pre>'.var_export($this->conf['STA'], true));
 
 	ob_start();
 	?>
@@ -181,12 +196,15 @@ for ($j=0; $j<count($dstID); $j++){
 					?><td<?php echo ($i==$j? " class=\"auth-matrix-same\"" : "");?>><?php
 					$acts = array();
 					foreach ($this->conf['ACT'] as $act) {
-						if($act['actOldStatusID'][0]===null || $act['actNewStatusID'][0]===null)
+						if($act['actOldStatusID'][0]===null)
 							continue;
-						if($act['actOldStatusID'][0]==$dstID[$i] && $act['actNewStatusID'][0]==$dstID[$j] ){
+						foreach ($act['actOldStatusID'] as $action) {
+							if($action==$dstID[$i] && ($act['actNewStatusID'][0]==$dstID[$j] || ($act['actNewStatusID'][0]===null && $i==$j))) {
 							$acts[] = $act;
 							break;
 						}
+						}
+						
 					}
 					
 					if (count($acts)>0){
@@ -195,7 +213,8 @@ for ($j=0; $j<count($dstID); $j++){
 						<?php
 						foreach($acts as $rw){
 								?><li class="sprite <?php echo $rw['actClass'];?>" ><?php echo $rw['actFlagSystem']?'<i>':'';?><a 
-								title='<?php echo $rw["actDescription$intra->local"];?>' href="action_form.php?actID=<?php echo $rw['actID'];?>"><?php echo ($rw['actSQL']?'<strong>':''),$rw['actID'],': ',$rw["actTitle$strLocal"],($rw['actSQL']?'</strong><sup>SQL</sup>':'');?><?php echo $rw['actFlagSystem']?'</i>':'';?></a>
+								title='<?php echo $rw["actDescription$intra->local"];?>' href="action_form.php?actID=<?php echo $rw['actID'];?>"><?php 
+									echo ($rw['actSQL']?'<strong>':'').$rw['actID'].': '.$rw["actTitle{$intra->local}"],($rw['actSQL']?'</strong><sup>SQL</sup>':'');?><?php echo $rw['actFlagSystem']?'</i>':'';?></a>
 								<?php echo ($rw["actDescription$intra->local"] ? "<div><small>".$rw["actDescription$intra->local"]."</small></div>" : '');?>
 								<ul class="roles">
 									<?php
