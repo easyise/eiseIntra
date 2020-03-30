@@ -161,6 +161,22 @@ var __initRex = function(conf_){
     })
 }
 
+var _showUserInfo = function(userInfoHTML, $initiator){
+    $(userInfoHTML).dialog({
+        dialogClass: 'ei-current-user-info-wrapper', 
+        position: {
+            my: "left top",
+            at: 'left bottom',
+            of: $initiator
+          },
+        show: 'slideDown',
+        hide: 'slideUp',
+        resizable: false,
+        width: ($initiator.outerWidth() > 300 ? $initiator.outerWidth()+'px' : 300),
+        
+    });
+}
+
 var methods = {
 
 /**
@@ -216,6 +232,28 @@ init: function(options){
         }
         
     }
+
+    var userInfoHTML = $('.ei-current-user-info')[0].outerHTML;
+    if(userInfoHTML)
+        $('.ei-current-user-info').remove();
+    $('.ei-login-info')
+        .css('cursor', 'pointer')
+        .click(function(){
+            var $initiator = $(this);
+            if($('.ei-current-user-info-wrapper')[0]){
+                $('.ei-current-user-info').dialog('close').remove();
+                return false;
+            }
+            if(userInfoHTML)
+                _showUserInfo(userInfoHTML, $initiator);
+            else {
+                $.get('ajax_details.php?DataAction=getCurrentUserInfo', function(response){
+                    _showUserInfo(response, $initiator);
+                })
+            }
+
+            
+        });
 
     // render menu
     if($('.ei-sidebar-menu')[0]){

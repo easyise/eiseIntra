@@ -517,8 +517,6 @@ switch ($DataAction){
                       `actFlagDeleted`,
                       `actPriority`,
                       `actFlagComment`,
-                      actFlagHasEstimates,
-                      actFlagDepartureEqArrival,
                       `actInsertBy`,`actInsertDate`,`actEditBy`,`actEditDate`
                     ) VALUE (
                       '$entID',
@@ -529,9 +527,7 @@ switch ($DataAction){
                       ".(int)($_POST["actFlagDeleted"][$i]).",
                       ".(int)($_POST["actPriority"][$i]=="" ? "0" : $_POST["actPriority"][$i]).",
                       ".(int)($_POST["actFlagComment"][$i]).",
-                      ".(int)($_POST["actFlagHasEstimates"][$i]).",
-                      ".(int)($_POST["actFlagDepartureEqArrival"][$i]).",
-                      '$usrID', NOW(), '$usrID', NOW()
+                      '$intra->usrID', NOW(), '$intra->usrID', NOW()
                     );";
                  $sql[] = "SET @actID=LAST_INSERT_ID()";
               } else {
@@ -541,9 +537,7 @@ switch ($DataAction){
                       actFlagDeleted=".($_POST["actFlagDeleted"][$i]).",
                       actPriority=".($_POST["actPriority"][$i]=="" ? "0" : $_POST["actPriority"][$i]).",
                       actFlagComment=".($_POST["actFlagComment"][$i]).",
-                      actFlagHasEstimates=".($_POST["actFlagHasEstimates"][$i]).",
-                      actFlagDepartureEqArrival=".($_POST["actFlagDepartureEqArrival"][$i]).",
-                      actEditBy='$usrID', actEditDate=NOW()
+                      actEditBy='$intra->usrID', actEditDate=NOW()
                      WHERE actID='".$_POST["actID"][$i]."'";
                  $sql[] = "SET @actID='".$_POST["actID"][$i]."'";
               }

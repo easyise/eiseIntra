@@ -22,15 +22,6 @@ $paneClass = "ei-pane{$intra->conf['frame']}".($flagNoHeader ? ' no-header' : ''
         <?php if ($warning): ?>
             <div class="ei-app-warning"><?php echo $warning; ?></div>
         <?php endif ?>
-        <div class="ei-login-info"><?php echo $intra->translate("You're logged in as"); ?> <?php 
-        
-        if ($authmethod=="mysql"){
-            echo $oSQL->dbuser."@".$oSQL->dbhost;
-        } else {
-            echo $intra->arrUsrData["usrName{$intra->local}"] ;
-            if (count($intra->arrUsrData["roles"]))
-                echo "&nbsp;(".implode(", ",$intra->arrUsrData["roles"]).")";
-        }?> <a href="login.php" target="_top"><?php  echo $intra->translate("Logout") ; ?></a></div>
         <div class="ei-header-languages">
         <?php 
         $langSelURI = $_SERVER['PHP_SELF'].'?'.($_SERVER['QUERY_STRING'] ? $_SERVER['QUERY_STRING'].'&' : '');
@@ -39,6 +30,20 @@ $paneClass = "ei-pane{$intra->conf['frame']}".($flagNoHeader ? ' no-header' : ''
         echo '<a class="language-selector lang-'.$localLanguage.($intra->local=="Local" ? " sel" : "").'" href="'.$langSelURI.'local=on">'.$localCountry.'</a>'."\r\n";
         ?>
         </div>
+        <div class="ei-login-info"><?php 
+
+        $usrName = ($authmethod=="mysql" ? $oSQL->dbuser : $intra->arrUsrData["usrName{$intra->local}"]);
+        $usrDescr = ($authmethod=="mysql" ? '@'.$oSQL->dbhost : $intra->arrUsrData["usrDescription{$intra->local}"]);
+
+        if($intra->arrUsrData['usrIcon'])
+            echo '<div class="ei-user-icon"><img src="'.$intra->arrUsrData['usrIcon'].'"></div>'."\n";
+        
+        echo '<div class="ei-user-name">'.$usrName.'</div>'."\n";
+        echo '<div class="ei-user-desctiption">'.$usrDescr.'</div>'."\n";
+
+        echo $intra->getCurrentUserInfo();
+            
+        ?></div>
     </div>
     <div id="toc" class="ei-sidebar-menu" role="nav">
         <div class="ei-logo-container">
