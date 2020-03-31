@@ -280,6 +280,17 @@ public function validate(){
                 , $this->item->conf['STA'][(string)$this->arrAction["aclNewStatusID"]]['staTitle'.$this->intra->local]));
 	    }
 	}
+
+    // mandatory items check
+    $aMissingFields = array();
+    foreach ($this->arrAction['aatFlagMandatory'] as $atrID => $props) {
+        if(!$this->item->item[$atrID] || (is_numeric($this->item->item[$atrID]) && (double)$this->item->item[$atrID]===0.0 )){
+            $aMissingFields[] = $this->item->conf['ATR'][$atrID]['atrTitle'.$this->intra->local]." ({$atrID})";
+        }
+    }
+    if(count($aMissingFields)){
+        throw new Exception($this->intra->translate("Some fields are missing:\n%s", implode(",\n\t", $aMissingFields)));
+    }
 }
 
 public function finish(){

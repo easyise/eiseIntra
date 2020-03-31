@@ -99,7 +99,7 @@ var eiseIntraActionSubmit = function(event, $form){
         event.preventDefault(true);
 
         var $initiatorButton = $(this);
-        
+
         actionChoosen($(this), $form, function(o){
 
             if(o.act.actID=='3'){
@@ -146,8 +146,13 @@ var eiseIntraActionSubmit = function(event, $form){
                 return;
 
             }
+
             $form.eiseIntraForm('fill', o, {createMissingAsHidden: true});
-            $form.off('submit').submit();
+            var inpSubmit = $form.find('input[type="submit"]')[0] || $('<input type="submit" style="visibility:hidden" />').appendTo($form);
+            $form.off('submit');
+            inpSubmit.click();
+
+            return;
 
         });
 

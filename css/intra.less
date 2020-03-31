@@ -501,6 +501,9 @@ td     {  	vertical-align: top; padding: 0;}
                         }
                         & > span {
                             display: inline-block;
+                            &.disabled {
+                                text-decoration: line-through;
+                            }
                         }
                     }
                     & li.roles {
@@ -791,6 +794,38 @@ input[type=checkbox].eiseIntraValue {
 
     & .dates {
         font-size: 0.9em;
+    }
+}
+.eif-action-log {
+    & td.eif_actTitlePast {
+        text-align: right;
+    }
+    & td.eif_aclEditBy {
+        width: 100%;
+    }
+    & td.eif_aclATA {
+        white-space: nowrap;
+    }
+    & td.eif_aclComments {
+        font-size: 1.12em;
+    }
+    & .eif_aclTracedHTML {
+        & .eif-field {
+            display: block;
+            background-color: #00000008;
+            & > * {
+                display: inline-block;
+                vertical-align: top;
+            }
+            & > label {
+                width: 150px;
+                text-align: right;
+                margin-right: 5px;
+                &:after {
+                    content: ':';
+                }
+            }
+        }
     }
 }
 

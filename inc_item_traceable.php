@@ -973,7 +973,8 @@ public function getVirtualRoleMembers($rolID){
             break;
 
         case '__EDITOR':
-            return array(strtoupper($this->item[$this->conf['prefix'].'EditBy'])=>null);
+            $lastEditor = $this->item['ACL'][$this->item[$this->conf['prefix'].'StatusActionLogID']]['aclInsertBy'];
+            return ($lastEditor ? array(strtoupper($lastEditor)=>null) : array());
             break;
 
         default:
@@ -1302,6 +1303,10 @@ public function getActionLogSkeleton(){
             ."<td class=\"eif_aclATA\" style=\"text-align:right;\"></td>"
             ."</tr>"
             ."<tr class=\"eif_template eif_evenodd eif_invisible\">"
+            ."<td class=\"eif_commentsTitle\">".$this->intra->translate("Traced data").":</td>\r\n"
+            ."<td colspan='2' class=\"eif_aclTracedHTML\"></td>"
+            ."</tr>"
+            ."<tr class=\"eif_template eif_evenodd eif_invisible\">"
             ."<td class=\"eif_commentsTitle\">".$this->intra->translate("Comments").":</td>\r\n"
             ."<td colspan='2' class=\"eif_aclComments\"></td>"
             ."</tr>"
@@ -1351,6 +1356,11 @@ public function getActionLog($q){
                     .(strtotime($acl["aclATA"])!=strtotime(date('Y-m-d', strtotime($acl["aclATA"]))) ? " {$this->intra->conf['timeFormat']}" : '')
                 , strtotime($acl["aclATA"]))
             );
+        $tracedHTML = $this->getAttributeFields(array_keys((array)$this->conf['ACT'][$acl['actID']]['aatFlagToTrack']), $this->getTracedData($acl)
+            , array('suffix'=>'_'.$acl['aclGUID'], 'FlagWrite'=>false)
+            );
+        if($tracedHTML)
+            $rw['aclTracedHTML'] = $tracedHTML;
         $aActionIDs[] = $acl['actID'];
         $aRet[] = $rw;
 
@@ -1449,6 +1459,9 @@ public function arrActionButtons(){
 
             $aUserRoles = array_merge(array($this->conf['RoleDefault']), $this->intra->arrUsrData['roleIDs']);
             if(count(array_intersect($aUserRoles, $rwAct['RLA']))==0)
+                continue;
+
+            if(count($this->checkDisabledRoleMembership($this->intra->usrID, $rwAct)) > 0)
                 continue;
 
             $title = ($rwAct["actTitle{$this->intra->local}"] ? $rwAct["actTitle{$this->intra->local}"] : $rwAct["actTitle"]) ;
@@ -2006,6 +2019,7 @@ public function getWhosNextStatus($staID, $counter){
         $aUsers = array();
         $aRoles = array();
         $aVirtualRoles = array();
+        $aVirtualRoleMembers = array();
         // $html .= '<pre>'.var_export($act['RLA'], true).'</pre>';
         foreach ($act['RLA'] as $rolID) {
             $aRoles[] = $rolID;
@@ -2019,12 +2033,13 @@ public function getWhosNextStatus($staID, $counter){
                 foreach ($aVMMembers as $usrID => $originRole) {
                     $aUsers[] = strtoupper($usrID); 
                     $aVirtualRoles[$rolID][] = $originRole;
+                    $aVirtualRoleMembers[$rolID][] = $usrID;
                 }
             } else {
                 $aUsers = array_merge( $aUsers, $this->intra->getRoleUsers($rolID) );
             }
         }
-        
+
         if($aRoles[0]!=$this->conf['RoleDefault']){
 
             $aUsers = array_values(array_unique($aUsers));
@@ -2032,7 +2047,15 @@ public function getWhosNextStatus($staID, $counter){
             $html .= '<li class="users">';
             $htmlUserList = '';
             foreach ($aUsers as $ix=>$usrID) {
-                $htmlUserList .= '<span class="user-info">'.$this->intra->getUserData($usrID).($ix==count($aUsers)-1 ? '' : ', ').'</span>';
+                $class = '';
+                if($counter==1){
+                    $aDRoles = $this->checkDisabledRoleMembership($usrID, $act);
+                    foreach($aDRoles as $rolID_)
+                        $class .= ' disabled-'.strtolower(preg_replace('/^\_*/', '', $rolID_));
+                      
+                }
+                $class = 'user-info'.($class ? ' disabled' : '').$class;
+                $htmlUserList .= '<span class="'.$class.'">'.$this->intra->getUserData($usrID).($ix==count($aUsers)-1 ? '' : ', ').'</span>';
             }
             $html .= $htmlUserList;
             $html .= '<li class="roles">';
@@ -2068,6 +2091,16 @@ public function getWhosNextStatus($staID, $counter){
 
     return $html;
 
+}
+
+public function checkDisabledRoleMembership($usrID, $act){
+    $aRet = array();
+    foreach(array('editor', 'creator') as $rrr){
+        $rolID = '__'.strtoupper($rrr);
+        if($act['actFlagNot4'.ucfirst($rrr)] && in_array($usrID, array_keys($this->getVirtualRoleMembers($rolID))) )
+            $aRet[] = $rolID;   
+    }  
+    return $aRet;
 }
 
 }

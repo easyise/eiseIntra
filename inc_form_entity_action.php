@@ -271,6 +271,8 @@ switch($DataAction){
 
 
         $oSQL->q("START TRANSACTION");
+
+        $oSQL->startProfiling();
         
         $sqlUpd = "UPDATE stbl_action SET
             actTitle = ".$oSQL->escape_string($_POST['actTitle'])."
@@ -298,14 +300,32 @@ switch($DataAction){
 
         $mtx = new eiseActionMatrix($rwAct['entID']);
         $mtx->saveActionGrid($_POST['actID'], $_POST);
-        
+
         if ($oSQL->f("SHOW TABLES LIKE 'stbl_action_status'")){
-            foreach ($_POST['atsID'] as $i => $val) {
-                $_POST['atsNewStatusID'][$i] = $_POST['actNewStatusID'];
+            $aToDel = explode('|', $_POST['inp_ats_deleted']);
+            $strToDel = '';
+            foreach ($aToDel as $atsID) {
+                if($atsID)
+                    $oSQL->q("DELETE FROM stbl_action_status WHERE atsID=".$oSQL->e($atsID));
             }
-            $gridATS->Update($_POST);    
+            foreach ($_POST['atsID'] as $i => $val) {
+                if($i==0) continue;
+                $fields = "atsOrder=".(int)$_POST['atsOrder'][$i]."
+                    , atsOldStatusID=".($_POST['atsOldStatusID'][$i]!=='' ? $oSQL->e($_POST['atsOldStatusID'][$i]) : 'NULL')."
+                    , atsNewStatusID=".($_POST['actNewStatusID']!=='' ? $oSQL->e($_POST['actNewStatusID']) : 'NULL');
+                if($_POST['atsID'][$i]){
+                    $sql = "UPDATE stbl_action_status SET
+                        {$fields}
+                        WHERE atsID=".$oSQL->e($_POST['atsID'][$i]);
+                } else {
+                    $sql = "INSERT INTO stbl_action_status SET
+                        {$fields}";
+
+                }
+                $oSQL->q($sql);
+            }
         }
-        
+        unset($sql);
        
         $sql[] = "DELETE FROM stbl_action_attribute WHERE aatActionID='$actID'";
         for ($i=0; $i< count($_POST["atrID"]); $i++)

@@ -1,0 +1,2 @@
+ALTER TABLE stbl_action ADD COLUMN actFlagNot4Editor tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Action cannot be run by Last Editor' AFTER actFlagAutocomplete,
+	ADD COLUMN actFlagNot4Creator tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Action cannot be run by Creator' AFTER actFlagNot4Editor;

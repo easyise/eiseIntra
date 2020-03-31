@@ -1050,11 +1050,12 @@ makeMandatory: function( obj ) {
     
     $(this).find( obj.strMandatorySelector ).each(function(){
 
-       var label = getFieldLabel($(this));
-       $(this).parents('.eif-field').first().addClass('required');
+       var label = getFieldLabel($(this)),
+            $parent = $(this).parents('.eif-field').first().addClass('required');
        label.text(label.text().replace(/\:$/, "*:"));
        if (!obj.flagDontSetRequired){
             $(this).attr('required', 'required');
+            $parent.find('input[name="'+this.name+'_text"]').attr('required', 'required');
        }
     });
     

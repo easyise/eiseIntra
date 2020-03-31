@@ -1714,6 +1714,12 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
                     , $conf); 
                 break;
 
+            case "money":
+                $html .= $this->showTextBox($name
+                    , $this->decSQL2PHP($value, 2) 
+                    , $conf); 
+                break;
+
             case "select":
             case "combobox"://backward-compatibility
 
