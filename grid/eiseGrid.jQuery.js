@@ -383,7 +383,7 @@ eiseGrid.prototype.initRow = function( $tbody ){
     });
     
     if(typeof(oGrid.dblclickCallback)==='function'){ // doubleclick custom function binding
-        $tbody.bind("click", function(event){
+        $tbody.bind("dblclick", function(event){
             oGrid.dblclickCallback.call($tbody, oGrid.getRowID($tbody), event);
         });
     }
@@ -1282,7 +1282,7 @@ eiseGrid.prototype.change = function(strFields, fn){
     return;
 }
 
-eiseGrid.prototype.value = function(oTr, strFieldName, val, text){
+eiseGrid.prototype.value = function(oTr, strFieldName, val, text, options){
 
     if (!this.conf.fields[strFieldName]){
         $.error( 'Field ' +  strFieldName + ' does not exist in eiseGrid ' + this.id );
@@ -1337,12 +1337,18 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text){
 
                 }
                 break;
+            case 'date':
+            case 'datetime':
+            case 'time':
+                strValue = text = (strValue.match(oGrid.conf.rexISO[strType]) 
+                    ? val.replace(oGrid.conf.rexISO[strType], oGrid.conf.rex_replace2loc[strType])
+                    : val);
             default:
                 break;
         }
         oInp = oTr.find('input[name="'+strFieldName+'[]"]').first();
         oInp.val(strValue);
-        if(oInp[0].type=='hidden'){
+        if(oInp[0].type=='hidden' || (options && options.change) ){
             oInp.change();
         }
         
