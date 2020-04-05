@@ -293,8 +293,13 @@ public function updateMultiple($nd){
     foreach($ids as $id){
         $o = new $class($id);
         $this->intra->batchEcho("Updating {$id}...", '');
-        $o->update($nd);
-        $this->intra->batchEcho(" done!");
+        try {
+            $o->update($nd);    
+            $this->intra->batchEcho(" done!");
+        } catch (Exception $e) {
+            $this->intra->batchEcho('ERROR: '.$e->getMessage());
+        }
+        
     }
     $this->intra->batchEcho("All done!");
     die();    
@@ -405,6 +410,7 @@ private function init(){
             'actDescriptionLocal' => $this->intra->translate('Create new'),
             'actFlagDepartureEqArrival' => '1',
             'actFlagAutocomplete' => '1',
+            'actRoles' => $this->conf['RoleDefault'],
             );
     $acts[] = array (
             'actID' => '2',
@@ -1457,12 +1463,14 @@ public function arrActionButtons(){
     if($this->staID!==null){
         foreach((array)$this->conf['STA'][$this->staID]['ACT'] as $rwAct){
 
-            $aUserRoles = array_merge(array($this->conf['RoleDefault']), $this->intra->arrUsrData['roleIDs']);
-            if(count(array_intersect($aUserRoles, $rwAct['RLA']))==0)
-                continue;
-
-            if(count($this->checkDisabledRoleMembership($this->intra->usrID, $rwAct)) > 0)
-                continue;
+            if ($this->id) {
+                try {
+                    $act = new eiseAction($this, $rwAct, array('flagDoNoRefresh'=>true));
+                    $act->checkPermissions();
+                } catch (Exception $e) {
+                    continue;
+                }
+            }
 
             $title = ($rwAct["actTitle{$this->intra->local}"] ? $rwAct["actTitle{$this->intra->local}"] : $rwAct["actTitle"]) ;
               
@@ -2093,13 +2101,17 @@ public function getWhosNextStatus($staID, $counter){
 
 }
 
-public function checkDisabledRoleMembership($usrID, $act){
+public function checkDisabledRoleMembership($usrID, $act, &$reason = ''){
     $aRet = array();
+    $rolemembership = '';
     foreach(array('editor', 'creator') as $rrr){
         $rolID = '__'.strtoupper($rrr);
-        if($act['actFlagNot4'.ucfirst($rrr)] && in_array($usrID, array_keys($this->getVirtualRoleMembers($rolID))) )
+        if($act['actFlagNot4'.ucfirst($rrr)] && in_array($usrID, array_keys($this->getVirtualRoleMembers($rolID))) ){
             $aRet[] = $rolID;   
+            $rolemembership .= ($rolemembership ? ', ' : '').$this->conf['Roles'][$rolID]['rolTitle'.$this->intra->local];
+        }
     }  
+    $reason = $rolemembership;
     return $aRet;
 }
 
