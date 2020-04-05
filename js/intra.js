@@ -654,6 +654,8 @@ var getAllInputs = function($form){
 }
 
 var getInputType = function($inp){
+    if($inp[0] && $inp[0].dataset && $inp[0].dataset['type'])
+        return $inp[0].dataset['type'];
     var strType = ($inp.attr('type') ? $inp.attr('type') : 'text');
     if(strType=='text'){
         var classList = ($inp.attr('class') ? $inp.attr('class').split(/\s+/) : []);
