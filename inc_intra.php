@@ -1965,7 +1965,7 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
             ? ($strClassInput!='' ? ' ' : '').'eiseIntra_'.$arrConfig["type"].' eif-input-'.$arrConfig["type"] 
             : '');
 
-        $strRet = "<input type=\"{$strType}\" name=\"{$strName}\" id=\"{$id}\" class=\"{$strClassInput}\"".
+        $strRet = "<input type=\"{$strType}\" name=\"{$strName}\" id=\"{$id}\" class=\"{$strClassInput}\" data-type=\"{$arrConfig['type']}\"".
             ($strAttrib ? " ".$strAttrib : "").
             ($arrConfig["required"] ? " required=\"required\"" : "").
             ($arrConfig["autocomplete"]===false ? " autocomplete=\"off\"" : "").
@@ -1982,7 +1982,7 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
             .htmlspecialchars($strValue)
             .($arrConfig['href'] ? "</a>" : '')
         ."</div>\r\n"
-        ."<input type=\"hidden\" name=\"{$strName}\" id=\"{$id}\" class=\"eif-input\""
+        ."<input type=\"hidden\" name=\"{$strName}\" id=\"{$id}\" class=\"eif-input\" data-type=\"{$arrConfig['type']}\""
         ." value=\"".htmlspecialchars($strValue)."\" />";
     }
     
