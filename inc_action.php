@@ -3,7 +3,7 @@ class eiseAction {
 
 public static $ts = array('ETD', 'ATD', 'ETA', 'ATA');
 	
-public function __construct($item, $arrAct){
+public function __construct($item, $arrAct, $options = array()){
 
 	$this->item = $item;
 	$this->oSQL = $item->oSQL;
@@ -20,7 +20,8 @@ public function __construct($item, $arrAct){
         $types['acl'.$_ts] = 'datetime';
     $types = array_merge($types, $this->item->conf['attr_types']);
 
-    $this->item->getAllData(array('Master', 'Text','ACL'));
+    if(!$options['flagDoNotRefresh'])
+        $this->item->getAllData(array('Master', 'Text','ACL'));
 
 	if($arrAct['aclGUID']){
         $this->arrAction = $this->item->item['ACL'][$arrAct['aclGUID']];
@@ -283,7 +284,7 @@ public function validate(){
 
     // mandatory items check
     $aMissingFields = array();
-    foreach ($this->arrAction['aatFlagMandatory'] as $atrID => $props) {
+    foreach ((array)$this->arrAction['aatFlagMandatory'] as $atrID => $props) {
         if(!$this->item->item[$atrID] || (is_numeric($this->item->item[$atrID]) && (double)$this->item->item[$atrID]===0.0 )){
             $aMissingFields[] = $this->item->conf['ATR'][$atrID]['atrTitle'.$this->intra->local]." ({$atrID})";
         }
@@ -301,6 +302,7 @@ public function finish(){
 
     $this->checkTimeLine();
     $this->checkMandatoryFields();
+    $this->checkPermissions();
 
     $item_before = self::itemCleanUp($this->item->item_before, $this->item->conf['prefix']);
 
@@ -535,6 +537,16 @@ function checkMandatoryFields(){
     if($this->conf['actFlagComment'] && !$this->arrAction['aclComments'])
         throw new Exception($this->intra->translate("Action '%s' requires a comment", $this->conf['actTitle'.$this->intra->local]));
     
+}
+
+public function checkPermissions(){
+    $rwAct = $this->arrAction;
+    $aUserRoles = array_merge(array($this->item->conf['RoleDefault']), $this->intra->arrUsrData['roleIDs']);
+    if(count(array_intersect($aUserRoles, $rwAct['RLA']))==0)
+        throw new Exception($this->intra->translate("Not authorized (not member of (%s)",implode(', ', $rwAct['RLA'])) );
+    $reason = '';
+    if(count($this->item->checkDisabledRoleMembership($this->intra->usrID, $rwAct, $reason)) > 0)
+         throw new Exception($this->intra->translate("Not authorized as %s", $reason));
 }
 
 public function getTimeStamps($nd = null, &$tsValues = array()){
