@@ -48,10 +48,12 @@ public function __construct($item, $arrAct, $options = array()){
         case 3:
             $this->arrAction['aclOldStatusID'] = $this->arrAction['actOldStatusID'][0];
             $this->arrAction['aclNewStatusID'] = $this->arrAction['actNewStatusID'][0];
+            $this->arrAction['RLA'] = ($this->intra->arrUsrData['FlagWrite'] || $this->intra->arrUsrData['FlagDelete'] ? array($item->conf['RoleDefault']) : array());
             break;
         case 2:
             $this->arrAction['aclOldStatusID'] = $item->staID;
             $this->arrAction['aclNewStatusID'] = $item->staID;
+            $this->arrAction['RLA'] = ($this->intra->arrUsrData['FlagWrite'] || $this->intra->arrUsrData['FlagUpdate'] ? array($item->conf['RoleDefault']) : array());
             break;
         default:
             break;
@@ -543,7 +545,7 @@ public function checkPermissions(){
     $rwAct = $this->arrAction;
     $aUserRoles = array_merge(array($this->item->conf['RoleDefault']), $this->intra->arrUsrData['roleIDs']);
     if(count(array_intersect($aUserRoles, $rwAct['RLA']))==0)
-        throw new Exception($this->intra->translate("Not authorized (not member of (%s)",implode(', ', $rwAct['RLA'])) );
+        throw new Exception($this->intra->translate("Not authorized because not member of (%s)",implode(', ', $rwAct['RLA'])) );
     $reason = '';
     if(count($this->item->checkDisabledRoleMembership($this->intra->usrID, $rwAct, $reason)) > 0)
          throw new Exception($this->intra->translate("Not authorized as %s", $reason));

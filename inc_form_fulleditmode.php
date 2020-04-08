@@ -30,12 +30,12 @@ if ($intra->arrUsrData['FlagWrite']) {
 
     $arrActions[]= Array ("title" => $intra->translate("Superaction!")
        , "action" => '#superaction'
-       , "class"=> "bold ss_lightning_go"
+       , "class"=> "ss_lightning_go bold"
     );
 
     $arrActions[]= Array ("title" => $intra->translate("Save")." ".$entItem->conf["entTitle{$intra->local}"]
        , "action" => 'javascript:save()'
-       , "class"=> "bold ss_disk save_button"
+       , "class"=> "ss_disk save_button bold"
     );
 
     

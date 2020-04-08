@@ -118,7 +118,7 @@ td     {  	vertical-align: top; padding: 0;}
         color: @ei-login-info-color;
         height: @ei-header-height - @ei-header-border-bottom-height;
         float: right;
-        text-align: center;
+        text-align: left;
         width: auto;
         overflow: hidden;
         background-color: @ei-login-info-background;
@@ -134,6 +134,16 @@ td     {  	vertical-align: top; padding: 0;}
 
         & .ei-current-user-info {
             display: none;
+        }
+
+        & > .ei-user-name {
+            font-weight: 600;
+            line-height: 1.68em;
+        }
+        & > .ei-user-description {
+            font-weight: 200;
+            font-size: 0.85em;
+            line-height: 1em;
         }
 
     }
@@ -1266,4 +1276,24 @@ div.eiseIntraComment {
 .eif-input-money {
     width: auto !important;
     text-align: right;
+}
+
+.auth_matrix {
+    & ul.actions {
+        & > li {
+            padding-left: 10px;
+            overflow: hidden;
+            text-align: left;
+        }
+        & i.action-icon {
+            padding-bottom: 0;
+            margin-right: 5px;
+        }
+        & ul.roles {
+            margin-left: 0px;
+            font-size: 0.75em;
+            font-family: 'Arial Narrow', Arial, sans-serif; 
+            font-stretch: condensed;
+        }
+    }
 }

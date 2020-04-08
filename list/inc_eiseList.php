@@ -1247,6 +1247,7 @@ private function getSearchCondition(&$col){
 
     switch ($col['type']) {
         case "text":
+        case "textarea":
             $col['exactMatch'] = ($col['exactMatch'] || $this->conf['exactMatch']);
 
             if ($col['exactMatch'] || preg_match("/^[\'\"'](.+)[\'\"']$/", $strFlt, $arrMatch)) {

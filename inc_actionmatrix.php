@@ -165,6 +165,8 @@ function table(){
 	}
 	
 	foreach ($this->conf['STA'] as $rw) {
+		if($rw['staFlagDeleted'])
+			continue;
 		$dstID[] = $rw["staID"];
 		$dstTitle[] = $rw["staTitle{$intra->local}"];
 	}
@@ -174,7 +176,6 @@ function table(){
 
 	ob_start();
 	?>
-
 <table id="<?php echo $strTableID ?>" class="auth_matrix">
 	<thead>
 	<tr><th>Status</th>
@@ -212,7 +213,8 @@ for ($j=0; $j<count($dstID); $j++){
 						<ul class='actions'>
 						<?php
 						foreach($acts as $rw){
-								?><li class="sprite <?php echo $rw['actClass'];?>" ><?php echo $rw['actFlagSystem']?'<i>':'';?><a 
+								$iconClass = (preg_match('/^fa\-/', trim($rw['actButtonClass'])) ? 'fa ' : (preg_match('/^ss\_/', trim($rw['actButtonClass'])) ? 'ss_sprite ' : '')).$rw['actButtonClass'].' action-icon';
+								?><li><i class="<?php echo $iconClass;?>"> </i><?php echo $rw['actFlagSystem']?'<i>':'';?><a 
 								title='<?php echo $rw["actDescription$intra->local"];?>' href="action_form.php?actID=<?php echo $rw['actID'];?>"><?php 
 									echo ($rw['actSQL']?'<strong>':'').$rw['actID'].': '.$rw["actTitle{$intra->local}"],($rw['actSQL']?'</strong><sup>SQL</sup>':'');?><?php echo $rw['actFlagSystem']?'</i>':'';?></a>
 								<?php echo ($rw["actDescription$intra->local"] ? "<div><small>".$rw["actDescription$intra->local"]."</small></div>" : '');?>

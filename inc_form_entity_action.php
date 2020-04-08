@@ -314,6 +314,7 @@ switch($DataAction){
             foreach ($_POST['atsID'] as $i => $val) {
                 if($i==0) continue;
                 $fields = "atsOrder=".(int)$_POST['atsOrder'][$i]."
+                    , atsActionID=".(int)$_POST['actID']."
                     , atsOldStatusID=".($_POST['atsOldStatusID'][$i]!=='' ? $oSQL->e($_POST['atsOldStatusID'][$i]) : 'NULL')."
                     , atsNewStatusID=".($_POST['actNewStatusID']!=='' ? $oSQL->e($_POST['actNewStatusID']) : 'NULL');
                 if($_POST['atsID'][$i]){

@@ -39,7 +39,7 @@ $paneClass = "ei-pane{$intra->conf['frame']}".($flagNoHeader ? ' no-header' : ''
             echo '<div class="ei-user-icon"><img src="'.$intra->arrUsrData['usrIcon'].'"></div>'."\n";
         
         echo '<div class="ei-user-name">'.$usrName.'</div>'."\n";
-        echo '<div class="ei-user-desctiption">'.$usrDescr.'</div>'."\n";
+        echo '<div class="ei-user-description">'.$usrDescr.'</div>'."\n";
 
         echo $intra->getCurrentUserInfo();
             

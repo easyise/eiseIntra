@@ -180,7 +180,7 @@ var eiseIntraActionSubmit = function(event, $form){
 
             if( arrFieldsToFill.length>0 ){
                 var $frm = $.fn.eiseIntraForm('createDialog', {fields: arrFieldsToFill
-                    , title: $initiatorButton.val()
+                    , title: $initiatorButton.val() || $initiatorButton.text()
                     , onsubmit: function(newValues){
 
                         $form.eiseIntraForm('fill', $.extend(o, newValues), {createMissingAsHidden: true});
@@ -788,9 +788,9 @@ submitForm: function( $form, title ){
         , timeoutTillAutoClose: null
         , title: title
         , onload: function(){
-            // if($form.hasClass('ui-dialog-content'))
-            //     $form.dialog('close')
-            // $form.remove();
+            if($form.hasClass('ui-dialog-content'))
+                $form.dialog('close')
+            $form.remove();
         }
     });
 

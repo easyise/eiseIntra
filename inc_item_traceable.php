@@ -328,8 +328,8 @@ private function init(){
         ($this->intra->conf['systemID'] ? $this->intra->conf['systemID'].':' : '')
         .$this->entID;
 
-    // if($_SESSION[$sessKey] && !$this->conf['flagDontCacheConfig']){
-    if(false){
+    if($_SESSION[$sessKey] && !$this->conf['flagDontCacheConfig']){
+    // if(false){
         $this->conf = array_merge($this->conf, $_SESSION[$sessKey]);
         return $this->conf;
     }
@@ -500,7 +500,7 @@ private function init(){
     $this->conf['STA'] = array();
     $sqlSat = "SELECT stbl_status.*,stbl_status_attribute.*  
         FROM stbl_status_attribute 
-                RIGHT OUTER JOIN stbl_status ON staID=satStatusID AND satEntityID=staEntityID
+                RIGHT OUTER JOIN stbl_status ON staID=satStatusID AND satEntityID=staEntityID AND staFlagDeleted=0
                 LEFT OUTER JOIN stbl_attribute ON atrID=satAttributeID
         WHERE staEntityID=".$oSQL->e($this->entID)."
             AND IFNULL(atrFlagDeleted,0)=0
@@ -547,7 +547,7 @@ private function init(){
         , atsNewStatusID
         , atsActionID
         FROM stbl_action_status
-        INNER JOIN stbl_action ON actID=atsActionID
+        INNER JOIN stbl_action ON actID=atsActionID AND actFlagDeleted=0
         LEFT OUTER JOIN stbl_status ORIG ON ORIG.staID=atsOldStatusID AND ORIG.staEntityID='{$this->entID}'
         LEFT OUTER JOIN stbl_status DEST ON DEST.staID=atsNewStatusID AND DEST.staEntityID='{$this->entID}'
         WHERE (actEntityID='{$this->entID}' 
@@ -640,7 +640,8 @@ public function RLAByMatrix(){
             $act['RLA'] = array_values(array_unique($rla)); 
         }
     }
-
+    // echo 'rla by action';
+    // echo '<pre>'.var_export($this->conf['ACT'][333], true);
 }
 
 public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array()){
@@ -1305,7 +1306,7 @@ public function getActionLogSkeleton(){
             ."<table class='eiseIntraActionLogTable'>\r\n"."<tbody class=\"eif_ActionLog\">"
             ."<tr class=\"eif_template eif_evenodd\">\r\n"
             ."<td class=\"eif_actTitlePast\"></td>\r\n"
-            ."<td class=\"eif_aclEditBy\"></td>"
+            ."<td class=\"eif_aclFinishBy\"></td>"
             ."<td class=\"eif_aclATA\" style=\"text-align:right;\"></td>"
             ."</tr>"
             ."<tr class=\"eif_template eif_evenodd eif_invisible\">"
@@ -1356,17 +1357,19 @@ public function getActionLog($q){
             , 'actTitle' => $act['actTitle'.$this->intra->local]
             , 'actTitlePast' => $act['actTitlePast'.$this->intra->local]
             , 'aclComments' => $acl['aclComments']
+            , 'aclFinishBy' => $this->intra->translate('%s by %s', ucfirst($acl['actTitlePast'.$this->intra->local]), $this->intra->getUserData($acl['aclFinishBy']))
             , 'aclEditBy' => $this->intra->translate('%s by %s', ucfirst($acl['actTitlePast'.$this->intra->local]), $this->intra->getUserData($acl['aclEditBy']))
             , 'aclEditDate' => $this->intra->datetimeSQL2PHP($acl["aclEditDate"])
             , 'aclATA' => date("{$this->intra->conf['dateFormat']}"
                     .(strtotime($acl["aclATA"])!=strtotime(date('Y-m-d', strtotime($acl["aclATA"]))) ? " {$this->intra->conf['timeFormat']}" : '')
                 , strtotime($acl["aclATA"]))
             );
-        $tracedHTML = $this->getAttributeFields(array_keys((array)$this->conf['ACT'][$acl['actID']]['aatFlagToTrack']), $this->getTracedData($acl)
-            , array('suffix'=>'_'.$acl['aclGUID'], 'FlagWrite'=>false)
-            );
-        if($tracedHTML)
+        if($acl['aclItemTraced']){
+            $tracedHTML = $this->getAttributeFields(array_keys((array)$this->conf['ACT'][$acl['actID']]['aatFlagToTrack']), $this->getTracedData($acl)
+                , array('suffix'=>'_'.$acl['aclGUID'], 'FlagWrite'=>false)
+                );   
             $rw['aclTracedHTML'] = $tracedHTML;
+        }
         $aActionIDs[] = $acl['actID'];
         $aRet[] = $rw;
 
@@ -1383,9 +1386,10 @@ public function getActionLog($q){
                     , 'actTitle' => $this->intra->translate('Create')
                     , 'actTitlePast' => $this->intra->translate('Created')
                     , 'aclComments' => $acl['aclComments']
-                    , 'aclEditBy' => $this->intra->translate('%s by %s', ucfirst($acl['actTitlePast'.$this->intra->local]), $this->intra->getUserData($this->item[$this->prefix.'InsertBy']))
-                    , 'aclEditDate' => $this->intra->datetimeSQL2PHP($this->item[$this->prefix.'InsertDate'])
-                    , 'aclATA' => $this->intra->datetimeSQL2PHP($this->item[$this->prefix.'InsertDate'])
+                    , 'aclFinishBy' => $this->intra->translate('%s by %s', ucfirst($acl['actTitlePast'.$this->intra->local]), $this->intra->getUserData($this->item[$this->conf['prefix'].'InsertBy']))
+                    , 'aclEditBy' => $this->intra->translate('%s by %s', ucfirst($acl['actTitlePast'.$this->intra->local]), $this->intra->getUserData($this->item[$this->conf['prefix'].'InsertBy']))
+                    , 'aclEditDate' => $this->intra->datetimeSQL2PHP($this->item[$this->conf['prefix'].'InsertDate'])
+                    , 'aclATA' => $this->intra->datetimeSQL2PHP($this->item[$this->conf['prefix'].'InsertDate'])
                     );
     }
 
@@ -1456,12 +1460,17 @@ public function arrActionButtons(){
 
     $oSQL = $this->oSQL;
     $strLocal = $this->local;
+
+    $arrActions = array();
     
     if (!$this->intra->arrUsrData["FlagWrite"])
         return;
 
     if($this->staID!==null){
         foreach((array)$this->conf['STA'][$this->staID]['ACT'] as $rwAct){
+
+            if($rwAct['actFlagSystem'])
+                continue;
 
             if ($this->id) {
                 try {

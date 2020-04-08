@@ -233,7 +233,7 @@ init: function(options){
         
     }
 
-    var userInfoHTML = $('.ei-current-user-info')[0].outerHTML;
+    var userInfoHTML = ($('.ei-current-user-info')[0] ? $('.ei-current-user-info')[0].outerHTML :  null);
     if(userInfoHTML)
         $('.ei-current-user-info').remove();
     $('.ei-login-info')
