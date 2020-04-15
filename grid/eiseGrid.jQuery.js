@@ -383,7 +383,7 @@ eiseGrid.prototype.initRow = function( $tbody ){
     });
     
     if(typeof(oGrid.dblclickCallback)==='function'){ // doubleclick custom function binding
-        $tbody.bind("click", function(event){
+        $tbody.bind("dblclick", function(event){
             oGrid.dblclickCallback.call($tbody, oGrid.getRowID($tbody), event);
         });
     }
@@ -1282,7 +1282,7 @@ eiseGrid.prototype.change = function(strFields, fn){
     return;
 }
 
-eiseGrid.prototype.value = function(oTr, strFieldName, val, text){
+eiseGrid.prototype.value = function(oTr, strFieldName, val, text, options){
 
     if (!this.conf.fields[strFieldName]){
         $.error( 'Field ' +  strFieldName + ' does not exist in eiseGrid ' + this.id );
@@ -1337,12 +1337,18 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text){
 
                 }
                 break;
+            case 'date':
+            case 'datetime':
+            case 'time':
+                strValue = text = (strValue.match(oGrid.conf.rexISO[strType]) 
+                    ? val.replace(oGrid.conf.rexISO[strType], oGrid.conf.rex_replace2loc[strType])
+                    : val);
             default:
                 break;
         }
         oInp = oTr.find('input[name="'+strFieldName+'[]"]').first();
         oInp.val(strValue);
-        if(oInp[0].type=='hidden'){
+        if(oInp[0].type=='hidden' || (options && options.change) ){
             oInp.change();
         }
         
@@ -1690,22 +1696,24 @@ eiseGrid.prototype.fillRow = function($tr, row ){
             if(props.target)
                 $elem[0].target = props.target
             return $elem;
-        };
+        }
+        , $trAfter = $tr.prev('.eg-data');
 
     $.each(oGrid.conf.fields, function(field, props){
 
-        var $td = $tr.find('td[data-field="'+field+'"]'),
-            $div = $td.find('div'),
-            $inp = $tr.find('input[name="'+field+'[]"]'),
-            $inpText = $td.find('input[type="text"]');
+        var $td = $tr.find('td[data-field="'+field+'"]')
+            , $div = $td.find('div')
+            , $inp = $tr.find('input[name="'+field+'[]"]')
+            , $inpText = $td.find('input[type="text"]')
+            ;
 
         if(!$td[0] && !$inp[0])
             return true; // continue
 
         if( props.type == 'order' && !row[field] ){
-            var ord = ($trAfter.hasClass('eg-data')
+            var ord = 1+($trAfter[0] && $trAfter.hasClass('eg-data')
                     ? parseInt($trAfter.find('.eg-order').text().replace(/[^0-9]+/gi, '')) 
-                    : 0)+1;
+                    : 0);
             if($div[0])
                 $div.text(ord);
             if($inp[0])
