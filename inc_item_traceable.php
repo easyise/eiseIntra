@@ -441,6 +441,7 @@ private function init(){
             'actDescriptionLocal' => $this->intra->translate('delete'),
             'actFlagDepartureEqArrival' => '1',
             'actFlagAutocomplete' => '1',
+            'actFlagMultiple' => '1',
             );
     $acts[] = array (
             'actID' => '4',
@@ -1007,7 +1008,7 @@ public function updateUnfinishedActions($nd = null){
 
 public function updateAction($rwACL, $nd){
 
-    $act = new eiseAction($this, $rwACL);
+    $act = new eiseAction($this, array_merge($rwACL, $nd));
     $act->update($nd);
 
 }
@@ -1554,8 +1555,8 @@ function showActionRadios(){
                    ? " - ".$rwAct["actTitle{$this->intra->local}"]." - "
                    : $rwAct["actTitle{$this->intra->local}"].
                       ($rwAct["actOldStatusID"]!=$rwAct["actNewStatusID"]
-                      ?  " (".$this->conf['STA'][$rwAct["actOldStatusID"]]["staTitle{$this->intra->local}"]
-                        ." > ".$this->conf['STA'][$rwAct["actNewStatusID"]]["staTitle{$this->intra->local}"].")"
+                      ?  " (".$this->conf['STA'][$rwAct["actOldStatusID"][0]]["staTitle{$this->intra->local}"]
+                        ." > ".$this->conf['STA'][$rwAct["actNewStatusID"][0]]["staTitle{$this->intra->local}"].")"
                       :  "")
                 );
               

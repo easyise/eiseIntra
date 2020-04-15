@@ -32,10 +32,23 @@ public function __construct($item, $arrAct, $options = array()){
             $traced[str_replace('_'.$arrAct['aclGUID'], '', $field)] = $value;
         }
         $this->conf = $item->conf['ACT'][$this->arrAction['aclActionID']];
-        $this->arrAction = array_merge($this->arrAction
-            , $this->intra->arrPHP2SQL($traced, $types)
-            , array('aclToDo'=> $nd['aclToDo'])
-            );
+        $this->arrAction = array_merge(
+            $this->conf,
+            $this->arrAction,
+            $this->intra->arrPHP2SQL($traced, $types),
+            array('aclToDo'=> $nd['aclToDo'])
+        );
+        
+        
+
+
+        // if($this->arrAction['aclActionID']==410){
+        //     echo '<pre>';
+        //     // debug_print_backtrace();
+        //     die('<pre>'.var_export($traced, true));
+        // }
+
+
 
 	} else {
 		$this->conf = $item->conf['ACT'][(string)$arrAct['actID']];
@@ -287,7 +300,11 @@ public function validate(){
     // mandatory items check
     $aMissingFields = array();
     foreach ((array)$this->arrAction['aatFlagMandatory'] as $atrID => $props) {
-        if(!$this->item->item[$atrID] || (is_numeric($this->item->item[$atrID]) && (double)$this->item->item[$atrID]===0.0 )){
+        $v = ($this->arrAction[$atrID]
+                ? $this->arrAction[$atrID]
+                : ($this->item->item[$atrID])
+                ); 
+        if(!$v || (is_numeric($v) && (double)$v===0.0 )){
             $aMissingFields[] = $this->item->conf['ATR'][$atrID]['atrTitle'.$this->intra->local]." ({$atrID})";
         }
     }

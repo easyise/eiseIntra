@@ -103,10 +103,9 @@ var eiseIntraActionMultiple = function(event, $form, callback){
     actionChoosen($(this), $form, function(o){
 
         if(o.act.actID=='3'){
-            if(confirm("Are you sure you'd like to delete?")){
-                location.href=location.pathname+location.search+"&DataAction=delete";
+            if(!confirm("Are you sure you'd like to delete?")){
+                return;
             }
-            return;
         }
 
         var arrFieldsToFill = [];
