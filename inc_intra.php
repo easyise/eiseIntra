@@ -882,11 +882,17 @@ public function menu($target = null){
             $rsSta = $this->oSQL->do_query($sqlSta);
             while ($rwSta = $this->oSQL->fetch_array($rsSta)){
                 $staMenuItemClass = $rwSta['staMenuItemClass'] ? $rwSta['staMenuItemClass'] : 'fa-circle-o';
+                $customSubMenu_sta = call_user_func_array(array($this, 'menuItem'), array($rw, $rwSta));
                 $strRet .= "<li id='".$rw["pagID"]."_".$rwSta["staID"]."'><a{$target} href='"
                     .$rw["pagFile"]."?".$rw["pagEntityID"]."_staID=".$rwSta["staID"]."'>"
                     .'<i class="fa '.$staMenuItemClass.'"></i>'
                     .($rwSta["staTitle{$this->local}Mul"] ? $rwSta["staTitle{$this->local}Mul"] : $rwSta["staTitle{$this->local}"])
-                    ."</a>\n";
+                    .(preg_match('/^\<ul/i', ltrim($customSubMenu_sta))
+                        ? ' <i class="fa fa-angle-left pull-right"></i>' 
+                        : '')
+                    .'</a>'
+                    .$customSubMenu_sta
+                    ."\n";
             }
         }
        
