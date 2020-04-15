@@ -1696,22 +1696,24 @@ eiseGrid.prototype.fillRow = function($tr, row ){
             if(props.target)
                 $elem[0].target = props.target
             return $elem;
-        };
+        }
+        , $trAfter = $tr.prev('.eg-data');
 
     $.each(oGrid.conf.fields, function(field, props){
 
-        var $td = $tr.find('td[data-field="'+field+'"]'),
-            $div = $td.find('div'),
-            $inp = $tr.find('input[name="'+field+'[]"]'),
-            $inpText = $td.find('input[type="text"]');
+        var $td = $tr.find('td[data-field="'+field+'"]')
+            , $div = $td.find('div')
+            , $inp = $tr.find('input[name="'+field+'[]"]')
+            , $inpText = $td.find('input[type="text"]')
+            ;
 
         if(!$td[0] && !$inp[0])
             return true; // continue
 
         if( props.type == 'order' && !row[field] ){
-            var ord = ($trAfter.hasClass('eg-data')
+            var ord = 1+($trAfter[0] && $trAfter.hasClass('eg-data')
                     ? parseInt($trAfter.find('.eg-order').text().replace(/[^0-9]+/gi, '')) 
-                    : 0)+1;
+                    : 0);
             if($div[0])
                 $div.text(ord);
             if($inp[0])
