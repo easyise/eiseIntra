@@ -25,19 +25,24 @@ public function __construct($item, $arrAct, $options = array()){
 
 	if($arrAct['aclGUID']){
         $this->arrAction = $this->item->item['ACL'][$arrAct['aclGUID']];
-        $traced = array();
+        if(!$this->arrAction){
+            throw new Exception("Action {$arrAct['aclGUID']}/{$arrAct['actID']} not found", 1);
+        }
+        $toTrace = array();
         foreach($nd as $field=>$value){
             if(strpos($field, '_'.$arrAct['aclGUID'])===False)
                 continue;
-            $traced[str_replace('_'.$arrAct['aclGUID'], '', $field)] = $value;
+            $toTrace[str_replace('_'.$arrAct['aclGUID'], '', $field)] = $value;
         }
         $this->conf = $item->conf['ACT'][$this->arrAction['aclActionID']];
         $this->arrAction = array_merge(
             $this->conf,
             $this->arrAction,
-            $this->intra->arrPHP2SQL($traced, $types),
+            $this->intra->arrPHP2SQL($toTrace, $types),
             array('aclToDo'=> $nd['aclToDo'])
         );
+
+        $this->arrAction = array_merge($this->arrAction, $this->getTraceData());
         
         
 

@@ -1589,7 +1589,7 @@ function showStatusLog($conf = array()){
 
         $rwSTA = $this->conf['STA'][$rwSTL['staID']];
 
-        $htmlRemove = ($conf['flagFullEdit'] ? '&nbsp;<a href="#remove_stl" class="remove">[x]</a>' : '');
+        $htmlRemove = ($conf['flagFullEdit'] ? '('.$rwSTL['staID'].') &nbsp;<a href="#remove_stl" class="remove">[x]</a>' : '');
 
         $htmlTiming = '<div class="dates"><span class="eiseIntra_stlATA">'
                         .($rwSTA["staTrackPrecision"] == 'datetime' 
@@ -1711,7 +1711,8 @@ function showActionInfo($aclGUID, $conf = array()){
             : ($rwACT["actTitle{$this->intra->local}"]!="" 
                 ? $rwACT["actTitle{$this->intra->local}"]
                 : $rwACT["actTitle"])
-            );
+            )
+            .($conf['flagFullEdit'] ?  ' ('.$rwACL['aclActionID'].')' : '');
 
         $fieldTitle = ($rwACL['aclFinishBy'] 
             ? $rwACL['aclFinishBy'] 
