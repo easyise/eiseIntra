@@ -622,27 +622,39 @@ public function RLAByMatrix(){
             if(!$act['MTX'])
                 continue;
             $rla = array();
+            $rla_tiers = array();
             foreach ($act['MTX'] as $mtx) {
                 $conditionWorked = array();
+                $tierConditionWorked = array();
                 foreach ($aAtrMTX as $atrID => $condition) {
                     $valueMTX = $mtx[preg_replace('/^'.preg_quote($this->conf['entPrefix'], '/').'/', 'mtx', $atrID)];
                     $valueItem = $this->item[$atrID];
                     $condition = ($condition=='=' ? '==' : $condition);
                     $toEval = "\$conditionWorked[\$atrID] = (int)(\$valueItem {$condition} \$valueMTX);";
+                    $tierConditionWorked[$atrID] = 0;
                     if($valueMTX===null || $valueMTX==='' || $valueMTX==='%'){
                         $conditionWorked[$atrID] = 1;
                         continue;
                     }
                     eval($toEval);
+                    if($conditionWorked[$atrID])
+                        $tierConditionWorked[$atrID] = 1;
                 }
-                if(array_sum($conditionWorked)/count($conditionWorked)===1)
+                if(array_sum($conditionWorked)/count($conditionWorked)===1){
                     $rla[] = $mtx['mtxRoleID'];
+                    $nTier = count($aAtrMTX) - array_sum($tierConditionWorked);
+                    $rla_tiers[$mtx['mtxRoleID']] = isset($rla_tiers[$mtx['mtxRoleID']])
+                        ? ( $nTier < $rla_tiers[$mtx['mtxRoleID']] ? $nTier : $rla_tiers[$mtx['mtxRoleID']] )
+                        : $nTier;
+                }
             } 
             $act['RLA'] = array_values(array_unique($rla)); 
+            $act['RLA_tiers'] = $rla_tiers; 
+            asort($act['RLA_tiers']);
         }
     }
     // echo 'rla by action';
-    // echo '<pre>'.var_export($this->conf['ACT'][333], true);
+    // die( '<pre>'.var_export($this->conf['ACT'][310]['RLA_tiers'], true).'</pre>' );
 }
 
 public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array()){
@@ -1268,6 +1280,11 @@ public function form($fields = '',  $arrConfig=Array()){
             ? "<script>$(document).ready(function(){ $('#{$this->table['prefix']}').eiseIntraForm().eiseIntraEntityItemForm();})</script>"
             : '');
 
+    if($arrConfig['flagMessages'])
+        $form .= $this->formMessages();
+
+    if($arrConfig['flagFiles'])
+        $form .= $this->formFiles();
 
     $this->intra->arrUsrData['FlagWrite'] = $oldFW;
 
@@ -2036,6 +2053,7 @@ public function getWhosNextStatus($staID, $counter){
         $html .= '<li class="'.$classes.'"><i class="'.$iconClass.'"> </i>'.$act["actTitle{$this->intra->local}"];
         $html .= '<ul class="users-roles">';
         $aUsers = array();
+        $this->_aUser_Role_Tier = array();
         $aRoles = array();
         $aVirtualRoles = array();
         $aVirtualRoleMembers = array();
@@ -2053,16 +2071,25 @@ public function getWhosNextStatus($staID, $counter){
                     $aUsers[] = strtoupper($usrID); 
                     $aVirtualRoles[$rolID][] = $originRole;
                     $aVirtualRoleMembers[$rolID][] = $usrID;
+                    $this->_aUser_Role_Tier[$usrID][$rolID] = $act['RLA_tiers'][$rolID] > $this->_aUser_Role_Tier[$usrID][$rolID] 
+                        ? $act['RLA_tiers'][$rolID]
+                        : $this->_aUser_Role_Tier[$usrID][$rolID] ;
                 }
             } else {
-                $aUsers = array_merge( $aUsers, $this->intra->getRoleUsers($rolID) );
+                $_users = $this->intra->getRoleUsers($rolID);
+                foreach ($_users as $usrID) {
+                    $this->_aUser_Role_Tier[$usrID][$rolID] = $act['RLA_tiers'][$rolID] > $this->_aUser_Role_Tier[$usrID][$rolID] 
+                        ? $act['RLA_tiers'][$rolID]
+                        : $this->_aUser_Role_Tier[$usrID][$rolID] ;
+                }
+                $aUsers = array_merge( $aUsers,  $_users);
             }
         }
 
         if($aRoles[0]!=$this->conf['RoleDefault']){
 
             $aUsers = array_values(array_unique($aUsers));
-            sort($aUsers);
+            usort($aUsers, array($this, '_sort_User_Role_Tier'));
             $html .= '<li class="users">';
             $htmlUserList = '';
             foreach ($aUsers as $ix=>$usrID) {
@@ -2079,22 +2106,21 @@ public function getWhosNextStatus($staID, $counter){
             $html .= $htmlUserList;
             $html .= '<li class="roles">';
             $htmlRoleList = '';
-            foreach ($aRoles as $rolID) {
-                if(!$this->conf['Roles'][$rolID]['rolFlagVirtual'])
-                    $htmlRoleList .= ($htmlRoleList ? ', ' : '').'<span class="role-info">'.$this->conf['Roles'][$rolID]['rolTitle'.$this->intra->local].'</span>';
-            }
-            foreach ($aVirtualRoles as $rolID=>$rolIDs_original) {
-                $rolIDs_original = array_unique($rolIDs_original);
-                foreach ($rolIDs_original as $rolID_original) {
-                    $htmlRoleList .= ($htmlRoleList ? ', ' : '').'<span class="role-info">'
-                        .($rolID_original 
-                            ? $this->conf['Roles'][$rolID_original]['rolTitle'.$this->intra->local].' ('.$this->conf['Roles'][$rolID]['rolTitle'.$this->intra->local].')'
-                            : $this->conf['Roles'][$rolID]['rolTitle'.$this->intra->local]
-                            )
-                    .'</span>';
+            foreach ($act['RLA_tiers'] as $rolID => $tier) {
+                if(!$this->conf['Roles'][$rolID]['rolFlagVirtual']) {
+                    $htmlRoleList .= ($htmlRoleList ? ', </span>' : '').'<span class="role-info">'.$this->conf['Roles'][$rolID]['rolTitle'.$this->intra->local];
+                } else {
+                    $rolIDs_original = array_unique($aVirtualRoles[$rolID]);
+                    foreach ($rolIDs_original as $rolID_original) {
+                        $htmlRoleList .= ($htmlRoleList ? ', </span>' : '').'<span class="role-info">'
+                            .($rolID_original 
+                                ? $this->conf['Roles'][$rolID_original]['rolTitle'.$this->intra->local].' ('.$this->conf['Roles'][$rolID]['rolTitle'.$this->intra->local].')'
+                                : $this->conf['Roles'][$rolID]['rolTitle'.$this->intra->local]
+                                );
+                    }
                 }
             }
-            $html .= $htmlRoleList;
+            $html .= $htmlRoleList.($htmlRoleList ? '</span>' : '');
 
         }
         $html .= '</ul>';
@@ -2110,6 +2136,14 @@ public function getWhosNextStatus($staID, $counter){
 
     return $html;
 
+}
+
+private function _sort_User_Role_Tier($a, $b){
+    $tierDiff = max($this->_aUser_Role_Tier[$a]) - max($this->_aUser_Role_Tier[$b]);
+    return ($tierDiff 
+        ? $tierDiff
+        : ($a > $b ? 1 : -1)
+        );
 }
 
 public function checkDisabledRoleMembership($usrID, $act, &$reason = ''){
