@@ -1343,6 +1343,8 @@ function batchStart($conf = array()){
     header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
     header("Content-type: text/html;charset=utf-8"); // HTML
 
+    header('X-Accel-Buffering: no'); // disable NGINX buffering
+
     $this->flagBatch = true;
 
     foreach ($conf as $key => $value) {
