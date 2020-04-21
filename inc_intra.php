@@ -1211,6 +1211,9 @@ private function getCookiePath($strLocation, $arrConfig = array()){
  */
 function redirect($strMessage, $strLocation, $arrConfig = array()){
 
+    if($this->cancelRedirect)
+        return;
+
     $conf = array_merge($this->conf, $arrConfig);
 
     $this->setUserMessage($strMessage, $conf);
