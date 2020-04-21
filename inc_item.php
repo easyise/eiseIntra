@@ -690,7 +690,7 @@ public function sendMessage($nd){
 
     $sqlMsg = "INSERT INTO stbl_message SET
         msgEntityID = ".$oSQL->e($entID)."
-        , msgEntityItemID = ".($nd['entItemID']!="" ? $oSQL->e($this->id) : "NULL")."
+        , msgEntityItemID = ".(!$nd['entItemID'] ? $oSQL->e($this->id) : "NULL")."
         , msgFromUserID = '$intra->usrID'
         , msgToUserID = ".($nd['msgToUserID']!="" ? $oSQL->e($nd['msgToUserID']) : "NULL")."
         , msgCCUserID = ".($nd['msgCCUserID']!="" ? $oSQL->e($nd['msgCCUserID']) : "NULL")."
