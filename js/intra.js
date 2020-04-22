@@ -1584,7 +1584,7 @@ addField: function( field ){
         element.prop('name', field.name);
 
     if(field.type=='ajax_dropdown'){
-        element[0].dataset['source'] = JSON.stringify({table: field.source, prefix: field.source_prefix, scriptURL: field.sourceURL});
+        element[0].dataset['source'] = JSON.stringify({table: field.source, prefix: field.source_prefix, scriptURL: field.sourceURL, extra: field.extra});
         element[0].name = element[0].name+'_text';
     }
 
