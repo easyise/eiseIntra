@@ -55,12 +55,18 @@ public function __construct($id = null,  $conf = array() ){
             if(in_array(strtoupper($this->intra->usrID), array_keys($roleMembers))){
                 $this->intra->arrUsrData['roles'][] = $rwRole['rolTitle'.$this->intra->local];
                 $this->intra->arrUsrData['roleIDs'][] = $rwRole['rolID'];
+            } else {
+                $ix = array_search( $rwRole['rolID'], $this->intra->arrUsrData['roleIDs'] );
+                if($ix!==false){
+                    unset($this->intra->arrUsrData['roles'][$ix]);
+                    unset($this->intra->arrUsrData['roleIDs'][$ix]);
+                }
             }
         }
+        $this->intra->arrUsrData['roles'] = array_values($this->intra->arrUsrData['roles']);
+        $this->intra->arrUsrData['roleIDs'] = array_values($this->intra->arrUsrData['roleIDs']);
         $this->RLAByMatrix();
     }
-
-   
 
     $this->conf['attr_types'] = array_merge($this->table['columns_types'], $this->conf['attr_types']);
 
@@ -73,7 +79,7 @@ public function update($nd){
 
     parent::update($nd);
 
-    // $this->oSQL->startProfiling();
+// $this->oSQL->startProfiling();
 
     $this->oSQL->q('START TRANSACTION');
     // 1. update master table
@@ -93,8 +99,7 @@ public function update($nd){
     // 2. do the action
     $this->doAction(new eiseAction($this, $nd));
 
-    // $this->oSQL->showProfileInfo();
-    // die();
+// $this->oSQL->showProfileInfo();
     
     $this->oSQL->q('COMMIT');
 
