@@ -525,6 +525,7 @@ var __attachAutocomplete = function(oTr) {
         var initComplete, 
             inp = this, 
             $inp = $(inp),
+            textIfEmpltylist = ' - empty list -',
             $inpVal = $inp.prev("input"),
             source = $.parseJSON(inp.dataset['source']),
             url = (source.scriptURL 
@@ -541,21 +542,23 @@ var __attachAutocomplete = function(oTr) {
                 .each(function(){  this.addEventListener('input', function(ev){   if( typeof initComplete === 'undefined'){  ev.stopImmediatePropagation();  }     }, false);      }) // IE11 hack
                 .autocomplete({
                 source: function(request,response) {
-
                     $inpVal.change();
                     
                     // reset old value
-                    if(request.term.length<3){
+                    if(request.term.length<( typeof source['threshold']!='undefined' ? source['threshold'] : 3)){
                         response({});
                         $inpVal.val('');
                         return;
                     }
 
-                    var extra = ($inp.attr('extra') ? $inp.attr('extra') : $.parseJSON(inp.dataset['source'])['extra']);
+                    var extra = ($inp.attr('extra') ? $inp.attr('extra') : source['extra']);
                     var urlFull = url+"&q="+encodeURIComponent(request.term)+(typeof extra!== 'undefined' ? '&e='+encodeURIComponent(extra) : '');
                     
                     $.getJSON(urlFull, function(response_json){
-                        
+                        if(response_json.data.length == 0){
+                            response( [ textIfEmpltylist ] );
+                            return;
+                        }                        
                         response($.map(response_json.data, function(item) {
                                 return {  label: item.optText, value: item.optValue, class: item.optClass  }
                             }));
@@ -571,7 +574,7 @@ var __attachAutocomplete = function(oTr) {
                 },
                 select: function(event,ui) {
                     event.preventDefault();
-                    if (ui.item){
+                    if (ui.item && ui.item.label && ui.item.label!=textIfEmpltylist){
                         $(inp).val(ui.item.label);
                         $inpVal.val(ui.item.value || ui.item.label);
                         $inpVal.change();

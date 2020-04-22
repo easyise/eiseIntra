@@ -880,6 +880,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                         'showDeleted' => ($cell['showDeleted'] ? 1 : 0),
                         'extra' => (string)$cell['extra']
                         );
+                    if(isset($cell['threshold'])) $arrSource['threshold'] = (int)$cell['threshold'];
                     $strCell .= "<input{$classAttr} type=\"text\" name=\"{$_textfield}[]\""
                         .' data-source="'.htmlspecialchars( json_encode($arrSource) ).'"'
                         ." autocomplete=\"off\""
