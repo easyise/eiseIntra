@@ -71,6 +71,7 @@ switch($DataAction){
                     , atrProgrammerReserved = ".$oSQL->escape_string($_POST['atrProgrammerReserved'])."
                     , atrCheckMask = ".$oSQL->escape_string($_POST['atrCheckMask'])."
                     , atrDataSource = ".$oSQL->escape_string($_POST['atrDataSource'])."
+                    , atrHref = ".$oSQL->escape_string($_POST['atrHref'])."
                     , atrFlagHideOnLists = '".($_POST['atrFlagHideOnLists']=='on' ? 1 : 0)."'
                     , atrFlagDeleted = '".($_POST['atrFlagDeleted']=='on' ? 1 : 0)."'
                     , atrEditBy = '$intra->usrID', atrEditDate = NOW()
@@ -204,6 +205,10 @@ include eiseIntraAbsolutePath.'inc_top.php';
 <div class="eiseIntraField">
 <label><?php echo $intra->translate("Data source (table, view or array)"); ?>:</label><?php
  echo $intra->showTextBox("atrDataSource", $rwATR["atrDataSource"], Array('type'=>'text'));?></div>
+
+<div class="eiseIntraField">
+<label><?php echo $intra->translate("Href"); ?>:</label><?php
+ echo $intra->showTextBox("atrHref", $rwATR["atrHref"], Array('type'=>'text'));?></div>
 
 <div class="eiseIntraField">
 <label><?php echo $intra->translate("True when this attribute not shown on lists"); ?>:</label><?php
