@@ -729,6 +729,8 @@ var __ajaxDropdownHref = function(inp, $inpVal, href){
     if( $a[0] && hrefKey=='' ){
         $a.css('display', 'none');
         return;
+    } else {
+        $inp.css('padding-right', '40px');
     }
             
 

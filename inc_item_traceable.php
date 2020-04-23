@@ -1471,6 +1471,8 @@ function getAttributeFields($fields, $item = null, $conf = array()){
                 $options['defaultText'] = '-';
                 
         }
+        if($atr['atrHref'])
+            $options['href'] = $atr['atrHref'];
 
         $html .= $this->intra->field($atr["atrTitle{$this->intra->local}"], $field.$conf['suffix'], $item[$field], $options);
     }
