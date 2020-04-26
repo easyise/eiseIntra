@@ -194,7 +194,7 @@ var eiseIntraActionSubmit = function(event, $form){
             }
 
             $form.eiseIntraForm('fill', o, {createMissingAsHidden: true});
-            var inpSubmit = $form.find('input[type="submit"]')[0] || $('<input type="submit" style="visibility:hidden" />').appendTo($form);
+            var inpSubmit = $('<input type="submit" style="visibility:hidden" />').appendTo($form);
             $form.off('submit');
             inpSubmit.click();
 
