@@ -135,7 +135,7 @@ if(!$arrFlags['hasPages']){
       );
 }
 
-if (isset($eiseIntraVersion) && $eiseIntraVersion < 100){
+if (isset($eiseIntraVersion) && $eiseIntraVersion < 900){
     $arrActions[]= Array ("title" => "Upgrade eiseIntra"
 	   , "action" => "database_act.php?DataAction=upgrade&dbName=".urlencode($dbName)
 	   , "class" => "ss_wrench_orange "
