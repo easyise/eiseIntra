@@ -44,6 +44,9 @@ $paneClass = "ei-pane{$intra->conf['frame']}".($flagNoHeader ? ' no-header' : ''
         echo $intra->getCurrentUserInfo();
             
         ?></div>
+        <?php if ($extraHTML): ?>
+        <div class="ei-extra-html"><?php echo $extraHTML ?></div>
+        <?php endif ?>
     </div>
     <div id="toc" class="ei-sidebar-menu" role="nav">
         <div class="ei-logo-container">

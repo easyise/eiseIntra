@@ -1,4 +1,4 @@
 </div><!-- /div.ei-pane -->
-<?php echo $extraHTML; ?>
+<?php // echo $extraHTML; ?>
 </body>
 </html>
