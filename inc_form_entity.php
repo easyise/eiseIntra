@@ -12,6 +12,7 @@ $rwEnt = $oSQL->fetch_array($rsEnt);
 
 $easyAdmin = ($authmethod==='mysql');
 $flagEiseIntra = (boolean) $oSQL->d("SHOW TABLES LIKE 'stbl_action_status'");
+$flagEiseIntra = true;
 
 $gridSTA = new eiseGrid($oSQL
         ,'sta'
@@ -516,8 +517,6 @@ switch ($DataAction){
                       `actFlagDeleted`,
                       `actPriority`,
                       `actFlagComment`,
-                      actFlagHasEstimates,
-                      actFlagDepartureEqArrival,
                       `actInsertBy`,`actInsertDate`,`actEditBy`,`actEditDate`
                     ) VALUE (
                       '$entID',
@@ -528,9 +527,7 @@ switch ($DataAction){
                       ".(int)($_POST["actFlagDeleted"][$i]).",
                       ".(int)($_POST["actPriority"][$i]=="" ? "0" : $_POST["actPriority"][$i]).",
                       ".(int)($_POST["actFlagComment"][$i]).",
-                      ".(int)($_POST["actFlagHasEstimates"][$i]).",
-                      ".(int)($_POST["actFlagDepartureEqArrival"][$i]).",
-                      '$usrID', NOW(), '$usrID', NOW()
+                      '$intra->usrID', NOW(), '$intra->usrID', NOW()
                     );";
                  $sql[] = "SET @actID=LAST_INSERT_ID()";
               } else {
@@ -540,9 +537,7 @@ switch ($DataAction){
                       actFlagDeleted=".($_POST["actFlagDeleted"][$i]).",
                       actPriority=".($_POST["actPriority"][$i]=="" ? "0" : $_POST["actPriority"][$i]).",
                       actFlagComment=".($_POST["actFlagComment"][$i]).",
-                      actFlagHasEstimates=".($_POST["actFlagHasEstimates"][$i]).",
-                      actFlagDepartureEqArrival=".($_POST["actFlagDepartureEqArrival"][$i]).",
-                      actEditBy='$usrID', actEditDate=NOW()
+                      actEditBy='$intra->usrID', actEditDate=NOW()
                      WHERE actID='".$_POST["actID"][$i]."'";
                  $sql[] = "SET @actID='".$_POST["actID"][$i]."'";
               }
@@ -590,7 +585,7 @@ if ($easyAdmin){
 	   , "class"=> "ss_page_white_word"
 	);
 $arrActions[]= Array ("title" => "Action Matrix"
-         , "action" => "matrix_form.php?entID=$entID&dbName=$dbName"
+         , "action" => "actionmatrix_form.php?entID=$entID&dbName=$dbName"
          , "class"=> "ss_chart_organisation "
       );	
 }
@@ -708,6 +703,9 @@ $gridATR->Execute();
 
 <fieldset id="flds-act"><legend><?php echo $intra->translate('Actions') ?>:</legend>
 <?php 
+
+$flagActionStatus = $oSQL->d("SHOW TABLES LIKE 'stbl_ation_status'");
+
 $sqlAct = "SELECT actID
     , actTitle{$strLocal} as actTitle
     , actTitlePast{$strLocal} as actTitlePast
@@ -715,7 +713,7 @@ $sqlAct = "SELECT actID
     , actFlagDeleted
     ".$roleFields."
 ".(
-$flagEiseIntra
+$flagActionStatus
 ? "
   , actPriority
   , actFlagAutocomplete

@@ -12,7 +12,8 @@ $sqlSta = "SELECT * FROM stbl_status
 $rsSta = $oSQL->do_query($sqlSta);
 $rwSta = $oSQL->fetch_array($rsSta);
 $ffSta = $oSQL->ff($rsSta);  
-  
+
+include_once('inc_actionmatrix.php')  ;
 
 switch($DataAction){
     case "update":
@@ -21,7 +22,8 @@ switch($DataAction){
         $oSQL->startProfiling();
        
         $sqlUpd = "UPDATE stbl_status SET
-            staTitle = ".$oSQL->escape_string($_POST['staTitle'])."
+            staID=".(int)$_POST['staID']."
+            , staTitle = ".$oSQL->escape_string($_POST['staTitle'])."
             , staTitleLocal = ".$oSQL->escape_string($_POST['staTitleLocal'])."
             , staTrackPrecision = ".$oSQL->escape_string($_POST['staTrackPrecision'])."
             , staFlagCanUpdate = '".($_POST['staFlagCanUpdate']=='on' ? 1 : 0)."'
@@ -34,10 +36,18 @@ switch($DataAction){
         $oSQL->q($sqlUpd);
        
         if ($_POST['staFlagDeleted']=='on'){
-	        $sqlAct = "UPDATE stbl_action INNER JOIN stbl_action_status ON atsActionID=actID SET actFlagDeleted=1 
-                WHERE actEntityID='{$entID}' 
-                AND (atsOldStatusID='".$_POST["staID"]."' OR atsNewStatusID='".$_POST["staID"]."')";
-            $oSQL->q($sqlAct);
+            if($oSQL->d("SHOW TABLES LIKE 'stbl_action_status'")){
+                $sqlAct = "UPDATE stbl_action INNER JOIN stbl_action_status ON atsActionID=actID SET actFlagDeleted=1 
+                    WHERE actEntityID='{$entID}' 
+                    AND (atsOldStatusID='".$_POST["staID"]."' OR atsNewStatusID='".$_POST["staID"]."')";
+                $oSQL->q($sqlAct);    
+            } else {
+                $sqlAct = "UPDATE stbl_action SET actFlagDeleted=1 
+                    WHERE actEntityID='{$entID}' 
+                    AND (actOldStatusID='".$rwSta["staID"]."' OR actNewStatusID='".$rwSta["staID"]."')";
+                $oSQL->q($sqlAct);   
+            }
+	        
 	    }
 
         $aAtr = array();   
@@ -115,7 +125,6 @@ $(document).ready(function(){
 <form action="<?php  echo $_SERVER["PHP_SELF"] ; ?>" method="POST" class="eiseIntraForm eif-form">
 <input type="hidden" name="DataAction" value="update">
 <input type="hidden" name="dbName" value="<?php  echo $dbName ; ?>">
-<input type="hidden" name="staID" value="<?php  echo $staID ; ?>">
 <input type="hidden" name="entID" value="<?php  echo $rwSta["staEntityID"] ; ?>">
 
 <fieldset>
@@ -126,6 +135,8 @@ $(document).ready(function(){
 
 <tr>
 <td width="50%">
+
+<?php echo $intra->field($intra->translate('ID'), 'staID', $rwSta); ?>
 
 <div class="eiseIntraField"><label><?php echo $intra->translate("Title") ?>:</label>
 <?php  echo $intra->showTextBox("staTitle", $rwSta["staTitle"]) ; ?>
@@ -158,12 +169,22 @@ $(document).ready(function(){
 <?php  echo $intra->showCheckBox("staFlagDeleted", $rwSta["staFlagDeleted"]) ; ?>
 </div>
 
+<?php
+
+$mtx = new eiseActionMatrix($rwSta['staEntityID']);
+
+if($oSQL->d("SHOW TABLES LIKE 'stbl_action_status'")):
+?>
+
+
 <div class="eiseIntraField"><label><?php echo $intra->translate("Actions") ?>:</label>
 <div class="eiseIntraValue">
 <ul>
 <li><b><?php echo $intra->translate('Leading to') ?> "<?php  echo $rwSta["staTitle"] ; ?>":</b></li>
 <ul>
 <?php 
+
+
 $sqlAct = "SELECT DISTINCT actID, actTitle, actTitleLocal, actFlagDeleted FROM stbl_action_status INNER JOIN stbl_action ON actID=atsActionID
     WHERE atsNewStatusID='{$rwSta["staID"]}' AND actEntityID='{$entID}'
     ORDER BY actFlagDeleted";
@@ -199,13 +220,16 @@ while ($rwAct=$oSQL->fetch_array($rsAct)) {
   echo $dbName ; 
   ?>"><?php  echo $rwAct["actTitle{$intra->local}"].($rwAct['actFlagDeleted'] ? " (deleted)" : "") ; ?></a></li>
 <?php
-}
+}    
+
  ?>
 </ul>
 </ul>
 
 </div>
 </div>
+
+<?php endif; ?>
 
 </td>
 

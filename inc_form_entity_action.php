@@ -1,4 +1,5 @@
 <?php 
+include 'inc_actionmatrix.php';
 $intra->requireComponent('jquery-ui', 'grid');
 
 $DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['DataAction'] );
@@ -19,7 +20,7 @@ $gridATS = new easyGrid($oSQL
                 , 'strTable' => 'stbl_action_status'
                 , 'strPrefix' => 'ats'
                 , 'flagStandAlone' => true
-                , 'controlBarButtons' => 'add|delete'
+                , 'controlBarButtons' => 'add|moveup|movedown|delete'
                 )
         );
 
@@ -36,20 +37,23 @@ $gridATS->Columns[] = Array(
 );
         
 $gridATS->Columns[] = Array(
+        'title' => $intra->translate("##")
+        , 'field' => "atsOrder"
+        , 'type' => "order"
+);        
+$gridATS->Columns[] = Array(
         'title' => $intra->translate("Old Status")
         , 'field' => "atsOldStatusID"
         , 'type' => "combobox"
         , 'sql' => "SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='".$rwAct["actEntityID"]."'"
         , "defaultText" => "any"
         , "mandatory" => true
+        , 'width' => '100%'
 );
 
 $gridATS->Columns[] = Array(
-        'title' => $intra->translate("New Status")
+        'title' => ''
         , 'field' => "atsNewStatusID"
-        , 'type' => "combobox"
-        , 'sql' => "SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='".$rwAct["actEntityID"]."'"
-        , "defaultText" => "any"
 );
 
   
@@ -264,14 +268,19 @@ switch($DataAction){
         die();
     
     case "update":
-        
+
+
         $oSQL->q("START TRANSACTION");
+
+        $oSQL->startProfiling();
         
-        $sql[] = "UPDATE stbl_action SET
+        $sqlUpd = "UPDATE stbl_action SET
             actTitle = ".$oSQL->escape_string($_POST['actTitle'])."
             , actTitleLocal = ".$oSQL->escape_string($_POST['actTitleLocal'])."
             , actTitlePast = ".$oSQL->escape_string($_POST['actTitlePast'])."
             , actTitlePastLocal = ".$oSQL->escape_string($_POST['actTitlePastLocal'])."
+            , actOldStatusID = ".($_POST['atsOldStatusID'][1] ? $oSQL->escape_string($_POST['atsOldStatusID'][1]) : 'NULL')."
+            , actNewStatusID = ".($_POST['actNewStatusID'] ? $oSQL->escape_string($_POST['actNewStatusID']) : 'NULL')."
             , actDescription = ".$oSQL->escape_string($_POST['actDescription'])."
             , actDescriptionLocal = ".$oSQL->escape_string($_POST['actDescriptionLocal'])."
             , actFlagDeleted = '".(integer)$_POST['actFlagDeleted']."'
@@ -282,14 +291,47 @@ switch($DataAction){
             , actFlagAutocomplete = '".($_POST['actFlagAutocomplete']=='on' ? 1 : 0)."'
             , actFlagDepartureEqArrival = '".($_POST['actFlagDepartureEqArrival']=='on' ? 1 : 0)."'
             , actFlagInterruptStatusStay = '".($_POST['actFlagInterruptStatusStay']=='on' ? 1 : 0)."'
+            , actFlagMultiple = '".($_POST['actFlagMultiple']=='on' ? 1 : 0)."'
+            , actFlagNot4Editor = '".($_POST['actFlagNot4Editor']=='on' ? 1 : 0)."'
+            , actFlagNot4Creator = '".($_POST['actFlagNot4Creator']=='on' ? 1 : 0)."'
             , actFlagDeleted = '".($_POST['actFlagDeleted']=='on' ? 1 : 0)."'
             , actEditBy = '$usrID', actEditDate = NOW()
             WHERE actID = '".$_POST['actID']."'";
+        $oSQL->q($sqlUpd);
+
+
+
+        $mtx = new eiseActionMatrix($rwAct['entID']);
+        $mtx->saveActionGrid($_POST['actID'], $_POST);
+
+        if ($oSQL->f("SHOW TABLES LIKE 'stbl_action_status'")){
+            $aToDel = explode('|', $_POST['inp_ats_deleted']);
+            $strToDel = '';
+            foreach ($aToDel as $atsID) {
+                if($atsID)
+                    $oSQL->q("DELETE FROM stbl_action_status WHERE atsID=".$oSQL->e($atsID));
+            }
+            foreach ($_POST['atsID'] as $i => $val) {
+                if($i==0) continue;
+                $fields = "atsOrder=".(int)$_POST['atsOrder'][$i]."
+                    , atsActionID=".(int)$_POST['actID']."
+                    , atsOldStatusID=".($_POST['atsOldStatusID'][$i]!=='' ? $oSQL->e($_POST['atsOldStatusID'][$i]) : 'NULL')."
+                    , atsNewStatusID=".($_POST['actNewStatusID']!=='' ? $oSQL->e($_POST['actNewStatusID']) : 'NULL');
+                if($_POST['atsID'][$i]){
+                    $sql = "UPDATE stbl_action_status SET
+                        {$fields}
+                        WHERE atsID=".$oSQL->e($_POST['atsID'][$i]);
+                } else {
+                    $sql = "INSERT INTO stbl_action_status SET
+                        {$fields}";
+
+                }
+                $oSQL->q($sql);
+            }
+        }
+        unset($sql);
        
-       $gridATS->Update();
-       
-       $sql[] = "DELETE FROM stbl_action_attribute WHERE aatActionID='$actID'";
-       
+        $sql[] = "DELETE FROM stbl_action_attribute WHERE aatActionID='$actID'";
         for ($i=0; $i< count($_POST["atrID"]); $i++)
             if ($_POST["atrID"][$i]) {
              $sql[] = "INSERT INTO stbl_action_attribute (
@@ -314,20 +356,24 @@ switch($DataAction){
                 , '$usrID', NOW(), '$usrID', NOW())";
                 
         }
-      
-      $sql[] = "DELETE FROM stbl_role_action WHERE rlaActionID='".$_POST['actID']."'";
-      
-      $sqlROL = "SELECT * FROM stbl_role";
-      $rsROL = $oSQL->do_query($sqlROL);
-      while ($rwROL = $oSQL->fetch_array($rsROL)){
-           if($_POST["RLA_{$rwROL["rolID"]}"]=="on")
-            $sql[] = "INSERT INTO stbl_role_action (
-                rlaRoleID
-                , rlaActionID
-                ) VALUES (
-                '{$rwROL["rolID"]}'
-                , '{$_POST['actID']}');";
-      }
+        
+
+        if ($oSQL->f("SHOW TABLES LIKE 'stbl_role_action'")){
+            $sql[] = "DELETE FROM stbl_role_action WHERE rlaActionID='".$_POST['actID']."'";
+            
+            $sqlROL = "SELECT * FROM stbl_role";
+            $rsROL = $oSQL->do_query($sqlROL);
+            while ($rwROL = $oSQL->fetch_array($rsROL)){
+                if($_POST["RLA_{$rwROL["rolID"]}"]=="on")
+                $sql[] = "INSERT INTO stbl_role_action (
+                        rlaRoleID
+                        , rlaActionID
+                        ) VALUES (
+                        '{$rwROL["rolID"]}'
+                        , '{$_POST['actID']}');";
+            }
+        }
+        
     /*
         echo "<pre>";
         print_r($sql);
@@ -335,15 +381,48 @@ switch($DataAction){
         echo "</pre>";
         die();
      //*/
-     for($i=0;$i<count($sql);$i++)
-          $oSQL->do_query($sql[$i]);
+        for($i=0;$i<count($sql);$i++)
+            $oSQL->do_query($sql[$i]);
         
         $oSQL->q("COMMIT");
         
-       SetCookie("UserMessage", "Action ".$intra->translate("is updated"));
-       header("Location: ".$_SERVER["PHP_SELF"]."?dbName=$dbName&actID=$actID");
+        SetCookie("UserMessage", "Action ".$intra->translate("is updated"));
+        header("Location: ".$_SERVER["PHP_SELF"]."?dbName=$dbName&actID=$actID");
        
      
+        break;
+
+    case 'delete':
+
+        $oSQL->q('START TRANSACTION');
+
+        $oSQL->startProfiling();
+
+        if ($oSQL->f("SHOW TABLES LIKE 'stbl_action_status'")){
+            $oSQL->q('DELETE FROM stbl_action_status WHERE atsActionID='.$oSQL->e($actID)) ;
+        }
+        
+        
+        $oSQL->q("DELETE FROM stbl_action_attribute WHERE aatActionID=".$oSQL->e($actID));
+
+        if ($oSQL->f("SHOW TABLES LIKE 'stbl_role_action'")){
+            $oSQL->q("DELETE FROM stbl_role_action WHERE rlaActionID='".$_POST['actID']."'");
+        }
+
+        if($oSQL->d("SHOW TABLES LIKE '{$rwAct['entTable']}_matrix'")) {
+            $oSQL->q("DELETE FROM {$rwAct['entTable']}_matrix WHERE mtxEventID=".$oSQL->e($actID));
+        }
+
+        $oSQL->q("DELETE FROM stbl_action WHERE actID=".$oSQL->e($actID));
+
+
+        // $oSQL->showProfileInfo();
+
+        $oSQL->q('COMMIT');
+
+        SetCookie("UserMessage", "Action ".$intra->translate("is updated"));
+        header("Location: entity_form.php?dbName=$dbName&entID={$rwAct['entID']}");
+        
         break;
     default:
         break;
@@ -366,6 +445,15 @@ include eiseIntraAbsolutePath."inc_top.php";
 <script>
 $(document).ready(function(){  
     $('.eiseGrid').eiseGrid();
+    $('.eiseIntraDelete').click(function(){
+        if(!confirm('Really delele?'))
+            return false;
+        $(':input[required]:visible').each(function(){
+            $(this).removeAttr('required');
+        });
+        $('input[name="DataAction"]').val('delete');
+        return true;
+    })
 });
 </script>
 
@@ -389,18 +477,28 @@ $(document).ready(function(){
 <?php  echo $intra->showTextBox("actTitleLocal", $rwAct["actTitleLocal"]) ; ?>
 </div>
 
-<div class="eiseIntraField"><label><?php echo $intra->translate("Status shift") ?>:</label>
-<div class="eiseIntraValue">
-<?php  
-$sqlATS = "SELECT * FROM stbl_action_status WHERE atsActionID='{$rwAct["actID"]}'";
-$rsATS = $oSQL->do_query($sqlATS);
-while ($rwATS = $oSQL->fetch_array($rsATS)){
-   $gridATS->Rows[] = $rwATS;
+<?php 
+if ($oSQL->f("SHOW TABLES LIKE 'stbl_action_status'")){
+    $sqlATS = "SELECT * FROM stbl_action_status WHERE atsActionID='{$rwAct["actID"]}'";
+    $rsATS = $oSQL->do_query($sqlATS);
+    while ($rwATS = $oSQL->fetch_array($rsATS)){
+       $gridATS->Rows[] = $rwATS;
+    }
+    $fldOrigin = $intra->field($intra->translate("Origin statuses"), null, $gridATS->get_html());    
+} else {
+    $fldOrigin = $intra->field($intra->translate("Origin status"), 'actOldStatusID', $rwAct, array('type'=>'combobox', 'source'=>"SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='".$rwAct["actEntityID"]."'", 'defaultText'=>'-'));
 }
-$gridATS->Execute();
+
+echo $fldOrigin; 
+echo $intra->field($intra->translate("Dest status"), 'actNewStatusID', $rwAct, array('type'=>'combobox', 'source'=>"SELECT staID as optValue, staTitle as optText FROM stbl_status WHERE staEntityID='".$rwAct["actEntityID"]."'", 'defaultText'=>'same'));
+
+$mtx = new eiseActionMatrix($rwAct['entID']);
+
+echo $intra->field($intra->translate("Action Matrix"), null);
+
+echo $mtx->actionGrid($rwAct['actID']);
 ?>
-</div>
-</div>
+
 
 <div class="eiseIntraField"><label><?php echo $intra->translate("Title Past Tense") ?>:</label>
 <?php  echo $intra->showTextBox("actTitlePast", $rwAct["actTitlePast"]) ; ?>
@@ -418,22 +516,27 @@ $gridATS->Execute();
 <?php  echo $intra->showTextArea("actDescriptionLocal", $rwAct["actDescriptionLocal"]) ; ?>
 </div>
 
+
+<?php if ($oSQL->f("SHOW TABLES LIKE 'stbl_role_action'")): ?>
+
 <div class="eiseIntraField"><label><?php echo $intra->translate("Can be run by") ?>:</label>
 <div class="eiseIntraValue">
 <?php  
-$sqlRol = "SELECT * FROM stbl_role LEFT OUTER JOIN stbl_role_action ON rlaActionID=$actID AND rolID=rlaRoleID";
-$rsRol = $oSQL->do_query($sqlRol);
-while ($rwRol = $oSQL->fetch_array($rsRol)){
-   ?>
-   <input type="checkbox" id="RLA_<?php  echo $rwRol["rolID"] ; ?>" 
-   style="width:auto;"
-   name="RLA_<?php  echo $rwRol["rolID"] ; ?>"<?php  echo ($rwRol["rlaID"] ? " checked" : "") ; ?>>
-   <label for="RLA_<?php  echo $rwRol["rolID"] ; ?>"><?php  echo $rwRol["rolTitle{$intra->local}"] ; ?></label><br>
-   <?php
-} 
+    $sqlRol = "SELECT * FROM stbl_role LEFT OUTER JOIN stbl_role_action ON rlaActionID=$actID AND rolID=rlaRoleID";
+    $rsRol = $oSQL->do_query($sqlRol);
+    while ($rwRol = $oSQL->fetch_array($rsRol)){
+       ?>
+       <input type="checkbox" id="RLA_<?php  echo $rwRol["rolID"] ; ?>" 
+       style="width:auto;"
+       name="RLA_<?php  echo $rwRol["rolID"] ; ?>"<?php  echo ($rwRol["rlaID"] ? " checked" : "") ; ?>>
+       <label for="RLA_<?php  echo $rwRol["rolID"] ; ?>"><?php  echo $rwRol["rolTitle{$intra->local}"] ; ?></label><br>
+       <?php
+    } 
+
 ?>
 </div>
 </div>
+<?php endif; ?>
 
 <div class="eiseIntraField"><label><?php echo $intra->translate("Require Comment") ?>:</label>
 <?php  echo $intra->showCheckBox("actFlagComment", $rwAct["actFlagComment"]) ; ?>
@@ -462,6 +565,13 @@ while ($rwRol = $oSQL->fetch_array($rsRol)){
     , "datetime"=>$intra->translate("Date+Time"))) ; ?>
 </div>
 
+<?php 
+echo $intra->field($intra->translate("Run multiple?"), 'actFlagMultiple', $rwAct, array('type'=>'checkbox'));
+echo $intra->field($intra->translate("Not for creator?"), 'actFlagNot4Creator', $rwAct, array('type'=>'checkbox'));
+echo $intra->field($intra->translate("Not for last editor?"), 'actFlagNot4Editor', $rwAct, array('type'=>'checkbox'));
+
+ ?>
+
 <hr>
 
 <div class="eiseIntraField"><label><?php echo $intra->translate("Deleted?") ?>:</label>
@@ -488,6 +598,7 @@ $gridAAT->Execute();
 <tr>
 <td colspan="2" align="center">
 <input type="submit" value="<?php echo $intra->translate('Save') ?>" class="eiseIntraSubmit">
+<input type="submit" value="<?php echo $intra->translate('Delete') ?>" class="eiseIntraDelete">
 </td>
 </tr>
 </table>

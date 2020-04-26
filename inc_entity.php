@@ -123,7 +123,10 @@ private function init(){
     // read action_attribute
     $this->conf['ACT'] = array();
     $sqlAAt = "SELECT stbl_action.*
-        , (SELECT GROUP_CONCAT(rlaRoleID) FROM stbl_role_action WHERE rlaActionID=actID) as actRoles
+        ".($this->oSQL->d("SHOW TABLES LIKE 'stbl_role_action'")
+            ? ", (SELECT GROUP_CONCAT(rlaRoleID) FROM stbl_role_action WHERE rlaActionID=actID) as actRoles"
+            : '')
+        ."
         , stbl_action_attribute.* FROM stbl_action
         LEFT OUTER JOIN stbl_action_attribute 
             INNER JOIN stbl_attribute ON atrID=aatAttributeID AND atrFlagDeleted=0

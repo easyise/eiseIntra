@@ -16,7 +16,7 @@ switch($DataAction){
         
         $oSQL->q('START TRANSACTION');
         $oSQL->startProfiling();
-        
+
         if ($atrID=="") {
             $sqlIns = "INSERT INTO stbl_attribute (
                     atrID
@@ -25,9 +25,7 @@ switch($DataAction){
                     , `atrTitleLocal`
                     , `atrShortTitle`
                     , `atrShortTitleLocal`
-                    , `atrFlagNoField`
                     , `atrType`
-                    , `atrUOMTypeID`
                     , `atrOrder`
                     , `atrClasses`
                     , `atrDefault`
@@ -45,9 +43,7 @@ switch($DataAction){
                     , ".$oSQL->escape_string($_POST['atrTitleLocal'])."
                     , ".$oSQL->escape_string($_POST['atrShortTitle'])."
                     , ".$oSQL->escape_string($_POST['atrShortTitleLocal'])."
-                    , '".($_POST['atrFlagNoField']=='on' ? 1 : 0)."'
                     , ".$oSQL->escape_string($_POST['atrType'])."
-                    , ".($_POST['atrUOMTypeID']!="" ? "'".$_POST['atrUOMTypeID']."'" : "NULL")."
                     , '".(integer)$_POST['atrOrder']."'
                     , ".$oSQL->escape_string($_POST['atrClasses'])."
                     , ".$oSQL->escape_string($_POST['atrDefault'])."
@@ -67,16 +63,15 @@ switch($DataAction){
                     , atrTitleLocal = ".$oSQL->escape_string($_POST['atrTitleLocal'])."
                     , atrShortTitle = ".$oSQL->escape_string($_POST['atrShortTitle'])."
                     , atrShortTitleLocal = ".$oSQL->escape_string($_POST['atrShortTitleLocal'])."
-                    , atrFlagNoField = '".($_POST['atrFlagNoField']=='on' ? 1 : 0)."'
                     , atrType = ".$oSQL->escape_string($_POST['atrType'])."
-                    , atrUOMTypeID = ".($_POST['atrUOMTypeID']!="" ? "'".$_POST['atrUOMTypeID']."'" : "NULL")."
                     , atrOrder = '".(integer)$_POST['atrOrder']."'
-                    , atrClasses = ".$oSQL->escape_string($_POST['atrClasses'])."
+                    #, atrClasses = ".$oSQL->escape_string($_POST['atrClasses'])."
                     , atrDefault = ".$oSQL->escape_string($_POST['atrDefault'])."
                     , atrTextIfNull = ".$oSQL->escape_string($_POST['atrTextIfNull'])."
                     , atrProgrammerReserved = ".$oSQL->escape_string($_POST['atrProgrammerReserved'])."
                     , atrCheckMask = ".$oSQL->escape_string($_POST['atrCheckMask'])."
                     , atrDataSource = ".$oSQL->escape_string($_POST['atrDataSource'])."
+                    , atrHref = ".$oSQL->escape_string($_POST['atrHref'])."
                     , atrFlagHideOnLists = '".($_POST['atrFlagHideOnLists']=='on' ? 1 : 0)."'
                     , atrFlagDeleted = '".($_POST['atrFlagDeleted']=='on' ? 1 : 0)."'
                     , atrEditBy = '$intra->usrID', atrEditDate = NOW()
@@ -184,18 +179,6 @@ include eiseIntraAbsolutePath.'inc_top.php';
  echo $intra->showTextBox("atrType", $rwATR["atrType"], Array('type'=>'text'));?></div>
 
 <div class="eiseIntraField">
-<label><?php echo $intra->translate("UOM type (FK to stbl_uom)"); ?>:</label><?php
-$sql = "SELECT uomTitle{$strLocal} as optText, uomID as optValue
-            FROM stbl_uom
-            WHERE uomType=''
-            ORDER BY uomOrder";
-$rs = $oSQL->q($sql);
-while($rw = $oSQL->f($rs)){ $arrOptions[$rw['optValue']] = $rw['optText']; }
-echo $intra->showCombo("atrUOMTypeID", $rwATR["atrUOMTypeID"], $arrOptions
-                   , Array('strZeroOptnText'=>$intra->translate('-- please select')));
-?></div>
-
-<div class="eiseIntraField">
 <label><?php echo $intra->translate("Defines order how this attribute appears on screen"); ?>:</label><?php
  echo $intra->showTextBox("atrOrder", $rwATR["atrOrder"], Array('type'=>'number'));?></div>
 
@@ -222,6 +205,10 @@ echo $intra->showCombo("atrUOMTypeID", $rwATR["atrUOMTypeID"], $arrOptions
 <div class="eiseIntraField">
 <label><?php echo $intra->translate("Data source (table, view or array)"); ?>:</label><?php
  echo $intra->showTextBox("atrDataSource", $rwATR["atrDataSource"], Array('type'=>'text'));?></div>
+
+<div class="eiseIntraField">
+<label><?php echo $intra->translate("Href"); ?>:</label><?php
+ echo $intra->showTextBox("atrHref", $rwATR["atrHref"], Array('type'=>'text'));?></div>
 
 <div class="eiseIntraField">
 <label><?php echo $intra->translate("True when this attribute not shown on lists"); ?>:</label><?php

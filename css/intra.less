@@ -40,10 +40,11 @@ td     {  	vertical-align: top; padding: 0;}
 
     height: @ei-header-height;
     background-color: @ei-header-background;
+    border-bottom: @ei-header-border-bottom-height solid @ei-header-border-bottom-color;
 
     .ei-header-languages {
         float: right;
-        line-height: @ei-header-height - @ei-login-info-height;
+        line-height: @ei-header-height;
         padding-right: 5px;
         > a {
             color: @ei-header-language-color;
@@ -74,7 +75,7 @@ td     {  	vertical-align: top; padding: 0;}
         font-family: @ei-app-title-font;
         float: left;
         height: @ei-header-height;
-        font-size: @ei-header-height - 10px - 10px;
+        font-size: @ei-header-height - 6px - 6px;
         padding: 5px;
         padding-top: 0;
         > .fa {
@@ -113,15 +114,16 @@ td     {  	vertical-align: top; padding: 0;}
     }
 
     & .ei-login-info {
-        font-size: @ei-login-info-height - 1px;
+        font-size: 1em;
         color: @ei-login-info-color;
-        height: @ei-login-info-height;
-        line-height: @ei-login-info-height;
-        position: absolute;
-        text-align: center;
-        top: @ei-header-height - @ei-login-info-height;
-        width: 100%;
+        height: @ei-header-height - @ei-header-border-bottom-height;
+        float: right;
+        text-align: left;
+        width: auto;
+        overflow: hidden;
         background-color: @ei-login-info-background;
+        padding: 0 @ei-login-info-padding;
+        cursor: pointer;
         > a:link{
             color: darken(@ei-login-info-color, 10%);
             text-decoration: underline;
@@ -129,8 +131,39 @@ td     {  	vertical-align: top; padding: 0;}
 
         > a:visited{  color: darken(@ei-login-info-color, 10%); }
         > a:hover{    color: @ei-login-info-color; }
+
+        & .ei-current-user-info {
+            display: none;
+        }
+
+        & > .ei-user-name {
+            font-weight: 600;
+            line-height: 1.68em;
+        }
+        & > .ei-user-description {
+            font-weight: 200;
+            font-size: 0.85em;
+            line-height: 1em;
+        }
+
     }
     
+}
+
+.ei-current-user-info-wrapper .ui-dialog-titlebar {
+    display:none;
+}
+.ei-current-user-info .ei-usrName {
+    font-weight: 600;
+    margin-bottom: 5px;
+    font-size: 1.12em;
+}
+.ei-current-user-info ul.ei-roles {
+    display: block;
+    list-style-type: disc;
+    margin-top: 0px;
+    padding-inline-start: 20px;
+    font-size: 0.9em;
 }
 
 .ei-sidebar-menu {
@@ -363,6 +396,15 @@ td     {  	vertical-align: top; padding: 0;}
                 background-image: @spinner-small !important;
                 background-position: 0 0;
             }
+
+            & .fa {
+                font-size: 1.6em;
+                line-height: 0.8em;
+                margin-left: -1.2em;
+                display: inline-block;
+                margin-right: 0.2em;
+            }
+
         }
         &.no-title a {
             padding-left: 16px;
@@ -397,6 +439,99 @@ td     {  	vertical-align: top; padding: 0;}
     }
     
 }
+
+.ei-whos-next {
+    overflow: hidden;
+    & .whos-next-status {
+        float: left;
+        vertical-align: top;
+        width: 230px;
+        padding-right: 5px;
+        margin-right: 5px;
+        border-right: 1px solid #999;
+        border-bottom: 1px solid #999;
+        & .status-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            & .counter {
+                width: 1.48em;
+                height: 1.4em;
+                display: inline-block;
+                text-align: center;
+                border-radius: 0.7em;
+                line-height: 1.4em;
+                background-color: black;
+                color: #fff;
+                font-weight: 600;
+                white-space: nowrap;
+                margin-right: 0.2em;
+                &:after {
+                    content: ".";
+                }
+            }
+            & .title {
+                border-bottom: 1px solid #ccc;
+            }
+        }
+        & .actions {
+            list-style: none;
+            padding-inline-start: 0.2em;
+            & > li {
+                font-weight: 600;
+                padding-bottom: 1em;
+                & i {
+                    width: 1.4em;
+                }
+                & i.fa {
+                    font-size: 1.4em;
+                }
+                & i.ss_sprite {
+                    font-size: 0.9em;
+                }
+
+                & ul {
+                    list-style: none;
+                    display: block;
+                    font-size: 0.8em;
+                    padding-inline-start: 1.8em;
+                    font-weight: normal;
+
+                    & li {
+                        padding-top: 0.6em;
+                        &:before {
+                            font-family: FontAwesome;
+                            margin-right: .2em;
+                            color: #00000099;
+                        }
+                    }
+                    & li.users {
+                        &:before {
+                            margin-left: -0.9em;
+                            content: "\f007";
+                        }
+                        & > span {
+                            display: inline-block;
+                            &.disabled {
+                                text-decoration: line-through;
+                            }
+                        }
+                    }
+                    & li.roles {
+                        &:before {
+                            margin-left: -1.2em;
+                            content: "\f0c0";
+                        }
+                        & > span {
+                            display: inline-block;
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+}
+
 
 #sysmsg {
     display: none;
@@ -669,6 +804,38 @@ input[type=checkbox].eiseIntraValue {
 
     & .dates {
         font-size: 0.9em;
+    }
+}
+.eif-action-log {
+    & td.eif_actTitlePast {
+        text-align: right;
+    }
+    & td.eif_aclEditBy {
+        width: 100%;
+    }
+    & td.eif_aclATA {
+        white-space: nowrap;
+    }
+    & td.eif_aclComments {
+        font-size: 1.12em;
+    }
+    & .eif_aclTracedHTML {
+        & .eif-field {
+            display: block;
+            background-color: #00000008;
+            & > * {
+                display: inline-block;
+                vertical-align: top;
+            }
+            & > label {
+                width: 150px;
+                text-align: right;
+                margin-right: 5px;
+                &:after {
+                    content: ':';
+                }
+            }
+        }
     }
 }
 
@@ -1031,6 +1198,17 @@ div.eiseIntraComment {
     overflow: visible;
 }
 
+.ei-half-screen {
+    width: 48%;
+    display: inline-block;
+    vertical-align: top;
+}
+.ei-third-screen {
+    width: 32%;
+    display: inline-block;
+    vertical-align: top;
+}
+
 .eif-file-dropzone {
     display: block;
     height: 4em;
@@ -1098,4 +1276,24 @@ div.eiseIntraComment {
 .eif-input-money {
     width: auto !important;
     text-align: right;
+}
+
+.auth_matrix {
+    & ul.actions {
+        & > li {
+            padding-left: 10px;
+            overflow: hidden;
+            text-align: left;
+        }
+        & i.action-icon {
+            padding-bottom: 0;
+            margin-right: 5px;
+        }
+        & ul.roles {
+            margin-left: 0px;
+            font-size: 0.75em;
+            font-family: 'Arial Narrow', Arial, sans-serif; 
+            font-stretch: condensed;
+        }
+    }
 }

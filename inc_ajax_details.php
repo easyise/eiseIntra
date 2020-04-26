@@ -47,7 +47,7 @@ switch ($DataAction){
             $o = new eiseEntityItemForm($oSQL, $intra, $arrIn['entID'], $arrIn['entItemID']);    
             $arrFIL = $o->getFiles();
 
-            $intra->json('ok', $intra->translate('Fiels: ').count($arrFIL), $arrFIL);
+            $intra->json('ok', $intra->translate('Files: ').count($arrFIL), $arrFIL);
 
         } catch (Exception $e){
             $intra->json('error', $e->getMessage());

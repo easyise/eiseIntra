@@ -161,6 +161,22 @@ var __initRex = function(conf_){
     })
 }
 
+var _showUserInfo = function(userInfoHTML, $initiator){
+    $(userInfoHTML).dialog({
+        dialogClass: 'ei-current-user-info-wrapper', 
+        position: {
+            my: "left top",
+            at: 'left bottom',
+            of: $initiator
+          },
+        show: 'slideDown',
+        hide: 'slideUp',
+        resizable: false,
+        width: ($initiator.outerWidth() > 300 ? $initiator.outerWidth()+'px' : 300),
+        
+    });
+}
+
 var methods = {
 
 /**
@@ -216,6 +232,28 @@ init: function(options){
         }
         
     }
+
+    var userInfoHTML = ($('.ei-current-user-info')[0] ? $('.ei-current-user-info')[0].outerHTML :  null);
+    if(userInfoHTML)
+        $('.ei-current-user-info').remove();
+    $('.ei-login-info')
+        .css('cursor', 'pointer')
+        .click(function(){
+            var $initiator = $(this);
+            if($('.ei-current-user-info-wrapper')[0]){
+                $('.ei-current-user-info').dialog('close').remove();
+                return false;
+            }
+            if(userInfoHTML)
+                _showUserInfo(userInfoHTML, $initiator);
+            else {
+                $.get('ajax_details.php?DataAction=getCurrentUserInfo', function(response){
+                    _showUserInfo(response, $initiator);
+                })
+            }
+
+            
+        });
 
     // render menu
     if($('.ei-sidebar-menu')[0]){
@@ -616,6 +654,8 @@ var getAllInputs = function($form){
 }
 
 var getInputType = function($inp){
+    if($inp[0] && $inp[0].dataset && $inp[0].dataset['type'])
+        return $inp[0].dataset['type'];
     var strType = ($inp.attr('type') ? $inp.attr('type') : 'text');
     if(strType=='text'){
         var classList = ($inp.attr('class') ? $inp.attr('class').split(/\s+/) : []);
@@ -689,6 +729,8 @@ var __ajaxDropdownHref = function(inp, $inpVal, href){
     if( $a[0] && hrefKey=='' ){
         $a.css('display', 'none');
         return;
+    } else {
+        $inp.css('padding-right', '40px');
     }
             
 
@@ -1012,11 +1054,12 @@ makeMandatory: function( obj ) {
     
     $(this).find( obj.strMandatorySelector ).each(function(){
 
-       var label = getFieldLabel($(this));
-       $(this).parents('.eif-field').first().addClass('required');
+       var label = getFieldLabel($(this)),
+            $parent = $(this).parents('.eif-field').first().addClass('required');
        label.text(label.text().replace(/\:$/, "*:"));
        if (!obj.flagDontSetRequired){
             $(this).attr('required', 'required');
+            $parent.find('input[name="'+this.name+'_text"]').attr('required', 'required');
        }
     });
     
@@ -1543,7 +1586,7 @@ addField: function( field ){
         element.prop('name', field.name);
 
     if(field.type=='ajax_dropdown'){
-        element[0].dataset['source'] = JSON.stringify({table: field.source, prefix: field.source_prefix, scriptURL: field.sourceURL});
+        element[0].dataset['source'] = JSON.stringify({table: field.source, prefix: field.source_prefix, scriptURL: field.sourceURL, extra: field.extra});
         element[0].name = element[0].name+'_text';
     }
 

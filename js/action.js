@@ -94,12 +94,58 @@ var actionButtonClick = function (oBtn, fnCallback){
     
 }
 
+var eiseIntraActionMultiple = function(event, $form, callback){
+                
+    event.preventDefault(true);
+
+    var $initiatorButton = $(this);
+
+    actionChoosen($(this), $form, function(o){
+
+        if(o.act.actID=='3'){
+            if(!confirm("Are you sure you'd like to delete?")){
+                return;
+            }
+        }
+
+        var arrFieldsToFill = [];
+        if (o.act.actFlagComment=='1'){
+            arrFieldsToFill.push({name: 'aclComments', title: 'Comments', type: 'textarea', required: true});
+        }
+
+        if( arrFieldsToFill.length>0 ){
+            var $frm = $.fn.eiseIntraForm('createDialog', {fields: arrFieldsToFill
+                , title: $initiatorButton.val() || $initiatorButton.text()
+                , onsubmit: function(newValues){
+
+                    $form.eiseIntraForm('fill', $.extend(o, newValues), {createMissingAsHidden: true});
+                    callback.call($form, o, $initiatorButton);
+
+                    return false;
+
+                }
+            });
+
+            return;
+
+        }
+
+        $form.eiseIntraForm('fill', o, {createMissingAsHidden: true});
+
+        callback.call($form, o, $initiatorButton);
+
+    });
+
+
+
+}
+
 var eiseIntraActionSubmit = function(event, $form){
                 
         event.preventDefault(true);
 
         var $initiatorButton = $(this);
-        
+
         actionChoosen($(this), $form, function(o){
 
             if(o.act.actID=='3'){
@@ -133,7 +179,7 @@ var eiseIntraActionSubmit = function(event, $form){
 
             if( arrFieldsToFill.length>0 ){
                 var $frm = $.fn.eiseIntraForm('createDialog', {fields: arrFieldsToFill
-                    , title: $initiatorButton.val()
+                    , title: $initiatorButton.val() || $initiatorButton.text()
                     , onsubmit: function(newValues){
 
                         $form.eiseIntraForm('fill', $.extend(o, newValues), {createMissingAsHidden: true});
@@ -146,8 +192,13 @@ var eiseIntraActionSubmit = function(event, $form){
                 return;
 
             }
+
             $form.eiseIntraForm('fill', o, {createMissingAsHidden: true});
-            $form.off('submit').submit();
+            var inpSubmit = $form.find('input[type="submit"]')[0] || $('<input type="submit" style="visibility:hidden" />').appendTo($form);
+            $form.off('submit');
+            inpSubmit.click();
+
+            return;
 
         });
 
@@ -328,7 +379,17 @@ init: function( options ) {
 
         })
         /********** initialize submit buttons ***********/
-        $this.find('input.eiseIntraActionSubmit, button.eiseIntraActionSubmit').click( function(ev) { eiseIntraActionSubmit.call(this, ev, $this) });
+        $this.find('input.eiseIntraActionSubmit, button.eiseIntraActionSubmit').click( function(ev) { 
+            var $initiator = $(this);
+            if($this.hasClass('ei-form-multiple')){
+                eiseIntraActionMultiple.call(this, ev, $this, function(o){
+                    $('.eiseList').eiseIntraEntityItemList( 'submitForm', $this, $initiator.val() || $initiator.text() );
+                });
+                return false;
+            }
+            eiseIntraActionSubmit.call(this, ev, $this) 
+
+        });
 
         $('a[href="#ei_action"]').click( function(ev) { eiseIntraActionSubmit.call(this, ev, $this); return false; });
         $('a[href="#ei_messages"]').click( function(ev) {
@@ -642,6 +703,9 @@ bookmark: function($elem, callback){
 
 eiseIntraActionSubmit: function(btn, event){
     eiseIntraActionSubmit.call(btn, event, this);
+},
+eiseIntraActionMultiple: function(btn, event, callback){
+    eiseIntraActionMultiple.call(btn, event, this, callback);
 }
 
 };
@@ -667,6 +731,23 @@ $.fn.eiseIntraEntityItemForm = function( method ) {
  */
 (function( $ ){
 
+var entID,
+    entIDField,
+    entIDsField,
+    entIDs;
+
+var getEntIDs = function(){
+
+    entIDs = this.eiseList('getRowSelection');
+
+    if(!entIDs){
+        alert("No items selected");
+    }
+
+    return entIDs;
+
+}
+
 var methods = {
 
 init: function( options ) {
@@ -684,9 +765,67 @@ init: function( options ) {
         $list.eiseIntraEntityItemList('multipleEditForm', $(this).text())
     })
 
+    $('a[href="#ei_action_mul"]').click(function(ev){
+        $list.eiseIntraEntityItemList('actionButtonClick', $(this), ev);
+    });
+
+    entID = list['conf']['prefix'] || list['conf']['entID'];
+    entIDField = list['conf']['PK'];
+    entIDsField = entIDField+'s';
+
+},
+
+submitForm: function( $form, title ){
+
+    $form.find('input[name="'+entIDField+'"]').remove();
+    $form.find('input[name="'+$('body').eiseIntra('conf')['dataActionKey']+'"]').val('updateMultiple');
+    $('<input type="hidden" name="'+entIDsField+'" value="'+entIDs+'">').appendTo($form);
+    window.setTimeout(function(){$form.find('input[type="submit"], input[type="button"]').each(function(){this.disabled = true;})}, 1);
+
+    $form.eiseIntraBatch('submit', {
+        flagAutoReload: true
+        , timeoutTillAutoClose: null
+        , title: title
+        , onload: function(){
+            if($form.hasClass('ui-dialog-content'))
+                $form.dialog('close')
+            $form.remove();
+        }
+    });
+
+},
+
+actionButtonClick: function($initiator, ev){
+    
+    if(!getEntIDs.call(this))
+        return;
+
+    var dataset = JSON.parse($initiator[0].dataset['action']);
+
+    var $list = this;
+
+    var $form = $('<form/>')
+        .attr('method', 'POST')
+        .attr('action', this.eiseList('getListObject').conf['form']);
+    $('<input type="hidden">').attr('name', $('body').eiseIntra('conf')['dataActionKey']).val('updateMultiple').appendTo($form);
+    // $('<input type="hidden">').attr('name', 'entID').val(entID).appendTo($form);
+    $('<input type="hidden">').attr('name', entIDsField).val(entIDs).appendTo($form);
+    $.each(dataset, function(key, value){
+        $('<input type="hidden">').attr('name', key).val(value).appendTo($form);    
+    })
+
+    $form.appendTo('body');
+
+    $form.eiseIntraEntityItemForm().eiseIntraEntityItemForm('eiseIntraActionMultiple', $initiator, ev, function(){
+        $list.eiseIntraEntityItemList('submitForm', $form, $initiator.text());
+    })
+        
 },
 
 multipleEditForm: function(title){
+
+    var $list = this;
+
     if(!this.formHTML){
         var selForm = '.eiseIntraMultiple',
             $formTemplate = $(selForm);    
@@ -694,16 +833,10 @@ multipleEditForm: function(title){
         $formTemplate.remove(); 
     }
 
-    var entIDs = $('.eiseList').eiseList('getRowSelection');
-
-    if(!entIDs){
-        alert("No items selected");
+    if(!getEntIDs.call(this))
         return;
-    }
 
-    var $form = $(this.formHTML).appendTo('body'),
-        entIDField = $('.eiseList').eiseList('getListObject')['conf']['PK'],
-        entIDsField = entIDField+'s';
+    var $form = $(this.formHTML).appendTo('body');
 
     $form
         .prop('title', title)
@@ -712,25 +845,16 @@ multipleEditForm: function(title){
             , width: $(window).width()*0.80
         })
         .eiseIntraForm()
-        .eiseIntraEntityItemForm({flagUpdateMultiple: true})
-        .off('submit')
+        .eiseIntraEntityItemForm({flagUpdateMultiple: true});
+
+    $form.off('submit')
         .on('submit', function(event){
 
             $form.eiseIntraEntityItemForm("checkAction", function(){
                 if ($form.eiseIntraForm("validate")){
                     
-                    $form.find('input[name="'+entIDField+'"]').remove();
-                    $form.find('input[name="'+$('body').eiseIntra('conf')['dataActionKey']+'"]').val('updateMultiple');
-                    $('<input type="hidden" name="'+entIDsField+'" value="'+entIDs+'">').appendTo($form);
-                    window.setTimeout(function(){$form.find('input[type="submit"], input[type="button"]').each(function(){this.disabled = true;})}, 1);
-                    $form.eiseIntraBatch('submit', {
-                        flagAutoReload: true
-                        , timeoutTillAutoClose: null
-                        , title: title
-                        , onload: function(){
-                            $form.dialog('close').remove();
-                        }
-                    });
+                    $list.eiseIntraEntityItemList('submitForm', $form, title);
+                    
                 } else {
                     $form.eiseIntraEntityItemForm("reset");
                 }

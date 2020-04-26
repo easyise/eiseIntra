@@ -3,7 +3,7 @@ class eiseAction {
 
 public static $ts = array('ETD', 'ATD', 'ETA', 'ATA');
 	
-public function __construct($item, $arrAct){
+public function __construct($item, $arrAct, $options = array()){
 
 	$this->item = $item;
 	$this->oSQL = $item->oSQL;
@@ -20,21 +20,30 @@ public function __construct($item, $arrAct){
         $types['acl'.$_ts] = 'datetime';
     $types = array_merge($types, $this->item->conf['attr_types']);
 
-    $this->item->getAllData(array('Master', 'Text','ACL'));
+    if(!$options['flagDoNotRefresh'])
+        $this->item->getAllData(array('Master', 'Text','ACL'));
 
 	if($arrAct['aclGUID']){
         $this->arrAction = $this->item->item['ACL'][$arrAct['aclGUID']];
-        $traced = array();
+        if(!$this->arrAction){
+            throw new Exception("Action {$arrAct['aclGUID']}/{$arrAct['actID']} not found", 1);
+        }
+        $toTrace = array();
         foreach($nd as $field=>$value){
             if(strpos($field, '_'.$arrAct['aclGUID'])===False)
                 continue;
-            $traced[str_replace('_'.$arrAct['aclGUID'], '', $field)] = $value;
+            $toTrace[str_replace('_'.$arrAct['aclGUID'], '', $field)] = $value;
         }
         $this->conf = $item->conf['ACT'][$this->arrAction['aclActionID']];
-        $this->arrAction = array_merge($this->arrAction
-            , $this->intra->arrPHP2SQL($traced, $types)
-            , array('aclToDo'=> $nd['aclToDo'])
-            );
+        $this->arrAction = array_merge(
+            $this->conf,
+            $this->arrAction,
+            $this->intra->arrPHP2SQL($toTrace, $types),
+            array('aclToDo'=> $nd['aclToDo'])
+        );
+
+        $this->arrAction = array_merge($this->arrAction, $this->getTraceData());
+
 
 	} else {
 		$this->conf = $item->conf['ACT'][(string)$arrAct['actID']];
@@ -47,10 +56,12 @@ public function __construct($item, $arrAct){
         case 3:
             $this->arrAction['aclOldStatusID'] = $this->arrAction['actOldStatusID'][0];
             $this->arrAction['aclNewStatusID'] = $this->arrAction['actNewStatusID'][0];
+            $this->arrAction['RLA'] = ($this->intra->arrUsrData['FlagWrite'] || $this->intra->arrUsrData['FlagDelete'] ? array($item->conf['RoleDefault']) : array());
             break;
         case 2:
             $this->arrAction['aclOldStatusID'] = $item->staID;
             $this->arrAction['aclNewStatusID'] = $item->staID;
+            $this->arrAction['RLA'] = ($this->intra->arrUsrData['FlagWrite'] || $this->intra->arrUsrData['FlagUpdate'] ? array($item->conf['RoleDefault']) : array());
             break;
         default:
             break;
@@ -280,6 +291,21 @@ public function validate(){
                 , $this->item->conf['STA'][(string)$this->arrAction["aclNewStatusID"]]['staTitle'.$this->intra->local]));
 	    }
 	}
+
+    // mandatory items check
+    $aMissingFields = array();
+    foreach ((array)$this->arrAction['aatFlagMandatory'] as $atrID => $props) {
+        $v = ($this->arrAction[$atrID]
+                ? $this->arrAction[$atrID]
+                : ($this->item->item[$atrID])
+                ); 
+        if(!$v || (is_numeric($v) && (double)$v===0.0 )){
+            $aMissingFields[] = $this->item->conf['ATR'][$atrID]['atrTitle'.$this->intra->local]." ({$atrID})";
+        }
+    }
+    if(count($aMissingFields)){
+        throw new Exception($this->intra->translate("Some fields are missing:\n%s", implode(",\n\t", $aMissingFields)));
+    }
 }
 
 public function finish(){
@@ -290,6 +316,7 @@ public function finish(){
 
     $this->checkTimeLine();
     $this->checkMandatoryFields();
+    $this->checkPermissions();
 
     $item_before = self::itemCleanUp($this->item->item_before, $this->item->conf['prefix']);
 
@@ -524,6 +551,16 @@ function checkMandatoryFields(){
     if($this->conf['actFlagComment'] && !$this->arrAction['aclComments'])
         throw new Exception($this->intra->translate("Action '%s' requires a comment", $this->conf['actTitle'.$this->intra->local]));
     
+}
+
+public function checkPermissions(){
+    $rwAct = $this->arrAction;
+    $aUserRoles = array_merge(array($this->item->conf['RoleDefault']), $this->intra->arrUsrData['roleIDs']);
+    if(count(array_intersect($aUserRoles, $rwAct['RLA']))==0)
+        throw new Exception($this->intra->translate("%s: not authorized because not member of (%s)",$this->arrAction['actTitle'.$this->intra->local], implode(', ', $rwAct['RLA'])) );
+    $reason = '';
+    if(count($this->item->checkDisabledRoleMembership($this->intra->usrID, $rwAct, $reason)) > 0)
+         throw new Exception($this->intra->translate("Not authorized as %s", $reason));
 }
 
 public function getTimeStamps($nd = null, &$tsValues = array()){

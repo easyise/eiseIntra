@@ -882,11 +882,17 @@ public function menu($target = null){
             $rsSta = $this->oSQL->do_query($sqlSta);
             while ($rwSta = $this->oSQL->fetch_array($rsSta)){
                 $staMenuItemClass = $rwSta['staMenuItemClass'] ? $rwSta['staMenuItemClass'] : 'fa-circle-o';
+                $customSubMenu_sta = call_user_func_array(array($this, 'menuItem'), array($rw, $rwSta));
                 $strRet .= "<li id='".$rw["pagID"]."_".$rwSta["staID"]."'><a{$target} href='"
                     .$rw["pagFile"]."?".$rw["pagEntityID"]."_staID=".$rwSta["staID"]."'>"
                     .'<i class="fa '.$staMenuItemClass.'"></i>'
                     .($rwSta["staTitle{$this->local}Mul"] ? $rwSta["staTitle{$this->local}Mul"] : $rwSta["staTitle{$this->local}"])
-                    ."</a>\n";
+                    .(preg_match('/^\<ul/i', ltrim($customSubMenu_sta))
+                        ? ' <i class="fa fa-angle-left pull-right"></i>' 
+                        : '')
+                    .'</a>'
+                    .$customSubMenu_sta
+                    ."\n";
             }
         }
        
@@ -1064,16 +1070,7 @@ function actionMenu($arrActions = array(), $flagShowLink=false){
             $strRet .=  "<div class=\"menubutton\">";
             $strRet .= "<a href=\"{$act['action']}\"".($act['id'] ? ' id="'.$act['id'].'"' : '');
 
-            if($act['class']){
-                $iconClass = (preg_match('/\bfa-\_/', $act['class']) 
-                    ? 'fa '
-                    : (preg_match('/\bss\_/', $act['class']) 
-                        ? 'ss_sprite '
-                        : ''
-                        )
-                    );
-                $strRet .= " class=\"{$iconClass}{$act['class']}\"";
-            }
+            $strRet .= ( preg_match('/^ss\_/', $act['class']) ? " class=\"ss_sprite {$act['class']}\"" : '' );
             $strRet .= self::processHTMLDataset($act);
            
             $isJS = preg_match("/javascript\:(.+)$/", $act['action'], $arrJSAction);
@@ -1083,7 +1080,9 @@ function actionMenu($arrActions = array(), $flagShowLink=false){
             } else {
                 $strRet .=  (isset($act["target"]) ? " target=\"{$act["target"]}\"" : '');
             }
-            $strRet .= ">{$act["title"]}</a>\r\n";
+            $strRet .= '>';
+            $strRet .= ( preg_match('/^fa\-/', $act['class']) ? '<i class="fa '.$act['class'].'"> </i>' : '');
+            $strRet .= "<span>{$act["title"]}</span></a>\r\n";
             $strRet .= "</div>\r\n";
     }
 
@@ -1211,6 +1210,9 @@ private function getCookiePath($strLocation, $arrConfig = array()){
  * @return nothing, script execution terminates.
  */
 function redirect($strMessage, $strLocation, $arrConfig = array()){
+
+    if($this->cancelRedirect)
+        return;
 
     $conf = array_merge($this->conf, $arrConfig);
 
@@ -1344,6 +1346,8 @@ function batchStart($conf = array()){
     header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
     header("Content-type: text/html;charset=utf-8"); // HTML
 
+    header('X-Accel-Buffering: no'); // disable NGINX buffering
+
     $this->flagBatch = true;
 
     foreach ($conf as $key => $value) {
@@ -1392,7 +1396,7 @@ function batchEcho($string){
  */
 function setUserMessage($strMessage, $conf = array()){
     $conf = array_merge($this->conf, $conf);
-    setcookie ( $conf['UserMessageCookieName'], $strMessage, 0, $this->getCookiePath($strLocation,  $conf) );
+    setcookie ( $conf['UserMessageCookieName'], substr($strMessage, 0, 1024), 0, $this->getCookiePath($strLocation,  $conf) );
 }
 
 /**
@@ -1422,10 +1426,12 @@ function getRoleUsers($rolID) {
    $sqlRoleUsers = "SELECT rluUserID
        FROM stbl_role ROL
        INNER JOIN stbl_role_user RLU ON RLU.rluRoleID=ROL.rolID
-       WHERE rolID='$rolID'   AND DATEDIFF(NOW(), rluInsertDate)>=0";
+       INNER JOIN stbl_user ON usrID=rluUserID
+       WHERE rolID='$rolID'   AND DATEDIFF(NOW(), rluInsertDate)>=0
+        AND usrFlagDeleted=0";
    $rsRole = $this->oSQL->do_query($sqlRoleUsers);
    while ($rwRole = $this->oSQL->fetch_array($rsRole))
-      $arrRoleUsers[] = $rwRole["rluUserID"];
+      $arrRoleUsers[] = strtoupper($rwRole["rluUserID"]);
 
    return $arrRoleUsers;
 }
@@ -1719,6 +1725,12 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
                     , $conf); 
                 break;
 
+            case "money":
+                $html .= $this->showTextBox($name
+                    , $this->decSQL2PHP($value, 2) 
+                    , $conf); 
+                break;
+
             case "select":
             case "combobox"://backward-compatibility
 
@@ -1964,7 +1976,7 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
             ? ($strClassInput!='' ? ' ' : '').'eiseIntra_'.$arrConfig["type"].' eif-input-'.$arrConfig["type"] 
             : '');
 
-        $strRet = "<input type=\"{$strType}\" name=\"{$strName}\" id=\"{$id}\" class=\"{$strClassInput}\"".
+        $strRet = "<input type=\"{$strType}\" name=\"{$strName}\" id=\"{$id}\" class=\"{$strClassInput}\" data-type=\"{$arrConfig['type']}\"".
             ($strAttrib ? " ".$strAttrib : "").
             ($arrConfig["required"] ? " required=\"required\"" : "").
             ($arrConfig["autocomplete"]===false ? " autocomplete=\"off\"" : "").
@@ -1981,7 +1993,7 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
             .htmlspecialchars($strValue)
             .($arrConfig['href'] ? "</a>" : '')
         ."</div>\r\n"
-        ."<input type=\"hidden\" name=\"{$strName}\" id=\"{$id}\" class=\"eif-input\""
+        ."<input type=\"hidden\" name=\"{$strName}\" id=\"{$id}\" class=\"eif-input\" data-type=\"{$arrConfig['type']}\""
         ." value=\"".htmlspecialchars($strValue)."\" />";
     }
     
@@ -2570,7 +2582,8 @@ function dataAction($dataAction, $funcOrObj=null){
     }
 
 }
-function cancelDataAction(&$nd){
+function cancelDataAction(&$nd=null){
+    unset($nd[$this->conf['dataActionKey']]);
     unset($_POST[$this->conf['dataActionKey']]);
 }
 

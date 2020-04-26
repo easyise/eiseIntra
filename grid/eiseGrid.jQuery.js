@@ -525,6 +525,7 @@ var __attachAutocomplete = function(oTr) {
         var initComplete, 
             inp = this, 
             $inp = $(inp),
+            textIfEmpltylist = ' - empty list -',
             $inpVal = $inp.prev("input"),
             source = $.parseJSON(inp.dataset['source']),
             url = (source.scriptURL 
@@ -541,21 +542,23 @@ var __attachAutocomplete = function(oTr) {
                 .each(function(){  this.addEventListener('input', function(ev){   if( typeof initComplete === 'undefined'){  ev.stopImmediatePropagation();  }     }, false);      }) // IE11 hack
                 .autocomplete({
                 source: function(request,response) {
-
                     $inpVal.change();
                     
                     // reset old value
-                    if(request.term.length<3){
+                    if(request.term.length<( typeof source['threshold']!='undefined' ? source['threshold'] : 3)){
                         response({});
                         $inpVal.val('');
                         return;
                     }
 
-                    var extra = ($inp.attr('extra') ? $inp.attr('extra') : $.parseJSON(inp.dataset['source'])['extra']);
+                    var extra = ($inp.attr('extra') ? $inp.attr('extra') : source['extra']);
                     var urlFull = url+"&q="+encodeURIComponent(request.term)+(typeof extra!== 'undefined' ? '&e='+encodeURIComponent(extra) : '');
                     
                     $.getJSON(urlFull, function(response_json){
-                        
+                        if(response_json.data.length == 0){
+                            response( [ textIfEmpltylist ] );
+                            return;
+                        }                        
                         response($.map(response_json.data, function(item) {
                                 return {  label: item.optText, value: item.optValue, class: item.optClass  }
                             }));
@@ -571,7 +574,7 @@ var __attachAutocomplete = function(oTr) {
                 },
                 select: function(event,ui) {
                     event.preventDefault();
-                    if (ui.item){
+                    if (ui.item && ui.item.label && ui.item.label!=textIfEmpltylist){
                         $(inp).val(ui.item.label);
                         $inpVal.val(ui.item.value || ui.item.label);
                         $inpVal.change();
@@ -2575,6 +2578,139 @@ dragNDrop: function(fnCallback){
             .bind('dragover', function(event){  })
             .bind('dragleave', function(event){ event.preventDefault(); event.stopImmediatePropagation(); })
     });
+
+    return this;
+
+},
+
+fileUpload: function( fileUploadOptions ){
+
+    var fileUploadOptions_default = {
+        'upload_script': location.pathname,
+        'DataAction_field': $('body').eiseIntra('conf')['dataActionKey'],
+        'DataAction_value': 'attachFile',
+        'File_field': 'attachment[]',
+        'file_size_limit': 8000000,
+        'total_upload_limit': 16000000,
+        'allowed_types': []
+    }
+
+    $.extend(fileUploadOptions, fileUploadOptions_default, fileUploadOptions);
+
+    var $grid = $(this[0]),
+        grid = $grid.eiseGrid('getGridObject'),
+        $form = null;
+
+    var __do_upload = function(fd){
+        fd.append(fileUploadOptions['DataAction_field'], fileUploadOptions['DataAction_value']);
+        fd.append(fileUploadOptions['itemIDfield'], fileUploadOptions['itemID']);
+        var size = 0;
+        for (var [key, value] of fd.entries()) { 
+            if(value.constructor.name=='File'){
+                var file = value;
+                if( fileUploadOptions['allowed_types'].length && fileUploadOptions['allowed_types'].indexOf(file.type)==-1 ){
+                    alert("ERROR: File type of "+file.name+" is not supported");
+                    grid.spinner(false);
+                    return false;
+                }
+                if( file.size >  fileUploadOptions['file_size_limit'] ){
+                    alert("ERROR: File size of "+file.name+" is larger than "+fileUploadOptions['file_size_limit']+" bytes");
+                    grid.spinner(false);
+                    return false;
+                } 
+                size +=  file.size;               
+            }
+        }
+        if(size==0){
+            grid.spinner(false);
+            return false;
+        }
+
+        if( size > fileUploadOptions['total_upload_limit'] ){
+            alert("ERROR: Total upload size is bigger than "+fileUploadOptions_default['total_upload_limit']+" bytes");
+            grid.spinner(false);
+            return false;
+        } 
+
+        $.ajax({
+            url: fileUploadOptions['upload_script'],  //server script to process data
+            type: 'POST',
+            data: fd,
+            xhr: function() {  // custom xhr
+                myXhr = $.ajaxSettings.xhr();
+                if(myXhr.upload){ // if upload property exists
+                    myXhr.upload.addEventListener('progress', function(){}, false); // progressbar
+                }
+                return myXhr;
+            },
+            // Ajax events
+            success: completeHandler = function(response) {
+
+                if(response.status!='ok'){
+                    alert(response.message);
+                } else {
+                    grid.fill( response.data );
+                }
+                if($form[0])
+                    $form.dialog('close').remove();
+                
+            },
+            error: errorHandler = function() {
+                alert("Something went wrong!");
+                grid.spinner(false);
+                if($form[0])
+                    $form.dialog('close').remove();
+            },
+            // Options to tell jQuery not to process data or worry about the content-type
+            cache: false, contentType: false, processData: false
+        }, 'json');
+
+    }
+
+    $grid.find('.eg-button-add')
+        .unbind('click')
+        .bind('click', function(){
+            $form = $(this).eiseIntraForm('createDialog'
+                ,   {
+                    title: 'Upload file'
+                    , action: fileUploadOptions['upload_script']
+                    , method: 'POST'
+                    , fields:[
+                        { name: fileUploadOptions['File_field'], title: 'File', type: 'file' },
+                    ]
+                    , onsubmit: function(){
+                        grid.spinner();
+                        __do_upload(new FormData(this));
+                        return false;
+                    }
+                });
+        });
+
+    $grid
+        .eiseGrid('dragNDrop', function(event){
+            var files = event.originalEvent.dataTransfer.files,
+                fd = new FormData();
+            if (!files) {
+                alert("Drag'n'drop not supported. Use Google Chrome")
+                return false;
+            };
+            [...files].forEach( file => { fd.append(fileUploadOptions['File_field'], file); });
+            __do_upload( fd );
+
+        })
+        .eiseGrid('beforeDelete', function(){ return confirm('Are you sure you want to delete?'); })
+        .eiseGrid('onDelete', function(filGUID){
+        
+            var url = fileUploadOptions['upload_script']+'?DataAction=deleteFile&filGUID='+encodeURIComponent(filGUID)+'&'+fileUploadOptions['itemIDfield']+'='+encodeURIComponent(fileUploadOptions['itemID'])
+            $.getJSON(url, function(response){
+                $('body').eiseIntra('showMessage', response.message);
+                if(response.status!='ok')
+                    return false;
+                else 
+                    return true;
+            })
+                    
+        });
 
     return this;
 
