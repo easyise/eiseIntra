@@ -1396,7 +1396,7 @@ function batchEcho($string){
  */
 function setUserMessage($strMessage, $conf = array()){
     $conf = array_merge($this->conf, $conf);
-    setcookie ( $conf['UserMessageCookieName'], $strMessage, 0, $this->getCookiePath($strLocation,  $conf) );
+    setcookie ( $conf['UserMessageCookieName'], substr($strMessage, 0, 1024), 0, $this->getCookiePath($strLocation,  $conf) );
 }
 
 /**
