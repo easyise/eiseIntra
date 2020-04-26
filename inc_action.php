@@ -43,16 +43,6 @@ public function __construct($item, $arrAct, $options = array()){
         );
 
         $this->arrAction = array_merge($this->arrAction, $this->getTraceData());
-        
-        
-
-
-        // if($this->arrAction['aclActionID']==410){
-        //     echo '<pre>';
-        //     // debug_print_backtrace();
-        //     die('<pre>'.var_export($traced, true));
-        // }
-
 
 
 	} else {
@@ -567,7 +557,7 @@ public function checkPermissions(){
     $rwAct = $this->arrAction;
     $aUserRoles = array_merge(array($this->item->conf['RoleDefault']), $this->intra->arrUsrData['roleIDs']);
     if(count(array_intersect($aUserRoles, $rwAct['RLA']))==0)
-        throw new Exception($this->intra->translate("Not authorized because not member of (%s)",implode(', ', $rwAct['RLA'])) );
+        throw new Exception($this->intra->translate("%s: not authorized because not member of (%s)",$this->arrAction['actTitle'.$this->intra->local], implode(', ', $rwAct['RLA'])) );
     $reason = '';
     if(count($this->item->checkDisabledRoleMembership($this->intra->usrID, $rwAct, $reason)) > 0)
          throw new Exception($this->intra->translate("Not authorized as %s", $reason));

@@ -359,6 +359,9 @@ private function init(){
             $this->conf['RolesVirtual'][] = $rwROL;
     }
 
+    if(!$this->conf['RoleDefault'])
+        $this->conf['RoleDefault'] = '__ROLE_DEFAULT';
+
     $this->conf = array_merge($this->conf, $this->ent);
     
     // read attributes
@@ -399,7 +402,7 @@ private function init(){
         ORDER BY atrOrder";
     $rsAAt = $oSQL->q($sqlAAt);
 
-    while($rwAAt = $oSQL->f($rsAAt)){ $acts[] = $rwAAt; }
+    $acts = array();
 
     $acts[] = array (
             'actID' => '1',
@@ -464,8 +467,10 @@ private function init(){
             'actFlagAutocomplete' => '1',
             );
 
+    while($rwAAt = $oSQL->f($rsAAt)){ $acts[] = $rwAAt; }
+
     foreach ($acts as $rwAAt) {
-        
+
         if(!isset($this->conf['ACT'][(string)$rwAAt['actID']])){
             $arrAct = array();
             foreach($rwAAt as $key=>$val){
@@ -1562,6 +1567,8 @@ function showActionRadios(){
     if (!$this->intra->arrUsrData["FlagWrite"])
         return;
 
+    $aclOldStatusID = $this->staID;
+
     if(is_array($this->conf['STA'][$this->staID]['ACT']))
         foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
             
@@ -1571,6 +1578,8 @@ function showActionRadios(){
             $aUserRoles = array_merge(array($this->conf['RoleDefault']), $this->intra->arrUsrData['roleIDs']);
             if(count(array_intersect($aUserRoles, $rwAct['RLA']))==0)
                 continue;
+
+            $aclNewStatusID = $rwAct["actNewStatusID"][0];
 
             $arrRepeat = Array(($rwAct["actFlagAutocomplete"] ? "1" : "0") => (!$rwAct["actFlagAutocomplete"] ? $this->intra->translate("Plan") : ""));
             
@@ -1584,12 +1593,12 @@ function showActionRadios(){
                       :  "")
                 );
               
-                $strID = "rad_".$rwAct["actID"]."_".
-                  $rwAct["actOldStatusID"]."_".
-                  $rwAct["actNewStatusID"];
+                $strID = "rad_".$rwAct["actID"]."_"
+                  .$aclOldStatusID."_"
+                  .$aclNewStatusID;
 
                 $strOut .= "<input type='radio' name='actRadio' id='$strID' value='".$rwAct["actID"]."' class='eiseIntraRadio'".
-                    " orig=\"{$rwAct["actOldStatusID"]}\" dest=\"{$rwAct["actNewStatusID"]}\"".
+                    " orig=\"{$aclOldStatusID}\" dest=\"{$aclNewStatusID}\"".
                     ($rwAct["actID"] == 2 || ($key=="1" && count($arrRepeat)>1) ? " checked": "")
                      .(!$rwAct["actFlagAutocomplete"] ? " autocomplete=\"false\"" : "")." /><label for='$strID' class='eiseIntraRadio'>".($value!="" ? "$value \"" : "")
                      .$title
@@ -1659,8 +1668,8 @@ function showStatusLog($conf = array()){
                 )
                 continue;
             //$html .= $rwACL['aclActionID'].': '.$stlATA.' <= '.$aclATA.' && '.$aclATA.' <= '.$stlATD.'<br>';
-            $html .= '<pre>'.date('d.m.Y H:i:s', $stlATA).' <= '.date('d.m.Y H:i:s', $aclATA)
-                    .' && '.date('d.m.Y H:i:s', $aclATA).' <= '.date('d.m.Y H:i:s', $stlATD).' '.$rwSTL['stlATD'].'</pre>'.$this->showActionInfo($aclGUID, $conf);
+            // $html .= '<pre>'.date('d.m.Y H:i:s', $stlATA).' <= '.date('d.m.Y H:i:s', $aclATA)
+            //         .' && '.date('d.m.Y H:i:s', $aclATA).' <= '.date('d.m.Y H:i:s', $stlATD).' '.$rwSTL['stlATD'].'</pre>'.$this->showActionInfo($aclGUID, $conf);
         }
         $html .= '</div>'."\n";
         
