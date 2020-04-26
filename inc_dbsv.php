@@ -238,24 +238,13 @@ function Execute(){
     
     set_time_limit(600);
 
-    $n = ob_get_level();
-    for ($i=0; $i<$n; $i++) {ob_end_flush();}
-    ob_implicit_flush(1);
+    $this->intra->batchStart();
 
-    echo str_repeat(" ", 256);
-    ob_flush();
+    $this->intra->batchEcho('/**************************************************************************/');
+    $this->intra->batchEcho('/* PHP DBSV for MySQL                                                     */');
+    $this->intra->batchEcho('/* (c)2008-2020 Ilya S. Eliseev                                           */');
+    $this->intra->batchEcho('/**************************************************************************/');
 
-?><!DOCTYPE html>
-<html><head>
-<title>DBSV SQL script application</title>
-</head>
-<body>
-<pre>
-/**************************************************************************/
-/* PHP DBSV for MySQL                                                     */
-/* (c)2008-2014 Ilya S. Eliseev                                           */ 
-/**************************************************************************/
-<?php
     $oSQL = $this->oSQL;
 
     if(!$oSQL->d("SHOW TABLES LIKE 'stbl_version'")){
@@ -329,7 +318,7 @@ function Execute(){
             $oSQL->do_query("INSERT INTO stbl_version (verNumber, verDate, verFlagVersioned, verDesc) VALUES ({$newVer}, NOW(), 1, '')");
             $oSQL->do_query("COMMIT");
             $ver = $oSQL->d("SELECT MAX(verNumber) FROM stbl_version");
-            echo "Version is now #".sprintf("%03d",$ver)."\r\n";ob_flush();flush();
+            $this->intra->batchEcho( "Version is now #".sprintf("%03d",$ver));ob_flush();flush();
             $newVer = $ver+1;
         }
 
