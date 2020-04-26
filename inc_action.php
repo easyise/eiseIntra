@@ -170,10 +170,8 @@ public function add(){
     // 1. obtaining aclGUID
     $this->arrAction["aclGUID"] = ($this->arrAction["aclGUID"] ? $this->arrAction["aclGUID"] : $this->oSQL->d("SELECT UUID() # add action {$this->arrAction['actTitle']}"));
 
-    $item_before = $this->item->item_before;
-    unset($item_before['ACL']);
-    unset($item_before['STL']);
-
+    $item_before = self::itemCleanUp($this->item->item_before, $this->item->conf['prefix']);
+    
     $aToTrace = array();
 
     foreach((array)$this->conf['aatFlagToTrack'] as $field=>$props){
@@ -238,10 +236,16 @@ function start(){
 
     $this->item->onActionStart($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
 
+    $item_before = $this->item->item_before;
+    foreach ($item_before as $key => $value) {
+        if(is_array($value))
+            unset($item_before[$key]);
+    }
+
     $sqlUpdACL = "UPDATE stbl_action_log SET 
         aclActionPhase=1
         , aclOldStatusID = '{$this->item->staID}'
-        , aclItemBefore = ".$this->oSQL->e( json_encode($this->item->item_before) )."
+        , aclItemBefore = ".$this->oSQL->e( json_encode( self::itemCleanUp($this->item->item_before, $this->item->conf['prefix']) ) )."
         , aclStartBy='{$this->intra->usrID}', aclStartDate=NOW()
         , aclEditBy='{$this->intra->usrID}', aclEditDate=NOW()
     WHERE aclGUID='{$this->arrAction['aclGUID']}'";
@@ -635,10 +639,10 @@ public function getTraceData(){
 
 static function itemCleanUp($item, $prefix = ''){
 
-    unset($item['ACL']);
-    unset($item['ACL_Cancelled']);
-	unset($item['files']);
-	unset($item['STL']);
+    foreach ($item as $key => $value) {
+        if(is_array($value))
+            unset($item[$key]);
+    }
 
     unset($item[$prefix.'EditBy']);
     unset($item[$prefix.'EditDate']);
