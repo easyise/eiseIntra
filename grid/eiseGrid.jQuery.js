@@ -545,6 +545,9 @@ var __attachAutocomplete = function(oTr) {
                     $inpVal.change();
                     
                     // reset old value
+                    if(request.term.length==0){
+                        $inpVal.val('');
+                    }
                     if(request.term.length<( typeof source['threshold']!='undefined' ? source['threshold'] : 3)){
                         response({});
                         $inpVal.val('');
@@ -556,7 +559,7 @@ var __attachAutocomplete = function(oTr) {
                     
                     $.getJSON(urlFull, function(response_json){
                         if(response_json.data.length == 0){
-                            response( [ textIfEmpltylist ] );
+                            // response( [ textIfEmpltylist ] );
                             return;
                         }                        
                         response($.map(response_json.data, function(item) {
