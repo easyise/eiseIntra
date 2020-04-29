@@ -12,40 +12,40 @@ const statusField = 'StatusID';
 public $extraActions = array();
 
 protected $defaultDataToObtain = array('Text', 'ACL', 'STL', 'files', 'messages');
-	
+    
 public function __construct($id = null,  $conf = array() ){
 
-	GLOBAL $intra, $oSQL, $arrJS;
+    GLOBAL $intra, $oSQL, $arrJS;
 
     $arrJS[] = eiseIntraJSPath."action.js";
 
-	$this->conf = array_merge($this->conf, $conf);
+    $this->conf = array_merge($this->conf, $conf);
 
-	if(!$this->conf['entID'])
-		throw new Exception ("Entity ID not set");
+    if(!$this->conf['entID'])
+        throw new Exception ("Entity ID not set");
 
-	$this->entID = $this->conf['entID'];
+    $this->entID = $this->conf['entID'];
 
-	$this->intra = ($conf['intra'] ? $conf['intra'] : $intra);
-	$this->oSQL = ($conf['sql'] ? $conf['sql'] : $oSQL);
+    $this->intra = ($conf['intra'] ? $conf['intra'] : $intra);
+    $this->oSQL = ($conf['sql'] ? $conf['sql'] : $oSQL);
 
-	$this->init();
+    $this->init();
 
-	$this->conf['title'] = ($conf['title'] ? $conf['title'] : $this->conf['entTitle']);
-	$this->conf['titleLocal'] = ($conf['titleLocal'] ? $conf['titleLocal'] : $this->conf['entTitle'.$this->intra->local]);
-	$this->conf['name'] = ($conf['name'] ? $conf['name'] : (preg_replace('/^(tbl_|vw_)/', '', $this->conf['entTable'])));
-	$this->conf['prefix'] = ($conf['prefix'] ? $conf['prefix'] : ($this->conf['entPrefix']
-		? $this->conf['entPrefix']
-		: $this->conf['entID'])
-	);
-	$this->conf['table'] = ($conf['table'] ? $conf['table'] : $this->conf['entTable']);
-	$this->conf['form'] = ($conf['form'] ? $conf['form'] : $this->conf['name'].'_form.php');
-	$this->conf['list'] = ($conf['list'] ? $conf['list'] : $this->conf['name'].'_list.php');
+    $this->conf['title'] = ($conf['title'] ? $conf['title'] : $this->conf['entTitle']);
+    $this->conf['titleLocal'] = ($conf['titleLocal'] ? $conf['titleLocal'] : $this->conf['entTitle'.$this->intra->local]);
+    $this->conf['name'] = ($conf['name'] ? $conf['name'] : (preg_replace('/^(tbl_|vw_)/', '', $this->conf['entTable'])));
+    $this->conf['prefix'] = ($conf['prefix'] ? $conf['prefix'] : ($this->conf['entPrefix']
+        ? $this->conf['entPrefix']
+        : $this->conf['entID'])
+    );
+    $this->conf['table'] = ($conf['table'] ? $conf['table'] : $this->conf['entTable']);
+    $this->conf['form'] = ($conf['form'] ? $conf['form'] : $this->conf['name'].'_form.php');
+    $this->conf['list'] = ($conf['list'] ? $conf['list'] : $this->conf['name'].'_list.php');
     $this->conf['statusField'] = $this->conf['prefix'].self::statusField;
     $this->conf['flagFormShowAllFields'] = false;
-	$this->conf['flagDeleteLogs'] = true;
+    $this->conf['flagDeleteLogs'] = true;
 
-	parent::__construct($id, $this->conf);
+    parent::__construct($id, $this->conf);
 
     if($this->id){
         $this->item_before = $this->item; 
@@ -70,8 +70,8 @@ public function __construct($id = null,  $conf = array() ){
 
     $this->conf['attr_types'] = array_merge($this->table['columns_types'], $this->conf['attr_types']);
 
-	$this->intra->dataRead(array('getActionLog', 'getActionDetails', 'getFiles', 'getFile', 'getMessages','sendMessage'), $this);
-	$this->intra->dataAction(array('insert', 'update', 'updateMultiple', 'delete', 'attachFile', 'deleteFile'), $this);
+    $this->intra->dataRead(array('getActionLog', 'getActionDetails', 'getFiles', 'getFile', 'getMessages','sendMessage'), $this);
+    $this->intra->dataAction(array('insert', 'update', 'updateMultiple', 'delete', 'attachFile', 'deleteFile'), $this);
 
 }
 
@@ -757,25 +757,25 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
             )
         );
     if($this->staID===null){
-	    if (!in_array("staTitle", $arrExcludeCols))
-	        $lst->addColumn(array('title' => $intra->translate("Status")
-	            , 'type'=>"combobox"
-	            , 'source'=>"SELECT staID AS optValue, staTitle{$intra->local} AS optText, staTitle{$intra->local} AS optTextLocal, staFlagDeleted as optFlagDeleted FROM stbl_status WHERE staEntityID='$entID'"
-	            , 'defaultText' => "All"
-	            , 'field' => "staTitle{$intra->local}"
-	            , 'filter' => "staID"
-	            , 'order_field' => "staID"
-	            , 'width' => "100px"
-	            , 'nowrap' => true
-	            )
-	        );
-	} else {
-		$lst->addColumn(array('field' => "staID"
-	            , 'filter' => "staID"
-	            , 'order_field' => "staID"
-	            )
-	        );
-	}
+        if (!in_array("staTitle", $arrExcludeCols))
+            $lst->addColumn(array('title' => $intra->translate("Status")
+                , 'type'=>"combobox"
+                , 'source'=>"SELECT staID AS optValue, staTitle{$intra->local} AS optText, staTitle{$intra->local} AS optTextLocal, staFlagDeleted as optFlagDeleted FROM stbl_status WHERE staEntityID='$entID'"
+                , 'defaultText' => "All"
+                , 'field' => "staTitle{$intra->local}"
+                , 'filter' => "staID"
+                , 'order_field' => "staID"
+                , 'width' => "100px"
+                , 'nowrap' => true
+                )
+            );
+    } else {
+        $lst->addColumn(array('field' => "staID"
+                , 'filter' => "staID"
+                , 'order_field' => "staID"
+                )
+            );
+    }
 
     if (!in_array("aclATA", $arrExcludeCols))
         $lst->addColumn(array('title' => "ATA"
@@ -900,7 +900,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
         $lst->Columns[] = array('title' => "Comments"
             , 'type'=>"text"
             , 'field' => "Comments"
-    		, 'sql' => "SELECT LEFT(scmContent, 50) FROM stbl_comments WHERE scmEntityItemID={$prfx}ID ORDER BY scmEditDate DESC LIMIT 0,1"
+            , 'sql' => "SELECT LEFT(scmContent, 50) FROM stbl_comments WHERE scmEntityItemID={$prfx}ID ORDER BY scmEditDate DESC LIMIT 0,1"
             , 'filter' => "Comments"
             , 'order_field' => "Comments"
             , 'limitOutput' => 49
@@ -1517,12 +1517,22 @@ public function arrActionButtons(){
                   $this->staID."_".
                   $rwAct["actNewStatusID"][0];
 
-            $arrActions[] = Array ("title" => $title
+            $escalated = false;
+            if($rwAct['RLA_tiers']){
+                $aUserTiers = array();
+                $suitableRoles = array_values(array_intersect($rwAct['RLA'], $this->intra->arrUsrData['roleIDs']));
+                foreach ($suitableRoles as $rol) { $aUserTiers[$rol] = $rwAct['RLA_tiers'][$rol]; }    
+                $escalated = (int)(min($rwAct['RLA_tiers']) < min($aUserTiers));
+            }
+
+            $arrActions[] = Array ("title" => $title #.(int)$escalated.'<pre>'.var_export($rwAct['RLA_tiers'], true)."\n".var_export($this->intra->arrUsrData['roleIDs'], true)."\n".var_export($aUserTiers, true).'</pre>'
                    , "action" => "#ei_action"
                    , 'id' => $strID
                    , "dataset" => array("action"=>array('actID'=>$rwAct["actID"]
                         , 'aclOldStatusID' => $this->staID
-                        , 'aclNewStatusID' => $rwAct["actNewStatusID"][0])
+                        , 'aclNewStatusID' => $rwAct["actNewStatusID"][0]
+                        , 'escalated' => (int)$escalated
+                        )
                    )
                    , "class" => "{$rwAct["actButtonClass"]} "
                 );
