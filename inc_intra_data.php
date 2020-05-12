@@ -643,11 +643,16 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
 
     } else {
 
+        $f = $oSQL->ff("SELECT * FROM `{$strTable}` WHERE 1=0");
+        $fields = array_keys($f);
+
+        $titleField = (in_array("{$strPrefix}Title", $fields) ? 'Title' : 'Name');
+
         if ($strPrefix!=""){
             $arrFields = Array(
                 "idField" => "{$strPrefix}ID"
-                , "textField" => "{$strPrefix}Title"
-                , "textFieldLocal" => "{$strPrefix}TitleLocal"
+                , "textField" => "{$strPrefix}{$titleField}"
+                , "textFieldLocal" => "{$strPrefix}{$titleField}Local"
                 , "orderField" => "{$strPrefix}Order"
                 , "delField" => "{$strPrefix}FlagDeleted"
                 , "classField" => "{$strPrefix}Class"
@@ -662,9 +667,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
                 , "classField" => "optClass"
             );
         }  
-
-        $f = $oSQL->ff("SELECT * FROM `{$strTable}` WHERE 1=0");
-        $fields = array_keys($f);
+        
         if(!in_array($arrFields['textFieldLocal'], $fields))
             $arrFields['textFieldLocal'] = $arrFields['textField'];
         foreach(array_keys($arrFields) as $af){
