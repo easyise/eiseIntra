@@ -1105,7 +1105,12 @@ private function composeSQL(){
             if (!is_array($col['source'])){
                 if (preg_match("/^(vw_|tbl_|stbl_|svw_)/", $col["source"])){
 
-                    $col['textField'] = ($col["source_prefix"]!="" ? $col["source_prefix"]."Title" : "optText").$this->conf['strLocal'];
+                    $f = $this->oSQL->ff("SELECT * FROM `{$col['source']}` WHERE 1=0");
+                    $fields = array_keys($f);
+
+                    $titleField = (in_array("{$strPrefix}Title", $fields) ? 'Title' : 'Name');
+
+                    $col['textField'] = ($col["source_prefix"]!="" ? "{$col['source_prefix']}{$titleField}" : "optText").$this->conf['strLocal'];
                     $col['idField'] = ($col["source_prefix"]!="" ? $col["source_prefix"]."ID" : "optValue");
                     $col['tableAlias'] = "t_{$col['field']}";
                     $sqlJoin = " LEFT OUTER JOIN {$col['source']} {$col['tableAlias']} ON {$col['field']}={$col['tableAlias']}.{$col['idField']}\r\n";
@@ -1390,7 +1395,7 @@ private function getRowArray($index, $rw){
         /* obtain calculated values for class and href */
         foreach($rw as $rowKey=>$rowValue){
             $col['class'] = str_replace("[{$rowKey}]", $rowValue, $col['class']);
-            $col['href'] = str_replace("[{$rowKey}]", urlencode($rowValue), $col['href']) ;
+            $col['href'] = str_replace("[{$rowKey}]", rawurlencode($rowValue), $col['href']) ;
         }
         
         if($col['class'])
