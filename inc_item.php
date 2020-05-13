@@ -51,6 +51,7 @@ public function __construct($id = null,  $conf = array() ){
 	$this->conf['table'] = isset($conf['table']) ? $conf['table'] : 'tbl_'.$conf['name'];
 	$this->conf['form'] = isset($conf['form']) ? $conf['table'] : $conf['name'].'_form.php';
 	$this->conf['list'] = isset($conf['list']) ? $conf['list'] : $conf['name'].'_list.php';
+
 	$this->conf['title'] = isset($conf['title']) ? $conf['title'] 
 		: ($intra->arrUsrData["pagTitle"]
 			? $intra->arrUsrData["pagTitle"]
@@ -69,6 +70,8 @@ public function __construct($id = null,  $conf = array() ){
 	$this->id = ( $id===null ? $this->getIDFromQueryString() : $id);
 
 	$this->getData($this->id);
+
+	$this->redirectTo = ($this->id ? $this->conf['form'].'?'.$this->getURI() : $this->conf['list']);
 
 }
 
@@ -264,7 +267,6 @@ public function insert($newData){
 
 	$intra = $this->intra;
 
-	$this->redirectTo = $this->conf['form'].'?'.$this->getURI();
 	$this->msgToUser = $intra->translate('%s is added', $this->conf['title'.$intra->local]);
 
 }
@@ -276,7 +278,6 @@ public function update($newData){
 
 	$intra = $this->intra;
 
-	$this->redirectTo = $this->conf['form'].'?'.$this->getURI();
 	$this->msgToUser = $intra->translate('"%s" is updated', $this->conf['title'.$intra->local]);
 
 }

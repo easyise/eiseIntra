@@ -541,6 +541,8 @@ init: function(options){
 
     var conf = $(this).data('eiseIntra').conf;
 
+    value = value.replace(/\.[0-9]+Z$/, ''); // replace microseconds and "useful" Z letter with nothing
+
     return (value.match(conf.rexISO[format]) ? value.replace(conf.rexISO[format], conf.rex_replace2loc[format]) :  value);
 
 }

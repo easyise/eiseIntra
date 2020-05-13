@@ -1,0 +1,1 @@
+ALTER TABLE stbl_entity ADD COLUMN entManagementRoles varchar(255) NOT NULL DEFAULT '' COMMENT 'Roles who can manage the Entity' AFTER entPrefix;

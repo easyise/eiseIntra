@@ -14,7 +14,7 @@ public $extraActions = array();
 protected $defaultDataToObtain = array('Text', 'ACL', 'STL', 'files', 'messages');
     
 public function __construct($id = null,  $conf = array() ){
-
+    
     GLOBAL $intra, $oSQL, $arrJS;
 
     $arrJS[] = eiseIntraJSPath."action.js";
@@ -134,7 +134,8 @@ public function superaction($nd){
                 , 'aclComments'=>$nd['aclComments']));
         $act->execute();
     } catch (Exception $e) {
-        echo $e->getMessage();
+        $oSQL->q('ROLLBACK');
+        throw $e;
     }
 
     //$oSQL->showProfileInfo();
@@ -465,6 +466,7 @@ private function init(){
             'actDescriptionLocal' => $this->intra->translate('put it to any state'),
             'actFlagDepartureEqArrival' => '1',
             'actFlagAutocomplete' => '1',
+            'actRoles' => $this->conf['entManagementRoles'] ,
             );
 
     while($rwAAt = $oSQL->f($rsAAt)){ $acts[] = $rwAAt; }
@@ -478,7 +480,7 @@ private function init(){
                     $arrAct[$key] = $val;
             }
             
-            $this->conf['ACT'][$rwAAt['actID']] = array_merge($arrAct, array('RLA'=>($arrAct['actRoles'] ? explode(',', $arrAct['actRoles']) : array())));
+            $this->conf['ACT'][$rwAAt['actID']] = array_merge($arrAct, array('RLA'=>($arrAct['actRoles'] ? preg_split('/[,;\s]+/', $arrAct['actRoles']) : array())));
             $this->conf['ACT'][$rwAAt['actID']]['actOldStatusID'] = array();
             $this->conf['ACT'][$rwAAt['actID']]['actNewStatusID'] = array();
 
