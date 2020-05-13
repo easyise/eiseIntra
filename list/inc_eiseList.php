@@ -1108,7 +1108,7 @@ private function composeSQL(){
                     $f = $this->oSQL->ff("SELECT * FROM `{$col['source']}` WHERE 1=0");
                     $fields = array_keys($f);
 
-                    $titleField = (in_array("{$strPrefix}Title", $fields) ? 'Title' : 'Name');
+                    $titleField = (in_array("{$col["source_prefix"]}Title", $fields) ? 'Title' : 'Name');
 
                     $col['textField'] = ($col["source_prefix"]!="" ? "{$col['source_prefix']}{$titleField}" : "optText").$this->conf['strLocal'];
                     $col['idField'] = ($col["source_prefix"]!="" ? $col["source_prefix"]."ID" : "optValue");
