@@ -2184,7 +2184,10 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
                 }
                 $retVal .= '</optgroup>';
             } else
-                $retVal .= "<option value='$key'".((string)$key==(string)$strValue ? " SELECTED " : "").
+                $retVal .= "<option value='$key'".((string)$key==(string)$strValue
+                    || is_integer($key) && (string)$value==(string)$strValue 
+                        ? " SELECTED " 
+                        : "").
                         (in_array($key, $confOptions['deletedOptions']) ? ' class="deleted"' : '').
                         ">".str_repeat('&nbsp;',5*$confOptions["indent"][$key]).htmlspecialchars($value)."</option>\r\n";
         }
