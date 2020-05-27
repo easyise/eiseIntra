@@ -1352,7 +1352,8 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text, options){
         oInp = oTr.find('input[name="'+strFieldName+'[]"]').first();
         oInp.val(strValue);
         if(oInp[0].type=='hidden' || (options && options.change) ){
-            oInp.change();
+            if( !(options && options.nochange) )
+                oInp.change();
         }
         
         if (strTitle){
@@ -2407,11 +2408,11 @@ change:  function(strFields, callback){
     return this;
 },
 
-value: function ($tr, strField, value, text){
+value: function ($tr, strField, value, text, options){
     //Sets or gets value for field strField in specified row, if there’s a complex field 
     //(combobox, ajax_dropdown), it can also set text representation of data.
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
-    return grid.value($tr, strField, value, text);
+    return grid.value($tr, strField, value, text, options);
 },
 
 text: function($tr, strField, text) {
