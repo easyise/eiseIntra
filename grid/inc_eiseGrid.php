@@ -1062,9 +1062,9 @@ function Update($newData = null, $conf = array()){
             $oSQL->q("DELETE FROM {$this->conf['strTable']} WHERE ".$this->getMultiPKCondition($arrTable['PK'], $idToDelete));
         }
 
-    $newData_transposed = $this->json($newData, array('flagDontEncode'=>True));
+    $this->newData_transposed = $this->json($newData, array('flagDontEncode'=>True));
 
-    foreach ($newData_transposed as $ix => $row) {
+    foreach ($this->newData_transposed as $ix => $row) {
 
         if($flagPOST && !$newData["inp_{$this->name}_updated"][$ix+1]){
             continue;
@@ -1108,6 +1108,9 @@ function Update($newData = null, $conf = array()){
         }
 
         $oSQL->q($sql);
+        if($toDo=='insert'){
+            $this->newData_transposed[$ix][$row_id] = ($row[$row_id] ? $row[$row_id] : $oSQL->i());
+        }
 
     }
 
