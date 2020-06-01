@@ -1,15 +1,44 @@
-@import (less) url("../../../list/eiseList.css");
-
-
 @header-background-color: #06183D;
 @header-color: #fff;
 @border-color: #646464;
 @background-color: #ccc;
 @selected-row-color: rgba(255,176,128,1);
 
-@font-family: inherit;
-@h1-font-family: inherit;
-@th-font-family: inherit;
+@font-family: "Open Sans", Calibri, sans-serif;
+@el-h1-font-family: @font-family;
+@el-h1-font-size: 20px;
+@th-font: bold 12px @font-family;
+
+@el-spinner-background: url("images/spinner54x55.gif") no-repeat scroll center center transparent;
+@el-spinner-height: 90px;
+@el-spinner-font-size: 12px;
+
+@el-background-even: #F0F0F0;
+@el-background-odd: #FFFFFF;
+
+@el-boolean-background: transparent;
+@el-boolean-background-selected: url("images/chm_b.gif") no-repeat scroll center center transparent;
+
+@el-content-sorted-asc: " \25b2  ";
+@el-content-sorted-desc: " \25bc  ";
+
+@el-width-num: 40px;
+@el-width-numeric: 60px;
+@el-width-number: 60px;
+@el-width-integer: 60px;
+@el-width-real: 80px;
+@el-width-money: 80px;
+@el-width-date: 90px;
+@el-width-datetime: 120px;
+@el-width-time: 40px;
+@el-width-boolean: 30px;
+@el-width-checkbox: 30px;
+@el-width-text: 100px;
+@el-width-combobox: 100px;
+@el-width-select: 100px;
+
+
+@import (less) url("../../../list/eiseList.css");
 
 
 /*
@@ -19,179 +48,3 @@
 @background-color: #ccc;
 @selected-row-color: rgba(255,176,128,1);
 */
-.eiseList h1 {
-    font-size: 20px;
-    font-weight: bold;
-    font-family: @h1-font-family;
-    padding-left: 10px;
-}
-
-.el_foundRows {
-    font-weight: normal;
-}
-
-.el_body {
-    background: @background-color !important;
-}
-
-.el_table table {
-    border-bottom: 1px solid #336;
-}
-
-.el_spinner {
-    min-height: 90px;
-    background: url("images/spinner54x55.gif") no-repeat scroll center center transparent;
-    text-align: center;
-    margin-top: 80px;
-    padding-left: 15px;
-    font-family: @font-family;
-    font-size: 9pt;
-    text-shadow: #ccc -1px -1px 0px;
-}
-.el_notfound {
-    min-height: 90px;
-    text-align: center;
-    margin-top: 80px;
-    padding-left: 15px;
-    font-family: @font-family;
-    font-weight: bold;
-    font-size: 9pt;
-    text-shadow: #ccc -1px -1px 0px;
-}
-
-.eiseList thead th
-, .eiseList thead td {
-    background-color: @header-background-color;
-    border-right: 1px solid @border-color;
-}
-
-.eiseList thead input 
-, .eiseList thead select
-{
-    height: 14pt;
-}
-
-.el_filter {    font-size: 9pt;}
-input.el_filter {   padding: 0 5px !important;}
-
-
-
-.el_sorted_asc  div:before, .el_sorted_asc  div:after { 
-    content: " \25b2  ";
-}
-.el_sorted_desc  div:before, .el_sorted_desc  div:after { 
-    content: " \25bc  ";
-}
-
-.eiseList th {
-    color: @header-color;
-    text-align: center;
-    padding: 4px 10px !important;
-    font-family: @th-font-family;
-    font-size: 12px;
-    font-weight: 700;
-    /*text-shadow: #000 1px 1px 0px;*/
-}
-
-.el_tr0 { background-color: #F0F0F0; }
-.el_tr1 { background-color: #FFFFFF; }
-.el_tr_selected { background-color: @selected-row-color; }
-
-.el_data td {
-    border-right: 1px solid @border-color;
-    border-bottom: 1px solid @border-color;
-    background: transparent;
-    padding-left: 4px;
-    padding-top: 2px;
-    padding-right: 4px;
-    padding-bottom: 0px;
-    font-family: @font-family;
-    font-size: 12px;
-    height: 16pt;
-}
-
-tr.el_selected {
-    background-color: @selected-row-color !important;
-}
-
-.el_checkbox  { text-align: center; }
-.el_checkbox  input{    width: auto; }
-
-.el_numeric
-, .el_num
-, .el_real
-, .el_number
-, .el_money
-, .el_integer
-, .el_int {
-    text-align: right;
-}
-
-.el_boolean {
-    color: transparent;
-    text-align: center;
-}
-
-.el_boolean_s {
-    background: url("images/chm_b.gif") no-repeat scroll center center transparent !important;
-}
-
-.el_fieldChooser table {
-    margin: 0 auto;
-}
-.el_fieldChooser label {
-    float: right;
-    width: 200px;
-    min-width: 200px;
-}
-
-.el_header {
-    line-height: 2em;
-}
-
-.el_controlBar {
-    padding-top: 0.32em;
-}
-
-.el_debug  {
-    display: none;
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    font-size: 1.2em;
-    font-family: Courier New, Courier, fixed;
-    color: #f30;
-}
-
-.el_filter_date, .el_filter_datetime {
-    background-image:url( "images/icon_calendar.png" );
-    background-position: right top;
-    background-repeat:no-repeat;  
-    padding-right: 18px; 
-    width: auto;
-}
-.el_input_date, .el_input_datetime {
-    background-image:url( "images/icon_calendar.png" );
-    background-position: right top;
-    background-repeat:no-repeat;  
-    padding-right: 18px; 
-    width: 8em;
-}
-
-.el_dateFrom, .el_dateTill, .el_filter_buttons {
-    text-align: center;
-    white-space: nowrap;
-}
-
-.el_btn_filter_apply, .el_btn_filter_clear, .el_btn_filter_close {
-    width: 46px;
-    padding: 0;
-    height: 20px;
-    font-size: 11px !important;
-    margin-top: 5px;
-}
-
-.el_btn_filter_apply {
-    font-weight: bold;
-    width: 70px;
-}

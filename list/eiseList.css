@@ -1,23 +1,23 @@
 .eiseList {
     width: 100%;
+    & h1 {
+        float: left;
+        margin: 0;
+        font-size: @el-h1-font-size;
+        font-weight: bold;
+        font-family: @el-h1-font-family;
+        padding-left: @el-h1-font-size/2;
+    }
+
 }
 
-.el_header {
+.el-header {
     width: 100%;
     overflow: hidden;
+    line-height: 2em;
 }
 
-.eiseList h1 {
-    float: left;
-    margin: 0;
-}
-
-.el_filterset {
-    padding: 0 !important;
-    margin: 0 !important;
-}
-
-.el_foundRows {
+.el-foundRows {
     float: right;
     display: none;
     padding-left: 0.33em;
@@ -27,63 +27,180 @@
     &:after {
         content: ')';
     }
+    font-weight: normal;
 }
 
-.el_controlBar {
+
+.el_filterset {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+
+
+.el-controlBar {
     float: right;
 }
 
-.el_controlBar input
-, .el_controlBar select {
+.el-controlBar input
+, .el-controlBar select {
     width: auto;
 }
 
-.el_table {
-    max-width: 100%;
-    overflow: visible;
-    overflow-x: auto;
-    overflow-y: hidden;
-    clear: both;  
+div.el-table {
+    overflow: auto;
+    background: @background-color;
+
+    & table {
+
+        position: relative;
+        table-layout: fixed;
+        width: 100%;
+
+        & thead th {
+            position: sticky;
+            position: -webkit-sticky;
+            top: 0;
+            padding: 0;
+            z-index: 87;
+
+            & .ui-resizable-handle {
+                cursor: col-resize !important;
+                z-index: 88;       
+            }
+            & .el-resizable-helper {
+                border: 1px solid red;       
+            }
+
+            & .el-title {
+                color: @header-color;
+                text-align: center;
+                padding: 0.333333em 0.833333335em;
+                font: @th-font;
+            }
+        }
+
+        & tbody td.el-sticky-left {
+          position: sticky;
+          left: 0;
+          z-index: 87;
+          background: white;
+        }
+        
+    }
 }
 
-td.el_tdBody {
-    padding: 0 !important;
-    border: 0 !important;
-    white-space: normal !important;
+
+
+td.el-boolean {
+    color: transparent;
+    text-align: center;
+    background: @el-boolean-background !important;
+}
+
+td.el-boolean-s {
+    background: @el-boolean-background-selected !important;
+}
+
+.el-checkbox  { 
+    text-align: center; 
+    &  input{    width: auto; }
+}
+
+.el-tr0 { background-color: @el-background-even; }
+.el-tr1 { background-color: @el-background-odd; }
+.el-selected { background-color: @selected-row-color !important; }
+
+.el-data td {
+    border-right: 1px solid @border-color;
+    border-bottom: 1px solid @border-color;
+    background: transparent;
+    padding-left: 4px;
+    padding-top: 2px;
+    padding-right: 4px;
+    padding-bottom: 0px;
+    font-family: @font-family;
+    font-size: 12px;
+    height: 16pt;
+    white-space: nowrap;
     overflow: hidden;
-    width: 100%;
+    text-overflow: ellipsis;
 }
 
-div.el_body {
-    overflow-y: auto;
-    overflow-x: hidden;
+
+.el-numeric
+, .el-num
+, .el-real
+, .el-number
+, .el-money
+, .el-integer
+, .el-int {
+    text-align: right;
 }
 
-.el_table > table {
-    border-bottom: 1px solid #336;
-    table-layout: fixed;
-}
+.el-num { width: @el-width-num; }
+.el-numeric { width: @el-width-numeric; }
+.el-number { width: @el-width-number; }
+.el-integer { width: @el-width-integer; }
+.el-real { width: @el-width-real; }
+.el-money { width: @el-width-money; }
+.el-date { width: @el-width-date; }
+.el-datetime { width: @el-width-datetime; }
+.el-time { width: @el-width-time; }
+.el-boolean { width: @el-width-boolean; }
+.el-checkbox { width: @el-width-checkbox; }
+.el-text { width: @el-width-text; }
+.el-combobox { width: @el-width-combobox; }
+.el-select { width: @el-width-select; }
+.el-ajax_dropdown { width: @el-width-select; }
 
-.el_body > table {
-    table-layout: fixed;
-}
-
-.el_spinner {
-    float: left;
+.el-spinner {
     display: none;
+    & div {
+
+        width: 100vw;
+        
+        background: @el-spinner-background;
+        height: @el-spinner-height;
+        text-align: center;
+        margin-top: calc(@el-spinner-height - @el-spinner-font-size*1.2);
+        font-size: @el-spinner-font-size;
+        text-shadow: #ccc -1px -1px 0px;
+
+    }
+    
 }
-.el_notfound {
-    float: left;
+
+.el-notfound {
     display: none;
+    & div {
+        width: 100vw;
+        
+        background: transparent;
+        height: @el-spinner-height;
+        text-align: center;
+        margin-top: calc(@el-spinner-height/2 - @el-spinner-font-size/2);
+        font-size: @el-spinner-font-size;
+        text-shadow: #ccc -1px -1px 0px;
+
+    }
 }
+
 
 .eiseList thead th
 , .eiseList thead td {
     padding: 0;
 }
 
-.el_sortable {
+.el-sortable div.el-title {
     cursor: pointer;
+}
+
+.el-sorted-asc  div.el-title:before, .el-sorted-asc  div.el-title:after { 
+    content: @el-content-sorted-asc;
+}
+.el-sorted-desc  div.el-title:before, .el-sorted-desc  div.el-title:after { 
+    content: @el-content-sorted-desc;
 }
 
 .eiseList > form {
@@ -121,14 +238,8 @@ div.el_body {
     box-sizing: border-box;
 }
 
-tr.el_template {
+.el-template {
     display: none;
-}
-
-.el_data td {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .el_ellipsis {
@@ -150,9 +261,10 @@ tr.el_template {
 .el_faux_scrollbar-wrap .ui-slider-handle {margin: 0 !important;left:0 !important; opacity: 1;}
 .el_faux_scrollbar-wrap .ui-slider-handle .ui-icon {     margin-top: -6px;    position: relative;    top: 50%; }
 
-.el_cellInput {
+.el-cellInput {
     display: none;
     border: 0 !important;
+    padding-top: 0;
     text-align: inherit;
 }
 
@@ -182,8 +294,17 @@ tr.el_template {
     margin-bottom: -4px;
 }
 
-.eiseList .el-tr-tabs {
+.eiseList caption.el-tr-tabs {
     z-index: 1;
+    caption-side: top;
+    text-align: left;
+    & .el-tabs-container {
+        position:sticky;
+        top: 0;
+        left:0;
+        display: block;
+        width: 100vw;
+    }
 }
 
 .eiseList .el-tr-titles {
@@ -193,4 +314,82 @@ tr.el_template {
 .el_filter_buttons input[type=button], .el_filter_buttons button {
     padding: 0;
     font-size: 10px;
+}
+
+.eiseList thead th
+, .eiseList thead td {
+    background-color: @header-background-color;
+    border-right: 1px solid @border-color;
+}
+
+.eiseList thead input 
+, .eiseList thead select
+{
+    height: 14pt;
+}
+
+.el-filter {    font-size: 9pt;}
+input.el-filter {   padding: 0 5px !important;}
+
+
+
+
+
+
+.el_fieldChooser table {
+    margin: 0 auto;
+}
+.el_fieldChooser label {
+    float: right;
+    width: 200px;
+    min-width: 200px;
+}
+
+
+
+.el_controlBar {
+    padding-top: 0.32em;
+}
+
+.el_debug  {
+    display: none;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 1.2em;
+    font-family: Courier New, Courier, fixed;
+    color: #f30;
+}
+
+.el_filter_date, .el_filter_datetime {
+    background-image:url( "images/icon_calendar.png" );
+    background-position: right top;
+    background-repeat:no-repeat;  
+    padding-right: 18px; 
+    width: auto;
+}
+.el_input_date, .el_input_datetime {
+    background-image:url( "images/icon_calendar.png" );
+    background-position: right top;
+    background-repeat:no-repeat;  
+    padding-right: 18px; 
+    width: 8em;
+}
+
+.el_dateFrom, .el_dateTill, .el_filter_buttons {
+    text-align: center;
+    white-space: nowrap;
+}
+
+.el_btn_filter_apply, .el_btn_filter_clear, .el_btn_filter_close {
+    width: 46px;
+    padding: 0;
+    height: 20px;
+    font-size: 11px !important;
+    margin-top: 5px;
+}
+
+.el_btn_filter_apply {
+    font-weight: bold;
+    width: 70px;
 }

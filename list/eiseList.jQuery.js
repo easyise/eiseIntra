@@ -33,24 +33,23 @@ function eiseList(divEiseList){
     list.div = divEiseList;
     list.form = divEiseList.find('form');
     list.parent = this.div.parent();
-    list.header = list.div.find('.el_header');
-    list.divTable = list.div.find('.el_table');
-    list.mainTable = list.div.find('.el_table > table');
+    list.header = list.div.find('.el-header');
+    list.divTable = list.div.find('.el-table');
+    list.mainTable = list.div.find('.el-table > table');
     list.thead = list.mainTable.find('thead').first();
     list.trHead = this.thead.find('tr').last();
-    list.body = list.div.find('.el_body');
-    list.table = list.body.find('table');
-    list.tbody = list.body.find('table tbody');
-    list.tfoot = list.div.find('.el_tfoot');
-    list.divFieldChooser = list.div.find('.el_fieldChooser');
+    list.table = list.mainTable;
+    list.tbody =  list.table.find('tbody');
+    list.tfoot = list.table.find('tfoot');
+    list.divFieldChooser = list.div.find('.el-fieldChooser');
     list.divFilterDropdowns = [];
-
-    list.colgroupHead = list.div.find('.el_table > table > colgroup > col');
-    list.colgroupBody = list.table.find('colgroup');
     
     list.systemScrollWidth = this.getScrollWidth()
     
     list.scrollBarHeight = null;
+
+    list.spinner = list.table.find('.el-spinner');
+    list.notfound = list.table.find('.el-notfound');
     
     
     list.activeRow = null;
@@ -91,7 +90,7 @@ function eiseList(divEiseList){
     // attach scroll event
     var oldScroll = 0;
     var newScroll = 0;
-    this.body.scroll(function(){
+    this.divTable.scroll(function(){
         newScroll = $(this).scrollTop();
         if (newScroll > oldScroll)
             list.handleScroll();
@@ -102,12 +101,11 @@ function eiseList(divEiseList){
         list.selectRow($(this));
     });
     
-    this.thead.find('.el_sortable').click(function(){
-        list.sort($(this));
-        list.setMinimalColumnWidth();
+    this.thead.find('.el-sortable div.el-title').click(function(){
+        list.sort($(this).parents('th').first());
     })
     
-    this.thead.find('select.el_filter').change(function(){
+    this.thead.find('select.el-filter').change(function(){
         list.form.submit();
     })
     
@@ -135,10 +133,9 @@ function eiseList(divEiseList){
         list.toggleRowSelection(this);
     });
 
-    // set minimal list column width while data not loaded
-    this.setMinimalColumnWidth();
-
     this.initFilters();
+
+    this.initResizer();
 
     this.thead.find('input.el_special_filter').each(function(){
         list.initSpecialFilter(this);
@@ -194,6 +191,20 @@ eiseList.prototype.initFilters = function(){
 
 }
 
+eiseList.prototype.initResizer = function(){
+    this.thead.find('th').each(function(){
+        
+        $(this)
+            .resizable({
+                handles: 'e',
+                minWidth: 18,
+                helper: "el-resizable-helper",
+            });
+
+    })
+        
+}
+
 /**
  * This function returns filters object for given **tabData** {field: , value: } from **filters** filter set of the list
  */
@@ -230,13 +241,13 @@ eiseList.prototype.setFilters = function(filtersToApply){
                 $inp.val('')
         }
         if(field==list.id+'OB'){
-            list.thead.find('th').removeClass('el_sorted_asc').removeClass('el_sorted_desc')
+            list.thead.find('th').removeClass('el-sorted-asc').removeClass('el-sorted-desc')
             var $th = list.thead.find('.'+list.id+'_'+value)
             if($th[0])
                 if(filtersToApply[list.id+'ASC_DESC']=='DECS')
-                    $th.addClass('el_sorted_desc')
+                    $th.addClass('el-sorted-desc')
                 else
-                    $th.addClass('el_sorted_asc')
+                    $th.addClass('el-sorted-asc')
         }
     })
 
@@ -387,6 +398,10 @@ eiseList.prototype._getTabData = function(obj){
  * This function returns cell field name basing on its class.
  */
 eiseList.prototype.getFieldName = function(cell){
+
+        if($(cell)[0].dataset['field'])
+            return $(cell)[0].dataset['field']
+
         var arrClass = $(cell).attr('class').split(/\s+/)
             , list = this
             , retVal = false;
@@ -484,7 +499,7 @@ eiseList.prototype.filterByTab = function(tab, conf){
 
         if (!$inp[0]){
             
-            $inp = this.form.append('<input type=hidden id="'+tabData.field+'" value="'+tabData.value+'" name="'+tabData.field+'" class="el_filter">');
+            $inp = this.form.append('<input type=hidden id="'+tabData.field+'" value="'+tabData.value+'" name="'+tabData.field+'" class="el-filter">');
 
         } 
         
@@ -506,6 +521,7 @@ eiseList.prototype.filterByTab = function(tab, conf){
  * This function fits list to the container
  */
  eiseList.prototype.fitContainer = function() {
+
     var list = this,
         minRows = 5,
         rowH = 22,
@@ -519,6 +535,7 @@ eiseList.prototype.filterByTab = function(tab, conf){
 
     this.h = hToSet;
     this.divTableHeight = this.h - this.header.outerHeight(true);
+    /*
     this.bodyHeight = this.divTableHeight - this.thead.outerHeight(true) - (this.tfoot[0] ? this.tfoot.outerHeight(true) : 0);
 
     if( this.bodyHeight<minRows*rowH ){
@@ -536,10 +553,11 @@ eiseList.prototype.filterByTab = function(tab, conf){
             this.h = this.divTableHeight + this.header.outerHeight(true);
         }
     }
+    */
 
     this.div.height(this.h);
     this.divTable.height(this.divTableHeight);
-    this.body.height(this.bodyHeight);
+    // this.body.height(this.bodyHeight);
 
 }
 
@@ -579,18 +597,18 @@ eiseList.prototype.getQueryString = function(){
     
     this.form.find('input, select').each(function(){
         if($(this).val()!=undefined 
-            && ( $(this).val()!="" || ($(this).attr('type')=='hidden' && $(this).hasClass('el_filter')) )
+            && ( $(this).val()!="" || ($(this).attr('type')=='hidden' && $(this).hasClass('el-filter')) )
             && $(this).attr('name')!='DataAction' 
             && $(this).attr('type')!='button'
             && $(this).attr('type')!='submit'
             && $(this).attr('type')!='checkbox'
         ){
             strARG += '&'+$(this).attr("name")+'='+encodeURIComponent($(this).val());
-            $(this).parent().addClass('el_filterset');
+            $(this).parent().addClass('el-filterset');
         }
-        if ($(this).val()=="" && $(this).parent().hasClass('el_filterset')){
+        if ($(this).val()=="" && $(this).parent().hasClass('el-filterset')){
             strARG += '&'+$(this).attr("name")+'=';
-            $(this).parent().removeClass('el_filterset');
+            $(this).parent().removeClass('el-filterset');
         }
         
     });
@@ -621,11 +639,11 @@ eiseList.prototype.getData = function(iOffset, recordCount, flagResetCache, call
     
     list.showNotFound(false); //hide 'not found' message
     
-    list.body.find('.el_spinner')
-        .css("display", "block")
-        .css("width", list.div.outerWidth() - (list.body.find('.el_spinner').outerWidth()-list.body.find('.el_spinner').width()));
+    list.spinner
+        .css("display", "table-row")
+        .css("width", list.div.outerWidth() - (list.spinner.outerWidth()-list.spinner.width()));
     if (iOffset > 0){
-        list.body.find('.el_spinner').css("margin-top", "10px");
+        list.spinner.css("margin-top", "10px");
     }
     
     var strARG = "";
@@ -642,13 +660,13 @@ eiseList.prototype.getData = function(iOffset, recordCount, flagResetCache, call
     var strURL = ajaxURL+'?'+strARG;
     
     list.transferInProgress = true; //only one ajax-request at a time
-    
+
     $.ajax({ url: strURL
         , success: function(data, text){
             
             if (data.error!=undefined){
                 alert (list.conf['titleERRORBadResponse']+'\r\n'+list.conf['titleTryReload']+'\r\n'+data.error+'\r\n'+strARG);
-                list.body.find('.el_spinner').css("display", "none");
+                list.spinner.css("display", "none");
                 list.transferInProgress = false;
                 list.showNotFound();
                 return;
@@ -665,14 +683,14 @@ eiseList.prototype.getData = function(iOffset, recordCount, flagResetCache, call
             }
             
             
-            list.body.find('.el_spinner').css("display", "none");
+            list.spinner.css("display", "none");
             
             if (iOffset==0 && data.rows.length==0){
                 list.showNotFound();
             }
             
             if (iOffset==0){
-                list.body.scrollTop(0);
+                list.divTable.scrollTop(0);
             }
             
             list.adjustColumnsWidth();
@@ -710,7 +728,7 @@ eiseList.prototype.getData = function(iOffset, recordCount, flagResetCache, call
         }
         , error: function(o, error, errorThrown){
             alert (list.conf['titleERRORBadResponse']+'\r\n'+list.conf['titleTryReload']+'\r\n'+errorThrown+'\r\n'+strARG);
-            list.body.find('.el_spinner').css("display", "none");
+            list.spinner.css("display", "none");
             list.transferInProgress = false;
         }
         , dataType: "json"
@@ -727,11 +745,11 @@ eiseList.prototype.getData = function(iOffset, recordCount, flagResetCache, call
 eiseList.prototype.showFoundRows = function(){
     var list = this;
     if(list.nTotalRows){
-        list.header.find('.el_span_foundRows').text(list.nTotalRows);
-        list.header.find('.el_foundRows').css("display", "inline");
+        list.header.find('.el-span-foundRows').text(list.nTotalRows);
+        list.header.find('.el-foundRows').css("display", "inline");
     } else {
-        list.header.find('.el_span_foundRows').text('');
-        list.header.find('.el_foundRows').css("display", "none");
+        list.header.find('.el-span-foundRows').text('');
+        list.header.find('.el-foundRows').css("display", "none");
     }
         
 }
@@ -739,11 +757,10 @@ eiseList.prototype.showFoundRows = function(){
 eiseList.prototype.showNotFound = function(show){
     
     if (typeof(show)=='undefined' || show==true) {
-        this.body.find('.el_notfound')
-            .css("display", "block")
-            .css("width", this.div.outerWidth() - (this.body.find('.el_notfound').outerWidth()-this.body.find('.el_notfound').width()));
+        this.notfound
+            .css("display", "block");
     } else {
-        this.body.find('.el_notfound')
+        this.notfound
             .css("display", "none");
     }
     
@@ -763,7 +780,7 @@ eiseList.prototype.openInExcel = function(){
 
 eiseList.prototype.refreshList = function(){
     
-    this.tbody.children('tr:not(.el_template)').remove();
+    this.tbody.children('tr.el-data').remove();
     this.getData(0,null,true);
     
 }
@@ -773,12 +790,10 @@ eiseList.prototype.appendRow = function (index, rw){
     var list = this;
     
     //clone template row
-    var tr = this.tbody.find('.el_template').clone(true);
+    var tr = this.tbody.find('.el-template').clone(true);
     
     tr.find('td').each(function(){
-        var fieldName = $(this).attr('class')
-            .split(/\s+/)[0]
-            .replace(list.id+'_','');
+        var fieldName = this.dataset['field'];
         
         if (rw.r[fieldName]==undefined)
             return true; //continue
@@ -788,7 +803,7 @@ eiseList.prototype.appendRow = function (index, rw){
         if (rw.r[fieldName].c!=null  && rw.r[fieldName].c!="")
             $(this).addClass(rw.r[fieldName].c);
         
-        if ($(this).hasClass('el_checkbox')){
+        if ($(this).hasClass('el-checkbox')){
             
             $(this).find('input')
                 .attr("id", $(this).find('input').attr("id")+rw.PK)
@@ -799,8 +814,8 @@ eiseList.prototype.appendRow = function (index, rw){
             if (rw.r[fieldName].v!=null && rw.r[fieldName].v!="")
                 $(this).attr("value", rw.r[fieldName].v);
             
-            if ($(this).hasClass('el_boolean') && text=="1"){
-                $(this).addClass('el_boolean_s');
+            if ($(this).hasClass('el-boolean') && text=="1"){
+                $(this).addClass('el-boolean-s');
             }
             
             var html = (rw.r[fieldName].h!=null && rw.r[fieldName].h!=""
@@ -814,13 +829,13 @@ eiseList.prototype.appendRow = function (index, rw){
     
     tr.attr('id', this.id+'_'+rw.PK);
 
-    tr.find('.el_editable').each(function(){
+    tr.find('.el-editable').each(function(){
         list.initEditable(this);
     })
     
-    tr.removeClass('el_template');
-    tr.addClass('el_data');
-    tr.addClass('el_tr'+index%2);
+    tr.removeClass('el-template');
+    tr.addClass('el-data');
+    tr.addClass('el-tr'+index%2);
     if (rw.c)
         tr.addClass(rw.c);
     list.tbody.append(tr);
@@ -881,6 +896,8 @@ eiseList.prototype.initEditable = function(cell){
  */
 eiseList.prototype.setMinimalColumnWidth = function(){
 
+    return;
+
     var list = this;
 
     var iTotalWidth = 0;
@@ -930,13 +947,15 @@ eiseList.prototype.setMinimalColumnWidth = function(){
 }
 
 eiseList.prototype.adjustColumnsWidth = function(){
+
+    return;
     
     /* box-sizing for any TD in list should be set to 'border-box'! */
     /* every eiseList table should have 'table-layout: fixed'! */
     
     var list = this;
 
-    var $trFirst = this.tbody.find('.el_data');
+    var $trFirst = this.tbody.find('.el-data');
     var iTotalWidth = 0;
     
     // compare min-width with actual width
@@ -971,34 +990,20 @@ eiseList.prototype.adjustColumnsWidth = function(){
     
 }
 
-eiseList.prototype.adjustHeaderColumnByBody = function(fieldName){
-    
-    var className = this.id+'_'+fieldName;
-    
-    var trBody = this.tbody.children('tr:not(.el_template)').first();
-        
-    var tdHead = $(this.thead.find('.'+className).first());
-    var wH = tdHead.outerWidth();
-    var tdBody = $(trBody.find('.'+className).first());
-    var wB = tdBody.outerWidth();
-    
-    if (wH < wB && !tdBody.hasClass('el_fixedWidth')){
-        var tdHeadW = wB;
-        tdHead.css('min-width', tdHeadW+"px").css('max-width', tdHeadW+"px").css('width', tdHeadW+"px");
-    }
-    
-}
-
 eiseList.prototype.handleScroll = function(){
     
-    var list = this;
+    var list = this,
+        $elDatas = this.tbody.children('.el-data');
+
+    if(!$elDatas[0])
+        return;
     
-    var cellHeight = this.tbody.children('tr:not(.el_template)').first().outerHeight(true);
-    var windowHeight = this.body.height();
+    var cellHeight = $elDatas.first().outerHeight(true);
+    var windowHeight = list.divTable.outerHeight(true);
     
-    var nCells = Math.ceil(windowHeight/cellHeight);
+    var nCells = 4 * Math.ceil(windowHeight/cellHeight);
     
-    if (list.body[0].scrollHeight - windowHeight <= list.body.scrollTop() 
+    if (list.divTable[0].scrollHeight - windowHeight <= list.divTable.scrollTop() 
         && (list.nTotalRows===null ? true : list.currentOffset<list.nTotalRows)){
         
         list.getData(list.currentOffset, nCells);
@@ -1010,9 +1015,9 @@ eiseList.prototype.handleScroll = function(){
 eiseList.prototype.selectRow = function(oTr){
     
     if (this.activeRow!=null) {
-        this.activeRow.removeClass('el_selected');
+        this.activeRow.removeClass('el-selected');
     }
-    oTr.addClass('el_selected');
+    oTr.addClass('el-selected');
     this.activeRow = oTr;
 }
 
@@ -1023,23 +1028,23 @@ eiseList.prototype.sort = function(oTHClicked){
     var classToAdd = "";
     
     this.form.find("#"+this.id+"OB").val(colID);
-    if (oTHClicked.hasClass('el_sorted_asc')){
+    if (oTHClicked.hasClass('el-sorted-asc')){
         this.form.find("#"+this.id+"ASC_DESC").val("DESC");
-        oTHClicked.removeClass('el_sorted_asc');
-         classToAdd = 'el_sorted_desc';
-    } else if(oTHClicked.hasClass('el_sorted_desc')){
+        oTHClicked.removeClass('el-sorted-asc');
+         classToAdd = 'el-sorted-desc';
+    } else if(oTHClicked.hasClass('el-sorted-desc')){
         this.form.find("#"+this.id+"ASC_DESC").val("ASC");
-        oTHClicked.removeClass('el_sorted_desc');
-         classToAdd = 'el_sorted_asc';
+        oTHClicked.removeClass('el-sorted-desc');
+         classToAdd = 'el-sorted-asc';
     } else {
         this.form.find("#"+this.id+"ASC_DESC").val("ASC");
-         classToAdd = 'el_sorted_asc';
+         classToAdd = 'el-sorted-asc';
     }
     
     
     this.thead.find("th").each(function(){
-        $(this).removeClass('el_sorted_asc');
-        $(this).removeClass('el_sorted_desc');
+        $(this).removeClass('el-sorted-asc');
+        $(this).removeClass('el-sorted-desc');
     })
     oTHClicked.addClass(classToAdd);
     
@@ -1129,7 +1134,7 @@ eiseList.prototype.reset = function (ev, options){
         })
     }
 
-    this.form.find(".el_filter").each( function(idx, oInp){
+    this.form.find(".el-filter").each( function(idx, oInp){
         if(options.keepFilters.indexOf(oInp.name)==-1){
             $(oInp).val('')
         } 
@@ -1147,7 +1152,7 @@ eiseList.prototype.reset = function (ev, options){
 
 eiseList.prototype.toggleRowSelection = function(sel){
     
-    var field = this.getFieldName($(sel).parents('td')[0]);
+    var field = this.getFieldName($(sel).parents('td,th')[0]);
     
     var list = this;
     
@@ -1171,7 +1176,7 @@ eiseList.prototype.toggleRowSelection = function(sel){
     } else {
     
         //3. loop thru matched elements
-        list.tbody.find('tr:not(.el_template) td.'+this.id+'_'+field+' input[name="sel_'+list.id+'[]"]').each(function(){
+        list.tbody.find('.el-data td.'+this.id+'_'+field+' input[name="sel_'+list.id+'[]"]').each(function(){
             this.checked = ($(this).attr('disabled')=='disabled' ? this.checked : !this.checked);
         });
     
@@ -1211,7 +1216,7 @@ eiseList.prototype.showInput = function(cell, conf){
     $(cell).html('');
     $(cell).append((typeof(conf.inpHTML)!="undefined" 
         ? conf.inpHTML
-        : '<input type="text" class="el_cellInput" autocomplete="off">')
+        : '<input type="text" class="el-cellInput" autocomplete="off">')
         );
     
     $(cell).css('overflow', 'visible');
