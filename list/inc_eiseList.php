@@ -562,7 +562,7 @@ private function showTableHeader(){
         
         /* TD for row title */
         $strTDHead = "<th";
-        $strTDHead .= ($col["width"] && !preg_match('/\%$/', $col["width"])  ? " style=\"width: ".$col["width"]."\"" : '');
+        $strTDHead .= ($col["width"] ? " style=\"width: ".$col["width"]."\"" : '');
         $strTDHead .= " class=\"{$strClassList}\"";
         $strTDHead .= " data-field=\"{$col['field']}\"";
         $strTDHead .=  ">" ;
@@ -682,14 +682,23 @@ protected function getComboboxSource($col){
     if ( is_array($col['source']) || ($arrCombo=@json_decode($col['source'], true)) ) {
         $arrCombo = ( count($arrCombo)>0 ? $arrCombo : $col['source'] );
     } else {
-        $sqlCombo = (
-            preg_match("/^(svw_|vw_|tbl_|stbl_)/", $col['source'])
-            ? ($col['source_prefix']!=""
-                ? "SELECT `{$col['source_prefix']}Title{$this->conf['strLocal']}` as optText{$this->conf['strLocal']}, `{$col['source_prefix']}ID` as optValue FROM `{$col['source']}`"
-                : "SELECT * FROM `{$col['source']}`".($col['extra'] ? " WHERE extra=".$oSQL->e($col['extra']) : '')
-                )
-            : $col['source']
-        );
+        if(preg_match("/^(svw_|vw_|tbl_|stbl_)/", $col['source'])){
+
+            $rsCMB = $this->intra->getDataFromCommonViews(null, null, $col['source']
+                , $col["source_prefix"]
+                , 1
+                , (string)$col['extra']
+                , true
+                );
+            $a = array();
+            while($rwCMB = $oSQL->f($rsCMB))
+                $opts[$rwCMB["optValue"]]=$rwCMB["optText"];
+
+            return $a;
+
+        } else {
+            $sqlCombo = $col['source'];
+        }
         //echo $col['title']."\r\n";
         $rsCombo = $oSQL->do_query($sqlCombo);
         while ($rwCombo = $oSQL->fetch_array($rsCombo)) {

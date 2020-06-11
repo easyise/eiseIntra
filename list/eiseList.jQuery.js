@@ -860,9 +860,7 @@ eiseList.prototype.initEditable = function(cell){
                     //save data with ajax:
                     // determine PK
                     var pk = $(cell).parent('tr').attr('id').replace(list.id+'_', '');
-                    var field = $(cell).attr('class')
-                        .split(/\s+/)[0]
-                        .replace(list.id+'_','');
+                    var field = list.getFieldName(cell);
                     $.ajax({ url: location.pathname
                         , type: 'POST'
                         , data: {
