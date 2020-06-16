@@ -71,6 +71,7 @@ function eiseGrid(gridDIV){
     __initRex.call(this);
     __initControlBar.call(this);
 
+    this.initResizer();
     this.initLinesStructure();
 
     //clickable TH 
@@ -128,6 +129,21 @@ function eiseGrid(gridDIV){
 
 }
 
+eiseGrid.prototype.initResizer = function(){
+    var grid = this;
+    this.thead.find('th').each(function(){
+
+        $(this)
+            .resizable({
+                handles: 'e',
+                minWidth: 18,
+                helper: "el-resizable-helper",
+                alsoResize: 'col.'+grid.id+'-'+this.dataset['field'],
+            });
+
+    })
+        
+}
 
 eiseGrid.prototype.initLinesStructure = function(){
     var oGrid = this,
@@ -765,6 +781,9 @@ var __initControlBar = function(){
     });
     this.div.find('.eg-button-excel').bind('click', function(){
         oGrid.excel();
+    });
+    this.div.find('.eg-button-palette').bind('click', function(ev){
+        oGrid.colorRow(ev);
     });
     this.div.find('.eg-button-filter').bind('click', function(ev){
         oGrid.showFilter(ev);
@@ -1989,6 +2008,65 @@ eiseGrid.prototype.excel = function(options){
         strSheet += "</Workbook>";
     var b = new Blob([strSheet], {type:'application/x-msexcel;charset=utf-8;'});
     grid.sa(b, options.excelFileName);
+
+}
+
+eiseGrid.prototype.colorRow = function(ev){
+
+    if ($('.eg-colorpicker')[0]) { $('.eg-colorpicker').dialog('close') };
+
+    var grid = this
+        , $dlg = $('<div class="eg-colorpicker">')
+        , $initiator = $(ev.currentTarget)
+        , $row = grid.tableContainer.find('tbody.eg-data.eg-selected')
+        , colorField = null;
+
+    $.each(grid.conf.fields, function(key, field){
+        if(field.type=='color'){
+            colorField = key;
+            return false;
+        }
+    });
+
+    $.each(grid.conf['colors'], function(ix, color){
+        $('<div class="eg-color" style="background-color:'+color+'"/>')
+            .click(function(){
+                $row.find('td').css('background-color', color);
+                if(colorField)
+                    grid.value($row, colorField, color);
+                $dlg.dialog('close');
+            })
+            .appendTo($dlg);
+    })
+
+    $dlg.appendTo('body');
+
+    $dlg.dialog({
+                dialogClass: 'el_dialog_notitle', 
+                position: {
+                    my: "left top",
+                    at: 'left bottom',
+                    of: $initiator
+                  },
+                show: 'slideDown',
+                hide: 'slideUp',
+                resizable: false,
+                width: 300,
+                title: "Filter",
+                buttons: {
+                    "Clear": function() {
+                        $row.find('td').css('background-color', '');
+                        if(colorField)
+                            grid.value($row, colorField, '');
+                        $dlg.dialog('close');
+                    },
+                    "Close": function() {
+                        $(this).dialog("close");
+                    }
+                },
+            });
+
+    return;
 
 }
 

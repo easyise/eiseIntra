@@ -362,14 +362,14 @@ input.el-filter {   padding: 0 5px !important;}
 }
 
 .el_filter_date, .el_filter_datetime {
-    background-image:url( "images/icon_calendar.png" );
+    background-image: @el-icon-calendar;
     background-position: right top;
     background-repeat:no-repeat;  
     padding-right: 18px; 
     width: auto;
 }
 .el_input_date, .el_input_datetime {
-    background-image:url( "images/icon_calendar.png" );
+    background-image: @el-icon-calendar;
     background-position: right top;
     background-repeat:no-repeat;  
     padding-right: 18px; 

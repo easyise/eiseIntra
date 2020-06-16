@@ -1133,6 +1133,8 @@ eiseList.prototype.reset = function (ev, options){
     }
 
     this.form.find(".el-filter").each( function(idx, oInp){
+        console.log('qq')
+        console.log(options.keepFilters)
         if(options.keepFilters.indexOf(oInp.name)==-1){
             $(oInp).val('')
         } 
