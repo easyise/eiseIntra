@@ -70,6 +70,7 @@ function eiseGrid(gridDIV){
     
     __initRex.call(this);
     __initControlBar.call(this);
+    __initColors.call(this);
 
     this.initResizer();
     this.initLinesStructure();
@@ -823,6 +824,30 @@ var __initControlBar = function(){
 
 }
 
+var __initColors = function(){
+    var grid = this
+        , $row = grid.tableContainer.find('tbody.eg-data.eg-selected')
+        , colorField = null;
+
+    $.each(grid.conf.fields, function(key, field){
+        if(field.type=='color'){
+            colorField = key;
+            return false;
+        }
+    });
+
+    if(!colorField)
+        return;
+
+    grid.tableContainer.find('tbody.eg-data').each(function(){
+        var $row = $(this)
+            , color = grid.value($row, colorField);
+        if(color)
+            $row.find('td').css('background-color', color);
+    })
+
+}
+
 eiseGrid.prototype.bindKeyPress = function ( $o ){
 
     var grid = this;
@@ -1405,6 +1430,7 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text, options){
                             oInp.next().val((text!=undefined ? text : strValue));
                         else 
                             oInp.next().html((text!=undefined ? text : strValue));
+                        oTr.find('input[name="'+strFieldName+'_text[]"]').val((text!=undefined ? text : strValue));
                         break;
                 }
             }
