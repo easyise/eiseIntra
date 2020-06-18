@@ -84,7 +84,7 @@ function eiseGrid(gridDIV){
                 return true;
             if(props.type=='checkbox' && props.headerClickable){
                 $th.click(function(){
-                    oGrid.div.find('.eg-data .'+oGrid.id+'-'+field+' input[type="checkbox"]').click();
+                    oGrid.div.find('.eg-data:not(.eg-filtered) .'+oGrid.id+'-'+field+' input[type="checkbox"]').click();
                 });
                 return true;
             }
