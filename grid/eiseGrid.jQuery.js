@@ -2606,7 +2606,8 @@ fileUpload: function( fileUploadOptions ){
         fd.append(fileUploadOptions['DataAction_field'], fileUploadOptions['DataAction_value']);
         fd.append(fileUploadOptions['itemIDfield'], fileUploadOptions['itemID']);
         var size = 0;
-        for (var [key, value] of fd.entries()) { 
+        $.each(Array.from(fd.entries()), function(ix, pair){
+            var key=pair[0], value=pair[1];
             if(value.constructor.name=='File'){
                 var file = value;
                 if( fileUploadOptions['allowed_types'].length && fileUploadOptions['allowed_types'].indexOf(file.type)==-1 ){
@@ -2621,7 +2622,7 @@ fileUpload: function( fileUploadOptions ){
                 } 
                 size +=  file.size;               
             }
-        }
+        })
         if(size==0){
             grid.spinner(false);
             return false;
@@ -2652,7 +2653,7 @@ fileUpload: function( fileUploadOptions ){
                 } else {
                     grid.fill( response.data );
                 }
-                if($form[0])
+                if($form && $form[0])
                     $form.dialog('close').remove();
                 
             },
@@ -2695,7 +2696,7 @@ fileUpload: function( fileUploadOptions ){
                 alert("Drag'n'drop not supported. Use Google Chrome")
                 return false;
             };
-            [...files].forEach( file => { fd.append(fileUploadOptions['File_field'], file); });
+            $.each(files, function( ix, file ){ fd.append(fileUploadOptions['File_field'], file); });
             __do_upload( fd );
 
         })
