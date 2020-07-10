@@ -713,9 +713,9 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
                         : "")
         ));
 
-    // die('<pre>'.var_export($conf4list, true));
+    $listClass = $conf4list['listClass'] ? $conf4list['listClass'] : 'eiseList';
 
-    $lst = new eiseList($oSQL, $listName, $conf4list);
+    $lst = new $listClass($oSQL, $listName, $conf4list);
 
     $lst->addColumn(array('title' => ""
             , 'field' => $prfx."ID"

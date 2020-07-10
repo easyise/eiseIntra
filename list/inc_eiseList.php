@@ -684,15 +684,20 @@ protected function getComboboxSource($col){
     } else {
         if(preg_match("/^(svw_|vw_|tbl_|stbl_)/", $col['source'])){
 
+            if(!$this->intra) {
+                include ("../inc_intra.php");
+                $this->intra = new eiseIntra($this->oSQL);
+            }
             $rsCMB = $this->intra->getDataFromCommonViews(null, null, $col['source']
                 , $col["source_prefix"]
                 , 1
                 , (string)$col['extra']
                 , true
-                );
+                );    
             $a = array();
-            while($rwCMB = $oSQL->f($rsCMB))
-                $opts[$rwCMB["optValue"]]=$rwCMB["optText"];
+            while($rwCMB = $oSQL->f($rsCMB)){
+                $a[$rwCMB["optValue"]]=$rwCMB["optText"];
+            }
 
             return $a;
 
@@ -973,7 +978,7 @@ private function handleInput(){
  * - value (string) - field value
  *
  */
-public function updateCell($newData = null){
+public function updateCell($newData = null, $opts = array()){
 
     if( !($this->intra && ($this->intra->arrUsrData['FlagWrite'] ||$this->intra->arrUsrData['FlagUpdate'])) )
         return;
@@ -1000,10 +1005,13 @@ public function updateCell($newData = null){
     $oSQL->q($sql);
     $oSQL->q('COMMIT');
 
-    if($this->intra)
-        $this->intra->json('ok', '', array());
-    else 
-        die();
+    if(!$opts['noRedirect']){
+        if($this->intra)
+            $this->intra->json('ok', '', array());
+        else 
+            die();
+    }
+    
 }
 
 /**
