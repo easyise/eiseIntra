@@ -643,7 +643,8 @@ eiseList.prototype.getData = function(iOffset, recordCount, flagResetCache, call
         .css("display", "table-row")
         .css("width", list.div.outerWidth() - (list.spinner.outerWidth()-list.spinner.width()));
     if (iOffset > 0){
-        list.spinner.css("margin-top", "10px");
+        list.spinner.insertAfter(list.table.find('.el-data').last());
+        // list.spinner.css("margin-top", "10px");
     }
     
     var strARG = "";
@@ -1132,7 +1133,7 @@ eiseList.prototype.reset = function (ev, options){
         })
     }
 
-    this.form.find(".el-filter input").each( function(idx, oInp){
+    this.form.find(".el-filter input, .el-filter select").each( function(idx, oInp){
         if(options.keepFilters.indexOf(oInp.name)==-1){
             console.log(oInp, options.keepFilters)
             $(oInp).val('')
