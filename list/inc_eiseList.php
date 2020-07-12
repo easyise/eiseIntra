@@ -45,8 +45,8 @@ public $conf = Array(
     , 'dataSource' => "" //$_SERVER["PHP_SELF"]
     
     , 'rowsFirstPage' => 100
-    , 'rowsPerPage' => 40
-    , 'maxRowsForSelection' => 1000
+    , 'rowsPerPage' => 100
+    , 'maxRowsForSelection' => 5000
     , 'calcFoundRows' => true
     , 'cacheSQL' => true
     , 'doNotSubmitForm' => true
@@ -467,20 +467,20 @@ foreach ($_GET as $key => $value) {
 }
 foreach ($this->Columns as $col) {
     if (!$col['title'] && $col['filter']){
-        echo "<input type=hidden id=\"".$this->name.'_'.$col['filter']."\" name=\"".$this->name.'_'.$col['filter']."\" value=\"".urlencode($col["filterValue"])."\" class=\"el_filter\">\r\n";
+        echo "<input type=hidden id=\"".$this->name.'_'.$col['filter']."\" name=\"".$this->name.'_'.$col['filter']."\" value=\"".urlencode($col["filterValue"])."\" class=\"el-filter\">\r\n";
     }
 }
  ?>
 
-<div class="el_header">
+<div class="el-header">
 <h1><?php echo $this->conf["title"]; ?>
-<span class="el_foundRows el_span_foundRows"></span>
+<span class="el-foundRows el-span-foundRows"></span>
 <?php if ($this->conf['subtitle']): ?>
 <small><?php echo $this->conf['subtitle'] ?></small>
 <?php endif ?>
 </h1>
 
-<div class="el_controlBar">
+<div class="el-controlBar">
 
 <?php 
 $arrButtons = explode("|", $this->conf['controlBarButtons']);
@@ -492,58 +492,30 @@ if (in_array('btnReset', $arrButtons)) {?><input type="button" value="Reset" id=
 </div>
 </div>
 
-<div class="el_table">
+<div class="el-table">
 <table>
 <?php  echo $this->showTableHeader(); ?>
 <tbody>
-<tr>
-<td colspan="<?php  echo $this->nCols ; ?>" class="el_tdBody">
-
-<div class="el_body">
-<table>
-<colgroup><?php echo $this->cols; ?></colgroup>
-<tbody>
-<tr class="el_template"><?php 
-echo $this->showTemplateRow();
- ?></tr>
-</tbody>
-</table>
-
-
-<div class="el_spinner"><?php  echo $this->conf["titlePleaseWait"] ; ?></div>
-<div class="el_notfound"><?php  echo $this->conf["titleNothingFound"] ; ?></div>
-<div class="el_faux_scrollbar-wrap ui-widget-content">
-<div class="el_faux_scrollbar"></div>
-</div>
-</div>
-
-
-</td>
-</tr>
-
+<tr class="el-spinner"><td colspan="<?php  echo $this->nCols ; ?>"><div><?php  echo $this->conf["titlePleaseWait"] ; ?></div></td></tr>
+<tr class="el-notfound"><td colspan="<?php  echo $this->nCols ; ?>"><div><?php  echo $this->conf["titleNothingFound"] ; ?></div></td></tr>
+<tr class="el-template"><?php echo $this->showTemplateRow(); ?></tr>
 </tbody>
 
 <?php 
-if ($this->flagHasAggregate) {
+if ($this->flagHasAggregate):
  ?>
 <tfoot>
 <tr><?php  echo $this->showFooterRow() ; ?></tr>
 </tfoot>
 <?php 
-}
+endif;
  ?>
 </table>
-<?php 
-if(false){
-//if (count($this->Tabs) > 0){
-    echo '</div>';
-}
- ?>
 </div>
 
 </form>
 
-<div class="el_fieldChooser" style="display:none;"><?php  echo $this->showFieldChooser() ; ?></div>
+<div class="el-fieldChooser" style="display:none;"><?php  echo $this->showFieldChooser() ; ?></div>
 
 <div class="el_debug"></div>
 <input type="hidden" id="inp_<?php  echo $this->name ; ?>_config" name="inp_<?php  echo $this->name ; ?>_config" value="<?php  
@@ -570,42 +542,45 @@ private function showTableHeader(){
         
         $strColClass = "{$this->name}_{$col["field"]}";
 
-        $strClassList = '';
+        $strClassList = ($col['order_field'] ? "el-sortable" : '');
 
-        $strClassList .= ($strClassList!='' ? ' ' : '').($col['order_field'] ? "el_sortable" : "");
-        
         $strArrowImg = "";
         if ($col['field']==$this->orderBy) {
-            $strClassList .= ($strClassList!='' ? ' ' : '')."el_sorted_".strtolower($this->sortOrder);
+            $strClassList .= ($strClassList!='' ? ' ' : '')."el-sorted-".strtolower($this->sortOrder);
         }
         
         $col['width'] = $col['width'].(preg_match('/^[0-9]+$/', $col['width']) ? 'px' : '');
 
-        $strClassList .= ($col["width"]!="" && !preg_match('/\%$/', $col["width"]) ? ($strClassList!='' ? ' ' : '')."el_fixedWidth" : "");
-
-        $strClassList .= ($strClassList!='' ? ' ' : '').$strColClass;
+        $strClassList .= ($strClassList!='' ? ' ' : '')
+            .($col['type']
+                ? 'el-'.$col['type']
+                : ($col['checkbox'] 
+                    ? 'el-checkbox'
+                    : 'el-text')
+                )
+            .' '.$strColClass;
         
         /* TD for row title */
         $strTDHead = "<th";
-        //$strTDHead .= ($col["width"]!=""   ? " style=\"width: ".$col["width"]."; min-width: ".$col["width"]."; max-width: ".$col["width"]."\"" : "");
+        $strTDHead .= ($col["width"] ? " style=\"width: ".$col["width"]."\"" : '');
         $strTDHead .= " class=\"{$strClassList}\"";
+        $strTDHead .= " data-field=\"{$col['field']}\"";
         $strTDHead .=  ">" ;
 
-        $strTDHead .= "<div>".htmlspecialchars($col['title'])."</div>";
+        $strTDHead .= '<div class="el-title">'.htmlspecialchars($col['title']).'</div>';
         
-        $strTDHead .= "</th>\r\n";
 
         /* TD for search input */
         $strTDFilter = "";
         if ($this->flagHasFilters) {
-            $classTD = "{$this->name}_{$col['field']}".($col["filterValue"]!="" ? " el_filterset" : "");
-            $strTDFilter .= "<td class=\"{$classTD}\">";
+            $classTD = "{$this->name}_{$col['field']}".($col["filterValue"]!="" ? " el-filterset" : "");
+            $strTDFilter .= "<div class=\"el-filter {$classTD}\">";
             if ($col['filter']) {
                 switch ($col['type']) {
                     case "combobox":
                         $arrCombo = $this->getComboboxSource($col);
                         $col['source_raw'] = $arrCombo;
-                        $strTDFilter .= "<select id='cb_".$col["filter"]."' name='".$this->name."_".$col["filter"]."' class='el_filter'>\r\n";
+                        $strTDFilter .= "<select id='cb_".$col["filter"]."' name='".$this->name."_".$col["filter"]."' class='el-filter'>\r\n";
                         $strTDFilter .= "<option value=''>\r\n";
                         while (list($value, $text) = each($arrCombo)){
                             $strTDFilter .= "<option value='$value'".((string)$col["filterValue"]==(string)$value ? " selected" : "").">$text\r\n";
@@ -648,16 +623,15 @@ private function showTableHeader(){
             } else {
                 $strTDFilter .= "&nbsp;";
             }
-            $strTDFilter .= "</td>\r\n";
-            
-            $secondRow .= $strTDFilter;
             
         }
+
+        $strTDHead .= $strTDFilter;
+
+        $strTDHead .= "</th>\r\n";
         
         $firstRow .= $strTDHead;
 
-        $this->cols .= '<col class="'.$strColClass.'" data-width="'.htmlspecialchars($col['width']).'"></col>'."\n";
-        
         $this->nCols++;
         
     }
@@ -684,12 +658,13 @@ private function showTableHeader(){
 
     }
 
-    $htmlTabs = ($htmlTabs ? '<tr class="el-tr-tabs"><td class="el-tabs-container" colspan="'.(int)$this->nCols.'">'.$htmlTabs.'</td></tr>'."\n" : '');
+    $htmlTabs = ($htmlTabs ? '<caption class="el-tr-tabs"><div class="el-tabs-container">'.$htmlTabs.'</div></caption>'."\n" : '');
     
-    $strOut .= "\n<colgroup>{$this->cols}</colgroup>\n".
-        "<thead>\n"
+    $strOut .= "\n"
         .$htmlTabs
-        ."<tr class=\"el-tr-titles\">{$firstRow}</tr>\n<tr class=\"el-tr-filters\">{$secondRow}</tr>\n</thead>";
+        ."<thead>\n"
+        ."<tr class=\"el-tr-titles\">{$firstRow}</tr>\n"
+        ."</thead>\n";
     
     return $strOut;
 
@@ -707,14 +682,29 @@ protected function getComboboxSource($col){
     if ( is_array($col['source']) || ($arrCombo=@json_decode($col['source'], true)) ) {
         $arrCombo = ( count($arrCombo)>0 ? $arrCombo : $col['source'] );
     } else {
-        $sqlCombo = (
-            preg_match("/^(svw_|vw_|tbl_|stbl_)/", $col['source'])
-            ? ($col['source_prefix']!=""
-                ? "SELECT `{$col['source_prefix']}Title{$this->conf['strLocal']}` as optText{$this->conf['strLocal']}, `{$col['source_prefix']}ID` as optValue FROM `{$col['source']}`"
-                : "SELECT * FROM `{$col['source']}`".($col['extra'] ? " WHERE extra=".$oSQL->e($col['extra']) : '')
-                )
-            : $col['source']
-        );
+        if(preg_match("/^(svw_|vw_|tbl_|stbl_)/", $col['source'])){
+
+            if(!$this->intra) {
+                include (preg_replace('/\/list$/', '', dirname(__FILE__))."/inc_config.php");
+                include_once (preg_replace('/\/list$/', '', dirname(__FILE__))."/inc_intra.php");
+                $this->intra = new eiseIntra($this->oSQL);
+            }
+            $rsCMB = $this->intra->getDataFromCommonViews(null, null, $col['source']
+                , $col["source_prefix"]
+                , 1
+                , (string)$col['extra']
+                , true
+                );    
+            $a = array();
+            while($rwCMB = $oSQL->f($rsCMB)){
+                $a[$rwCMB["optValue"]]=$rwCMB["optText"];
+            }
+
+            return $a;
+
+        } else {
+            $sqlCombo = $col['source'];
+        }
         //echo $col['title']."\r\n";
         $rsCombo = $oSQL->do_query($sqlCombo);
         while ($rwCombo = $oSQL->fetch_array($rsCombo)) {
@@ -818,12 +808,12 @@ private function showTemplateRow(){
         if (!$col["title"] || in_array($col["field"], $this->arrHiddenCols))
             continue;
             
-        $strRow.= "<td class=\"{$this->name}_{$col["field"]} ".
+        $strRow.= "<td data-field=\"{$col["field"]}\" class=\"".
             ($col["type"]!="" 
-                ? "el_".$col["type"] 
-                : ($col['checkbox'] ? "el_checkbox" : "text")).
-            (isset($col['editable']) && $this->intra && ($this->intra->arrUsrData['FlagWrite'] ||$this->intra->arrUsrData['FlagUpdate'])  ? ' el_editable' : '').
-            (isset($col['width']) ? ' el_fixedWidth' : '').
+                ? "el-".$col["type"] 
+                : ($col['checkbox'] ? "el-checkbox" : "el-text")).
+            (isset($col['editable']) && $this->intra && ($this->intra->arrUsrData['FlagWrite'] ||$this->intra->arrUsrData['FlagUpdate'])  ? ' el-editable' : '').
+            " {$this->name}_{$col["field"]}".
             '"'.
             (isset($col['target']) ? ' target="'.$col['target'].'"' : '').
             '>'.($col['checkbox']
@@ -989,7 +979,7 @@ private function handleInput(){
  * - value (string) - field value
  *
  */
-public function updateCell($newData = null){
+public function updateCell($newData = null, $opts = array()){
 
     if( !($this->intra && ($this->intra->arrUsrData['FlagWrite'] ||$this->intra->arrUsrData['FlagUpdate'])) )
         return;
@@ -1016,10 +1006,13 @@ public function updateCell($newData = null){
     $oSQL->q($sql);
     $oSQL->q('COMMIT');
 
-    if($this->intra)
-        $this->intra->json('ok', '', array());
-    else 
-        die();
+    if(!$opts['noRedirect']){
+        if($this->intra)
+            $this->intra->json('ok', '', array());
+        else 
+            die();
+    }
+    
 }
 
 /**
