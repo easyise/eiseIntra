@@ -8,12 +8,13 @@
  *
  *
  * @package eiseIntra
- * @version 2.0beta
+ * @version 2.3
  *
  */
 
 GLOBAL $eiseIntraKey;
 
+include "inc_version.php";
 include "inc_config.php";
 if (!class_exists('eiseSQL')) 
     include "inc_mysqli.php";
@@ -123,7 +124,7 @@ private $arrClassInputTypes =
  * @category Initialization
  */
 public static $defaultConf = array(
-        'versionIntra'=>'2.2.008' 
+        'versionIntra'=>EISEINTRA_VERSION
         , 'dateFormat' => "d.m.Y" // 
         , 'timeFormat' => "H:i" // 
         , 'decimalPlaces' => "2"
