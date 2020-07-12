@@ -685,7 +685,8 @@ protected function getComboboxSource($col){
         if(preg_match("/^(svw_|vw_|tbl_|stbl_)/", $col['source'])){
 
             if(!$this->intra) {
-                include ("../inc_intra.php");
+                include (preg_replace('/\/list$/', '', dirname(__FILE__))."/inc_config.php");
+                include_once (preg_replace('/\/list$/', '', dirname(__FILE__))."/inc_intra.php");
                 $this->intra = new eiseIntra($this->oSQL);
             }
             $rsCMB = $this->intra->getDataFromCommonViews(null, null, $col['source']
