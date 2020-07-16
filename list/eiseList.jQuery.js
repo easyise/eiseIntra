@@ -115,6 +115,7 @@ function eiseList(divEiseList){
             list.refreshList();
             return false;
         }
+        list.form[0].submit();
     })        
         
     this.div.find('#btnFieldChooser').click(function (){
@@ -1084,10 +1085,12 @@ eiseList.prototype.fieldsChosen = function(){
             strHiddenFields += (strHiddenFields=="" ? "" : ",")+strFieldName;
         }
     });
+
     $('#'+this.id+"HiddenCols").val(strHiddenFields);
     //alert (document.getElementById(lstName+"HiddenCols").value);
     this.conf.doNotSubmitForm=false;
     this.form.submit();
+
 }
 
 /** 
@@ -1146,7 +1149,7 @@ eiseList.prototype.reset = function (ev, options){
     if(options.clearAllStorage)
         localStorage.removeItem(list.conf.cookieName)
 
-    list.form.submit();
+    list.form[0].submit();
       
 }
 
