@@ -1248,7 +1248,7 @@ private function getSearchCondition(&$col){
         case "textarea":
             $col['exactMatch'] = ($col['exactMatch'] || $this->conf['exactMatch']);
 
-            if ($col['exactMatch'] || preg_match("/^[\'\"'](.+)[\'\"']$/", $strFlt, $arrMatch)) {
+            if ($col['exactMatch'] || preg_match("/^[\'\"'](.*)[\'\"']$/", $strFlt, $arrMatch)) {
                 
                 if($col['exactMatch']){
 
@@ -1257,7 +1257,9 @@ private function getSearchCondition(&$col){
 
                 } else {
 
-                    $strCondition = " {$col['searchExpression']}=".$oSQL->e($arrMatch ? $arrMatch[1] : $strFlt);
+                    $strCondition = "( {$col['searchExpression']}=".$oSQL->e($arrMatch ? $arrMatch[1] : $strFlt) 
+                        .($arrMatch && $arrMatch[1]==='' ? " OR {$col['searchExpression']} IS NULL" : '')
+                        ." ) ";
 
                 }
             
