@@ -1032,6 +1032,8 @@ public function updateUnfinishedActions($nd = null){
 
 public function updateAction($rwACL, $nd){
 
+    if(isset($nd['aclGUID']) && $nd['aclGUID']==='')
+        unset($nd['aclGUID']);
     $act = new eiseAction($this, array_merge($rwACL, $nd));
     $act->update($nd);
 
