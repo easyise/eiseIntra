@@ -1246,7 +1246,9 @@ function backref($urlIfNoReferer){
     
     if (strpos($_SERVER["HTTP_REFERER"], $_SERVER["REQUEST_URI"])===false //if referer is not from itself
         &&
-        strpos($_SERVER["HTTP_REFERER"], 'index.php?pane=')===false ) //and not from fullEdit
+        strpos($_SERVER["HTTP_REFERER"], 'index.php?pane=')===false  //and not from fullEdit framed
+        &&
+        strpos($_SERVER["HTTP_REFERER"], 'entityitem_form.php')===false ) //and not from fullEdit
     {
         SetCookie("referer", $_SERVER["HTTP_REFERER"], 0, $_SERVER["PHP_SELF"]);
         $backref = ($_SERVER["HTTP_REFERER"] && !preg_match('/login.php/', $_SERVER["HTTP_REFERER"]) ? $_SERVER["HTTP_REFERER"] : $urlIfNoReferer);
