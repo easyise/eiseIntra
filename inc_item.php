@@ -261,12 +261,13 @@ public function getButtons(){
 }
 
 /**
- * To be triggered on DataAction=update or REST POST/PUT query
+ * To be triggered on DataAction=insert or REST POST/PUT query
  */
 public function insert($newData){
 
 	$intra = $this->intra;
 
+	$this->redirectTo = $this->conf['form'].'?'.$this->getURI();
 	$this->msgToUser = $intra->translate('%s is added', $this->conf['title'.$intra->local]);
 
 }
