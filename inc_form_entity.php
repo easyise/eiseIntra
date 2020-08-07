@@ -396,7 +396,7 @@ switch ($DataAction){
                 //echo $sqlACT; die();
                 $rsActToDel = $oSQL->do_query($sqlACT);
                 while ($rwATS = $oSQL->fetch_array($rsActToDel)){
-				    $sqlATS = "DELETE FROM tbl_action_status WHERE atsID='{$rwATS['atsID']}'";
+				    $sqlATS = "DELETE FROM stbl_action_status WHERE atsID='{$rwATS['atsID']}'";
 				    $oSQL->q($sqlATS);
 			    }
                 $sql[] = "DELETE FROM stbl_status_attribute WHERE satStatusID='".$staID."' AND satEntityID='$entID'";
@@ -459,6 +459,12 @@ switch ($DataAction){
 
             }
         }
+
+        $sqlFixSAT = "DELETE FROM stbl_status_attribute WHERE satAttributeID IN (SELECT * FROM (SELECT DISTINCT satAttributeID FROM stbl_status_attribute 
+          INNER JOIN stbl_status ON satStatusID=staID AND staEntityID='{$entID}'
+          LEFT OUTER JOIN stbl_attribute ON satAttributeID=atrID
+          WHERE atrID IS NULL) Q )";
+        $oSQL->q($sqlFixSAT);
 
         if (!$easyAdmin){
 
