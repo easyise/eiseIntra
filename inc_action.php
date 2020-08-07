@@ -573,14 +573,20 @@ public function getTimeStamps($nd = null, &$tsValues = array()){
 
     $a = array_merge($this->arrAction, (array)@json_decode($this->arrAction['aclItemTraced'], true), (array)$nd);
 
+    $valNull = 'NOW()';
+
     foreach(self::$ts as $ts){
         $val_ts = $a[$this->conf['aatFlagTimestamp'][$ts]];
-        //$val_ATA = $a['acl'.$ts];
-        $val = $val_ATA ? $val_ATA : $val_ts;
         $tsValues[$ts] = ($this->conf['actTrackPrecision']==='datetime'
-                ? $this->intra->datetimePHP2SQL($val, 'NOW()')
-                : $this->intra->datePHP2SQL($val, 'NOW()')
+                ? $this->intra->datetimePHP2SQL($val_ts, $valNull)
+                : $this->intra->datePHP2SQL($val_ts, $valNull)
                 );
+    }
+
+    // to prevent ATD, ET* from becomimg NOW()
+    $aclATA = $tsValues['ATA'];
+    foreach ($tsValues as $ts => $val) {
+        $tsValues[$ts] = ( $tsValues[$ts]==$valNull ? $aclATA : $tsValues[$ts] );
     }
 
     if(!$this->conf['actFlagHasEstimates']){
@@ -588,7 +594,7 @@ public function getTimeStamps($nd = null, &$tsValues = array()){
         $tsValues['ETA'] = $tsValues['ATA'];
     }
 
-    if($this->conf['actFlagDepartureEqArrival']){
+    if(!$this->conf['actFlagHasDeparture']){
         $tsValues['ETD'] = $tsValues['ETA'];
         $tsValues['ATD'] = $tsValues['ATA'];   
     }
@@ -602,7 +608,7 @@ public function getTimeStamps($nd = null, &$tsValues = array()){
     
 
     foreach($tsValues as $ts=>$value){
-        $sql .= "\n, acl{$ts} = {$value}";
+        $sql .= "\n, acl{$ts} = {$value}"; //.' /*'.var_export($this->conf['aatFlagTimestamp'], true).' -- '.var_export($s, true).'*/';
     }
 
     return $sql;
