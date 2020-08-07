@@ -481,6 +481,9 @@ private function init(){
     while($rwAAt = $oSQL->f($rsAAt)){ 
         if(isset($rwAAt['actFlagDepartureEqArrival']) && !isset($rwAAt['actFlagHasDeparture'])){ $rwAAt['actFlagHasDeparture'] = !$rwAAt['actFlagDepartureEqArrival']; }
         if(isset($rwAAt['actFlagMultistage']) && !isset($rwAAt['actFlagAutocomplete'])){ $rwAAt['actFlagMultistage'] = !$rwAAt['actFlagAutocomplete']; }
+        if(!$rwAAt['actTitleLocal']) $rwAAt['actTitleLocal'] = $rwAAt['actTitle'];
+        if(!$rwAAt['actTitlePast']) $rwAAt['actTitlePast'] = $rwAAt['actTitle'];
+        if(!$rwAAt['actTitlePastLocal']) $rwAAt['actTitlePastLocal'] = $rwAAt['actTitlePast'];
         $acts[] = $rwAAt; 
     }
 
