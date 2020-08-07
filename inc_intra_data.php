@@ -656,6 +656,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
                 , "orderField" => "{$strPrefix}Order"
                 , "delField" => "{$strPrefix}FlagDeleted"
                 , "classField" => "{$strPrefix}Class"
+                , "extraField" => "{$strPrefix}Extra"
                 );
         } else {
             $arrFields = Array(
@@ -665,6 +666,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
                 , "orderField" => "optOrder"
                 , "delField" => "optFlagDeleted"
                 , "classField" => "optClass"
+                , "extraField" => "extra"
             );
         }  
         
@@ -678,7 +680,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
         $tableFieldCache[$cacheKey] = $arrFields;
 
     }
-    
+
     $sql = "SELECT ".($this->local
             ? "(CASE WHEN IFNULL(`".$arrFields["textField{$this->local}"]."`, '')='' 
                 THEN `".$arrFields["textField"]."` 
@@ -701,7 +703,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
             foreach($arrExtra as $ix=>$ex){ 
                 $ex = trim($ex);
                 $strExtra .= ($ex!='' 
-                    ? ' AND extra'.($ix==0 ? '' : $ix).' = '.$oSQL->e($ex) 
+                    ? ' AND '.$arrFields['extraField'].($ix==0 ? '' : $ix).' = '.$oSQL->e($ex) 
                     : ''); 
             }
         }
