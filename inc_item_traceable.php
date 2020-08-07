@@ -12,6 +12,18 @@ const statusField = 'StatusID';
 public $extraActions = array();
 
 protected $defaultDataToObtain = array('Text', 'ACL', 'STL', 'files', 'messages');
+
+static function getPrefixExtra($prgRcv){
+    if(($prgRcv && strlen($prgRcv)<=3) || preg_match('/^([a-z0-9]{0,3})\|/', $prgRcv)){
+        if(preg_match('/^([a-z0-9]{0,3})\|(.*)$/i', $prgRcv, $arrMatch)){
+            $source_prefix = $arrMatch[1];
+            if(trim($arrMatch[2]))
+                $extra = $arrMatch[2];
+        } else 
+            $source_prefix = $prgRcv;
+    }
+    return [$source_prefix, $extra];
+}
     
 public function __construct($id = null,  $conf = array() ){
     
@@ -100,6 +112,7 @@ public function update($nd){
     $this->doAction(new eiseAction($this, $nd));
 
 // $this->oSQL->showProfileInfo();
+// die();
     
     $this->oSQL->q('COMMIT');
 
@@ -334,8 +347,8 @@ private function init(){
         ($this->intra->conf['systemID'] ? $this->intra->conf['systemID'].':' : '')
         .$this->entID;
 
-    if($_SESSION[$sessKey] && !$this->conf['flagDontCacheConfig']){
-    // if(false){
+    // if($_SESSION[$sessKey] && !$this->conf['flagDontCacheConfig']){
+    if(false){
         $this->conf = array_merge($this->conf, $_SESSION[$sessKey]);
         return $this->conf;
     }
@@ -417,7 +430,6 @@ private function init(){
             'actButtonClass' => 'ss_add',
             'actDescription' => 'create new',
             'actDescriptionLocal' => $this->intra->translate('Create new'),
-            'actFlagDepartureEqArrival' => '1',
             'actFlagAutocomplete' => '1',
             'actRoles' => $this->conf['RoleDefault'],
             );
@@ -433,7 +445,6 @@ private function init(){
             'actButtonClass' => 'ss_disk',
             'actDescription' => 'save data',
             'actDescriptionLocal' => $this->intra->translate('save data'),
-            'actFlagDepartureEqArrival' => '1',
             'actFlagAutocomplete' => '1',
             );
     $acts[] = array (
@@ -448,7 +459,6 @@ private function init(){
             'actButtonClass' => 'ss_cancel',
             'actDescription' => 'delete',
             'actDescriptionLocal' => $this->intra->translate('delete'),
-            'actFlagDepartureEqArrival' => '1',
             'actFlagAutocomplete' => '1',
             'actFlagMultiple' => '1',
             );
@@ -464,12 +474,15 @@ private function init(){
             'actButtonClass' => 'ss_exclamation',
             'actDescription' => 'put it to any state',
             'actDescriptionLocal' => $this->intra->translate('put it to any state'),
-            'actFlagDepartureEqArrival' => '1',
             'actFlagAutocomplete' => '1',
             'actRoles' => $this->conf['entManagementRoles'] ,
             );
 
-    while($rwAAt = $oSQL->f($rsAAt)){ $acts[] = $rwAAt; }
+    while($rwAAt = $oSQL->f($rsAAt)){ 
+        if(isset($rwAAt['actFlagDepartureEqArrival']) && !isset($rwAAt['actFlagHasDeparture'])){ $rwAAt['actFlagHasDeparture'] = !$rwAAt['actFlagDepartureEqArrival']; }
+        if(isset($rwAAt['actFlagMultistage']) && !isset($rwAAt['actFlagAutocomplete'])){ $rwAAt['actFlagMultistage'] = !$rwAAt['actFlagAutocomplete']; }
+        $acts[] = $rwAAt; 
+    }
 
     foreach ($acts as $rwAAt) {
 
@@ -486,7 +499,7 @@ private function init(){
 
             $ts = array('ATA'=>'aclATA', 'ATD'=>'aclATD', 'ETA'=>'aclETA', 'ETD'=>'aclETD');
             if (!$rwAAt["actFlagHasEstimates"]) {unset($ts["ETA"]);unset($ts["ETD"]);}
-            if ($rwAAt["actFlagDepartureEqArrival"]) {unset($ts["ATD"]);unset($ts["ETD"]);}
+            if (!$rwAAt["actFlagHasDeparture"]) {unset($ts["ATD"]);unset($ts["ETD"]);}
             $this->conf['ACT'][$rwAAt['actID']]['aatFlagTimestamp'] = $ts;
 
         } 
@@ -864,11 +877,10 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
         if (!preg_match("/^Array/i", $rwAtr['atrProgrammerReserved']))
         { 
             $arr['source'] = $rwAtr['atrDataSource'];
-            $arr['source_prefix'] = (strlen($rwAtr['atrProgrammerReserved'])==3 ? $rwAtr['atrProgrammerReserved'] : "");
+            list($arr['source_prefix'], $arr['extra']) = self::getPrefixExtra($rwAtr["atrProgrammerReserved"]);
             $arr['defaultText'] = $rwAtr['atrDefault'];
         } else 
             $arr['type'] = "text";
-       
         $lst->Columns[$atrID] = $arr;
        
     }
@@ -1108,7 +1120,7 @@ function getAllData($toRetrieve = null){
             FROM stbl_status_log 
             WHERE stlEntityID='{$this->entID}' 
             AND stlEntityItemID=".$this->oSQL->e($this->id)."
-            ORDER BY flagDraft, IFNULL(stlATA, NOW()) DESC";
+            ORDER BY flagDraft, IFNULL(DATE(stlATA), NOW()) DESC, stlInsertDate DESC";
         $rsSTL = $this->oSQL->q($sqlSTL);
         while($rwSTL = $this->oSQL->f($rsSTL)){
             $this->item['STL'][$rwSTL['stlGUID']] = $rwSTL;
@@ -1459,6 +1471,7 @@ function getAttributeFields($fields, $item = null, $conf = array()){
     if($item===null)
         $item = $this->item;
 
+    if(is_array($fields))
     foreach($fields as $field){
         $atr = $this->conf['ATR'][$field];
 
@@ -1475,8 +1488,8 @@ function getAttributeFields($fields, $item = null, $conf = array()){
                 } else if (preg_match("/^Array/i", $atr["atrProgrammerReserved"])){
                     eval ("\$options['source']={$atr["atrProgrammerReserved"]};");
                 }
-                if(strlen($atr["atrProgrammerReserved"])<=3)
-                    $options['source_prefix'] = $atr["atrProgrammerReserved"];
+                list($options['source_prefix'], $options['extra']) = self::getPrefixExtra($atr["atrProgrammerReserved"]);
+                    
                 $options['defaultText'] = '-';
                 
         }
@@ -1489,6 +1502,8 @@ function getAttributeFields($fields, $item = null, $conf = array()){
     return $html;
 
 }
+
+
 
 public function arrActionButtons(){
 
@@ -1718,10 +1733,10 @@ function showUnfinishedActions(){
 
             $html .= '<div align="center">'."\n";
 
-            if ($rwACL["aclActionPhase"]=="0" && !$act['actFlagDepartureEqArrival']){
+            if ($rwACL["aclActionPhase"]=="0" && $act['actFlagHasDeparture']){
                 $html .= $this->intra->showButton("start_{$aclGUID}", $this->intra->translate("Start"), array('class'=>"eiseIntraActionButton"));
             }
-            if ($rwACL["aclActionPhase"]=="1" || $act['actFlagDepartureEqArrival']){
+            if ($rwACL["aclActionPhase"]=="1" || !$act['actFlagHasDeparture']){
                 $html .= $this->intra->showButton("finish_{$aclGUID}", $this->intra->translate("Finish"), array('class'=>"eiseIntraActionButton"));
             }
             $html .= $this->intra->showButton("cancel_{$aclGUID}", $this->intra->translate("Cancel"), array('class'=>"eiseIntraActionButton"));
@@ -1780,11 +1795,11 @@ function showActionInfo($aclGUID, $conf = array()){
 
         if($conf['flagFullEdit']){
             if($rwACT['actFlagHasEstimates']){
-                if(!$rwACT['actFlagDepartureEqArrival'])
+                if($rwACT['actFlagHasDeparture'])
                     $html .= ( !$rwACT['aatFlagTimestamp']['ETD'] || $rwACT['aatFlagTimestamp']['ETD']=='aclETD' ? $this->intra->field('ETD', 'aclETD_'.$aclGUID, $rwACL['aclETD'], array('type'=>$rwACT['actTrackPrecision'])) : '');
                 $html .= ( !$rwACT['aatFlagTimestamp']['ETA'] || $rwACT['aatFlagTimestamp']['ETA']=='aclETA' ? $this->intra->field('ETA', 'aclETA_'.$aclGUID, $rwACL['aclETA'], array('type'=>$rwACT['actTrackPrecision'])) : '');
             } 
-            if(!$rwACT['actFlagDepartureEqArrival'])
+            if($rwACT['actFlagHasDeparture'])
                 $html .= ( !$rwACT['aatFlagTimestamp']['ATD'] || $rwACT['aatFlagTimestamp']['ATD']=='aclATD'  ? $this->intra->field('ATD', 'aclATD_'.$aclGUID, $rwACL['aclATD'], array('type'=>$rwACT['actTrackPrecision'])) : '');
             $html .= ( !$rwACT['aatFlagTimestamp']['ATA'] || $rwACT['aatFlagTimestamp']['ATA']=='aclATA' ? $this->intra->field('ATA', 'aclATA_'.$aclGUID, $rwACL['aclATA'], array('type'=>$rwACT['actTrackPrecision'])) : '');
         }
@@ -2039,8 +2054,9 @@ public function getDropDownText($arrATR, $value){
             ? $arrOptions[$value]
             : $arrATR["atrTextIfNull"]);
     } else {
+        list($prefix, $extra) = self::getPrefixExtra($arrATR["atrProgrammerReserved"]);
         $strRet = ($value != ""
-            ? $this->oSQL->d($this->intra->getDataFromCommonViews($value, null, $arrATR["atrDataSource"], $arrATR["atrProgrammerReserved"], true))
+            ? $this->oSQL->d($this->intra->getDataFromCommonViews($value, null, $arrATR["atrDataSource"], $prefix, true, $extra))
             : $arrATR["atrTextIfNull"]
         );
     }
