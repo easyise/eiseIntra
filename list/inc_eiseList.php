@@ -1243,12 +1243,18 @@ private function getSearchCondition(&$col){
 
     $strFlt = $col["filterValue"];
 
+    if( preg_match("/^\={0,1}[\'\"']{2}$/", $strFlt, $arrMatchEmpty) ) { // e.g ='' or ="" or '' or ""
+       return " {$col['searchExpression']} IS NULL".(in_array($col['type'], array('text', 'textarea')) ? "  OR {$col['searchExpression']}=''" : '');
+    }
+    if(in_array($strFlt, array('*', '%')))
+        return $strCondition = "{$col['searchExpression']} IS NOT NULL".(in_array($col['type'], array('text', 'textarea')) ? "  OR {$col['searchExpression']}<>''" : '');   
+
     switch ($col['type']) {
         case "text":
         case "textarea":
             $col['exactMatch'] = ($col['exactMatch'] || $this->conf['exactMatch']);
 
-            if ($col['exactMatch'] || preg_match("/^[\'\"'](.*)[\'\"']$/", $strFlt, $arrMatch)) {
+            if ($col['exactMatch'] || preg_match("/^\={0,1}[\'\"'](.*)[\'\"']$/", $strFlt, $arrMatch)) {
                 
                 if($col['exactMatch']){
 
@@ -1283,14 +1289,16 @@ private function getSearchCondition(&$col){
         case "integer":
         case "number":
         case "money":
-          if (preg_match("/^([\<\>\=]{0,1})(\-){0,1}[0-9]+([\.][0-9]+){0,1}$/", $strFlt, $arrMatch)) {
-            if ($arrMatch[1])
-                $strCondition = " ".$col['searchExpression'].$strFlt;
-            else
-                $strCondition = " ".$col['searchExpression']." = ".$strFlt;
-          } else
-             $strCondition = "";
-          break;
+        case "real":
+
+            if (preg_match("/^([\<\>\=]{0,1})(\-){0,1}[0-9]+([\.][0-9]+){0,1}$/", $strFlt, $arrMatch)) {
+                if ($arrMatch[1])
+                    $strCondition = " ".$col['searchExpression'].$strFlt;
+                else
+                    $strCondition = " ".$col['searchExpression']." = ".$strFlt;
+            } else
+                 $strCondition = "";
+            break;
         case 'combobox':
             $strCondition = " {$col['searchExpression']} = ".$oSQL->escape_string($strFlt)."";
             break;
