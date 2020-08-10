@@ -148,6 +148,13 @@ function eiseList(divEiseList){
         this.getData(0,null,true);
     }
 
+    this.thead.find('th').each(function(){
+        var w = $(this).width(), sw = this.scrollWidth;
+        if(w<=0){
+            $(this).css('width', sw+'px')
+        }
+    });
+
 }
 
 /**

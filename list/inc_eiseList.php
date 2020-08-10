@@ -562,7 +562,12 @@ private function showTableHeader(){
         
         /* TD for row title */
         $strTDHead = "<th";
-        $strTDHead .= ($col["width"] ? " style=\"width: ".$col["width"]."\"" : '');
+        $strTDHead .= ($col["width"] 
+            ? " style=\"width: ".$col["width"].(preg_match('/\%$/', $col['width']) 
+                ? ';min-width: 150px;'
+                : '')
+                .'"'
+            : '');
         $strTDHead .= " class=\"{$strClassList}\"";
         $strTDHead .= " data-field=\"{$col['field']}\"";
         $strTDHead .=  ">" ;
