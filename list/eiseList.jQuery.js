@@ -1213,10 +1213,11 @@ eiseList.prototype.getRowSelection = function(returnType){
 
 eiseList.prototype.showInput = function(cell, conf){
 
-    var inpID = this.id+'_'+this.getFieldName(cell);
+    var field = this.getFieldName(cell)
+        , inpID = this.id+'_'+field;
 
     var cellText = $(cell).text();
-    
+
     var list = this;
     
     var w = $(cell).innerWidth();
@@ -1224,10 +1225,15 @@ eiseList.prototype.showInput = function(cell, conf){
 
     //remove cell inner HTML
     $(cell).html('');
-    $(cell).append((typeof(conf.inpHTML)!="undefined" 
+    $((typeof(conf.inpHTML)!="undefined" 
         ? conf.inpHTML
-        : '<input type="text" class="el-cellInput" autocomplete="off">')
-        );
+        : ($(cell).hasClass('el-combobox')
+            ? '<select>'+$('#cb_'+field)[0].innerHTML+'</select>'
+            : '<input type="text" autocomplete="off">')
+            )
+        )
+    .appendTo($(cell))
+    .addClass('el-cellInput');
     
     $(cell).css('overflow', 'visible');
     
