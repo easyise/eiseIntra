@@ -322,3 +322,7 @@ tr.eg-tabs > td > div {
         cursor: pointer;
     }
 }
+
+.eg-data td[draggable] a {
+    user-select: all;
+}
