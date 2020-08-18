@@ -43,7 +43,11 @@ class excelXML
      * Styles (of document)
      * @var string
      */
-    private $styles = "<Styles><Style ss:ID=\"Hdr\"><Font ss:Bold=\"1\"/></Style></Styles>";
+    private $styles = "<Styles>".
+        "<Style ss:ID=\"Hdr\"><Font ss:Bold=\"1\"/></Style>"
+        .'<Style ss:ID="s22"><NumberFormat ss:Format="Short Date"/></Style>'
+        // .'<Style ss:ID="s23"><NumberFormat ss:Format="[$-419]d\ mmm\ yy;@"/>/Style>'
+        ."</Styles>";
 
     /**
      * Header row style
@@ -146,16 +150,44 @@ class excelXML
      * 
      * @param array $array One-dimensional array with row content
      */
-    public function addRow($array) {
+    public function addRow($array, $types = null) {
         $cells = "";
 
         foreach ($array as $k => $v) {
             $type = 'String';
-            if ($this->bConvertTypes === true && (is_numeric($v) && strlen($v)<16)) {
-                $type = 'Number';
+            $style = '';
+            if ($this->bConvertTypes === true){
+                if($types){
+                    $srcType = strtolower($types[$k]);
+                    switch ($srcType) {
+                        case 'date':
+                        case 'datetime':
+                            if($v){
+                                $v = date('Y-m-d\TH:i:s.000', strtotime($v));
+                                $style = ' ss:StyleID="s22"';
+                                $type = "DateTime";
+                            }                            
+                            break;
+                        case 'real':
+                        case 'int':
+                        case 'integer':
+                        case 'number':
+                        case 'money':
+                        case 'decimal':
+                            $type = 'Number';
+                            break;
+                        default:
+                            break;
+                    }
+                } else {
+                    if( (is_numeric($v) && strlen($v)<16)) {
+                        $type = 'Number';
+                    }
+                }
+                
             }
             $v = htmlentities($v, ENT_COMPAT | ENT_XML1 | ENT_SUBSTITUTE, $this->sEncoding);
-            $cells .= "<Cell><Data ss:Type=\"$type\">" . $v . "</Data></Cell>\n"; 
+            $cells .= "<Cell{$style}><Data ss:Type=\"$type\">" . $v . "</Data></Cell>\n"; 
         }
 
         $this->lines[] = "<Row>\n" . $cells . "</Row>\n";
