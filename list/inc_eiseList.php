@@ -1149,6 +1149,8 @@ private function composeSQL(){
         //WHERE/HAVING
         if ($col['sqlSearchCondition'] = $this->getSearchCondition($col)) {// if we filter results by this column
 
+            $col['sqlSearchCondition'] = "({$col['sqlSearchCondition']})";
+
             // HAVING - only for 
             //      non-grouped columns in aggregate queries 
             //      all other columns where we search by sql 'SELECT' subquery
