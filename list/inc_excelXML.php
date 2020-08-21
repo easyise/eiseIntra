@@ -47,6 +47,7 @@ class excelXML
         "<Style ss:ID=\"Hdr\"><Font ss:Bold=\"1\"/></Style>"
         .'<Style ss:ID="s22"><NumberFormat ss:Format="Short Date"/></Style>'
         // .'<Style ss:ID="s23"><NumberFormat ss:Format="[$-419]d\ mmm\ yy;@"/>/Style>'
+        .'<Style ss:ID="s23"><NumberFormat ss:Format="h:mm;@"/></Style>'
         ."</Styles>";
 
     /**
