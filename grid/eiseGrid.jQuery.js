@@ -560,7 +560,7 @@ var __attachAutocomplete = function(oTr) {
                 .autocomplete({
                 source: function(request,response) {
                     $inpVal.change();
-                    
+
                     // reset old value
                     if(request.term.length==0){
                         $inpVal.val('');
@@ -598,8 +598,14 @@ var __attachAutocomplete = function(oTr) {
                         $(inp).val(ui.item.label);
                         $inpVal.val(ui.item.value || ui.item.label);
                         $inpVal.change();
-                    } else 
+                    } else {
                         $inpVal.val("");
+                    }
+                },
+                search: function(event, ui){ 
+                    // prevent ctrl-c
+                    if((event.originalEvent.ctrlKey || event.originalEvent.metaKey) && event.originalEvent.key==='c')
+                        return false;
                 }
             })
             .autocomplete( "instance" )._renderItem  = function( ul, item ) {
