@@ -284,13 +284,18 @@ public function validate(){
 	            break;
 	    }
 	} else {
-	    if(!in_array($aclOldStatusID, $this->conf['actOldStatusID'])){
-            throw new Exception($this->intra->translate("Action \"%s\" cannot be run for origin status \"%s\""
+        
+        if(!in_array($this->item->item["{$this->item->conf['prefix']}StatusID"], $this->conf['actOldStatusID'])){
+            throw new Exception($this->intra->translate("%s %s: Action \"%s\" could not run in status \"%s\""
+                , $this->item->conf['entTitle'.$this->intra->local] 
+                , $this->item->id
                 , ( $this->conf['actTitle'.$this->intra->local] ? $this->conf['actTitle'.$this->intra->local] : $this->conf['actTitle'])
-                , $this->item->conf['STA'][(string)$this->arrAction["aclOldStatusID"]]['staTitle'.$this->intra->local]));
+                , $this->item->conf['STA'][$this->item->item["{$this->item->conf['prefix']}StatusID"]]['staTitle'.$this->intra->local]));
 	    }
-	    if(!in_array($this->arrAction["aclNewStatusID"], $this->conf['actNewStatusID'])){
-	        throw new Exception($this->intra->translate("Action \"%s\" cannot be run for destination status \"%s\""
+	    if($this->conf['actNewStatusID'][0] && $this->arrAction["aclNewStatusID"] != $this->conf['actNewStatusID'][0]){
+	        throw new Exception($this->intra->translate("%s %s: Action \"%s\" could not run for destination status \"%s\""
+                , $this->item->conf['entTitle'.$this->intra->local] 
+                , $this->item->id
                 , ( $this->conf['actTitle'.$this->intra->local] ? $this->conf['actTitle'.$this->intra->local] : $this->conf['actTitle'])
                 , $this->item->conf['STA'][(string)$this->arrAction["aclNewStatusID"]]['staTitle'.$this->intra->local]));
 	    }
@@ -480,8 +485,12 @@ function checkTimeLine(){
 	FROM stbl_action_log 
 	WHERE aclEntityItemID='{$entItemID}' AND aclActionPhase=2 AND aclActionID>2";
 	if (!$oSQL->get_data($oSQL->do_query($sqlMaxATA))) {
-		throw new Exception("ATA for execueted action cannot be in the past for {$entItemID}");
-		die();
+        $ata = $oSQL->d("SELECT aclATA FROM stbl_action_log WHERE aclGUID='{$aclGUID}'");
+        list($maxATA, $actTitle, $aclGUID) = $oSQL->fa($oSQL->q("SELECT aclATA, actTitle{$this->intra->local}, aclGUID
+            FROM stbl_action_log LEFT OUTER JOIN stbl_action ON aclActionID=actID
+            WHERE aclEntityItemID='{$entItemID}' AND aclActionPhase=2 AND aclActionID>2
+            ORDER BY aclATA DESC LIMIT 0,1"));
+		throw new Exception("ATA ({$ata}) for execueted action cannot be in the past for {$this->item->conf['entTitle']}:{$entItemID}, last action {$actTitle}: {$maxATA}");
 	}
 	
 	$sqlATAATD = "SELECT 
