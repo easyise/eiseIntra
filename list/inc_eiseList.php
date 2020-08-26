@@ -1006,8 +1006,11 @@ public function updateCell($newData = null, $opts = array()){
             $pk = $c['field'];
     }
 
+    $ti = $oSQL->getTableInfo( $this->sqlFrom );
+    $pk_table = $ti['PK'][0];
+
     $oSQL->q('START TRANSACTION');
-    $sql = "UPDATE {$this->sqlFrom} SET `{$newData['field']}`=".$oSQL->e($newData['value'])." WHERE {$pk}=".$oSQL->e($newData['pk']);
+    $sql = "UPDATE {$this->sqlFrom} SET `{$newData['field']}`=".$oSQL->e($newData['value'])." WHERE {$pk_table}=".$oSQL->e($newData['pk']);
     $oSQL->q($sql);
     $oSQL->q('COMMIT');
 
