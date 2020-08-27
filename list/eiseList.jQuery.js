@@ -880,9 +880,13 @@ eiseList.prototype.initEditable = function(cell){
                         }
                         , success: function(data, text){
                             if(jQuery().eiseIntra && data) { $('body').eiseIntra('showMessage', (data.status=='ok' ? data.message : 'ERROR:'+data.message))}
+                            if(data && (data.status != 'ok')){
+                                list.hideInput(cell, oldVal);
+                            }
                         }
                         , error: function(o, error, errorThrown){
                             if(jQuery().eiseIntra) { $('body').eiseIntra('showMessage', 'ERROR:'+list.conf['titleERRORBadResponse']+'\r\n'+list.conf['titleTryReload']+'\r\n'+errorThrown)}
+                            list.hideInput(cell, oldVal);
                         }
                         , dataType: "json"
                         

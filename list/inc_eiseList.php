@@ -1009,10 +1009,13 @@ public function updateCell($newData = null, $opts = array()){
     $ti = $oSQL->getTableInfo( $this->sqlFrom );
     $pk_table = $ti['PK'][0];
 
-    $oSQL->q('START TRANSACTION');
-    $sql = "UPDATE {$this->sqlFrom} SET `{$newData['field']}`=".$oSQL->e($newData['value'])." WHERE {$pk_table}=".$oSQL->e($newData['pk']);
-    $oSQL->q($sql);
-    $oSQL->q('COMMIT');
+    try {
+        $sql = "UPDATE {$this->sqlFrom} SET `{$newData['field']}`=".$oSQL->e($newData['value'])." WHERE {$pk_table}=".$oSQL->e($newData['pk']);
+        $oSQL->q($sql);
+    } catch (Exception $e) {
+        $this->intra->json('ERROR:', $e->getMessage(), array());
+    }
+    
 
     if(!$opts['noRedirect']){
         if($this->intra)
