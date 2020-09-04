@@ -559,15 +559,16 @@ var __attachAutocomplete = function(oTr) {
                 .each(function(){  this.addEventListener('input', function(ev){   if( typeof initComplete === 'undefined'){  ev.stopImmediatePropagation();  }     }, false);      }) // IE11 hack
                 .autocomplete({
                 source: function(request,response) {
-                    $inpVal.change();
 
                     // reset old value
                     if(request.term.length==0){
                         $inpVal.val('');
+                        $inpVal.change();
                     }
                     if(request.term.length<( typeof source['threshold']!='undefined' ? source['threshold'] : 3)){
                         response({});
                         $inpVal.val('');
+                        $inpVal.change();
                         return;
                     }
 
