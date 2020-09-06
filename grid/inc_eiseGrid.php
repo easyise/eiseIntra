@@ -63,7 +63,7 @@ static $defaultConf = Array(                    //defaults for eiseGrid
         , 'excelSheetName' => 'Sheet 1'
         , 'excelFileName' => 'table.xls'
 
-        , 'colors' => array('#bd0312', '#fb061b', '#fdc138', '#feff48', '#94d05e', '#1eb058', '#26afec', '#186fbc', '#051f5d', '#6f2f9c')
+        , 'colors' => array('#d79695', '#bd5050', '#fdc138', '#feff48', '#94d05e', '#928958', '#26afec', '#588cd0', '#b2a1c5', '#95cddb')
 
     );
 
