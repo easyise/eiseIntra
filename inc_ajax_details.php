@@ -8,6 +8,9 @@ else
 $DataAction = $arrIn[$intra->conf['dataReadKey']];
 
 switch ($DataAction){
+    case 'getSessionData':
+        $intra->json('ok', '', array('session'=>$_SESSION, 'conf'=>$intra->conf, 'arrUsrData'=>$intra->arrUsrData));
+
     case 'getCurrentUserInfo':
         echo $intra->getCurrentUserInfo();
         die();
