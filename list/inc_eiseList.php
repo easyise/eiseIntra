@@ -280,12 +280,15 @@ public function handleDataRequest(){ // handle requests and return them with Aja
     $this->error = "";
     
     if ($this->conf["cacheSQL"] && !$_GET["noCache"]){
+        $this->getCachedColumns();
         $this->getCachedSQL();
     } else {
         $this->handleInput();
         $this->composeSQL();
-        if ($this->conf["cacheSQL"]) 
+        if ($this->conf["cacheSQL"]) {
+            $this->cacheColumns();
             $this->cacheSQL();
+        }
     }
     
     $iOffset = (int)$_GET["offset"];
@@ -1377,11 +1380,25 @@ private function getSearchCondition(&$col){
 
 }
 
+private function cacheColumns(){
+    
+    $_SESSION[$this->name."_columns"]=$this->Columns;
+    
+}
 private function cacheSQL(){
     
     $_SESSION[$this->name."_sql"]=$this->strSQL;
     $_SESSION[$this->name."_sqlAggregate"]=$this->strSQLAggregate;
     $_SESSION[$this->name."_sqlPK"]=$this->sqlPK;
+    
+}
+
+private function getCachedColumns(){
+    
+    $cols = $_SESSION[$this->name."_columns"];
+    if(count($cols)){
+        $this->Columns = $cols;
+    }
     
 }
 
