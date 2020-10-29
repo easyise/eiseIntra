@@ -1146,6 +1146,7 @@ function requireComponent($components){
 
             case 'list':
                 $this->requireComponent('jquery-ui');
+                $this->requireComponent('grid');
                 include_once(dirname(__FILE__)."/list/inc_eiseList.php");
                 $arrJS[] = eiseIntraRelativePath."list/eiseList.jQuery.js";
                 

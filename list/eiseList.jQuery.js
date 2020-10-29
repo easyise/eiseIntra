@@ -40,9 +40,11 @@ function eiseList(divEiseList){
     list.trHead = this.thead.find('tr').last();
     list.table = list.mainTable;
     list.tbody =  list.table.find('tbody');
+    list.trTemplate = this.tbody.find('.el-template');
     list.tfoot = list.table.find('tfoot');
     list.divFieldChooser = list.div.find('.el-fieldChooser');
     list.divFilterDropdowns = [];
+
     
     list.systemScrollWidth = this.getScrollWidth()
     
@@ -54,7 +56,7 @@ function eiseList(divEiseList){
     
     list.activeRow = null;
     
-    list.conf = $.parseJSON(list.div.find('#inp_'+list.id+'_config').val());
+    list.conf = $.parseJSON(list.div[0].dataset['conf']);
     
     list.activeRow = null;
     
@@ -121,6 +123,9 @@ function eiseList(divEiseList){
     this.div.find('#btnFieldChooser').click(function (){
         list.fieldChooser();
     });
+    this.div.find('#btnFieldChooser2').click(function (){
+        list.fieldChooser2();
+    });
     
     this.div.find('#btnOpenInExcel').click(function (){
         list.openInExcel();
@@ -137,6 +142,35 @@ function eiseList(divEiseList){
     this.initFilters();
 
     this.initResizer();
+
+    var column_order_stored = localStorage[this.conf.cookieName+'_column_order'];
+    this.column_order = (column_order_stored ? $.parseJSON(column_order_stored) : this.conf['column_order']);
+    // this.column_order.splice(this.column_order.indexOf('shpRenban'),1).sort()
+    // this.column_order.sort()
+
+    // sort THs
+    this.thead.find('th').css('display', 'none')
+    this.trTemplate.find('td').css('display', 'none')
+    $th_prev = null;
+    $td_prev = null;
+    for(var i=0;i<this.column_order.length;i++){
+        var colname = this.column_order[i];
+        var $th = this.thead.find('th.'+this.id+'_'+colname)
+        var $td = this.trTemplate.find('td.'+this.id+'_'+colname)
+        if(i==0){
+            $th.prependTo($th.parent());
+            $td.prependTo($td.parent());
+        } else {
+            $th.insertAfter($th_prev)
+            $td.insertAfter($td_prev)
+        }
+        $th.css('display', 'table-cell')
+        $td.css('display', 'table-cell')
+        $th_prev = $th;
+        $td_prev = $td;
+    }
+
+    // sort tr-template
 
     this.thead.find('input.el_special_filter').each(function(){
         list.initSpecialFilter(this);
@@ -799,7 +833,7 @@ eiseList.prototype.appendRow = function (index, rw){
     var list = this;
     
     //clone template row
-    var tr = this.tbody.find('.el-template').clone(true);
+    var tr = this.trTemplate.clone(true);
     
     tr.find('td').each(function(){
         var fieldName = this.dataset['field'];
@@ -1082,6 +1116,57 @@ eiseList.prototype.fieldChooser = function(){
     });
     
     $(this.divFieldChooser).dialog("open");
+}
+
+eiseList.prototype.fieldChooser2 = function(){
+    
+    var list = this;
+    
+    $.get(location.pathname+'?DataAction=fieldChooser2', function(response){
+
+        var $grid = null;
+
+        $(response).dialog({
+            width: 400,
+            title: "Choose Fields",
+            position: { my: "top", at: "top", of:  list.div},
+            buttons: {
+                "OK": function() {
+                    var column_order = []
+                        , gridData = $grid.eiseGrid('getData');
+                    for(var i=0;i<gridData.length; i++)
+                        column_order.push(gridData[i]['colID']);
+                    localStorage[list.conf.cookieName+'_column_order'] = JSON.stringify(column_order);
+                    location.reload();
+                    $(this).dialog("close");
+                },
+                "Reset": function() {
+                    localStorage[list.conf.cookieName+'_column_order'] = JSON.stringify(list.conf.column_order)
+                    location.reload();
+                    $(this).dialog("close");
+                },
+                "Cancel": function() {
+                    $(this).dialog("close");
+                }
+            },
+            open: function(){
+                $grid = $(this).find('.eiseGrid').eiseGrid();
+                var data = [];
+                for(var i=0;i<list.column_order.length;i++){
+                    var colID = list.column_order[i],
+                        colTitle = list.thead.find('th.'+list.id+'_'+list.column_order[i]+' > div.el-title').first().text();
+                    data.push({'colID': colID, 'colOrder': i+1, 'colTitle': colTitle})
+                }
+                $grid.eiseGrid('fill', data);
+                $grid.eiseGrid('height', $(window).height() / 2)
+            },
+            close: function(){
+                $(this).remove();
+            },
+            modal: true,
+        });
+    })
+    
 }
 
 eiseList.prototype.fieldsChosen = function(){

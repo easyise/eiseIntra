@@ -441,6 +441,44 @@ public function handleDataRequest(){ // handle requests and return them with Aja
             $xl->Output($this->name);
             
             die();
+
+        case 'fieldChooser2':
+
+            GLOBAL $intra;
+
+            $grid = new eiseGrid($oSQL
+                    , 'fieldChooser2'
+                    , array('controlBarButtons' => 'moveup|movedown|delete',
+                        'arrPermissions'=>array('FlagWrite'=>true))
+                    );
+
+            $grid->Columns[] = Array(
+                    'field' => "colID"
+                    , 'type' => "row_id"
+                    , 'mandatory' => true
+                    , 'width' => '100%'
+            );
+
+            $grid->Columns[] = Array(
+                    'title' => '##'
+                    , 'field' => "colOrder"
+                    , 'type' => "order"
+            );
+            
+            $grid->Columns[] = Array(
+                    'title' => $intra->translate("Title")
+                    , 'field' => "colTitle"
+                    , 'type' => "text"
+                    , 'static' => true
+                    , 'width' => '100%'
+            );
+
+
+            echo '<div><span class="ui-helper-hidden-accessible"><input type="text"/></span>'.
+                $grid->get_html().'</div>';
+                    
+            
+            die();
     }
     
 }
@@ -453,8 +491,17 @@ public function show(){ // draws the wrapper
 
     $this->handleInput();
 
+    $col_order = [];
+    foreach ($this->Columns as $ix => $col) {
+        if(!$col['title'] || in_array($col["field"], $this->arrHiddenCols))
+            continue;
+        $col_order[] = $col['field'];
+    }
+    $this->conf['column_order'] = $col_order;
+
 ?>    
-<div class="eiseList" id="<?php  echo $this->name ; ?>">
+<div class="eiseList" id="<?php  echo $this->name ; ?>" data-conf="<?php  
+    echo htmlspecialchars(json_encode($this->conf)) ; ?>">
 
 <form action="<?php echo $_SERVER["PHP_SELF"]; ?>">
 <input type="hidden" id="DataAction" name="DataAction" value="newsearch">
@@ -490,6 +537,7 @@ $arrButtons = explode("|", $this->conf['controlBarButtons']);
 
 if (in_array('btnSearch', $arrButtons)){?><input type="submit" value="Search" id="btnSearch"><?php }
 if (in_array('btnFieldChooser', $arrButtons)){?><input type="button" value="Choose fields" id="btnFieldChooser"><?php }
+if (in_array('btnFieldChooser2', $arrButtons)){?><input type="button" value="Choose fields..." id="btnFieldChooser2"><?php }
 if (in_array('btnOpenInExcel', $arrButtons) && !$this->conf["flagNoExcel"] ){ ?><input type="button" value="Open in Excel" id="btnOpenInExcel"><?php } 
 if (in_array('btnReset', $arrButtons)) {?><input type="button" value="Reset" id="btnReset"><?php } ?>
 </div>
@@ -521,8 +569,6 @@ endif;
 <div class="el-fieldChooser" style="display:none;"><?php  echo $this->showFieldChooser() ; ?></div>
 
 <div class="el_debug"></div>
-<input type="hidden" id="inp_<?php  echo $this->name ; ?>_config" name="inp_<?php  echo $this->name ; ?>_config" value="<?php  
-    echo htmlspecialchars(json_encode($this->conf)) ; ?>">
 </div>
 
 <?php
