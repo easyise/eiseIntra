@@ -1104,7 +1104,7 @@ function getAllData($toRetrieve = null){
         $this->item["ACL"]  = Array();
         $sqlACL = "SELECT * FROM stbl_action_log 
                 WHERE aclEntityItemID='{$this->id}'
-                ORDER BY IFNULL(aclATA, NOW()) DESC, aclOldStatusID DESC";
+                ORDER BY aclActionPhase, IFNULL(aclATA, NOW()) DESC, aclOldStatusID DESC";
         $rsACL = $this->oSQL->do_query($sqlACL);
         while($rwACL = $this->oSQL->fetch_array($rsACL)){
             if($rwACL['aclActionPhase']<=2)
