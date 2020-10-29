@@ -1911,8 +1911,9 @@ eiseGrid.prototype.getData = function(rows, cols, colsToExclude){
     cols = (cols ? cols : grid.conf.fieldIndex)
     colsToExclude = (colsToExclude ? colsToExclude : [])
 
-    $.each(rows, function(ix, $row){
+    $.each(rows, function(ix, row){
         oData = {}
+        var $row = $(row)
         for(var i=0;i<cols.length;i++){
             var field = cols[i],
                 oField = grid.conf.fields[field];
@@ -2853,6 +2854,11 @@ disableUnchanged: function(){
     })
 
     return this;
+},
+
+getData: function(rows, cols, colsToExclude){
+    var grid = $(this[0]).data('eiseGrid').eiseGrid;
+    return grid.getData(rows, cols, colsToExclude);
 },
 
 excel: function(options){
