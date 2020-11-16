@@ -75,8 +75,8 @@ public function __construct($id = null,  $conf = array() ){
                 }
             }
         }
-        $this->intra->arrUsrData['roles'] = array_values($this->intra->arrUsrData['roles']);
-        $this->intra->arrUsrData['roleIDs'] = array_values($this->intra->arrUsrData['roleIDs']);
+        $this->intra->arrUsrData['roles'] = @array_values($this->intra->arrUsrData['roles']);
+        $this->intra->arrUsrData['roleIDs'] = @array_values($this->intra->arrUsrData['roleIDs']);
         $this->RLAByMatrix();
     }
 
