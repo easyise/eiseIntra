@@ -555,7 +555,7 @@ if (in_array('btnReset', $arrButtons)) {?><input type="button" value="Reset" id=
 <?php 
 if ($this->flagHasAggregate):
  ?>
-<tfoot>
+<tfoot style="display:none;">
 <tr><?php  echo $this->showFooterRow() ; ?></tr>
 </tfoot>
 <?php 
@@ -619,6 +619,11 @@ private function showTableHeader(){
             : '');
         $strTDHead .= " class=\"{$strClassList}\"";
         $strTDHead .= " data-field=\"{$col['field']}\"";
+        if($col['aggregate']){
+            $strTDHead .= " data-aggregate=\"{$col['field']}\"";
+            $this->flagHasAggregate = true;
+        }
+        
         $strTDHead .=  ">" ;
 
         $strTDHead .= '<div class="el-title">'.htmlspecialchars($col['title']).'</div>';
@@ -881,7 +886,7 @@ private function showTemplateRow(){
 }
 
 private function showFooterRow(){
-    return "<td colspan=\"{$this->nCols}\">&nbsp;</td>";
+    return "<td colspan=\"{$dummyspan}\">&nbsp;</td>";
 }
 
 private function showFieldChooser(){
@@ -1007,6 +1012,7 @@ private function handleInput(){
             $this->flagHasFilters = true;
 
         }
+
     }
     
     SetCookie($this->conf["cookieName"], serialize($this->arrCookieToSet), $this->conf["cookieExpire"], $_SERVER["PHP_SELF"]);
@@ -1149,6 +1155,10 @@ private function composeSQL(){
             $this->sqlPK = $col['field'];
             $this->sqlFieldsAggregate .= 'COUNT(*) as nTotalRows';
             //$this->sqlFieldsAggregate .= ($this->sqlFieldsAggregate ? "\r\n, " : '').$col['field'];
+        }
+
+        if($col['aggregate']){
+            $this->sqlFieldsAggregate .= ($this->sqlFieldsAggregate ? "\r\n, " : '').strtoupper($col['aggregate'])."(".($col['sql'] ? "({$col['sql']})" : $col['field']).") as {$col['field']}";
         }
 
         // SELECT

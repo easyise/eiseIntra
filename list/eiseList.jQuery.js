@@ -42,6 +42,7 @@ function eiseList(divEiseList){
     list.tbody =  list.table.find('tbody');
     list.trTemplate = this.tbody.find('.el-template');
     list.tfoot = list.table.find('tfoot');
+    list.tfoot_tr = list.table.find('tfoot tr');
     list.divFieldChooser = list.div.find('.el-fieldChooser');
     list.divFilterDropdowns = [];
 
@@ -151,12 +152,15 @@ function eiseList(divEiseList){
     // sort THs
     this.thead.find('th').css('display', 'none')
     this.trTemplate.find('td').css('display', 'none')
-    $th_prev = null;
-    $td_prev = null;
+    var $th_prev = null;
+    var $td_prev = null;
+    var flagAggregates = false;
+
     for(var i=0;i<this.column_order.length;i++){
-        var colname = this.column_order[i];
-        var $th = this.thead.find('th.'+this.id+'_'+colname)
-        var $td = this.trTemplate.find('td.'+this.id+'_'+colname)
+        var colname = list.column_order[i]
+            , classname = list.id+'_'+colname;
+        var $th = this.thead.find('th.'+classname)
+        var $td = this.trTemplate.find('td.'+classname)
         if(i==0){
             $th.prependTo($th.parent());
             $td.prependTo($td.parent());
@@ -168,6 +172,24 @@ function eiseList(divEiseList){
         $td.css('display', 'table-cell')
         $th_prev = $th;
         $td_prev = $td;
+        if(list.tfoot_tr[0]){
+
+            if($th[0].dataset['aggregate']){
+                if(!flagAggregates){
+                    list.tfoot_tr.html('');
+                    list.tfoot_tr.append('<td colspan="'+( i )+'">&nbsp;</td>');
+                    list.tfoot_tr.append('<td class="'+$td.attr('class')+'">qqhaha</td>');
+                    flagAggregates = true;
+                    continue;
+                } else {
+                    list.tfoot_tr.append('<td class="'+$td.attr('class')+'">&nbsp;</td>');
+                    continue;
+                }
+            } 
+            if(flagAggregates){
+                list.tfoot_tr.append('<td class="'+$td.attr('class')+'">&nbsp;</td>')
+            }
+        }
     }
 
     // sort tr-template
@@ -739,7 +761,7 @@ eiseList.prototype.getData = function(iOffset, recordCount, flagResetCache, call
             list.adjustColumnsWidth();
 
             if (iOffset == 0 && list.conf.calcFoundRows!=false){
-                if(data.nTotalRows<list.conf.rowsFirstPage){
+                if(data.nTotalRows<list.conf.rowsFirstPage && !list.tfoot_tr[0]){
                     list.nTotalRows = data.nTotalRows;
                     list.showFoundRows();
                 } else {
@@ -752,6 +774,13 @@ eiseList.prototype.getData = function(iOffset, recordCount, flagResetCache, call
                         //display count information
                         list.nTotalRows = response.data.nTotalRows;
                         list.showFoundRows();
+                        // fill in totals, if any
+                        if(list.tfoot_tr[0]){
+                            $.each(response.data, function(key, value){
+                                list.tfoot_tr.find('.'+list.id+'_'+key).text(value)
+                            })
+                            list.tfoot.css('display','table-footer-group');
+                        }
 
                     })
                 }
@@ -1234,7 +1263,6 @@ eiseList.prototype.reset = function (ev, options){
 
     this.form.find(".el-filter input, .el-filter select").each( function(idx, oInp){
         if(options.keepFilters.indexOf(oInp.name)==-1){
-            console.log(oInp, options.keepFilters)
             $(oInp).val('')
         } 
     });

@@ -86,6 +86,27 @@ div.el-table {
           z-index: 87;
           background: white;
         }
+
+        & tfoot, & tfoot th, & tfoot td {
+            position: sticky;
+            position: -webkit-sticky;
+            bottom: 0;
+            padding-top: 0;
+            z-index: 87;
+        }
+
+        & tfoot tr {
+            background-color: #fff;
+            border-collapse: separate !important;
+            border-top: 1px solid @border-color;
+            & td {
+                border-collapse: separate !important;
+                border-top: 1px solid @border-color;
+                font-weight: bold;
+                border-bottom: none;
+                background-color: @el-background-even;
+            }
+        }
         
     }
 }
@@ -111,7 +132,7 @@ td.el-boolean-s {
 .el-tr1 { background-color: @el-background-odd; }
 .el-selected { background-color: @selected-row-color !important; }
 
-.el-data td {
+.el-data td, .el-table tfoot td {
     border-right: 1px solid @border-color;
     border-bottom: 1px solid @border-color;
     background: transparent;
