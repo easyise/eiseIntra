@@ -1144,6 +1144,8 @@ function json( $newData = null, $conf = array() ){
         $a = array();
         foreach($this->Columns as $col){
 
+            $text = '';
+
             switch($col['type']){
                 case 'order':
                     $val = $i;
@@ -1165,12 +1167,15 @@ function json( $newData = null, $conf = array() ){
                 case 'select':
                 case 'ajax_dropdown':
                     $val = ($newData[$col['field']][$i]!=='' ? $newData[$col['field']][$i] : null);
+                    $text = ($newData[$col['field']][$i]!=='' ? $newData[$col['field'].'_text'][$i] : '');
                     break;
                 default: 
                     $val = $newData[$col['field']][$i];
                     break;
             }
             $a[$col['field']] = $val;
+            if($text)
+                $a[$col['field'].'_text'] = $text;
         }
         
         $aRet[] = $a;
