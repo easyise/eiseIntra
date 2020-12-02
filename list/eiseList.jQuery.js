@@ -728,6 +728,11 @@ eiseList.prototype.getData = function(iOffset, recordCount, flagResetCache, call
 
     $.ajax({ url: strURL
         , success: function(data, text){
+
+            if(data.sql)
+                console.log(data.sql)
+            if(data.sqlAggregate)
+                console.log(data.sqlAggregate)
             
             if (data.error!=undefined){
                 alert (list.conf['titleERRORBadResponse']+'\r\n'+list.conf['titleTryReload']+'\r\n'+data.error+'\r\n'+strARG);

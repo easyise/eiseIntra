@@ -1319,7 +1319,7 @@ private function getSearchCondition(&$col){
        return " {$col['searchExpression']} IS NULL".(in_array($col['type'], array('text', 'textarea')) ? "  OR {$col['searchExpression']}=''" : '');
     }
     if(in_array($strFlt, array('*', '%')))
-        return $strCondition = "{$col['searchExpression']} IS NOT NULL".(in_array($col['type'], array('text', 'textarea')) ? "  OR {$col['searchExpression']}<>''" : '');   
+        return $strCondition = "{$col['searchExpression']} IS NOT NULL".(in_array($col['type'], array('text', 'textarea')) ? "  AND {$col['searchExpression']}<>''" : '');   
 
     switch ($col['type']) {
         case "text":
