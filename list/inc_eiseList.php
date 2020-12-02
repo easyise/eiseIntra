@@ -397,8 +397,10 @@ public function handleDataRequest(){ // handle requests and return them with Aja
             include_once (dirname(__FILE__). self::DS . "inc_excelXML.php");
             
             $xl = new excelXML();
+
+            $cols = [];
             
-            foreach($this->Columns as &$col) {
+            foreach($this->Columns as $col) {
                 if ($col["title"]=="" 
                     || in_array($col["field"], $this->arrHiddenCols)
                     || in_array($col['field'], $this->conf['hiddenColsExcel'])
@@ -409,6 +411,8 @@ public function handleDataRequest(){ // handle requests and return them with Aja
                     continue;
                     
                 }
+
+                $cols[] = $col;
                 
                 $arrHeader[$col["field"]] = $col["title"];
                 
@@ -428,12 +432,12 @@ public function handleDataRequest(){ // handle requests and return them with Aja
                 $rw[self::counterColumn] = $nRow;
                 
                 $arrRow = Array();
-                foreach($this->Columns as $col) {
+                foreach($cols as $ii=>$col) {
                     if ($col['flagNoExcel']) {
                         continue;
                     }
                     $arrRow[$col["field"]] = $this->formatData($col, trim($rw[$col["field"]]), $rw);
-                
+
                 }
                 $xl->addRow($arrRow);
             }
