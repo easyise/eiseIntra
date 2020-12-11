@@ -128,6 +128,16 @@ function __construct($oSQL, $strName, $arrConfig=Array()){
 
 }
 
+public function hasColumn($fieldName){
+    if(!count($this->Columns))
+        return false;
+    foreach($this->Columns as $ix=>$col){
+        if($col['field']==$fieldName)
+            return true;
+    }
+    return false;
+}
+
 /**
  * This method adds columns to $Columns property. 
  * 
@@ -151,6 +161,8 @@ public function addColumn($arrCol){
     if(!$arrCol['field'])
         throw new Exception("No field specified");
         
+    if($this->hasColumn($arrCol['field']))
+        return;
 
     if($arrCol['fieldInsertBefore'] || $arrCol['fieldInsertAfter']){
 
