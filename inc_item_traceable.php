@@ -913,13 +913,16 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
         
     }
   
-    if (!in_array("Comments", $arrExcludeCols) && $oSQL->d("SHOW TABLES LIKE 'stbl_comments'"))        
-        $lst->Columns[] = array('title' => "Comments"
+    
+    $commentField = $this->conf['entPrefix']."Comments";
+    if ( !in_array($commentField , $arrExcludeCols)
+        && in_array($commentField, array_keys($this->table['columns']))
+        && !$lst->hasColumn($commentField) )        
+        $lst->Columns[] = array('title' => $this->intra->translate("Comments")
             , 'type'=>"text"
-            , 'field' => "Comments"
-            , 'sql' => "SELECT LEFT(scmContent, 50) FROM stbl_comments WHERE scmEntityItemID={$prfx}ID ORDER BY scmEditDate DESC LIMIT 0,1"
-            , 'filter' => "Comments"
-            , 'order_field' => "Comments"
+            , 'field' => $commentField
+            , 'filter' => $commentField
+            , 'order_field' => $commentField
             , 'limitOutput' => 49
             );
 
