@@ -99,6 +99,8 @@ case "Data":
         , 'defaultOrderBy'=>"pk"
         , 'defaultSortOrder'=>"ASC"
         , 'cacheSQL'=>false
+        , 'table_name' => $tblName
+        , 'db_name' => $dbName 
         , 'intra' => $intra));
         
         $colPK = array('title' => ""
@@ -124,6 +126,12 @@ case "Data":
         , 'type' => "num"
         );
         
+        $lst->Columns[] = array('title' => "sel"
+           , 'field' => "ID_to_proceed"
+           , 'sql' => "CONCAT(".implode(",", $arrTable["PK"]).")"
+           , "checkbox" => true
+        ); 
+
         $i=0;
         foreach($arrTable['columns'] as $col){
            $arrCol = Array();
@@ -159,10 +167,16 @@ $arrActions[]= Array ("title" => "Back to DB"
 	    , "class"=> "ss_arrow_left"
 	);
 
+$arrActions[]= Array ("title" => ($pane=='Structure' ? $intra->translate('Get CREATE') : $intra->translate('Dump row (update)'))
+     , "action" => "#dump_row"
+     , "class"=> "ss_cog_edit"
+);
+
 $arrActions[]= Array ("title" => ($pane=='Structure' ? $intra->translate('Get CREATE') : $intra->translate('Dump'))
      , "action" => "javascript:$(this).eiseIntraBatch('database_act.php?DataAction=dump&what=tables&strTables={$tblName}&dbName={$dbName}&flagDonwloadAsDBSV=0&flagNoData=".($pane=='Structure' ? '1' : '0')."')"
      , "class"=> "ss_cog_edit"
 );
+
 $arrActions[]= Array ("title" => ($pane=='Structure' ? $intra->translate('CREATE as DBSV') : $intra->translate('Dump as DBSV'))
      , "action" => "database_act.php?DataAction=dump&what=tables&strTables={$tblName}&dbName={$dbName}&flagDonwloadAsDBSV=1&flagNoData=".($pane=='Structure' ? '1' : '0')
      , "class"=> "ss_cog_go"
@@ -226,7 +240,7 @@ $(document).ready(function() {
             }
         } });
 
-    if(typeof($().eiseGrid)=='function'){
+    if(typeof($().eiseGrid)=='function' && $('.eiseGrid')[0]){
         $('.eiseGrid').eiseGrid();
 
         $('.eiseGrid').eiseGrid('change', 'Field, Type, Default, Null, Comments', function(){tableGridChanged()})
@@ -298,7 +312,12 @@ endif;
 #textarea_source {
     display: none;
 }
-
+#tabs {
+    height: 100%;
+}
+#tabs > div {
+    height: 100%;
+}
 </style>
 <?php
 include eiseIntraAbsolutePath."inc_bottom.php";

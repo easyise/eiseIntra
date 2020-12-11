@@ -194,6 +194,8 @@ function dumpTable ($tableName, $tableOptions){
 
     $oSQL = $this->oSQL;
 
+    $tableInfo = $oSQL->getTableInfo($tableName);
+
     $crlf = $tableOptions['crlf'];
     $strDump = '';
 
@@ -307,10 +309,11 @@ function dumpTable ($tableName, $tableOptions){
         $schema_insert .= $crlf;
     }
 
-    $sqlTable = "SELECT * FROM `{$tableName}`";
+    $sqlTable = "SELECT * FROM `{$tableName}`".($tableOptions['rows'] ? " WHERE {$tableInfo['PK'][0]} IN ('".implode("', '", $tableOptions['rows'])."')" : '');
     $result = $oSQL->q($sqlTable);
     while ($row = $oSQL->f($result)) {
         $current_row++;
+        $values = [];
         foreach ($row as $j=>$value) {
 
             $rwCol = $arrFields[$j];
@@ -347,21 +350,28 @@ function dumpTable ($tableName, $tableOptions){
         // should we make update?
         if (!$tableOptions['DropCreate'] 
         && $tableOptions['sql_type'] == 'UPDATE') {
-            /*
+
             $insert_line = $schema_insert;
-            for ($i = 0; $i < $fields_cnt; $i++) {
-                if (0 == $i) {
-                    $insert_line .= ' ';
+            $fields = '';
+            $i = 0;
+            $pk_vals = [];
+            foreach ($tableInfo['columns_index'] as $field) {
+                if(in_array($field, $tableInfo['PK'])){
+                    $pk_vals[$field] = $values[$i];
+                    $i++;
+                    continue;
                 }
-                if ($i > 0) {
-                    // avoid EOL blank
-                    $insert_line .= ',';
-                }
-                $insert_line .= $field_set[$i] . ' = ' . $values[$i];
+
+                $fields .= (!$fields ? ' ' : ', ') . $field . ' = ' . $values[$i];
+                $i++;
+            }
+            $where = '';
+            foreach ($pk_vals as $field => $value) {
+                $where .= ($where ? ' AND ' : '')."{$field}={$value}";
             }
 
-            $insert_line .= ' WHERE ' . PMA_getUniqueCondition($result, $fields_cnt, $fields_meta, $row);
-            */
+            $insert_line .= $fields." WHERE {$where}";
+            
         } else {
 
             // Extended inserts case
