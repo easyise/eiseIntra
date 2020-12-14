@@ -1072,7 +1072,7 @@ function Update($newData = null, $conf = array()){
 
     foreach ($this->newData_transposed as $ix => $row) {
 
-        if($flagPOST && !$newData["inp_{$this->name}_updated"][$ix+1]){
+        if( ($flagPOST || $conf['flagOnlyUpdated']) && !$newData["inp_{$this->name}_updated"][$ix+1]){
             continue;
         }
 
