@@ -326,3 +326,20 @@ tr.eg-tabs > td > div {
 .eg-data td[draggable] a {
     user-select: all;
 }
+
+.eg-remover:before {
+    padding-top: 1px;
+    padding-right: 3px;
+    padding-bottom: 2px;
+    padding-left: 3px;
+    content: "\f00d";
+    border-radius: 12px;
+    color: #fff;
+    background-color: #d9534f;
+    display: block;
+}
+.eg-remover {
+    position: absolute;
+    font: normal normal normal 9px/1 FontAwesome;
+    cursor: pointer;
+}

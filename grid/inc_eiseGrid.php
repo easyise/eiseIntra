@@ -804,7 +804,8 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
             if ($cell['href']!=""){
                 preg_match('/^(\s*)/', $_val, $m);
                 $_val = trim($_val);
-                $aopen = $m[1]."<a href=\"{$cell['href']}\"".($cell['target'] ? " target=\"{$cell['target']}\"" : '').">";
+                $hrefRemovable = ( !($cell['static'] || $cell['readonly'] || $cell['disabled']) ? ' class="eg-href-removable"' : '');
+                $aopen = $m[1]."<a href=\"{$cell['href']}\"".($cell['target'] ? " target=\"{$cell['target']}\"" : '')."{$hrefRemovable}>";
                 $aclose = "</a>";
             }
             

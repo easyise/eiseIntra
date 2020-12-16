@@ -388,12 +388,13 @@ eiseGrid.prototype.initRow = function( $tbody ){
 
     var oGrid = this;
 
-    __attachDatepicker.call(oGrid, $tbody ); // attach datepicker to corresponding fields, if any
-    __attachAutocomplete.call(oGrid, $tbody ); // attach autocomplete/typeahaed to corresponding fields, if any
-    __attachFloatingSelect.call(oGrid, $tbody ); // attach floating <select> element to appear on corresponding fields, if any
-    __attachCheckboxHandler.call(oGrid, $tbody ); // attach checkbox checkmark handler to corresponding fields, if any
-    __attachRadioHandler.call(oGrid, $tbody ); // attach radio box checkmark handler to corresponding fields, if any
-    __attachTotalsRecalculator.call( oGrid, $tbody ) // attach totals recalculator
+    __attachDatepickers.call(oGrid, $tbody ); // attach datepicker to corresponding fields, if any
+    __attachAutocompletes.call(oGrid, $tbody ); // attach autocomplete/typeahaed to corresponding fields, if any
+    __attachFloatingSelects.call(oGrid, $tbody ); // attach floating <select> element to appear on corresponding fields, if any
+    __attachCheckboxHandlers.call(oGrid, $tbody ); // attach checkbox checkmark handler to corresponding fields, if any
+    __attachRadioHandlers.call(oGrid, $tbody ); // attach radio box checkmark handler to corresponding fields, if any
+    __attachTotalsRecalculators.call( oGrid, $tbody ) // attach totals recalculator
+    __attachRemovers.call( oGrid, $tbody ) // attach removers
 
     $tbody.bind("click", function(event){ //row select binding
         oGrid.selectRow($(this), event);
@@ -446,7 +447,76 @@ eiseGrid.prototype.initRow = function( $tbody ){
 
 }
 
-var __attachTotalsRecalculator = function( $tbody ){
+var __attachRemovers = function( $tbody ){
+
+    var oGrid = this;
+
+    $tbody.find('td a.eg-href-removable:visible').each(function(){
+        oGrid.__attachRemover($(this).parents('td')[0])
+    })
+
+}
+eiseGrid.prototype.__attachRemover = function(td){
+
+    var getEvents = function(eventType, eleSource) {    
+        var eleEvents = [];    
+        var allEvents = jQuery._data(eleSource, "events");    
+        if (typeof allEvents === "object" && typeof allEvents[eventType] === "object") {    
+            for (var i = 0; i < allEvents[eventType].length; i++) {    
+                eleEvents.push(allEvents[eventType][i].handler);    
+            }    
+        }    
+        return eleEvents;    
+    }   
+
+    var oGrid = this
+        , $td = $(td)
+        , $a = $td.find('a:visible')
+        , $remover = null
+
+    if(!$a[0])
+        return;
+    
+    $td.on('mouseenter', function(){
+        $remover = $('<b class="eg-remover"/>').appendTo($td)
+            .css('display', 'block')
+            .offset({
+                left: $td.offset().left + $td.outerWidth() - 16
+                , top: $a.offset().top + 2
+                })
+            .click(function(){
+                var field = $td[0].dataset['field']
+                    , inp = $td.find('input')[0]
+                    , events = getEvents('change', inp);
+
+                $(inp).val('').change(); // trigger "change"
+                
+                $remover.remove(); // remove the button
+                $td.off('mouseenter'); // and event handler, too
+
+                $td.html( oGrid.tbodyTemplate.find('td[data-field="'+field+'"]').html() ); // set HTML from template
+
+                if($td.hasClass('eg-ajax_dropdown')) // autocomplete, comboboxe, etc
+                    oGrid.__attachAutocomplete(td)
+                else if ($td.hasClass('eg-combobox') || $td.hasClass('eg-select') )
+                    oGrid.__attachFloatingSelect(td)
+
+                for (var i = 0; i < events.length; i++){              
+                    $td.find('input').first().on("change", events[i]);      // copy all "change" events
+                } 
+
+                oGrid.updateRow( $td.parents('tbody').first() );
+
+            });
+    })
+    $td.on('mouseleave', function(){
+        $remover.remove();
+    })
+
+}
+
+
+var __attachTotalsRecalculators = function( $tbody ){
 
     var oGrid = this;
 
@@ -459,11 +529,24 @@ var __attachTotalsRecalculator = function( $tbody ){
     })
 }
 
-var __attachFloatingSelect = function( $tbody ){
+var __attachFloatingSelects = function( $tbody ){
 
     var oGrid = this;
 
-    $tbody.find('td.eg-combobox input, td.eg-select input').bind('focus', function(){
+    $tbody.find('td.eg-combobox, td.eg-select').each(function(){
+        oGrid.__attachFloatingSelect(this);
+    })
+
+}
+eiseGrid.prototype.__attachFloatingSelect = function(td){
+    var oGrid = this
+        , $td = $(td)
+        , $inp = $td.find('input[type="text"]')
+
+    if(!$inp[0])
+        return;
+    
+    $inp.bind('focus', function(){
 
         var oSelectSelector = '#select-'+($(this).attr('name').replace(/_text(\[\S+\]){0,1}\[\]/, ''));
 
@@ -493,7 +576,7 @@ var __attachFloatingSelect = function( $tbody ){
             var si = opts.selectedIndex ? opts.selectedIndex : 0;
             if(opts[si])
                 oInp.val(opts[si].text);
-            oGrid.updateRow( $tbody );
+            oGrid.updateRow( $td.parents('tbody').first() );
             oInp.change();
             oInpValue.change();
         });
@@ -516,10 +599,9 @@ var __attachFloatingSelect = function( $tbody ){
         oGrid.bindKeyPress(oSelect);
                 
     });
-
 }
 
-var __attachDatepicker = function(oTr){
+var __attachDatepickers = function(oTr){
     var grid = this;
     $(oTr).find('.eg-datetime input[type=text], .eg-date input[type=text]').each(function(){
         try {
@@ -535,91 +617,104 @@ var __attachDatepicker = function(oTr){
     });
 }
 
-var __attachAutocomplete = function(oTr) {
+var __attachAutocompletes = function(oTr) {
+    
+    var oGrid = this;
+
+    $(oTr).find(".eg-ajax_dropdown").each(function(){
+        oGrid.__attachAutocomplete(this);
+    })
+
+}
+eiseGrid.prototype.__attachAutocomplete = function(td){
+
+    var oGrid = this;
+
     try {
-      $(oTr).find(".eg-ajax_dropdown input[type=text]").each(function(){
+        $(td).find('input[type="text"]').each( function(){
 
-        var initComplete, 
-            inp = this, 
-            $inp = $(inp),
-            textIfEmpltylist = ' - empty list -',
-            $inpVal = $inp.prev("input"),
-            source = $.parseJSON(inp.dataset['source']),
-            url = (source.scriptURL 
-                ? source.scriptURL
-                : 'ajax_dropdownlist.php')+
-                '?'+
-                'table='+(source.table ? encodeURIComponent( source.table ) : '')+
-                (source.prefix ? '&prefix='+encodeURIComponent( source.prefix ) : '')+
-                (source.showDeleted ? '&d='+source.showDeleted : '');
+            var initComplete, 
+                inp = this, 
+                $inp = $(inp),
+                textIfEmpltylist = ' - empty list -',
+                $inpVal = $inp.prev("input"),
+                source = $.parseJSON(inp.dataset['source']),
+                url = (source.scriptURL 
+                    ? source.scriptURL
+                    : 'ajax_dropdownlist.php')+
+                    '?'+
+                    'table='+(source.table ? encodeURIComponent( source.table ) : '')+
+                    (source.prefix ? '&prefix='+encodeURIComponent( source.prefix ) : '')+
+                    (source.showDeleted ? '&d='+source.showDeleted : '');
 
-        if (typeof(jQuery.ui) != 'undefined') { // jQuery UI autocomplete conflicts with old-style BGIframe autocomplete
-            setTimeout(function(){initComplete=true;}, 1000);
-            $(this)
-                .each(function(){  this.addEventListener('input', function(ev){   if( typeof initComplete === 'undefined'){  ev.stopImmediatePropagation();  }     }, false);      }) // IE11 hack
-                .autocomplete({
-                source: function(request,response) {
+            if (typeof(jQuery.ui) != 'undefined') { // jQuery UI autocomplete conflicts with old-style BGIframe autocomplete
+                setTimeout(function(){initComplete=true;}, 1000);
+                $(this)
+                    .each(function(){  this.addEventListener('input', function(ev){   if( typeof initComplete === 'undefined'){  ev.stopImmediatePropagation();  }     }, false);      }) // IE11 hack
+                    .autocomplete({
+                    source: function(request,response) {
 
-                    // reset old value
-                    if(request.term.length==0){
-                        $inpVal.val('');
-                        $inpVal.change();
-                    }
-                    if(request.term.length<( typeof source['threshold']!='undefined' ? source['threshold'] : 3)){
-                        response({});
-                        $inpVal.val('');
-                        $inpVal.change();
-                        return;
-                    }
-
-                    var extra = ($inp.attr('extra') ? $inp.attr('extra') : source['extra']);
-                    var urlFull = url+"&q="+encodeURIComponent(request.term)+(typeof extra!== 'undefined' ? '&e='+encodeURIComponent(extra) : '');
-                    
-                    $.getJSON(urlFull, function(response_json){
-                        if(response_json.data.length == 0){
-                            // response( [ textIfEmpltylist ] );
+                        // reset old value
+                        if(request.term.length==0){
+                            $inpVal.val('');
+                            $inpVal.change();
+                        }
+                        if(request.term.length<( typeof source['threshold']!='undefined' ? source['threshold'] : 3)){
+                            response({});
+                            $inpVal.val('');
+                            $inpVal.change();
                             return;
-                        }                        
-                        response($.map(response_json.data, function(item) {
-                                return {  label: item.optText, value: item.optValue, class: item.optClass  }
-                            }));
-                        });
-                        
-                    },
-                minLength: 0,
-                focus: function(event,ui) {
-                    event.preventDefault();
-                    if (ui.item){
-                        $(inp).val(ui.item.label);
-                    } 
-                },
-                select: function(event,ui) {
-                    event.preventDefault();
-                    if (ui.item && ui.item.label && ui.item.label!=textIfEmpltylist){
-                        $(inp).val(ui.item.label);
-                        $inpVal.val(ui.item.value || ui.item.label);
-                        $inpVal.change();
-                    } else {
-                        $inpVal.val("");
-                    }
-                },
-                search: function(event, ui){ 
-                    // prevent ctrl-c
-                    if((event.originalEvent.ctrlKey || event.originalEvent.metaKey) && event.originalEvent.key==='c')
-                        return false;
-                }
-            })
-            .autocomplete( "instance" )._renderItem  = function( ul, item ) {
-                var liClass = ( item['class'] ?  ' class="'+item['class']+'"' : '');
-                return $( "<li"+liClass+">" ).text( item.label ).appendTo( ul );
-            };
+                        }
 
-        }
-    });
-    } catch (e) {}
+                        var extra = ($inp.attr('extra') ? $inp.attr('extra') : source['extra']);
+                        var urlFull = url+"&q="+encodeURIComponent(request.term)+(typeof extra!== 'undefined' ? '&e='+encodeURIComponent(extra) : '');
+                        
+                        $.getJSON(urlFull, function(response_json){
+                            if(response_json.data.length == 0){
+                                // response( [ textIfEmpltylist ] );
+                                return;
+                            }                        
+                            response($.map(response_json.data, function(item) {
+                                    return {  label: item.optText, value: item.optValue, class: item.optClass  }
+                                }));
+                            });
+                            
+                        },
+                    minLength: 0,
+                    focus: function(event,ui) {
+                        event.preventDefault();
+                        if (ui.item){
+                            $(inp).val(ui.item.label);
+                        } 
+                    },
+                    select: function(event,ui) {
+                        event.preventDefault();
+                        if (ui.item && ui.item.label && ui.item.label!=textIfEmpltylist){
+                            $(inp).val(ui.item.label);
+                            $inpVal.val(ui.item.value || ui.item.label);
+                            $inpVal.change();
+                        } else {
+                            $inpVal.val("");
+                        }
+                    },
+                    search: function(event, ui){ 
+                        // prevent ctrl-c
+                        if((event.originalEvent.ctrlKey || event.originalEvent.metaKey) && event.originalEvent.key==='c')
+                            return false;
+                    }
+                })
+                .autocomplete( "instance" )._renderItem  = function( ul, item ) {
+                    var liClass = ( item['class'] ?  ' class="'+item['class']+'"' : '');
+                    return $( "<li"+liClass+">" ).text( item.label ).appendTo( ul );
+                };
+
+            }
+        })
+        
+    } catch(e) {}
 }
 
-var __attachCheckboxHandler = function( $tbody ){
+var __attachCheckboxHandlers = function( $tbody ){
 
     var oGrid = this;
 
@@ -633,7 +728,7 @@ var __attachCheckboxHandler = function( $tbody ){
     
 }
 
-var __attachRadioHandler = function( $tbody ){
+var __attachRadioHandlers = function( $tbody ){
     var oGrid = this;
 
     $tbody.find('.eg-checkbox input, .eg-boolean input').bind('change', function(){
@@ -1351,7 +1446,8 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text, options){
 
     var oGrid = this;
     
-    if (val==undefined){
+    // if (val==undefined){
+    if (arguments.length==2){
         var inpSel = 'input[name="'+strFieldName+'[]"]',
             inp = oTr.find(inpSel).first(),
             strValue = inp.val(); 
@@ -1375,7 +1471,9 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text, options){
                 return strValue;
         }
     } else {
-        var strValue = val;
+
+        var strValue = (typeof val=='undefined' ? '' : val);
+
         switch(strType){
             case "integer":
             case "int": 
@@ -2527,7 +2625,10 @@ value: function ($tr, strField, value, text, options){
     //Sets or gets value for field strField in specified row, if there’s a complex field 
     //(combobox, ajax_dropdown), it can also set text representation of data.
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
-    return grid.value($tr, strField, value, text, options);
+    return (arguments.length==2 
+        ? grid.value($tr, strField)
+        : grid.value($tr, strField, value, text, options)
+        );
 },
 
 text: function($tr, strField, text) {
