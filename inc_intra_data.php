@@ -768,7 +768,7 @@ public function arrPHP2SQL($arrSrc, $types = array()){
                     break;
                 case 'boolean':
                 case 'checkbox':
-                    $arrRet[$key] = ( $value == 'on' ? 1 : (int)$value );
+                    $arrRet[$key] = ( $value === 'on' ? 1 : (int)$value );
                     break;
                 default:
                     $arrRet[$key] = $value;
