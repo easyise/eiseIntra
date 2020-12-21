@@ -309,8 +309,13 @@ public function updateMultiple($nd){
             unset($nd[$key]);
     }
 
-    foreach($ids as $id){
-        $o = new $class($id);
+   foreach($ids as $id){
+        try {
+            $o = new $class($id, $this->conf);    
+        } catch (Exception $e) {
+            die($e->getMessage());
+        }
+        
         $this->intra->batchEcho("Updating {$id}...", '');
         try {
             $o->update($nd);    
