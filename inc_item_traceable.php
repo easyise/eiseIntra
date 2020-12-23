@@ -1506,8 +1506,10 @@ function getAttributeFields($fields, $item = null, $conf = array()){
         }
         if($atr['atrHref'])
             $options['href'] = $atr['atrHref'];
+        if($conf['suffix'])
+            $options['field_suffix'] = $conf['suffix'];
 
-        $html .= $this->intra->field($atr["atrTitle{$this->intra->local}"], $field.$conf['suffix'], $item[$field], $options);
+        $html .= $this->intra->field($atr["atrTitle{$this->intra->local}"], $field, $item, $options);
     }
 
     return $html;

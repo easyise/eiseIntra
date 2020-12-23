@@ -1649,15 +1649,25 @@ function setting($stpVarName, $stpCharValue = null, $flagLocal = false){
  * @category Forms
  *
  */
-public function field( $title, $name=null, $value=null, $conf=array() ){
+public function field( $title, $name=null, $val_in=null, $conf=array() ){
 
     $oSQL = $this->oSQL;
 
-    $value = (is_array($value) ? $value[$name] : $value);
+    $value = (is_array($val_in) ? $val_in[$name] : $val_in);
 
-    
     if(in_array($conf['type'], array('row_id', 'hidden')) )
         return '<input type="hidden" name="'.$name.'" id="'.$name.'" value="'.htmlspecialchars($value).'">'."\r\n";
+
+    if($conf['href'] && $name){
+        $vals = (is_array($val_in) ? $val_in : array($name=>$val_in));
+        foreach ($vals as $field => $fieldVal) {
+            if(is_array($fieldVal))
+                continue;
+            $conf['href'] = preg_replace('/\['.preg_quote($field, '/').'\]/', $fieldVal, $conf['href']);    
+        }
+        if(preg_match('/\[[a-z0-9\-\_]+\]/', $conf['href']))
+            $conf['href'] = '';
+    }
 
     $html = '';
 
@@ -1709,6 +1719,8 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
     }
 
     if($name){
+
+        $name = $name.$options['field_suffix'];
 
         $this->fieldTypes[(preg_replace('/\[\]$/', '', $name))] = $conf['type'];
 
@@ -2362,14 +2374,10 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
         $txt = $rw["optText"];
     }
 
-    if($arrConfig['href'] && $strValue && !$flagWrite ){
-        $arrConfig['href'] = preg_replace('/\['.preg_quote($strFieldName, '/').'\]/', $strValue, $arrConfig['href']);
-    }
-    
     $strOut = "";
     $strOut .= "<input type=\"hidden\" name=\"$strFieldName\" class=\"eif-input\" id=\"$strFieldName\" value=\"".htmlspecialchars($strValue)."\">\r\n";
 
-    $attr = (preg_match('/\['.preg_quote($strFieldName, '/').'\]/', $arrConfig['href']) 
+    $attr = ($arrConfig['href']
                 ? 'data-href="'.htmlspecialchars($arrConfig['href']).'" '
                 : '')
         .' data-source="'.htmlspecialchars(json_encode($aSource)).'"'
