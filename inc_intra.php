@@ -1720,7 +1720,7 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
 
     if($name){
 
-        $name = $name.$options['field_suffix'];
+        $name = $name.$conf['field_suffix'];
 
         $this->fieldTypes[(preg_replace('/\[\]$/', '', $name))] = $conf['type'];
 
