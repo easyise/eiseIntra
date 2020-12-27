@@ -13,6 +13,11 @@ public $extraActions = array();
 
 protected $defaultDataToObtain = array('Text', 'ACL', 'STL', 'files', 'messages');
 
+protected $to_restore = [['key'=>'ACL', 'table'=>'stbl_action_log', 'PK'=>'aclGUID', 'title'=>'Action log']
+        , ['key'=>'STL', 'table'=>'stbl_status_log', 'PK'=>'stlGUID', 'title'=>'Status log']
+        , ['key'=>'files', 'table'=>'stbl_file', 'PK'=>'filGUID', 'title'=>'Files log']
+        , ['key'=>'messages', 'table'=>'stbl_message', 'PK'=>'msgID', 'title'=>'Messages log']];
+
 static function getPrefixExtra($prgRcv){
     if(($prgRcv && strlen($prgRcv)<=3) || preg_match('/^([a-z0-9]{0,3})\|/', $prgRcv)){
         if(preg_match('/^([a-z0-9]{0,3})\|(.*)$/i', $prgRcv, $arrMatch)){
@@ -1178,9 +1183,121 @@ function getAllData($toRetrieve = null){
 }
 
 public function refresh(){
-    
+    $this->getAllData();
 }
 
+public function backup($q){
+
+    $this->getAllData();
+
+    $to_backup = $this->item;
+    $conf = $this->conf;
+    unset($conf['Roles']);
+    unset($conf['RolesVirtual']);
+    unset($conf['RoleDefault']);
+    unset($conf['ATR']);
+    unset($conf['attr_types']);
+    unset($conf['ACT']);
+    unset($conf['STA']);
+
+    $to_backup['conf'] = $conf;
+    $json = json_encode($to_backup);
+
+    if($q['asFile']){
+        header('Pragma: public'); 
+        header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");                  // Date in the past    
+        header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT'); 
+        header('Cache-Control: no-store, no-cache, must-revalidate');     // HTTP/1.1 
+        header('Cache-Control: pre-check=0, post-check=0, max-age=0');    // HTTP/1.1 
+        header("Pragma: no-cache"); 
+        header("Expires: 0"); 
+        header('Content-Transfer-Encoding: none'); 
+        header("Content-Type: application/json");
+        header("Content-Disposition: attachment; filename*=UTF-8''".rawurlencode($this->id.'-'.date('Ymd').'.json') );
+        echo $json;
+        die();
+    }
+
+    return $json;
+
+}
+
+public function restore($arg){
+
+    $intra = $this->intra;
+    $oSQL = $this->oSQL;
+    
+    $oSQL->q('START TRANSACTION');
+    $oSQL->startProfiling();
+
+    if( is_uploaded_file($_FILES['backup_file']['tmp_name']) ) {
+        $json = json_decode(file_get_contents($_FILES['backup_file']['tmp_name']), true);
+        if(!$json){
+            throw new Exception("Bad file - no data found", 1);
+        }
+        if($_GET['fromBatch'])
+            $intra->batchStart();
+    } else {
+        $json = $arg;
+    }
+
+    $ent = $oSQL->f('SELECT * FROM stbl_entity WHERE entID='.$oSQL->e($json['conf']['entID']));
+    if(!$ent)
+        throw new Exception("Entity ID not found for '{$json['conf']['entID']}'", 1);
+
+    $class = get_class($this);
+    
+    try{
+        $itm = new $class($json[$ent['entPrefix'].'ID'], $ent);
+        if($_GET['fromBatch'])
+            $intra->batchEcho("Item {$itm->id} has been found");
+
+    } catch (Exception $e){
+        try {
+            $sqlIns = "INSERT INTO {$ent['entTable']} SET {$ent['entPrefix']}ID=".$oSQL->e($json[$ent['entPrefix'].'ID']);
+            $oSQL->q($sqlIns);
+            $itm = new $class($json[$ent['entPrefix'].'ID'], $ent);
+            if($_GET['fromBatch'])
+                $intra->batchEcho("Item {$itm->id} has been created");
+        } catch (Exception $e) {
+            $err = "Unable to create item of '{$ent['entTitle']}' with ID '{$json[$ent['entPrefix'].'ID']}'";
+            if($_GET['fromBatch']){
+                $intra->batchEcho("ERROR: {$err}");
+                die();
+            }
+            throw new Exception($err, 1);
+        }
+    }
+    
+    $sqlFields = preg_replace('/^[\s\,]+/', '', $this->intra->getSQLFields($itm->table, $json));
+    $oSQL->q("UPDATE {$ent['entTable']} SET {$sqlFields} WHERE {$itm->conf['PK']}='{$itm->id}'");
+
+    foreach($this->to_restore as $aRestore){
+        $tableInfo = $oSQL->getTableInfo($aRestore['table']);
+        if(!$json[$aRestore['key']])
+            continue;
+        if($_GET['fromBatch'])
+            $intra->batchEcho("Restoring {$aRestore['title']}...");
+        foreach ($json[$aRestore['key']] as $key => $values) {
+            $sqlFields = $aRestore['PK'].' = '.$oSQL->e($key).$this->intra->getSQLFields($tableInfo, $values);
+            $sql = "INSERT INTO {$aRestore['table']} SET {$sqlFields} 
+                ON DUPLICATE KEY UPDATE {$sqlFields}";
+            $oSQL->q($sql);
+        }
+    }
+
+    // $oSQL->showProfileInfo();
+    // $oSQL->q('ROLLBACK');
+    // die('<pre>'.var_export($itm->id, true));
+
+    $oSQL->q('COMMIT');
+
+    if($_GET['fromBatch']){
+        $intra->batchEcho("All done!");
+        die();
+    }
+
+}
 
 /**
  * This function is called before action is "planned", i.e. record is added to the Action Log. 
