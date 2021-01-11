@@ -1068,10 +1068,11 @@ public function updateAction($rwACL, $nd){
 }
 
 public function getData($id = null){
-    
+
     parent::getData($id);
 
-    unset($this->defaultDataToObtain[array_search('Master', $this->defaultDataToObtain)]);
+    if(array_search('Master', $this->defaultDataToObtain)!==false)
+        unset($this->defaultDataToObtain[array_search('Master', $this->defaultDataToObtain)]);
 
     $this->getAllData();
 
