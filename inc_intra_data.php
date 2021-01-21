@@ -867,7 +867,7 @@ function getArchiveSQLObject(){
         throw new Exception("Archive database name is not set. Contact system administrator.");
     
     //same server, different DBs
-    $this->oSQL_arch = new sql($this->oSQL->dbhost, $this->oSQL->dbuser, $this->oSQL->dbpass, $this->conf["stpArchiveDB"], false, CP_UTF8);
+    $this->oSQL_arch = new eiseSQL($this->oSQL->dbhost, $this->oSQL->dbuser, $this->oSQL->dbpass, $this->conf["stpArchiveDB"], false, CP_UTF8);
     $this->oSQL_arch->connect();
     
     return $this->oSQL_arch;

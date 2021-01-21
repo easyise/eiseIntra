@@ -336,18 +336,24 @@ public function updateMultiple($nd){
 
 public function delete(){
 
-    $this->oSQL->q('START TRANSACTION');
-    if( !$this->conf['STA'][$this->staID]['staFlagCanDelete'] ){
-        $this->msgToUser = $this->intra->translate('Unable to delete "%s"', $this->conf['title'.$this->intra->local]);
-        $this->redirectTo = $this->conf['form'].'?'.$this->getURI();
-        return; 
+    if(!$this->conf['flagNoDeleteTransation'])
+        $this->oSQL->q("START TRANSACTION");
+
+    if( !$this->conf['STA'][$this->staID]['staFlagCanDelete'] && !$this->conf['flagForceDelete']){
+        throw new Exception($this->intra->translate('Unable to delete "%s"', $this->conf['title'.$this->intra->local]));
     }
     if($this->conf['flagDeleteLogs']){
+        $aclGUIDs = "'".implode("', '", array_keys($this->item['ACL']))."'";
+        if($this->conf['logTable'])
+            $this->oSQL->q("DELETE FROM {$this->conf['logTable']} WHERE l{$this->table['prefix']}GUID 
+                IN ( {$aclGUIDs} )");
         $this->oSQL->q("DELETE FROM stbl_action_log WHERE aclEntityItemID=".$this->oSQL->e($this->id));
         $this->oSQL->q("DELETE FROM stbl_status_log WHERE stlEntityItemID=".$this->oSQL->e($this->id));
     }
     parent::delete();
-    $this->oSQL->q('COMMIT');
+
+    if(!$this->conf['flagNoDeleteTransation'])
+        $this->oSQL->q("COMMIT");
 
 }
 
@@ -1297,6 +1303,8 @@ public function restore($arg){
         $intra->batchEcho("All done!");
         die();
     }
+
+    return $itm;
 
 }
 
