@@ -481,13 +481,16 @@ eiseGrid.prototype.__attachRemover = function(td){
         $remover = $('<b class="eg-remover"/>').appendTo($td)
             .css('display', 'block')
             .offset({
-                left: $td.offset().left + $td.outerWidth() - 16
+                left: $td.offset().left + $td.outerWidth() - 14
                 , top: $a.offset().top + 2
                 })
             .click(function(){
                 var field = $td[0].dataset['field']
                     , inp = $td.find('input')[0]
                     , events = getEvents('change', inp);
+
+                if(!confirm('Field data will be removed. Ok?'))
+                    return false;
 
                 $(inp).val('').change(); // trigger "change"
                 
