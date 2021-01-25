@@ -108,16 +108,18 @@ case "Data":
         
         , 'PK' => true
         );
-        
-        $lst->Columns[] = array('title' => ""
-        , 'field' => 'pk'
-        , 'sql' => (count($arrTable["PK"])>1 
-            ? "CONCAT(".implode(",", $arrTable["PK"]).")"
+
+        $sqlPK = (count($arrTable["PK"])>1 
+            ? "CONCAT(".implode(",'|',", $arrTable["PK"]).")"
             : ($arrTable["PK"][0]
                 ? $arrTable["PK"][0]
                 : $arrTable['columns'][0]["Field"]
                 )
-            )
+            );
+
+        $lst->Columns[] = array('title' => ""
+        , 'field' => 'pk'
+        , 'sql' => $sqlPK
         , 'PK' => true
         );
         
@@ -128,7 +130,7 @@ case "Data":
         
         $lst->Columns[] = array('title' => "sel"
            , 'field' => "ID_to_proceed"
-           , 'sql' => "CONCAT(".implode(",", $arrTable["PK"]).")"
+           , 'sql' => $sqlPK
            , "checkbox" => true
         ); 
 
