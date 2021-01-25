@@ -2039,6 +2039,7 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
 
     if ($flagWrite){
         $strRet .= "<textarea class=\"{$strClassInput}\""
+            .($arrConfig['rows'] ? " rows=\"{$arrConfig['rows']}\"" : '')
             ." id=\"$id\""
             ." name=\"".$strName."\"";
         if($strAttrib) $strRet .= " ".$strAttrib;
