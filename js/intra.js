@@ -1684,8 +1684,17 @@ upload2batch: function( options ){
 
     options = $.extend(defaultOptions, (options ? options : {}))
 
-    if(options['fields'] && options['fields'].isArray())
-        fields = $.extend(fields, options['fields']);
+    if(options['fields']){
+        var fieldsBefore = [], fieldsAfter = []
+        for (var i = 0; i < options['fields'].length; i++) {
+            if(options.fields[i].position=='end')
+                fieldsAfter.push(options.fields[i])
+            else 
+                fieldsBefore.push(options.fields[i])
+        };
+        fields = fieldsBefore.concat(fields).concat(fieldsAfter)
+    }
+    
 
     $(this).eiseIntraForm('createDialog', {
         title: (options['title'] ? options['title'] : title)
