@@ -159,7 +159,9 @@ eiseGrid.prototype.initLinesStructure = function(){
                 };
 
         oGrid.tbodyTemplate.find('td.'+oGrid.id+'-'+colName).each(function(){
-            linesStructCol.fields[linesStructCol.fields.length] = $(this).find('input,button').first().attr('name').replace('[]', '');
+            var $inp = $(this).find('input,button').first(),
+                nameInp = ($inp[0] ? $inp.attr('name') : null);
+            linesStructCol.fields[linesStructCol.fields.length] = (nameInp ? nameInp.replace('[]', '') : colName);
         });
 
         linesStruct[linesStruct.length] = linesStructCol;

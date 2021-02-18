@@ -5,11 +5,58 @@ $intra->requireComponent('batch','grid');
 
 $DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['DataAction'] );
 
-$gridPGR = new eiseGrid($oSQL
+class cGridPGR extends eiseGrid{
+
+function Update($q = NULL, $conf = Array()){
+
+    GLOBAL $intra, $oSQL;
+
+    // $oSQL->startProfiling();
+
+    $oSQL->q('START TRANSACTION');
+    $oSQL->q('DELETE FROM stbl_page_role WHERE pgrRoleID='.$oSQL->e($q['rolID']));
+    foreach ($q['pagID'] as $i => $pagID) {
+        if(!$pagID)
+            continue;
+
+        $sqlIns = "INSERT INTO stbl_page_role SET
+            pgrPageID = ".$oSQL->e($pagID)."
+            , pgrRoleID = ".$oSQL->e($q['rolID'])."
+            , pgrFlagRead = ".(int)$q['pgrFlagRead'][$i]."
+            , pgrFlagWrite = ".(int)($q['pgrFlagWrite'][$i])."
+            , pgrInsertBy = '$intra->usrID', pgrInsertDate = NOW(), pgrEditBy = '$intra->usrID', pgrEditDate = NOW()
+            , pgrFlagCreate = ".(int)($q['pgrFlagCreate'][$i])."
+            , pgrFlagUpdate = ".(int)($q['pgrFlagUpdate'][$i])."
+            , pgrFlagDelete = ".(int)($q['pgrFlagDelete'][$i]);
+        $oSQL->q($sqlIns);
+
+    }
+
+    // $oSQL->showProfileInfo();
+    $oSQL->q('COMMIT');
+    
+    $this->redirectTo = $_SERVER['PHP_SELF'].'?rolID='.urlencode($q['rolID']);
+}
+
+}
+
+$rolID = (isset($_GET['rolID']) ? $_GET['rolID'] : $_COOKIE['rolID']);
+
+$rolID = $oSQL->d('SELECT rolID FROM stbl_role WHERE rolID='.$oSQL->e($rolID));
+
+if(isset($_GET['rolID']) && $rolID)
+    setcookie('rolID', $rolID, 0, $_SERVER['PHP_SELF']);
+
+if(!$rolID){
+    $rolID = $oSQL->d("SELECT rolID FROM stbl_role WHERE rolFlagDeleted=0 ORDER BY rolFlagDefault DESC, rolID ASC LIMIT 0,1");
+}
+
+$gridPGR = new cGridPGR($oSQL
         , 'pgr'
         , array('arrPermissions' => Array('FlagWrite'=>$intra->arrUsrData['FlagWrite'])
                 , 'strTable' => 'stbl_page_role'
                 , 'strPrefix' => 'pgr'
+                , 'extraInputs' => Array("DataAction"=>"update", 'rolID'=>$rolID)
                 )
         );
 
@@ -23,7 +70,11 @@ $gridPGR->Columns[] = Array(
         , 'type' => "text"
         , 'href' => 'page_form.php?dbName='.$dbName.'&pagID=[pgrPageID]'
         , 'static' => true
+        , 'mandatory' => true
         , 'width' => '100%'
+);
+$gridPGR->Columns[] = Array(
+        'field' => "pagID"
 );
 $gridPGR->Columns[] = Array(
         'field' => "pgrRoleID"
@@ -64,25 +115,7 @@ $gridPGR->Columns[] = Array(
         , 'headerClickable' => true
 );
 
-switch($DataAction){
-    case "update":
-        $gridPGR->Update();
-        $intra->redirect("Data is updated", $_SERVER["PHP_SELF"]);
-    default:
-        break;
-}
-
-
-$rolID = (isset($_GET['rolID']) ? $_GET['rolID'] : $_COOKIE['rolID']);
-
-$rolID = $oSQL->d('SELECT rolID FROM stbl_role WHERE rolID='.$oSQL->e($rolID));
-
-if(isset($_GET['rolID']) && $rolID)
-    setcookie('rolID', $rolID, 0, $_SERVER['PHP_SELF']);
-
-if(!$rolID){
-    $rolID = 'admin';
-}
+$intra->dataAction('update', $gridPGR);
 
 $arrActions[]= Array ('title' => $intra->translate('Save')
        , 'action' => "#save"
