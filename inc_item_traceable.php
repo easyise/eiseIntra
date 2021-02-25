@@ -1109,7 +1109,8 @@ function getAllData($toRetrieve = null){
     if(in_array('Master', $toRetrieve))
         $this->getData();
 
-    if(in_array('Text', $toRetrieve))    
+    if(in_array('Text', $toRetrieve)){  
+        $this->item["{$this->entID}StatusID_text"] = $this->conf['STA'][(int)$this->item["{$this->entID}StatusID"]]["staTitle{$this->intra->local}"];
         foreach($this->conf["ATR"] as $atrID=>$rwATR){
             if (in_array($rwATR["atrType"], Array("combobox", "ajax_dropdown"))){
                 $this->item[$rwATR["atrID"]."_text"] = !isset($this->item[$rwATR["atrID"]."_text"]) 
@@ -1118,6 +1119,7 @@ function getAllData($toRetrieve = null){
             }
 
         }
+    }
     
     // collect incomplete/cancelled actions
     if(in_array('ACL', $toRetrieve) || in_array('STL', $toRetrieve)) {
