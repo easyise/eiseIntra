@@ -25,7 +25,7 @@ public $arrAttributeTypes = array(
 //    , "binary" => 'file' #not supported yet for docflow apps
     , "date" => 'date'
     , "datetime" => 'datetime'
-//    , "time" => 'time'
+    , "time" => 'time'
     , "combobox" => 'FK'
     , "ajax_dropdown" => 'FK'
     );
@@ -830,7 +830,7 @@ public function getSQLFields($tableInfo, $data){
 
         if(!in_array($field, $tableInfo['columns_index']))
             continue;
-        if( $value === null || ($tableInfo['columns_types'][$field]=="FK" && !$value) ){
+        if( $value === null || (in_array($tableInfo['columns_types'][$field], ["FK", 'time', 'datetime', 'time']) && !$value) ){
             if($tableInfo['columns_dict'][$field]['Null']==='YES')
                 $sqlFields .= "\n, {$field}=NULL";
             continue;

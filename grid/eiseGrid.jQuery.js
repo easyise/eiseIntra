@@ -1632,9 +1632,13 @@ eiseGrid.prototype.verifyInput = function (oTr, strFieldName) {
             case 'date':
             case 'time':
             case 'datetime':
-                 
+                
                 if (strValue!="" && strValue.match(this.conf.rex[strInpType])==null){
-                    alert ("Field '"+this.conf.fields[strFieldName].type+"' should contain date value formatted as "+this.conf.dateFormat+".");
+                    alert ("Field '"+this.conf.fields[strFieldName].type+"' should contain date value formatted as "+(strInpType=='date' 
+                        ? this.conf.dateFormat
+                        : (strInpType=='time' 
+                            ? this.conf.timeFormat
+                            : this.conf.dateFormat+' '+this.conf.timeFormat))+".");
                     this.focus(oTr, strFieldName);
                     return false;
                 }
