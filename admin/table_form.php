@@ -204,12 +204,11 @@ $arrActions[]= Array ("title" => "List"
     , "class"=> "ss_script"
 );
 
-if($arrTable['type']!='view'){
-    $arrActions[]= Array ("title" => "Form"
-        , "action" => "javascript:$(this).eiseIntraBatch('codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=Form')"
-        , "class"=> "ss_script"
-    );
-}
+$arrActions[]= Array ("title" => "Form"
+    , "action" => "javascript:$(this).eiseIntraBatch('codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=Form')"
+    , "class"=> "ss_script"
+);
+
 $arrActions[]= Array ("title" => "Grid"
     , "action" => "javascript:$(this).eiseIntraBatch('codegen_form.php?dbName=$dbName&tblName=$tblName&toGen=easyGrid')"
     , "class"=> "ss_script"

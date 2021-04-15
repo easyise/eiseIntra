@@ -72,6 +72,7 @@ $gridPGR->Columns[] = Array(
         , 'static' => true
         , 'mandatory' => true
         , 'width' => '100%'
+        , 'class' => '[pagFullTitle_class]'
 );
 $gridPGR->Columns[] = Array(
         'field' => "pagID"
@@ -144,6 +145,9 @@ include eiseIntraAbsolutePath.'inc_top.php';
 td.pgr-pagFullTitle > div {
     white-space: pre;
 }
+.in-menu  {
+    font-weight: bold;
+}
 </style>
 
 <script>
@@ -207,8 +211,10 @@ PG1.pagID
 ORDER BY PG1.pagIdxLeft";
 $rsPGR = $oSQL->do_query($sqlPGR);
 while ($rwPGR = $oSQL->fetch_array($rsPGR)){
-    $rwPGR['pagFullTitle'] = str_repeat('    ', $rwPGR['iLevelInside']).($rwPGR['pagTitle'.$intra->local] ? $rwPGR['pagTitle'.$intra->local] : $rwPGR['pagTitle'])
-        .($rwPGR['pagTitle'.$intra->local] && $rwPGR['pagFile'] ? " ({$rwPGR['pagFile']})" : $rwPGR['pagFile']);
+    $title = $rwPGR['pagTitle'.$intra->local] ? $rwPGR['pagTitle'.$intra->local] : $rwPGR['pagTitle'];
+    $rwPGR['pagFullTitle'] = str_repeat('    ', $rwPGR['iLevelInside']).$title
+        .($title && $rwPGR['pagFile'] ? " ({$rwPGR['pagFile']})" : $rwPGR['pagFile']);
+    $rwPGR['pagFullTitle_class'] = ($rwPGR['pagFlagShowInMenu'] ? 'in-menu' : '');
     $gridPGR->Rows[] = $rwPGR;
 }
 
