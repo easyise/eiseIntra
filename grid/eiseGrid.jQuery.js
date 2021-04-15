@@ -1918,6 +1918,7 @@ eiseGrid.prototype.fillRow = function($tr, row ){
             $inp.val(val);
         if(theClass){
             $.each(theClass.split(/\s+/), function(ix, cls){
+                console.log('qq')
                 $td.addClass(cls)
             })
         }
@@ -2159,7 +2160,7 @@ eiseGrid.prototype.colorRow = function(ev){
     var grid = this
         , $dlg = $('<div class="eg-colorpicker">')
         , $initiator = $(ev.currentTarget)
-        , $row = grid.tableContainer.find('tbody.eg-data.eg-selected')
+        , $rows = grid.tableContainer.find('tbody.eg-data.eg-selected')
         , colorField = null;
 
     $.each(grid.conf.fields, function(key, field){
@@ -2172,9 +2173,13 @@ eiseGrid.prototype.colorRow = function(ev){
     $.each(grid.conf['colors'], function(ix, color){
         $('<div class="eg-color" style="background-color:'+color+'"/>')
             .click(function(){
-                $row.find('td').css('background-color', color);
-                if(colorField)
-                    grid.value($row, colorField, color);
+                $rows.each(function(){
+                    $(this).find('td').css('background-color', color);
+                    if(colorField){
+                        grid.value( $(this), colorField, color);
+                        grid.updateRow( $(this) );    
+                    }
+                })
                 $dlg.dialog('close');
             })
             .appendTo($dlg);
@@ -2196,9 +2201,14 @@ eiseGrid.prototype.colorRow = function(ev){
                 title: "Filter",
                 buttons: {
                     "Clear": function() {
-                        $row.find('td').css('background-color', '');
-                        if(colorField)
-                            grid.value($row, colorField, '');
+                        $rows.each(function(){
+                            $(this).find('td').css('background-color', '');
+                            if(colorField){
+                                grid.value( $(this), colorField, '' );
+                                grid.updateRow( $(this) );
+                            }    
+                        })
+                        
                         $dlg.dialog('close');
                     },
                     "Close": function() {
