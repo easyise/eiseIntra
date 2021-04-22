@@ -935,16 +935,16 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
         $strHTML .= "<ul>\r\n";
         while ($rwSta = $oSQL->fetch_array($rsSta)){
             $strHTML .= "<li><b>{$rwSta["staID"]}: {$rwSta["staTitle$strLocal"]}</b><br><br></li>\r\n";
-            $strHTML .= "<blockquote><b>Доступные для редактирования атрибуты:</b><br>\r\n";
+            $strHTML .= "<blockquote><b>Доступные для редактирования атрибуты:</b><br><pre>\r\n";
             $sqlSat = "SELECT * FROM stbl_status_attribute 
                INNER JOIN stbl_attribute ON satAttributeID=atrID AND satEntityID=atrEntityID
                WHERE satStatusID='{$rwSta["staID"]}' AND satEntityID='{$entID}' AND satFlagEditable=1
                ORDER BY atrOrder";
             $rsSat = $oSQL->do_query($sqlSat);
             while ($rwSat = $oSQL->fetch_array($rsSat)){
-               $strHTML .= " - {$rwSat["atrTitle$strLocal"]}<br />\r\n";
+               $strHTML .= "{$rwSat["atrTitle$strLocal"]}\t{$rwSat['atrID']}\r\n";
             }
-            $strHTML .= "</blockquote>\r\n";    
+            $strHTML .= "</pre></blockquote>\r\n";    
             
             $strHTML .= "<blockquote><b>Доступные действия:</b><ol>\r\n";
             $sqlAct = "SELECT * FROM stbl_action_status
