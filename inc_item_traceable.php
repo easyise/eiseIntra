@@ -170,7 +170,7 @@ public function undo($nd){
     $acl_undo = null;
     $acl_prev = null;
     foreach($this->item['ACL'] as $acl){
-        if($acl['aclActionPhase']!=2)
+        if($acl['aclActionPhase']!=2 || in_array($acl['aclActionID'], [1,2,3,4]))
             continue;
 
         if($acl['aclActionID']==2){
@@ -363,8 +363,8 @@ private function init(){
         ($this->intra->conf['systemID'] ? $this->intra->conf['systemID'].':' : '')
         .$this->entID;
 
-    if($_SESSION[$sessKey] && !$this->conf['flagDontCacheConfig']){
-    // if(false){
+    // if($_SESSION[$sessKey] && !$this->conf['flagDontCacheConfig']){
+    if(false){
         $this->conf = array_merge($this->conf, $_SESSION[$sessKey]);
         return $this->conf;
     }
