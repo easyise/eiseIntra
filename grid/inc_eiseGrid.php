@@ -586,8 +586,11 @@ function get_html($allowEdit=true){
         if (is_array($field['source'])){
             $arrConfig['fields'][$fieldName]['source'] = $field['source'];
         }
-        if ($field['headerClickable']){
+        if ($field['flagDontUpdateRow']){
             $arrConfig['fields'][$fieldName]['headerClickable'] = true;
+        }
+        if ($field['headerClickable']){
+            $arrConfig['fields'][$fieldName]['flagDontUpdateRow'] = true;
         }
         if ($field['sortable']===true){
             $arrConfig['fields'][$fieldName]['sortable'] = true;

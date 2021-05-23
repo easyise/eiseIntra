@@ -409,13 +409,14 @@ eiseGrid.prototype.initRow = function( $tbody ){
     }
 
     $.each(oGrid.conf.fields, function(fld){ // change evend on eiseGrid input should cause row marked as changed
+
         $tbody.find("input[name='"+fld+"[]']").bind('change', function(){ 
             
             if(this.__handlingTheChange)
                 return;
             this.__handlingTheChange = true;
 
-            oGrid.updateRow( $tbody ); 
+            oGrid.updateRow( $tbody, fld ); 
 
             var $inp = $(this),
                 arrFnOnChange = oGrid.onChange[fld];
@@ -723,12 +724,12 @@ var __attachCheckboxHandlers = function( $tbody ){
 
     var oGrid = this;
 
-    $tbody.find('.eg-checkbox input, .eg-boolean input').bind('change', function(){
+    $tbody.find('.eg-checkbox input[type="checkbox"], .eg-boolean input[type="checkbox"]').bind('change', function(){
+        var $inp = $(this).prev('input');
         if(this.checked)
-            $(this).prev('input').val('1');
+            $inp.val('1').change();
         else 
-            $(this).prev('input').val('0');
-        oGrid.updateRow( $tbody ); 
+            $inp.val('0').change();
     });
     
 }
@@ -736,12 +737,12 @@ var __attachCheckboxHandlers = function( $tbody ){
 var __attachRadioHandlers = function( $tbody ){
     var oGrid = this;
 
-    $tbody.find('.eg-checkbox input, .eg-boolean input').bind('change', function(){
+    $tbody.find('.eg-radio input[type="radio"]').bind('change', function(){
+        var $inp = $(this).prev('input');
         if(this.checked)
-            $(this).prev('input').val('1');
+            $inp.val('1').change();
         else 
-            $(this).prev('input').val('0');
-        oGrid.updateRow( $tbody ); 
+            $inp.val('0').change();
     });
 }
 
@@ -1245,10 +1246,14 @@ eiseGrid.prototype.deleteSelectedRows = function(event, callback){
     }
 }
 
-eiseGrid.prototype.updateRow = function(oTr){
+eiseGrid.prototype.updateRow = function(oTr, fieldInitiator){
+
+    if(fieldInitiator && this.conf.fields[fieldInitiator].flagDontUpdateRow)
+        return;
     
     oTr.find("input")[1].value="1";
     oTr.addClass('eg-updated');
+
 }
 
 eiseGrid.prototype.recalcOrder = function(){
