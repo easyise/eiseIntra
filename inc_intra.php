@@ -1157,6 +1157,11 @@ function requireComponent($components){
                 $arrJS[] = eiseIntraRelativePath.'grid/eiseGrid.jQuery.js';
                 break;
 
+            case 'reports':
+                $this->requireComponent('jquery-ui');
+                $arrJS[] = eiseIntraRelativePath.'js/eiseIntraReports.jQuery.js';
+                break;
+
             default:
                 # code...
                 break;

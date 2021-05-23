@@ -65,10 +65,15 @@ var renderMenu = function(){
 
 var sideBarMenuChanged = function(){
 
+    this.pane_padding_left = (this.pane_padding_left 
+        ? this.pane_padding_left 
+        : parseFloat($('.ei-pane').css('padding-left'))
+        );
+
     var $iframe = $('.ei-pane-frame iframe'),
         padding = ($('.ei-sidebar-menu.visible')[0] 
-            ? $('.ei-sidebar-menu').outerWidth(true)
-            : '0');
+            ? $('.ei-sidebar-menu').outerWidth(true) + this.pane_padding_left
+            : this.pane_padding_left);
 
     $('.ei-pane-frame').css('left', padding );
     $('.ei-pane').css('padding-left', padding );

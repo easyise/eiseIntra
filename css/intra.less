@@ -4,6 +4,7 @@
  *
  */
 
+@ei-gutter-width: 5px;
 
 /** Core definitions */
 html { height: 100% }
@@ -316,7 +317,8 @@ td     {  	vertical-align: top; padding: 0;}
 
 
 .ei-pane {
-    padding-left: 0;
+    padding-left: @ei-gutter-width;
+    padding-right: @ei-gutter-width;
     padding-top: @ei-header-height;  
     &.no-header {
         padding-top: 0;
@@ -369,6 +371,9 @@ td     {  	vertical-align: top; padding: 0;}
     background-color: @ei-action-menu-bg;
     border-bottom: @ei-action-menu-border;
     font-family: Verdana, Helvetica, sans-serif;
+
+    margin-left: -1 * @ei-gutter-width;
+    margin-right: -1 * @ei-gutter-width;
 
     & .menubutton  {
         display: inline-block;
@@ -1301,4 +1306,10 @@ div.eiseIntraComment {
             font-stretch: condensed;
         }
     }
+}
+
+.eiseList {
+    width: calc(~"100% + " 2 * @ei-gutter-width);
+    margin-left: -1 * @ei-gutter-width;
+    margin-right: -1 * @ei-gutter-width;
 }
