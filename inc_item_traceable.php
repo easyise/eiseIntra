@@ -1682,7 +1682,7 @@ public function arrActionButtons(){
                 $aUserTiers = array();
                 $suitableRoles = array_values(array_intersect($rwAct['RLA'], $this->intra->arrUsrData['roleIDs']));
                 foreach ($suitableRoles as $rol) { $aUserTiers[$rol] = $rwAct['RLA_tiers'][$rol]; }    
-                $escalated = (int)(min($rwAct['RLA_tiers']) < min($aUserTiers));
+                $escalated = (int)(@min($rwAct['RLA_tiers']) < @min($aUserTiers));
             }
 
             $arrActions[] = Array ("title" => $title #.(int)$escalated.'<pre>'.var_export($rwAct['RLA_tiers'], true)."\n".var_export($this->intra->arrUsrData['roleIDs'], true)."\n".var_export($aUserTiers, true).'</pre>'
