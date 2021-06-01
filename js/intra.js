@@ -1469,8 +1469,9 @@ createDialog: function( conf ){
                 if(inp.nodeName.toUpperCase()=='SELECT'){
                     objVals[$(inp).attr('name')]['t'] = inp.options[inp.options.selectedIndex].text;
                 } 
-                if(typeof($frm.find('#'+$(inp).attr('name')+'_text')[0])!='undefined'){
-                    objVals[$(inp).attr('name')]['t'] = $frm.find('#'+$(inp).attr('name')+'_text').val();
+                var strFieldSafe = $(inp).attr('name').replace(/[^\-\w]+/, ''); //eiseGrid elems fixe
+                if(typeof($frm.find('#'+strFieldSafe+'_text')[0])!='undefined'){
+                    objVals[$(inp).attr('name')]['t'] = $frm.find('#'+strFieldSafe+'_text').val();
                 }
             }
                 
