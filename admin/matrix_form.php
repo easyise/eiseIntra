@@ -171,6 +171,7 @@ $(document).ready(function(){
 $sqlPGR = "SELECT PG1.pagID
         , PG1.pagParentID
         , PG1.pagTitle
+        , PG1.pagTitleLocal
         , PG1.pagFile
         , PG1.pagIdxLeft
         , PG1.pagIdxRight
@@ -194,6 +195,7 @@ GROUP BY
 PG1.pagID
         , PG1.pagParentID
         , PG1.pagTitle
+        , PG1.pagTitleLocal
         , PG1.pagFile
         , PG1.pagIdxLeft
         , PG1.pagIdxRight
