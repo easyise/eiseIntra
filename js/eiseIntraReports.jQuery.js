@@ -94,7 +94,38 @@ init: function(arg){
     init_copytable.call(this)
 
     this.find('.budget tr.breakdownable .bd-title').click(function(){
-        alert('ERROR: division by zero in calculation routine fn_get_ratio(A, B), re-load the data')
+
+        var strFilters = $(this).parents('tr').first()[0].dataset['filters']
+
+        $('<div class="breakdown"/>').dialog({title: $(this).text()
+            , width: '80%'
+            , modal: true
+            , open: function(){
+
+                var $dataDialog = $(this);
+
+                $dataDialog.addClass('spinner').text('Please wait...');
+                $.ajax({url: 'intrapy/breakdown'+location.search,
+                        data: strFilters,
+                        contentType: 'application/json',
+                        method: 'POST',
+                        success: function(data){
+                            $dataDialog.removeClass('spinner')
+                            $dataDialog.html(data)
+                        },
+                        error: function(){
+                            $dataDialog
+                                .removeClass('spinner')
+                                .addClass('error')
+                                .text('Error occured')
+                        }
+                    })
+            }
+            , buttons: [{text: 'Ok',
+                click: function(){
+                    $(this).dialog('close').remove()
+                }
+                 }]})
     })
 
 },
