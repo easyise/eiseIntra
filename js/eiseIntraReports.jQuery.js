@@ -8,6 +8,81 @@
  */
 (function( $ ){
 
+
+var init_copytable = function(){
+
+    var $tab = $(this),
+        $tables = $tab.find('table.budget');
+
+    $tables.each(function(){
+
+        bdAddCopyButton.call(this);
+        
+    })
+
+}
+
+var bdAddCopyButton = function(){
+
+    var table = this;
+
+    $('<button class="bd-copytable"/>').appendTo($(table).find('thead tr:first-of-type th:first-of-type ')).click(function(){
+
+        $(this).find('.bd-copytable').remove();
+        bdCopyContent.call(table);
+        bdAddCopyButton.call(table);
+
+    });
+}
+
+var bdCopyContent = function(){
+
+    var elemToSelect = this;
+
+    if (window.getSelection) {  // all browsers, except IE before version 9
+        var selection = window.getSelection ();
+        var rangeToSelect = document.createRange ();
+        rangeToSelect.selectNodeContents (elemToSelect);
+
+        selection.removeAllRanges();
+        selection.addRange (rangeToSelect);
+
+    } else       // Internet Explorer before version 9
+        if (document.body.createTextRange) {    // Internet Explorer
+                var rangeToSelect = document.body.createTextRange ();
+                rangeToSelect.moveToElementText (elemToSelect);
+                rangeToSelect.select ();
+                
+    } else if (document.createRange && window.getSelection) {         
+              range = document.createRange();             
+              range.selectNodeContents(id);             
+        sel = window.getSelection();     
+        sel.removeAllRanges();             
+        sel.addRange(range);   
+
+    }
+
+    try {
+        var successful = document.execCommand('copy');
+        var msg = successful ? 'successful' : 'unsuccessful';
+        console.log('Copying text command was ' + msg);
+        console.log(event);
+        $target = $(event.target);
+        
+        $('<span>',{html:'Copied to clipboard',
+                    css:{'padding-left':'10px','color':'red'}})
+                    .insertAfter($target)
+                    .fadeOut('800', function(){
+                        $(this).remove();
+                        selection.removeAllRanges();
+                    });
+        
+    } catch (err) {
+        // console.log('Oops, unable to copy');
+    }
+
+}
+
 var conf = {
     url : 'about:blank'
 }
@@ -16,6 +91,11 @@ var methods = {
 
 init: function(arg){
     
+    init_copytable.call(this)
+
+    this.find('.budget tr.breakdownable .bd-title').click(function(){
+        alert('ERROR: division by zero in calculation routine fn_get_ratio(A, B), re-load the data')
+    })
 
 },
 

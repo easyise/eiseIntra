@@ -1536,6 +1536,8 @@ addField: function( field ){
         case 'textarea':
             element = $('<textarea>');
             element.addClass('eif-input');
+            if(field['rows'])
+                element.attr('rows', field['rows'])
             break;
         case 'combobox':
         case 'select':
