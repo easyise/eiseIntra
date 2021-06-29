@@ -164,7 +164,7 @@ class excelXML
                         case 'date':
                         case 'datetime':
                             if($v){
-                                $v = date('Y-m-d\TH:i:s.000', strtotime($v));
+                                $v = ($v ? date('Y-m-d\TH:i:s.000', strtotime($v)) : '');
                                 $style = ' ss:StyleID="s22"';
                                 $type = "DateTime";
                             }                            
