@@ -853,7 +853,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                     break;
                 case "textarea":
                     $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val)."\">";
-                    $strCell .= "<div contenteditable='true' class=\"eg_editor {$classStr}\">".str_replace("\r\n", "<br>", htmlspecialchars($_val))."</div>";
+                    $strCell .= "<div contenteditable='true' class=\"eg-editor {$classStr}\">".str_replace("\r\n", "<br>", htmlspecialchars($_val))."</div>";
                     break;
                 case "boolean":
                 case "checkbox":

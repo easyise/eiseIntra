@@ -343,3 +343,7 @@ tr.eg-tabs > td > div {
     font: normal normal normal 9px/1 FontAwesome;
     cursor: pointer;
 }
+
+.eg-editor {
+    white-space: pre-wrap !important;
+}
