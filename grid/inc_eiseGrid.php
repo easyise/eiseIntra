@@ -204,6 +204,30 @@ function addColumn($arrCol){
 }
 
 /**
+ * This function removes columns from $Columns list. 
+ * 
+ * @param $field - field name to be removed.
+ *
+ * @example     $gridJCN->removeColumn('qq');
+ *
+ */
+function removeColumn($field){
+
+    $Columns_new = array();
+    
+    foreach($this->Columns as $ix=>$col){
+
+        if($col['field'] != $field){
+            $Columns_new[] = $col;
+        }
+
+    }
+
+    $this->Columns = $Columns_new;
+
+}
+
+/**
  * This function changes column property to defined values and returns its previous value.
  */
 function setColumnProperty($field, $property, $value){
