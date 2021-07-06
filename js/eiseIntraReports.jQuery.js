@@ -83,6 +83,40 @@ var bdCopyContent = function(){
 
 }
 
+var breakdown_success = function(data){
+
+    $dataDialog = $(this)
+
+    $dataDialog.removeClass('spinner')
+    $dataDialog.html(data)
+    init_copytable.call($dataDialog)
+
+    $('.breakdown-by').off('change').change(function(){
+
+        $dataDialog.html('');
+        $dataDialog.addClass('spinner').text('Please wait...');
+
+        $.ajax({url: 'intrapy/breakdown'+location.search+(location.search ? '&' : '?')+'breakdown_by='+encodeURIComponent($(this).val()),
+                        data: this.dataset['filters'],
+                        contentType: 'application/json',
+                        method: 'POST',
+                        success: function(data){
+                            
+                            breakdown_success.call($dataDialog, data)
+
+                        },
+                        error: function(){
+                            $dataDialog
+                                .removeClass('spinner')
+                                .addClass('error')
+                                .text('Error occured')
+                        }
+                    });
+
+    })
+
+}
+
 var conf = {
     url : 'about:blank'
 }
@@ -98,20 +132,23 @@ init: function(arg){
         var strFilters = $(this).parents('tr').first()[0].dataset['filters']
 
         $('<div class="breakdown"/>').dialog({title: $(this).text()
-            , width: '80%'
+            , width: '90%'
             , modal: true
+            , position: {'my': 'top', 'at': 'top+100', 'of': window}
             , open: function(){
 
                 var $dataDialog = $(this);
 
                 $dataDialog.addClass('spinner').text('Please wait...');
+
                 $.ajax({url: 'intrapy/breakdown'+location.search,
                         data: strFilters,
                         contentType: 'application/json',
                         method: 'POST',
                         success: function(data){
-                            $dataDialog.removeClass('spinner')
-                            $dataDialog.html(data)
+                            
+                            breakdown_success.call($dataDialog, data)
+
                         },
                         error: function(){
                             $dataDialog
@@ -121,6 +158,9 @@ init: function(arg){
                         }
                     })
             }
+            , close: function(){
+                    $(this).remove()          
+                }
             , buttons: [{text: 'Ok',
                 click: function(){
                     $(this).dialog('close').remove()
