@@ -1351,15 +1351,16 @@ eiseList.prototype.showInput = function(cell, conf){
         ? conf.inpHTML
         : ($(cell).hasClass('el-combobox')
             ? '<select>'+$('#cb_'+field)[0].innerHTML+'</select>'
-            : '<input type="text" autocomplete="off">')
+            : (  $(cell).hasClass('el-boolean')
+                ? '<input type="checkbox" autocomplete="off"'+(cellText=='1' ? ' checked' : '')+'>'
+                : '<input type="text" autocomplete="off">')
+                )
             )
         )
     .appendTo($(cell))
     .addClass('el-cellInput');
     
     $(cell).css('overflow', 'visible');
-    
-    $(cell).css('padding', 0).css('margin', 0);
     
     $inp = $(cell).find('input[type!=hidden],select');
 
@@ -1380,13 +1381,20 @@ eiseList.prototype.showInput = function(cell, conf){
     }
     
     
-    $inp.css('display', 'block');
-    if( $(cell).css('box-sizing') == 'border-box'){
-        $inp.width(w)
-            .height(h);    
+    
+
+    if($inp.attr('type')!='checkbox'){
+        $(cell).css('padding', 0).css('margin', 0);
+        $inp.css('display', 'block');
+        if( $(cell).css('box-sizing') == 'border-box'){
+            $inp.width(w)
+                .height(h);    
+        } else {
+            $inp.width(w - ($inp.innerWidth()-$inp.width()))
+                .height(h - ($inp.innerHeight()-$inp.height()));    
+        }
     } else {
-        $inp.width(w - ($inp.innerWidth()-$inp.width()))
-            .height(h - ($inp.innerHeight()-$inp.height()));    
+        $inp.css('display', 'inline');
     }
     
     
@@ -1410,7 +1418,11 @@ eiseList.prototype.showInput = function(cell, conf){
                     if (typeof(conf.callback)=='undefined')
                         list.hideInput(cell, $(this).val())
                     else {
-                        conf.callback( cell, cellText, $(this).val(), (this.nodeName=='SELECT' ? $(this).find('option:selected').text() : '') );
+                        conf.callback( cell, cellText
+                            , (this.type!='checkbox'
+                                ? $(this).val()
+                                : +this.checked)
+                            , (this.nodeName=='SELECT' ? $(this).find('option:selected').text() : '') );
                     }
                     event.preventDefault(true);
                     break;
@@ -1427,13 +1439,20 @@ eiseList.prototype.showInput = function(cell, conf){
 }
 
 eiseList.prototype.hideInput = function(cell, newValue){
-    
+
     var $inp = $(cell).find('input,select');
     
     $inp.remove();
     
     $(cell).css('padding', '').css('margin', '');
     
+    if($(cell).hasClass('el-boolean')){
+        if(newValue==1){
+            $(cell).addClass('el-boolean-s')
+        } else {
+            $(cell).removeClass('el-boolean-s')
+        }
+    } 
     $(cell).text(newValue);
     
     this.adjustColumnsWidth();

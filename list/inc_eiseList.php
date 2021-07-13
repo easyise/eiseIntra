@@ -1077,7 +1077,7 @@ public function updateCell($newData = null, $opts = array()){
             $pk = $c['field'];
     }
 
-    $ti = $oSQL->getTableInfo( $this->sqlFrom );
+    $ti = $oSQL->getTableInfo( $this->conf['tableToUpdate'] ? $this->conf['tableToUpdate'] : $this->sqlFrom );
     $pk_table = $ti['PK'][0];
 
     try {
