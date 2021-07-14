@@ -92,6 +92,13 @@ public function __construct($id = null,  $conf = array() ){
 
 }
 
+function checkForCheckboxes(&$nd){
+    foreach ($this->conf['ATR'] as $atrID => $props) {
+        if( $props['atrType'] == 'boolean' && !isset($nd[$atrID]) )
+            $nd[$atrID] = 0;
+    }
+}
+
 public function update($nd){
 
     parent::update($nd);
@@ -103,10 +110,14 @@ public function update($nd){
     $nd_ = $nd;
     $atrs = array_keys($this->conf['ATR']);
     $editable = (array)$this->conf['STA'][$this->staID]['satFlagEditable'];
+
+    $this->checkForCheckboxes($nd_);
+
     foreach ($nd_ as $key => $value) {
         if(in_array($key, $atrs) && !in_array($key, $editable))
             unset($nd_[$key]);
     }
+
     $this->updateTable($nd_);
     $this->updateUnfinishedActions($nd);
     $this->updateRolesVirtual();
@@ -127,6 +138,9 @@ public function updateFullEdit($nd){
 
     $this->oSQL->q('START TRANSACTION');
     // 1. update master table
+
+    $this->checkForCheckboxes($nd);
+
     $this->updateTable($nd);
     foreach($this->item['ACL'] as $aclGUID=>$rwACL){
         if($rwACL['aclActionPhase']==2 && $rwACL['aclActionID']>4)
