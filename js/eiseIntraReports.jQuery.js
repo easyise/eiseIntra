@@ -187,7 +187,15 @@ load: function(arg, fn){
 
     $elem.append('<div class="eif_spinner" style="width:400px;"><div>Loading...</div></div>');
 
-    $elem.load(conf.url, fn)
+    $elem.load(conf.url, function(response, status, jqXHR){
+
+        $elem.eiseIntraReports(arg)
+
+        if (typeof fn === 'function'){
+            fn.call($elem, response, status, jqXHR);
+        }
+
+    })
 
 }
 
