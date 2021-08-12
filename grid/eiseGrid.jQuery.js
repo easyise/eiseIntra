@@ -1511,7 +1511,8 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text, options){
             default:
                 break;
         }
-        oInp = oTr.find('input[name="'+strFieldName+'[]"]').first();
+
+        var oInp = oTr.find('input[name="'+strFieldName+'[]"]').first();
         oInp.val(strValue);
         if(oInp[0].type=='hidden' || (options && options.change) ){
             if( !(options && options.nochange) )
@@ -1531,7 +1532,7 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text, options){
                     case 'combobox':
                         var oSelectSelector = '#select-'+(oInp.attr('name').replace(/(\[\S+\]){0,1}\[\]/, ''))
                             , oSelect = oGrid.tbodyTemplate.find(oSelectSelector)[0]
-                            , options = oSelect.options;
+                            , options = ( oSelect ? oSelect.options : [] );
                         for (var i = options.length - 1; i >= 0; i--) {
                             if(options[i].value == strValue){
                                 text = options[i].text
@@ -1543,8 +1544,9 @@ eiseGrid.prototype.value = function(oTr, strFieldName, val, text, options){
                     default:
                         if (oInp.next()[0].tagName=="INPUT")
                             oInp.next().val((text!=undefined ? text : strValue));
-                        else 
+                        else {
                             oInp.next().html((text!=undefined ? text : strValue));
+                        }
                         oTr.find('input[name="'+strFieldName+'_text[]"]').val((text!=undefined ? text : strValue));
                         break;
                 }
