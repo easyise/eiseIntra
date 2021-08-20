@@ -291,16 +291,24 @@ public function handleDataRequest(){ // handle requests and return them with Aja
     $oSQL = $this->oSQL;
     $this->error = "";
     
-    if ($this->conf["cacheSQL"] && !$_GET["noCache"]){
-        $this->getCachedColumns();
-        $this->getCachedSQL();
-    } else {
+    if (!$this->conf["cacheSQL"] || $_GET["noCache"] || $DataAction=='getPostRequest'){
+
         $this->handleInput();
         $this->composeSQL();
         if ($this->conf["cacheSQL"]) {
             $this->cacheColumns();
             $this->cacheSQL();
         }
+
+    } else {
+        
+        $this->getCachedColumns();
+        $this->getCachedSQL();
+    }
+
+    if($DataAction=='getPostRequest'){
+        $this->conf['flagPostRequest'] = true;
+        return;
     }
     
     $iOffset = (int)$_GET["offset"];
@@ -1500,7 +1508,7 @@ private function getRowArray($index, $rw){
         /* obtain calculated values for class and href */
         foreach($rw as $rowKey=>$rowValue){
             $col['class'] = str_replace("[{$rowKey}]", $rowValue, $col['class']);
-            $col['href'] = str_replace("[{$rowKey}]", rawurlencode($rowValue), $col['href']) ;
+            $col['href'] = str_replace("[{$rowKey}]", ($col['nourlencode'] ? $rowValue : rawurlencode($rowValue)), $col['href']) ;
         }
         
         if($col['class'])

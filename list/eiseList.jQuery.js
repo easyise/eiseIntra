@@ -201,7 +201,8 @@ function eiseList(divEiseList){
     var selectedTab = this.initTabs();
 
     if(!selectedTab){
-        this.getData(0,null,true);
+        console.log(list.conf)
+        this.getData(0,null, !list.conf['flagPostRequest'] );
     }
 
     this.thead.find('th').each(function(){
@@ -847,9 +848,13 @@ eiseList.prototype.openInExcel = function(){
     
     var strARG = this.getQueryString();
     
-    strARG = "DataAction=excelXML&offset=0&noCache=1"+strARG;
+    strARG = "DataAction=excelXML&offset=0"
+        +(this.conf['flagPostRequest'] ? '' : "&noCache=1")
+        +strARG;
     var strURL = this.conf['dataSource']+'?'+strARG;
-    
+
+    // alert(strURL)
+
     window.open(strURL, "_blank");
      
 }
