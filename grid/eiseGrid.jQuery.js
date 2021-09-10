@@ -972,6 +972,7 @@ eiseGrid.prototype.bindKeyPress = function ( $o ){
 
         switch(event.keyCode){
             case 37: //arrow left
+
                 if( flagTextInput && _getCaretPos($o[0])>0 ){
                     return;
                 }
@@ -1042,8 +1043,13 @@ eiseGrid.prototype.bindKeyPress = function ( $o ){
 
         }
         if( $inpToFocus && $inpToFocus[0]){
+            event.preventDefault(); 
+            event.stopImmediatePropagation();
             _setCaretPos($inpToFocus[0], posToSet);
+            return false;
         }
+
+        return true;
 
     });
 }
