@@ -1933,7 +1933,6 @@ eiseGrid.prototype.fillRow = function($tr, row ){
             $inp.val(val);
         if(theClass){
             $.each(theClass.split(/\s+/), function(ix, cls){
-                console.log('qq')
                 $td.addClass(cls)
             })
         }
