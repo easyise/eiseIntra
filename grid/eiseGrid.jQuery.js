@@ -438,10 +438,12 @@ eiseGrid.prototype.initRow = function( $tbody ){
     })
     
     $tbody.find('.eg-editor').bind("blur", function(){ //bind contenteditable=true div save to hidden input
-        if ($(this).prev('input').val()!=$(this).text()){
+        var text = this.innerText || this.textContent;
+        if ( $(this).prev('input').val()!=text ){
             oGrid.updateRow( $tbody ); 
         }
-        $(this).prev('input').val($(this).text());
+
+        $(this).prev('input').val( text );
     });
 
     $tbody.find('input[type=text], input[type=checkbox]').each(function(){

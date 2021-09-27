@@ -347,3 +347,11 @@ tr.eg-tabs > td > div {
 .eg-editor {
     white-space: pre-wrap !important;
 }
+
+.eiseGrid th.th-narrow {
+    font-family: Arial Narrow;
+}
+
+.eiseGrid td.narrow {
+    font-family: Arial Narrow;
+}
