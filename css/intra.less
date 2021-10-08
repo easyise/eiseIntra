@@ -924,7 +924,13 @@ input[type=checkbox].eiseIntraValue {
     line-height:1.2em;
     padding: 1em 0;
 
-    & input, button {
+    &.for-radios {
+        text-align: left;
+        padding: 5px 40px;
+    }
+
+    & input[type="button"], input[type="submit"], button {
+        font-weight: normal;
         display: inline-block;
         vertical-align: middle;
         font-size: 14px;
@@ -942,6 +948,8 @@ input[type=checkbox].eiseIntraValue {
             background-color: #286090;
             border-color: #204d74;
         }
+
+
     }
 
     & .eif-btn-delete {

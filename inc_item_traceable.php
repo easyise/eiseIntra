@@ -1482,7 +1482,8 @@ public function form4list(){
             : '')
         , array('class'=>'eiseIntraMainForm')).
         ($this->conf['radios'] ? $this->intra->fieldset($this->intra->translate('Action'), $this->showActionRadios()
-            .$this->intra->field(' ', null, $this->intra->showButton('btnSubmit', $this->intra->translate('Run'), array('type'=>'submit')) )
+            .'<div class="eif-actionButtons for-radios">'.$this->intra->showButton('btnSubmit', $this->intra->translate('Run')
+                , array('type'=>'submit')).'</div>'
             , array('class'=>'eiseIntraActions')) : '');
 
     return eiseItemTraceable::form($htmlFields, array('class'=>'ei-form-multiple eiseIntraMultiple'));
