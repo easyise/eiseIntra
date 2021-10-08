@@ -940,6 +940,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                     $strCell .= "<input{$classAttr} type=\"text\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val)."\""
                             .($noAutoComplete ||  $cell['noAutoComplete'] ? " autocomplete=\"off\"" : '')
                             .($cell['readonly'] ? " readonly=\"true\"" : '')
+                            .($cell['maxlength'] ? " maxlength=\"{$cell['maxlength']}\"" : '')
                             .($cell['placeholder'] ? ' placeholder="'.htmlspecialchars($cell['placeholder']).'"' : '')
                             .">";
                     break;
