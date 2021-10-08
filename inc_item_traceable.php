@@ -491,6 +491,7 @@ private function init(){
             'actDescriptionLocal' => $this->intra->translate('delete'),
             'actFlagAutocomplete' => '1',
             'actFlagMultiple' => '1',
+            'actPriority' => -100
             );
     $acts[] = array (
             'actID' => '4',
@@ -1671,7 +1672,14 @@ public function arrActionButtons(){
         return;
 
     if($this->staID!==null){
-        foreach((array)$this->conf['STA'][$this->staID]['ACT'] as $rwAct){
+
+        $arrActions_ = (array)$this->conf['STA'][$this->staID]['ACT'];
+
+        usort($arrActions_, function ($act1, $act2) { return -1 * @(int)(($act1['actPriority'] - $act2['actPriority'])/abs($act1['actPriority'] - $act2['actPriority'])); } );
+
+        // die('<pre>'.count($arrActions)."\n".var_export($arrActions, true));
+
+        foreach($arrActions_ as $rwAct){
 
             if($rwAct['actFlagSystem'])
                 continue;
@@ -1734,9 +1742,11 @@ public function showActionButtons(){
     $ret = '';
     $actions = $this->arrActionButtons();
 
+    $ret .= '<div class="eif-actionButtons">'."\n";
     foreach ((array)$actions as $key => $act) {
-        $ret .= $this->intra->showButton($act['id'], $act['title'], array('class'=>($act['dataset']['action']['actID']==3 ? 'eiseIntraDelete' : 'eiseIntraActionSubmit'), 'dataset'=>$act['dataset']));
+        $ret .= $this->intra->showButton($act['id'], $act['title'], array('class'=>($act['dataset']['action']['actID']==3 ? 'eif-btn-delete eiseIntraDelete' : 'eif-btn-submit eiseIntraActionSubmit'), 'dataset'=>$act['dataset']));
     }
+    $ret .= '</div>';
 
     return $ret;
    

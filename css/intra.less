@@ -905,8 +905,8 @@ input[type=checkbox].eiseIntraValue {
     padding-right: 0 !important;
     width: 100%;
 }
-
-.eif_actionButtons input {
+/* legacy */
+.eif_actionButtons input, button {
     display: inline-block;
     vertical-align: middle;
 }
@@ -915,6 +915,52 @@ input[type=checkbox].eiseIntraValue {
     text-align:center;
     line-height:1.5em;
 }
+/* /legacy */
+
+
+.eif-actionButtons {
+
+    text-align:center;
+    line-height:1.2em;
+    padding: 1em 0;
+
+    & input, button {
+        display: inline-block;
+        vertical-align: middle;
+        font-size: 14px;
+        padding: 0.1em 1.2em;
+        cursor: pointer;
+        color: #fff;
+        background-color: #337ab7;
+        border-color: #2e6da4;
+        margin: 5px 2px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+
+        &:hover {
+            color: #fff;
+            background-color: #286090;
+            border-color: #204d74;
+        }
+    }
+
+    & .eif-btn-delete {
+
+        font-size: 0.95em;
+        
+        color: #333;
+        background-color: #fff;
+        border-color: #ccc;
+
+        &:hover {
+            color: #fff;
+            background-color: #d9534f;
+            border-color: #d43f3a;
+        }
+
+    }
+}
+
 
 .eiseIntraLogTitle {
     overflow: hidden;
