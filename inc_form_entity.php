@@ -718,7 +718,7 @@ $gridATR->Execute();
 <fieldset id="flds-act"><legend><?php echo $intra->translate('Actions') ?>:</legend>
 <?php 
 
-$flagActionStatus = $oSQL->d("SHOW TABLES LIKE 'stbl_ation_status'");
+$flagActionStatus = $oSQL->d("SHOW TABLES LIKE 'stbl_action_status'");
 
 $sqlAct = "SELECT actID
     , actTitle{$strLocal} as actTitle
