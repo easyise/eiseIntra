@@ -51,7 +51,7 @@ init: function(arg){
 
     var interval;
 
-    $dlg = $('<div class="ei-batch-window"><iframe name="ei-batch"></iframe><div class="buttons"><button class="btn-close">Close</button></div></div>').dialog({
+    $dlg = $('<div class="ei-batch-window"><iframe name="ei-batch"></iframe><div class="eif-actionButtons"><button class="btn-close">Close</button></div></div>').dialog({
             modal: true
             , width: '80%'
             , title: (!conf.title ? this.text() : conf.title)
