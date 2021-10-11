@@ -377,8 +377,8 @@ private function init(){
         ($this->intra->conf['systemID'] ? $this->intra->conf['systemID'].':' : '')
         .$this->entID;
 
-    // if($_SESSION[$sessKey] && !$this->conf['flagDontCacheConfig']){
-    if(false){
+    if($_SESSION[$sessKey] && !$this->conf['flagDontCacheConfig']){
+    // if(false){
         $this->conf = array_merge($this->conf, $_SESSION[$sessKey]);
         return $this->conf;
     }
