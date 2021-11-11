@@ -1197,7 +1197,8 @@ private function composeSQL(){
 
                     $titleField = (in_array("{$col["source_prefix"]}Title", $fields) ? 'Title' : 'Name');
 
-                    $col['textField'] = ($col["source_prefix"]!="" ? "{$col['source_prefix']}{$titleField}" : "optText").$this->conf['strLocal'];
+                    $col['textField'] = ($col["source_prefix"]!="" ? "{$col['source_prefix']}{$titleField}" : "optText");
+                    $col['textField'] .= ($this->conf['strLocal'] && in_array($col['textField'].$this->conf['strLocal'], $fields) ? $this->conf['strLocal'] : '');
                     $col['idField'] = ($col["source_prefix"]!="" ? $col["source_prefix"]."ID" : "optValue");
                     $col['tableAlias'] = "t_{$col['field']}";
                     $sqlJoin = " LEFT OUTER JOIN {$col['source']} {$col['tableAlias']} ON {$col['field']}={$col['tableAlias']}.{$col['idField']}\r\n";
