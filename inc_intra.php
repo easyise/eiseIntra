@@ -1221,6 +1221,11 @@ function redirect($strMessage, $strLocation, $arrConfig = array()){
     if($this->cancelRedirect)
         return;
 
+    if($this->flagBatch){
+        $this->batchEcho($strMessage);
+        return;
+    }
+
     $conf = array_merge($this->conf, $arrConfig);
 
     $this->setUserMessage($strMessage, $conf);
@@ -1350,6 +1355,9 @@ function file($name, $type, $pathOrData){
  * @category Batch run
  */
 function batchStart($conf = array()){
+
+    if($this->flagBatch)
+        return;
     
     header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
     header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
