@@ -1813,9 +1813,15 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
                         }
                     } catch (Exception $e) { $html .= 'ERROR: '.$e->getMessage(); return $html; }
                     $opts = Array();
-                    while($rwCMB = $oSQL->f($rsCMB))
+                    $optsData = Array();
+                    while($rwCMB = $oSQL->f($rsCMB)){
                         $opts[$rwCMB["optValue"]]=$rwCMB["optText"];
+                        if(isset($rwCMB['optData']))
+                            $optsData[$rwCMB["optValue"]]=$rwCMB["optData"];
+                    }
                 }
+                if(count($optsData))
+                    $conf['optsData'] = $optsData;
                 $html .= $this->showCombo($name, $value, $opts, $conf);
                 break;
 
@@ -2214,7 +2220,9 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
                 }
                 $retVal .= '</optgroup>';
             } else
-                $retVal .= "<option value='$key'".((string)$key==(string)$strValue
+                $retVal .= "<option value='$key'"
+                    .($confOptions['optsData'][$key] ? ' data-metadata="'.htmlspecialchars($confOptions['optsData'][$key]).'"' : '')
+                    .((string)$key==(string)$strValue
                     || is_integer($key) && (string)$value==(string)$strValue 
                         ? " SELECTED " 
                         : "").

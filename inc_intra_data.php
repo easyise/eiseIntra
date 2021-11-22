@@ -657,6 +657,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
                 , "delField" => "{$strPrefix}FlagDeleted"
                 , "classField" => "{$strPrefix}Class"
                 , "extraField" => "{$strPrefix}Extra"
+                , "dataField" => "{$strPrefix}Data"
                 );
         } else {
             $arrFields = Array(
@@ -667,6 +668,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
                 , "delField" => "optFlagDeleted"
                 , "classField" => "optClass"
                 , "extraField" => "extra"
+                , "dataField" => "data"
             );
         }  
         
@@ -691,6 +693,9 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
             , `{$arrFields["idField"]}` as optValue
             ".(isset($arrFields['classField']) 
                 ? ", {$arrFields["classField"]} as optClass"
+                : '')."
+             ".(isset($arrFields['dataField']) 
+                ? ", {$arrFields["dataField"]} as optData"
                 : '')."
         FROM `{$strTable}`";
     
