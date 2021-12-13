@@ -2288,7 +2288,7 @@ public function getWhosNextStatus($staID, $counter){
                         : $this->_aUser_Role_Tier[$usrID][$rolID] ;
                 }
             } else {
-                $_users = $this->intra->getRoleUsers($rolID);
+                $_users = (array)$this->intra->getRoleUsers($rolID);
                 foreach ($_users as $usrID) {
                     $this->_aUser_Role_Tier[$usrID][$rolID] = $act['RLA_tiers'][$rolID] > $this->_aUser_Role_Tier[$usrID][$rolID] 
                         ? $act['RLA_tiers'][$rolID]
