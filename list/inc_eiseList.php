@@ -329,7 +329,9 @@ public function handleDataRequest(){ // handle requests and return them with Aja
     
     if($DataAction!='get_aggregate'){
         try {
+
             $rsData = $oSQL->q($this->strSQL);
+
             $nTotalRows = $iOffset+$oSQL->n($rsData);
         } catch(Exception $e){
             $this->error = $e->getMessage();
@@ -1170,14 +1172,14 @@ private function composeSQL(){
     $this->sqlFromAggregate = $this->sqlFrom;
 
 
-    
     foreach ($this->Columns as $i => &$col){
         if ($col["field"]=="" || $col["field"]=="phpLNums") 
             continue;
             
         if ($col['PK']){ //if it is PK
             $this->sqlPK = $col['field'];
-            $this->sqlFieldsAggregate .= 'COUNT(*) as nTotalRows';
+            $this->sqlFieldsAggregate .= ($this->sqlFieldsAggregate ? ', ' : '').' COUNT(*) as nTotalRows';
+
             //$this->sqlFieldsAggregate .= ($this->sqlFieldsAggregate ? "\r\n, " : '').$col['field'];
         }
 
