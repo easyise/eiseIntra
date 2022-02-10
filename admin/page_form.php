@@ -1,5 +1,4 @@
-﻿<?php
-//$_DEBUG = true;
+<?php
 include "common/auth.php";
 
 $oSQL->startProfiling();
@@ -540,4 +539,3 @@ function deletePage(){
 
 <?php
 include eiseIntraAbsolutePath."inc_bottom.php";
-?>
