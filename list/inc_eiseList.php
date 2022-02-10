@@ -779,6 +779,7 @@ protected function getComboboxSource($col){
                 , 1
                 , (string)$col['extra']
                 , true
+                , $oSQL
                 );    
             $a = array();
             while($rwCMB = $oSQL->f($rsCMB)){

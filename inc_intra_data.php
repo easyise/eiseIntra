@@ -629,9 +629,10 @@ function getMultiPKCondition($arrPK, $strValue){
  * 
  * @return resource with data obtained from the database 
  */
-function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $flagShowDeleted=false, $extra='', $flagNoLimits=false){
+function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $flagShowDeleted=false, $extra='', $flagNoLimits=false
+    , $oSQL = null){
     
-    $oSQL = $this->oSQL;
+    $oSQL = ($oSQL!==null ? $oSQL : $this->oSQL);
 
     static $tableFieldCache;  
 
