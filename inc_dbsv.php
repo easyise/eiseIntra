@@ -61,9 +61,11 @@ function __construct($conf = array()){
 
         if($conf['authstring']){
 
+            $dbhost = ( $_POST['host'] ? $_POST['host'] : $this->conf['DBHOST'] );
+
             list($login, $password) = $this->intra->decodeAuthString($_POST['authstring'], true);
 
-            if(!$this->intra->Authenticate($login, $password, 'mysql', array('flagNoSession'=>true))){
+            if(!$this->intra->Authenticate($login, $password, 'mysql', array('flagNoSession' => true, 'dbhost' => $dbhost))){
                 throw new Exception("Unable to connect to server {$login}@{$_POST['host']}");
             }   
             
