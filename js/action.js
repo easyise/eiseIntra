@@ -843,9 +843,16 @@ multipleEditForm: function(title){
         .dialog({
             modal: false
             , width: $(window).width()*0.80
+            , close: function(){
+                $form.remove();
+            }
         })
         .eiseIntraForm()
         .eiseIntraEntityItemForm({flagUpdateMultiple: true});
+
+    if (typeof multipleEditFormInit === 'function'){
+        multipleEditFormInit.call($form);
+    }
 
     $form.off('submit')
         .on('submit', function(event){
@@ -915,7 +922,6 @@ function showMultipleEditForm(strTitle){
             $form.eiseIntraEntityItemForm("checkAction", function(){
                 if ($form.eiseIntraForm("validate")){
                     window.setTimeout(function(){$form.find('input[type="submit"], input[type="button"]').each(function(){this.disabled = true;})}, 1);
-                    console.log(entIDs, 'input[name="'+entIDField+'"]')
                     $form.find('input[name="'+entIDField+'"]').val(entIDs);
 
                     $form.eiseIntraBatch('submit', {
@@ -933,6 +939,5 @@ function showMultipleEditForm(strTitle){
             return false;
         
         });
-        
-        
+
 }
