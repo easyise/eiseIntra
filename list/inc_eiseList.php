@@ -1201,6 +1201,7 @@ private function composeSQL(){
                     $titleField = (in_array("{$col["source_prefix"]}Title", $fields) ? 'Title' : 'Name');
 
                     $col['textField'] = ($col["source_prefix"]!="" ? "{$col['source_prefix']}{$titleField}" : "optText");
+                    $col['textField_intl'] = $col['textField'];
                     $col['textField'] .= ($this->conf['strLocal'] && in_array($col['textField'].$this->conf['strLocal'], $fields) ? $this->conf['strLocal'] : '');
                     $col['idField'] = ($col["source_prefix"]!="" ? $col["source_prefix"]."ID" : "optValue");
                     $col['tableAlias'] = "t_{$col['field']}";
@@ -1209,9 +1210,15 @@ private function composeSQL(){
                     if(!($col["filterValue"]=="" && !($col['exactMatch'] && !$col['tabsFilter']) ) ){
                         $this->sqlFrom .= $sqlJoin;
                         $this->sqlFromAggregate.= $sqlJoin;
-                        $sqlTextField = "{$col['tableAlias']}.{$col['textField']}";
+                        $sqlTextField = ($col['textField_intl']!=$col['textField'] && $col["type"]=="combobox"
+                            ? "CASE WHEN IFNULL({$col['tableAlias']}.{$col['textField']}, '')='' THEN {$col['tableAlias']}.{$col['textField_intl']} ELSE NULL END"
+                            : "{$col['tableAlias']}.{$col['textField']}" );
                     } else {
-                        $sqlTextField = "(SELECT {$col['textField']} FROM `{$col["source"]}` WHERE {$col['idField']}="
+                        $text_field_full = ($col['textField_intl']!=$col['textField'] && $col["type"]=="combobox"
+                            ? "CASE WHEN IFNULL({$col['textField']}, '')='' THEN {$col['textField_intl']} ELSE NULL END"
+                            : "{$col['textField']}"
+                            );
+                        $sqlTextField = "(SELECT {$text_field_full} FROM `{$col["source"]}` WHERE {$col['idField']}="
                             .($col["sql"]!='' && $col['sql']!=$col['field'] 
                                 ? "({$col['sql']})"
                                 : $col['field']
