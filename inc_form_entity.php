@@ -460,11 +460,19 @@ switch ($DataAction){
             }
         }
 
+        $gridATR->Update($_POST);
+
         $sqlFixSAT = "DELETE FROM stbl_status_attribute WHERE satAttributeID IN (SELECT * FROM (SELECT DISTINCT satAttributeID FROM stbl_status_attribute 
           INNER JOIN stbl_status ON satStatusID=staID AND staEntityID='{$entID}'
           LEFT OUTER JOIN stbl_attribute ON satAttributeID=atrID
           WHERE atrID IS NULL) Q )";
         $oSQL->q($sqlFixSAT);
+
+        $sqlFixAAT = "DELETE FROM stbl_action_attribute WHERE aatAttributeID IN (SELECT *  FROM (SELECT DISTINCT aatAttributeID FROM stbl_action_attribute 
+          INNER JOIN stbl_action ON aatActionID=actID AND actEntityID='shp'
+          LEFT OUTER JOIN stbl_attribute ON aatAttributeID=atrID
+          WHERE atrID IS NULL) Q)";
+        $oSQL->q($sqlFixAAT);
 
         if (!$easyAdmin){
 
@@ -485,7 +493,7 @@ switch ($DataAction){
 
         }
 
-        $gridATR->Update($_POST);
+        
         if(!$easyAdmin && count($arrSQLAlter)>0){
             foreach ($arrSQLAlter as $sql_) {
                 $oSQL->q($sql_);
@@ -710,7 +718,7 @@ $gridATR->Execute();
 <fieldset id="flds-act"><legend><?php echo $intra->translate('Actions') ?>:</legend>
 <?php 
 
-$flagActionStatus = $oSQL->d("SHOW TABLES LIKE 'stbl_ation_status'");
+$flagActionStatus = $oSQL->d("SHOW TABLES LIKE 'stbl_action_status'");
 
 $sqlAct = "SELECT actID
     , actTitle{$strLocal} as actTitle

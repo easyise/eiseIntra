@@ -1646,6 +1646,7 @@ static function sendMessages($conf){
 
     $username = '';
     $arrMessages = array();
+    $senders = [];
 
     while($rwMsg = $oSQL->f($rsMsg)){
 
@@ -1653,10 +1654,18 @@ static function sendMessages($conf){
 
             $rwUsr_From = $intra->getUserData_All($rwMsg['msgFromUserID'], 'all');
             $arrAuth = array();
-            if($conf['authenticate']){
-                $arrAuth['login'] = ($conf['authenticate']=='email'
-                    ? $rwUsr_From['usrEmail']
-                    : $rwUsr_From['usrID'] );
+            switch($conf['authenticate']){
+                case 'email':
+                    $arrAuth['login'] = $rwUsr_From['usrEmail'];
+                    break;
+                case 'onbehalf':
+                    $arrAuth['login'] = $conf['login'];
+                    $rwMsg['msgPassword'] = $conf['password'];
+                    break;
+                default:
+                    $arrAuth['login'] = $rwUsr_From['usrID'] ;
+                    break;
+                
             }
             $username = $rwMsg['msgFromUserID'];
             $senders[$rwMsg['msgFromUserID']]  = new eiseMail(array_merge($conf, $arrAuth));
@@ -1676,14 +1685,14 @@ static function sendMessages($conf){
 
         }
 
-        if( $conf['login']){
-            $dd = 'acme.com';
-            $a1 = imap_rfc822_parse_adrlist($conf['login'], $dd);
-            $a2 = imap_rfc822_parse_adrlist($rwUsr_From['usrID'], $dd);
-            $o1 = $a1[0]; $o2 = $a2[0];
-            if(strtolower($o1->mailbox)!=strtolower($o2->mailbox))
-                continue;
-        } 
+        // if( $conf['login']){
+        //     $dd = 'acme.com';
+        //     $a1 = imap_rfc822_parse_adrlist($conf['login'], $dd);
+        //     $a2 = imap_rfc822_parse_adrlist($rwUsr_From['usrID'], $dd);
+        //     $o1 = $a1[0]; $o2 = $a2[0];
+        //     if(strtolower($o1->mailbox)!=strtolower($o2->mailbox))
+        //         continue;
+        // } 
 
         $msg = array('From'=> ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : '')
             , 'To' => ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\"  <".$rwUsr_To['usrEmail'].">" : '')
@@ -1721,7 +1730,12 @@ static function sendMessages($conf){
     }
 
     foreach((array)$arrMessages as $msg){
-        $sqlMarkSent = "UPDATE stbl_message SET msgSendDate=".($msg['send_time'] ? "'".date('Y-m-d H:i:s', $msg['send_time'])."'" : 'NULL' )."
+        $sqlMarkSent = "UPDATE stbl_message SET msgSendDate=".($msg['error'] 
+                ? 'NULL' 
+                : ($msg['send_time'] 
+                    ? "'".date('Y-m-d H:i:s', $msg['send_time'])."'" 
+                    : 'NOW()' )
+                )."
             , msgStatus=".($msg['error'] ? $oSQL->e($msg['error']) : $oSQL->e('Sent'))."
             , msgPassword=NULL
             , msgEditDate=NOW()

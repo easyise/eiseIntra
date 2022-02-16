@@ -128,6 +128,16 @@ function __construct($oSQL, $strName, $arrConfig=Array()){
 
 }
 
+public function hasColumn($fieldName){
+    if(!count($this->Columns))
+        return false;
+    foreach($this->Columns as $ix=>$col){
+        if($col['field']==$fieldName)
+            return true;
+    }
+    return false;
+}
+
 /**
  * This method adds columns to $Columns property. 
  * 
@@ -151,6 +161,8 @@ public function addColumn($arrCol){
     if(!$arrCol['field'])
         throw new Exception("No field specified");
         
+    if($this->hasColumn($arrCol['field']))
+        return;
 
     if($arrCol['fieldInsertBefore'] || $arrCol['fieldInsertAfter']){
 
@@ -279,16 +291,24 @@ public function handleDataRequest(){ // handle requests and return them with Aja
     $oSQL = $this->oSQL;
     $this->error = "";
     
-    if ($this->conf["cacheSQL"] && !$_GET["noCache"]){
-        $this->getCachedColumns();
-        $this->getCachedSQL();
-    } else {
+    if (!$this->conf["cacheSQL"] || $_GET["noCache"] || $DataAction=='getPostRequest'){
+
         $this->handleInput();
         $this->composeSQL();
         if ($this->conf["cacheSQL"]) {
             $this->cacheColumns();
             $this->cacheSQL();
         }
+
+    } else {
+        
+        $this->getCachedColumns();
+        $this->getCachedSQL();
+    }
+
+    if($DataAction=='getPostRequest'){
+        $this->conf['flagPostRequest'] = true;
+        return;
     }
     
     $iOffset = (int)$_GET["offset"];
@@ -309,7 +329,9 @@ public function handleDataRequest(){ // handle requests and return them with Aja
     
     if($DataAction!='get_aggregate'){
         try {
+
             $rsData = $oSQL->q($this->strSQL);
+
             $nTotalRows = $iOffset+$oSQL->n($rsData);
         } catch(Exception $e){
             $this->error = $e->getMessage();
@@ -397,8 +419,10 @@ public function handleDataRequest(){ // handle requests and return them with Aja
             include_once (dirname(__FILE__). self::DS . "inc_excelXML.php");
             
             $xl = new excelXML();
+
+            $cols = [];
             
-            foreach($this->Columns as &$col) {
+            foreach($this->Columns as $col) {
                 if ($col["title"]=="" 
                     || in_array($col["field"], $this->arrHiddenCols)
                     || in_array($col['field'], $this->conf['hiddenColsExcel'])
@@ -409,6 +433,8 @@ public function handleDataRequest(){ // handle requests and return them with Aja
                     continue;
                     
                 }
+
+                $cols[] = $col;
                 
                 $arrHeader[$col["field"]] = $col["title"];
                 
@@ -428,12 +454,12 @@ public function handleDataRequest(){ // handle requests and return them with Aja
                 $rw[self::counterColumn] = $nRow;
                 
                 $arrRow = Array();
-                foreach($this->Columns as $col) {
+                foreach($cols as $ii=>$col) {
                     if ($col['flagNoExcel']) {
                         continue;
                     }
                     $arrRow[$col["field"]] = $this->formatData($col, trim($rw[$col["field"]]), $rw);
-                
+
                 }
                 $xl->addRow($arrRow);
             }
@@ -753,6 +779,7 @@ protected function getComboboxSource($col){
                 , 1
                 , (string)$col['extra']
                 , true
+                , $oSQL
                 );    
             $a = array();
             while($rwCMB = $oSQL->f($rsCMB)){
@@ -967,46 +994,58 @@ private function handleInput(){
         );
     $this->orderBy =  (isset($_GET[$this->name."OB"])
         ? $_GET[$this->name."OB"]
-        : $this->defaultOrderBy
+        : ($this->arrCookie['OB']
+            ? $this->arrCookie['OB']
+            : $this->defaultOrderBy
+            )
         );
     $this->sortOrder = (isset($_GET[$this->name."ASC_DESC"])
         ? $_GET[$this->name."ASC_DESC"]
-        : ($this->defaultSortOrder=="" 
-            ? (in_array($this->Columns[$this->orderBy]['type'], array('date', 'datetime ')) 
-                ? 'DESC'
-                : 'ASC'
-                )
-            : $this->defaultSortOrder )
+        : ($this->arrCookie["ASC_DESC"]
+            ? $this->arrCookie["ASC_DESC"]
+            : ($this->defaultSortOrder=="" 
+                ? (in_array($this->Columns[$this->orderBy]['type'], array('date', 'datetime ')) 
+                    ? 'DESC'
+                    : 'ASC'
+                    )
+                : $this->defaultSortOrder )
+            )
         );
     $this->sortOrderAlt = ($this->sortOrder=="ASC" ? "DESC" : "ASC");
 
     $this->arrCookieToSet["HiddenCols"] = $hiddenCols;
+    $this->arrCookieToSet["OB"] = $this->orderBy;
+    $this->arrCookieToSet["ASC_DESC"] = $this->sortOrder;
 
     $this->arrOrderByCols = Array();
 
     /* dealing with filters and order_field */
     $this->flagFiltersSet = $this->flagHasFilters = false;
 
-    foreach ($this->Columns as $i=>&$col){
+    $arrCookieFilter = [];
+
+    foreach ($this->Columns as $i=>$col){
         $this->arrOrderByCols[] = ($col["order_field"]!="" ? $col["order_field"] : $col["field"]);
         if ($col["filter"]) {
 
             foreach((array)$this->Tabs as $ix=>$tab){
                 if($tab['filter']==$col['filter']){
-                    $col['exactMatch'] = true;
-                    $col['tabsFilter'] = true;
+                    $this->Columns[$i]['exactMatch'] = true;
+                    $this->Columns[$i]['tabsFilter'] = true;
                     break;
                 }
             }
 
             if($this->conf['tabsFilterColumn']==$col['field']){
-                $col['exactMatch'] = true;
-                $col['tabsFilter'] = true;
+                $this->Columns[$i]['exactMatch'] = true;
+                $this->Columns[$i]['tabsFilter'] = true;
             }
 
-            if( ($filterValue = $this->getFilterValue($col['filter']))!=='' || ($col['exactMatch'] && !$col['tabsFilter']) ){
-                $col['filterValue'] = $filterValue;
+            $filterValue = $this->getFilterValue($col['filter']);
+            if( $filterValue !=='' || ($this->Columns[$i]['exactMatch'] && !$this->Columns[$i]['tabsFilter']) ){
+                $this->Columns[$i]['filterValue'] = $filterValue;
                 $this->flagFiltersSet = true;
+                // $arrCookieFilter[$col["filter"]] = $filterValue;
             }
 
             $this->flagHasFilters = true;
@@ -1014,8 +1053,13 @@ private function handleInput(){
         }
 
     }
-    
-    SetCookie($this->conf["cookieName"], serialize($this->arrCookieToSet), $this->conf["cookieExpire"], $_SERVER["PHP_SELF"]);
+
+    // die('<pre>'.var_export($arrCookieFilter, true));
+    // die('<pre>'.var_export(array_merge($this->arrCookieToSet, $arrCookieFilter), true));
+
+    $s_cookie_w_filter = serialize(array_merge($this->arrCookieToSet, $arrCookieFilter));
+
+    SetCookie($this->conf["cookieName"], (strlen($s_cookie_w_filter) >= 4094 ? serialize($this->arrCookieToSet) : $s_cookie_w_filter), $this->conf["cookieExpire"], $_SERVER["PHP_SELF"]);
 
     if ($this->flagExcel)
         $this->iMaxRows = 0;
@@ -1061,7 +1105,7 @@ public function updateCell($newData = null, $opts = array()){
             $pk = $c['field'];
     }
 
-    $ti = $oSQL->getTableInfo( $this->sqlFrom );
+    $ti = $oSQL->getTableInfo( $this->conf['tableToUpdate'] ? $this->conf['tableToUpdate'] : $this->sqlFrom );
     $pk_table = $ti['PK'][0];
 
     try {
@@ -1127,7 +1171,10 @@ public function getFilterValue( $field ){
     return (
         isset($_GET[$strColInputName]) 
             ? $_GET[$strColInputName] 
-            : null 
+            : ($this->arrCookie[$field]
+                ? $this->arrCookie[$field]
+                : '' 
+                )
             );
 
 }
@@ -1146,14 +1193,14 @@ private function composeSQL(){
     $this->sqlFromAggregate = $this->sqlFrom;
 
 
-    
     foreach ($this->Columns as $i => &$col){
         if ($col["field"]=="" || $col["field"]=="phpLNums") 
             continue;
             
         if ($col['PK']){ //if it is PK
             $this->sqlPK = $col['field'];
-            $this->sqlFieldsAggregate .= 'COUNT(*) as nTotalRows';
+            $this->sqlFieldsAggregate .= ($this->sqlFieldsAggregate ? ', ' : '').' COUNT(*) as nTotalRows';
+
             //$this->sqlFieldsAggregate .= ($this->sqlFieldsAggregate ? "\r\n, " : '').$col['field'];
         }
 
@@ -1173,7 +1220,9 @@ private function composeSQL(){
 
                     $titleField = (in_array("{$col["source_prefix"]}Title", $fields) ? 'Title' : 'Name');
 
-                    $col['textField'] = ($col["source_prefix"]!="" ? "{$col['source_prefix']}{$titleField}" : "optText").$this->conf['strLocal'];
+                    $col['textField'] = ($col["source_prefix"]!="" ? "{$col['source_prefix']}{$titleField}" : "optText");
+                    $col['textField_intl'] = $col['textField'];
+                    $col['textField'] .= ($this->conf['strLocal'] && in_array($col['textField'].$this->conf['strLocal'], $fields) ? $this->conf['strLocal'] : '');
                     $col['idField'] = ($col["source_prefix"]!="" ? $col["source_prefix"]."ID" : "optValue");
                     $col['tableAlias'] = "t_{$col['field']}";
                     $sqlJoin = " LEFT OUTER JOIN {$col['source']} {$col['tableAlias']} ON {$col['field']}={$col['tableAlias']}.{$col['idField']}\r\n";
@@ -1181,9 +1230,15 @@ private function composeSQL(){
                     if(!($col["filterValue"]=="" && !($col['exactMatch'] && !$col['tabsFilter']) ) ){
                         $this->sqlFrom .= $sqlJoin;
                         $this->sqlFromAggregate.= $sqlJoin;
-                        $sqlTextField = "{$col['tableAlias']}.{$col['textField']}";
+                        $sqlTextField = ($col['textField_intl']!=$col['textField'] && $col["type"]=="combobox"
+                            ? "CASE WHEN IFNULL({$col['tableAlias']}.{$col['textField']}, '')='' THEN {$col['tableAlias']}.{$col['textField_intl']} ELSE {$col['tableAlias']}.{$col['textField_intl']} END"
+                            : "{$col['tableAlias']}.{$col['textField']}" );
                     } else {
-                        $sqlTextField = "(SELECT {$col['textField']} FROM `{$col["source"]}` WHERE {$col['idField']}="
+                        $text_field_full = ($col['textField_intl']!=$col['textField'] && $col["type"]=="combobox"
+                            ? "CASE WHEN IFNULL({$col['textField']}, '')='' THEN {$col['textField_intl']} ELSE {$col['textField_intl']} END"
+                            : "{$col['textField']}"
+                            );
+                        $sqlTextField = "(SELECT {$text_field_full} FROM `{$col["source"]}` WHERE {$col['idField']}="
                             .($col["sql"]!='' && $col['sql']!=$col['field'] 
                                 ? "({$col['sql']})"
                                 : $col['field']
@@ -1319,7 +1374,7 @@ private function getSearchCondition(&$col){
        return " {$col['searchExpression']} IS NULL".(in_array($col['type'], array('text', 'textarea')) ? "  OR {$col['searchExpression']}=''" : '');
     }
     if(in_array($strFlt, array('*', '%')))
-        return $strCondition = "{$col['searchExpression']} IS NOT NULL".(in_array($col['type'], array('text', 'textarea')) ? "  OR {$col['searchExpression']}<>''" : '');   
+        return $strCondition = "{$col['searchExpression']} IS NOT NULL".(in_array($col['type'], array('text', 'textarea')) ? "  AND {$col['searchExpression']}<>''" : '');   
 
     switch ($col['type']) {
         case "text":
@@ -1484,7 +1539,7 @@ private function getRowArray($index, $rw){
         /* obtain calculated values for class and href */
         foreach($rw as $rowKey=>$rowValue){
             $col['class'] = str_replace("[{$rowKey}]", $rowValue, $col['class']);
-            $col['href'] = str_replace("[{$rowKey}]", rawurlencode($rowValue), $col['href']) ;
+            $col['href'] = str_replace("[{$rowKey}]", ($col['nourlencode'] ? $rowValue : rawurlencode($rowValue)), $col['href']) ;
         }
         
         if($col['class'])

@@ -204,6 +204,30 @@ function addColumn($arrCol){
 }
 
 /**
+ * This function removes columns from $Columns list. 
+ * 
+ * @param $field - field name to be removed.
+ *
+ * @example     $gridJCN->removeColumn('qq');
+ *
+ */
+function removeColumn($field){
+
+    $Columns_new = array();
+    
+    foreach($this->Columns as $ix=>$col){
+
+        if($col['field'] != $field){
+            $Columns_new[] = $col;
+        }
+
+    }
+
+    $this->Columns = $Columns_new;
+
+}
+
+/**
  * This function changes column property to defined values and returns its previous value.
  */
 function setColumnProperty($field, $property, $value){
@@ -586,8 +610,12 @@ function get_html($allowEdit=true){
         if (is_array($field['source'])){
             $arrConfig['fields'][$fieldName]['source'] = $field['source'];
         }
+        
         if ($field['headerClickable']){
             $arrConfig['fields'][$fieldName]['headerClickable'] = true;
+        }
+        if ($field['flagDontUpdateRow']){
+            $arrConfig['fields'][$fieldName]['flagDontUpdateRow'] = true;
         }
         if ($field['sortable']===true){
             $arrConfig['fields'][$fieldName]['sortable'] = true;
@@ -804,7 +832,8 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
             if ($cell['href']!=""){
                 preg_match('/^(\s*)/', $_val, $m);
                 $_val = trim($_val);
-                $aopen = $m[1]."<a href=\"{$cell['href']}\"".($cell['target'] ? " target=\"{$cell['target']}\"" : '').">";
+                $hrefRemovable = ( !($cell['static'] || $cell['readonly'] || $cell['disabled']) ? ' class="eg-href-removable"' : '');
+                $aopen = $m[1]."<a href=\"{$cell['href']}\"".($cell['target'] ? " target=\"{$cell['target']}\"" : '')."{$hrefRemovable}>";
                 $aclose = "</a>";
             }
             
@@ -848,7 +877,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                     break;
                 case "textarea":
                     $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val)."\">";
-                    $strCell .= "<div contenteditable='true' class=\"eg_editor {$classStr}\">".str_replace("\r\n", "<br>", htmlspecialchars($_val))."</div>";
+                    $strCell .= "<div contenteditable='true' class=\"eg-editor {$classStr}\">".str_replace("\r\n", "<br>", htmlspecialchars($_val))."</div>";
                     break;
                 case "boolean":
                 case "checkbox":
@@ -911,6 +940,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                     $strCell .= "<input{$classAttr} type=\"text\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val)."\""
                             .($noAutoComplete ||  $cell['noAutoComplete'] ? " autocomplete=\"off\"" : '')
                             .($cell['readonly'] ? " readonly=\"true\"" : '')
+                            .($cell['maxlength'] ? " maxlength=\"{$cell['maxlength']}\"" : '')
                             .($cell['placeholder'] ? ' placeholder="'.htmlspecialchars($cell['placeholder']).'"' : '')
                             .">";
                     break;
@@ -1072,7 +1102,7 @@ function Update($newData = null, $conf = array()){
 
     foreach ($this->newData_transposed as $ix => $row) {
 
-        if($flagPOST && !$newData["inp_{$this->name}_updated"][$ix+1]){
+        if( ($flagPOST || $conf['flagOnlyUpdated']) && !$newData["inp_{$this->name}_updated"][$ix+1]){
             continue;
         }
 

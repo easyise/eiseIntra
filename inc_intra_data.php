@@ -25,7 +25,7 @@ public $arrAttributeTypes = array(
 //    , "binary" => 'file' #not supported yet for docflow apps
     , "date" => 'date'
     , "datetime" => 'datetime'
-//    , "time" => 'time'
+    , "time" => 'time'
     , "combobox" => 'FK'
     , "ajax_dropdown" => 'FK'
     );
@@ -629,9 +629,10 @@ function getMultiPKCondition($arrPK, $strValue){
  * 
  * @return resource with data obtained from the database 
  */
-function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $flagShowDeleted=false, $extra='', $flagNoLimits=false){
+function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $flagShowDeleted=false, $extra='', $flagNoLimits=false
+    , $oSQL = null){
     
-    $oSQL = $this->oSQL;
+    $oSQL = ($oSQL!==null ? $oSQL : $this->oSQL);
 
     static $tableFieldCache;  
 
@@ -657,6 +658,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
                 , "delField" => "{$strPrefix}FlagDeleted"
                 , "classField" => "{$strPrefix}Class"
                 , "extraField" => "{$strPrefix}Extra"
+                , "dataField" => "{$strPrefix}Data"
                 );
         } else {
             $arrFields = Array(
@@ -667,6 +669,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
                 , "delField" => "optFlagDeleted"
                 , "classField" => "optClass"
                 , "extraField" => "extra"
+                , "dataField" => "data"
             );
         }  
         
@@ -691,6 +694,9 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
             , `{$arrFields["idField"]}` as optValue
             ".(isset($arrFields['classField']) 
                 ? ", {$arrFields["classField"]} as optClass"
+                : '')."
+             ".(isset($arrFields['dataField']) 
+                ? ", {$arrFields["dataField"]} as optData"
                 : '')."
         FROM `{$strTable}`";
     
@@ -768,7 +774,7 @@ public function arrPHP2SQL($arrSrc, $types = array()){
                     break;
                 case 'boolean':
                 case 'checkbox':
-                    $arrRet[$key] = ( $value == 'on' ? 1 : (int)$value );
+                    $arrRet[$key] = ( $value === 'on' ? 1 : (int)$value );
                     break;
                 default:
                     $arrRet[$key] = $value;
@@ -830,7 +836,7 @@ public function getSQLFields($tableInfo, $data){
 
         if(!in_array($field, $tableInfo['columns_index']))
             continue;
-        if( $value === null || ($tableInfo['columns_types'][$field]=="FK" && !$value) ){
+        if( $value === null || (in_array($tableInfo['columns_types'][$field], ["FK", 'time', 'datetime', 'time']) && !$value) ){
             if($tableInfo['columns_dict'][$field]['Null']==='YES')
                 $sqlFields .= "\n, {$field}=NULL";
             continue;
@@ -867,7 +873,7 @@ function getArchiveSQLObject(){
         throw new Exception("Archive database name is not set. Contact system administrator.");
     
     //same server, different DBs
-    $this->oSQL_arch = new sql($this->oSQL->dbhost, $this->oSQL->dbuser, $this->oSQL->dbpass, $this->conf["stpArchiveDB"], false, CP_UTF8);
+    $this->oSQL_arch = new eiseSQL($this->oSQL->dbhost, $this->oSQL->dbuser, $this->oSQL->dbpass, $this->conf["stpArchiveDB"], false, CP_UTF8);
     $this->oSQL_arch->connect();
     
     return $this->oSQL_arch;

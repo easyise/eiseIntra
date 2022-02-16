@@ -13,6 +13,11 @@ public $extraActions = array();
 
 protected $defaultDataToObtain = array('Text', 'ACL', 'STL', 'files', 'messages');
 
+protected $to_restore = [['key'=>'ACL', 'table'=>'stbl_action_log', 'PK'=>'aclGUID', 'title'=>'Action log']
+        , ['key'=>'STL', 'table'=>'stbl_status_log', 'PK'=>'stlGUID', 'title'=>'Status log']
+        , ['key'=>'files', 'table'=>'stbl_file', 'PK'=>'filGUID', 'title'=>'Files log']
+        , ['key'=>'messages', 'table'=>'stbl_message', 'PK'=>'msgID', 'title'=>'Messages log']];
+
 static function getPrefixExtra($prgRcv){
     if(($prgRcv && strlen($prgRcv)<=3) || preg_match('/^([a-z0-9]{0,3})\|/', $prgRcv)){
         if(preg_match('/^([a-z0-9]{0,3})\|(.*)$/i', $prgRcv, $arrMatch)){
@@ -87,6 +92,13 @@ public function __construct($id = null,  $conf = array() ){
 
 }
 
+function checkForCheckboxes(&$nd){
+    foreach ($this->conf['ATR'] as $atrID => $props) {
+        if( $props['atrType'] == 'boolean' && !isset($nd[$atrID]) )
+            $nd[$atrID] = 0;
+    }
+}
+
 public function update($nd){
 
     parent::update($nd);
@@ -98,10 +110,14 @@ public function update($nd){
     $nd_ = $nd;
     $atrs = array_keys($this->conf['ATR']);
     $editable = (array)$this->conf['STA'][$this->staID]['satFlagEditable'];
+
+    $this->checkForCheckboxes($nd_);
+
     foreach ($nd_ as $key => $value) {
         if(in_array($key, $atrs) && !in_array($key, $editable))
             unset($nd_[$key]);
     }
+
     $this->updateTable($nd_);
     $this->updateUnfinishedActions($nd);
     $this->updateRolesVirtual();
@@ -122,6 +138,9 @@ public function updateFullEdit($nd){
 
     $this->oSQL->q('START TRANSACTION');
     // 1. update master table
+
+    $this->checkForCheckboxes($nd);
+
     $this->updateTable($nd);
     foreach($this->item['ACL'] as $aclGUID=>$rwACL){
         if($rwACL['aclActionPhase']==2 && $rwACL['aclActionID']>4)
@@ -165,7 +184,7 @@ public function undo($nd){
     $acl_undo = null;
     $acl_prev = null;
     foreach($this->item['ACL'] as $acl){
-        if($acl['aclActionPhase']!=2)
+        if($acl['aclActionPhase']!=2 || in_array($acl['aclActionID'], [1,2,3,4]))
             continue;
 
         if($acl['aclActionID']==2){
@@ -309,8 +328,13 @@ public function updateMultiple($nd){
             unset($nd[$key]);
     }
 
-    foreach($ids as $id){
-        $o = new $class($id);
+   foreach($ids as $id){
+        try {
+            $o = new $class($id, $this->conf);    
+        } catch (Exception $e) {
+            die($e->getMessage());
+        }
+        
         $this->intra->batchEcho("Updating {$id}...", '');
         try {
             $o->update($nd);    
@@ -326,18 +350,24 @@ public function updateMultiple($nd){
 
 public function delete(){
 
-    $this->oSQL->q('START TRANSACTION');
-    if( !$this->conf['STA'][$this->staID]['staFlagCanDelete'] ){
-        $this->msgToUser = $this->intra->translate('Unable to delete "%s"', $this->conf['title'.$this->intra->local]);
-        $this->redirectTo = $this->conf['form'].'?'.$this->getURI();
-        return; 
+    if(!$this->conf['flagNoDeleteTransation'])
+        $this->oSQL->q("START TRANSACTION");
+
+    if( !$this->conf['STA'][$this->staID]['staFlagCanDelete'] && !$this->conf['flagForceDelete']){
+        throw new Exception($this->intra->translate('Unable to delete "%s"', $this->conf['title'.$this->intra->local]));
     }
     if($this->conf['flagDeleteLogs']){
+        $aclGUIDs = "'".implode("', '", array_keys($this->item['ACL']))."'";
+        if($this->conf['logTable'])
+            $this->oSQL->q("DELETE FROM {$this->conf['logTable']} WHERE l{$this->table['prefix']}GUID 
+                IN ( {$aclGUIDs} )");
         $this->oSQL->q("DELETE FROM stbl_action_log WHERE aclEntityItemID=".$this->oSQL->e($this->id));
         $this->oSQL->q("DELETE FROM stbl_status_log WHERE stlEntityItemID=".$this->oSQL->e($this->id));
     }
     parent::delete();
-    $this->oSQL->q('COMMIT');
+
+    if(!$this->conf['flagNoDeleteTransation'])
+        $this->oSQL->q("COMMIT");
 
 }
 
@@ -461,6 +491,7 @@ private function init(){
             'actDescriptionLocal' => $this->intra->translate('delete'),
             'actFlagAutocomplete' => '1',
             'actFlagMultiple' => '1',
+            'actPriority' => -100
             );
     $acts[] = array (
             'actID' => '4',
@@ -913,13 +944,16 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
         
     }
   
-    if (!in_array("Comments", $arrExcludeCols) && $oSQL->d("SHOW TABLES LIKE 'stbl_comments'"))        
-        $lst->Columns[] = array('title' => "Comments"
+    
+    $commentField = $this->conf['entPrefix']."Comments";
+    if ( !in_array($commentField , $arrExcludeCols)
+        && in_array($commentField, array_keys($this->table['columns']))
+        && !$lst->hasColumn($commentField) )        
+        $lst->Columns[] = array('title' => $this->intra->translate("Comments")
             , 'type'=>"text"
-            , 'field' => "Comments"
-            , 'sql' => "SELECT LEFT(scmContent, 50) FROM stbl_comments WHERE scmEntityItemID={$prfx}ID ORDER BY scmEditDate DESC LIMIT 0,1"
-            , 'filter' => "Comments"
-            , 'order_field' => "Comments"
+            , 'field' => $commentField
+            , 'filter' => $commentField
+            , 'order_field' => $commentField
             , 'limitOutput' => 49
             );
 
@@ -1055,10 +1089,11 @@ public function updateAction($rwACL, $nd){
 }
 
 public function getData($id = null){
-    
+
     parent::getData($id);
 
-    unset($this->defaultDataToObtain[array_search('Master', $this->defaultDataToObtain)]);
+    if(array_search('Master', $this->defaultDataToObtain)!==false)
+        unset($this->defaultDataToObtain[array_search('Master', $this->defaultDataToObtain)]);
 
     $this->getAllData();
 
@@ -1089,7 +1124,8 @@ function getAllData($toRetrieve = null){
     if(in_array('Master', $toRetrieve))
         $this->getData();
 
-    if(in_array('Text', $toRetrieve))    
+    if(in_array('Text', $toRetrieve)){  
+        $this->item["{$this->entID}StatusID_text"] = $this->conf['STA'][(int)$this->item["{$this->entID}StatusID"]]["staTitle{$this->intra->local}"];
         foreach($this->conf["ATR"] as $atrID=>$rwATR){
             if (in_array($rwATR["atrType"], Array("combobox", "ajax_dropdown"))){
                 $this->item[$rwATR["atrID"]."_text"] = !isset($this->item[$rwATR["atrID"]."_text"]) 
@@ -1098,6 +1134,7 @@ function getAllData($toRetrieve = null){
             }
 
         }
+    }
     
     // collect incomplete/cancelled actions
     if(in_array('ACL', $toRetrieve) || in_array('STL', $toRetrieve)) {
@@ -1170,9 +1207,123 @@ function getAllData($toRetrieve = null){
 }
 
 public function refresh(){
-    
+    $this->getAllData();
 }
 
+public function backup($q){
+
+    $this->getAllData();
+
+    $to_backup = $this->item;
+    $conf = $this->conf;
+    unset($conf['Roles']);
+    unset($conf['RolesVirtual']);
+    unset($conf['RoleDefault']);
+    unset($conf['ATR']);
+    unset($conf['attr_types']);
+    unset($conf['ACT']);
+    unset($conf['STA']);
+
+    $to_backup['conf'] = $conf;
+    $json = json_encode($to_backup);
+
+    if($q['asFile']){
+        header('Pragma: public'); 
+        header("Expires: Sat, 26 Jul 1997 05:00:00 GMT");                  // Date in the past    
+        header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT'); 
+        header('Cache-Control: no-store, no-cache, must-revalidate');     // HTTP/1.1 
+        header('Cache-Control: pre-check=0, post-check=0, max-age=0');    // HTTP/1.1 
+        header("Pragma: no-cache"); 
+        header("Expires: 0"); 
+        header('Content-Transfer-Encoding: none'); 
+        header("Content-Type: application/json");
+        header("Content-Disposition: attachment; filename*=UTF-8''".rawurlencode($this->id.'-'.date('Ymd').'.json') );
+        echo $json;
+        die();
+    }
+
+    return $json;
+
+}
+
+public function restore($arg){
+
+    $intra = $this->intra;
+    $oSQL = $this->oSQL;
+    
+    $oSQL->q('START TRANSACTION');
+    $oSQL->startProfiling();
+
+    if( is_uploaded_file($_FILES['backup_file']['tmp_name']) ) {
+        $json = json_decode(file_get_contents($_FILES['backup_file']['tmp_name']), true);
+        if(!$json){
+            throw new Exception("Bad file - no data found", 1);
+        }
+        if($_GET['fromBatch'])
+            $intra->batchStart();
+    } else {
+        $json = $arg;
+    }
+
+    $ent = $oSQL->f('SELECT * FROM stbl_entity WHERE entID='.$oSQL->e($json['conf']['entID']));
+    if(!$ent)
+        throw new Exception("Entity ID not found for '{$json['conf']['entID']}'", 1);
+
+    $class = get_class($this);
+    
+    try{
+        $itm = new $class($json[$ent['entPrefix'].'ID'], $ent);
+        if($_GET['fromBatch'])
+            $intra->batchEcho("Item {$itm->id} has been found");
+
+    } catch (Exception $e){
+        try {
+            $sqlIns = "INSERT INTO {$ent['entTable']} SET {$ent['entPrefix']}ID=".$oSQL->e($json[$ent['entPrefix'].'ID']);
+            $oSQL->q($sqlIns);
+            $itm = new $class($json[$ent['entPrefix'].'ID'], $ent);
+            if($_GET['fromBatch'])
+                $intra->batchEcho("Item {$itm->id} has been created");
+        } catch (Exception $e) {
+            $err = "Unable to create item of '{$ent['entTitle']}' with ID '{$json[$ent['entPrefix'].'ID']}'";
+            if($_GET['fromBatch']){
+                $intra->batchEcho("ERROR: {$err}");
+                die();
+            }
+            throw new Exception($err, 1);
+        }
+    }
+    
+    $sqlFields = preg_replace('/^[\s\,]+/', '', $this->intra->getSQLFields($itm->table, $json));
+    $oSQL->q("UPDATE {$ent['entTable']} SET {$sqlFields} WHERE {$itm->conf['PK']}='{$itm->id}'");
+
+    foreach($this->to_restore as $aRestore){
+        $tableInfo = $oSQL->getTableInfo($aRestore['table']);
+        if(!$json[$aRestore['key']])
+            continue;
+        if($_GET['fromBatch'])
+            $intra->batchEcho("Restoring {$aRestore['title']}...");
+        foreach ($json[$aRestore['key']] as $key => $values) {
+            $sqlFields = $aRestore['PK'].' = '.$oSQL->e($key).$this->intra->getSQLFields($tableInfo, $values);
+            $sql = "INSERT INTO {$aRestore['table']} SET {$sqlFields} 
+                ON DUPLICATE KEY UPDATE {$sqlFields}";
+            $oSQL->q($sql);
+        }
+    }
+
+    // $oSQL->showProfileInfo();
+    // $oSQL->q('ROLLBACK');
+    // die('<pre>'.var_export($itm->id, true));
+
+    $oSQL->q('COMMIT');
+
+    if($_GET['fromBatch']){
+        $intra->batchEcho("All done!");
+        die();
+    }
+
+    return $itm;
+
+}
 
 /**
  * This function is called before action is "planned", i.e. record is added to the Action Log. 
@@ -1331,7 +1482,8 @@ public function form4list(){
             : '')
         , array('class'=>'eiseIntraMainForm')).
         ($this->conf['radios'] ? $this->intra->fieldset($this->intra->translate('Action'), $this->showActionRadios()
-            .$this->intra->field(' ', null, $this->intra->showButton('btnSubmit', $this->intra->translate('Run'), array('type'=>'submit')) )
+            .'<div class="eif-actionButtons for-radios">'.$this->intra->showButton('btnSubmit', $this->intra->translate('Run')
+                , array('type'=>'submit')).'</div>'
             , array('class'=>'eiseIntraActions')) : '');
 
     return eiseItemTraceable::form($htmlFields, array('class'=>'ei-form-multiple eiseIntraMultiple'));
@@ -1498,8 +1650,10 @@ function getAttributeFields($fields, $item = null, $conf = array()){
         }
         if($atr['atrHref'])
             $options['href'] = $atr['atrHref'];
+        if($conf['suffix'])
+            $options['field_suffix'] = $conf['suffix'];
 
-        $html .= $this->intra->field($atr["atrTitle{$this->intra->local}"], $field.$conf['suffix'], $item[$field], $options);
+        $html .= $this->intra->field($atr["atrTitle{$this->intra->local}"], $field, $item, $options);
     }
 
     return $html;
@@ -1519,7 +1673,14 @@ public function arrActionButtons(){
         return;
 
     if($this->staID!==null){
-        foreach((array)$this->conf['STA'][$this->staID]['ACT'] as $rwAct){
+
+        $arrActions_ = (array)$this->conf['STA'][$this->staID]['ACT'];
+
+        usort($arrActions_, function ($act1, $act2) { return -1 * @(int)(($act1['actPriority'] - $act2['actPriority'])/abs($act1['actPriority'] - $act2['actPriority'])); } );
+
+        // die('<pre>'.count($arrActions)."\n".var_export($arrActions, true));
+
+        foreach($arrActions_ as $rwAct){
 
             if($rwAct['actFlagSystem'])
                 continue;
@@ -1544,7 +1705,7 @@ public function arrActionButtons(){
                 $aUserTiers = array();
                 $suitableRoles = array_values(array_intersect($rwAct['RLA'], $this->intra->arrUsrData['roleIDs']));
                 foreach ($suitableRoles as $rol) { $aUserTiers[$rol] = $rwAct['RLA_tiers'][$rol]; }    
-                $escalated = (int)(min($rwAct['RLA_tiers']) < min($aUserTiers));
+                $escalated = (int)(@min($rwAct['RLA_tiers']) < @min($aUserTiers));
             }
 
             $arrActions[] = Array ("title" => $title #.(int)$escalated.'<pre>'.var_export($rwAct['RLA_tiers'], true)."\n".var_export($this->intra->arrUsrData['roleIDs'], true)."\n".var_export($aUserTiers, true).'</pre>'
@@ -1582,9 +1743,11 @@ public function showActionButtons(){
     $ret = '';
     $actions = $this->arrActionButtons();
 
+    $ret .= '<div class="eif-actionButtons">'."\n";
     foreach ((array)$actions as $key => $act) {
-        $ret .= $this->intra->showButton($act['id'], $act['title'], array('class'=>($act['dataset']['action']['actID']==3 ? 'eiseIntraDelete' : 'eiseIntraActionSubmit'), 'dataset'=>$act['dataset']));
+        $ret .= $this->intra->showButton($act['id'], $act['title'], array('class'=>($act['dataset']['action']['actID']==3 ? 'eif-btn-delete eiseIntraDelete' : 'eif-btn-submit eiseIntraActionSubmit'), 'dataset'=>$act['dataset']));
     }
+    $ret .= '</div>';
 
     return $ret;
    
@@ -2125,7 +2288,7 @@ public function getWhosNextStatus($staID, $counter){
                         : $this->_aUser_Role_Tier[$usrID][$rolID] ;
                 }
             } else {
-                $_users = $this->intra->getRoleUsers($rolID);
+                $_users = (array)$this->intra->getRoleUsers($rolID);
                 foreach ($_users as $usrID) {
                     $this->_aUser_Role_Tier[$usrID][$rolID] = $act['RLA_tiers'][$rolID] > $this->_aUser_Role_Tier[$usrID][$rolID] 
                         ? $act['RLA_tiers'][$rolID]

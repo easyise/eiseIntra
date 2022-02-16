@@ -1,5 +1,4 @@
-﻿<?php
-//$_DEBUG = true;
+<?php
 include "common/auth.php";
 
 $oSQL->startProfiling();
@@ -21,26 +20,44 @@ function get_privileges($q){
 
     $page = $oSQL->d("SELECT pagFile FROM stbl_page WHERE pagID=".(int)$q['pagID']);
 
-    $intra_ = new eiseIntra($oSQL, array('context'=>$page, 'usrID'=>$q['usrID']));
+    try {
+      $intra_ = new eiseIntra($oSQL, array('context'=>$page, 'usrID'=>$q['usrID']));
 
-    $strRoles = '';
-    foreach($intra_->arrUsrData['roleIDs'] as $i=>$rolID){
-        $strRoles .= ($strRoles ? ",\n" : '').$intra_->arrUsrData['roles'][$i]." ({$rolID})";
+      $strRoles = '';
+      foreach($intra_->arrUsrData['roleIDs'] as $i=>$rolID){
+          $strRoles .= ($strRoles ? ",\n" : '').$intra_->arrUsrData['roles'][$i]." ({$rolID})";
+      }
+      if(!$strRoles)
+          $strRoles = $intra->translate('NO ROLES ASSIGNED');
+
+      $strPriveleges = '';
+      foreach ($intra_->arrUsrData as $key => $val) {
+          if(preg_match('/^Flag/', $key) && !is_array($val)){
+              if($val){
+                  $strPriveleges .= ($strPriveleges ? ', ' : '').str_replace('Flag', '', $key);
+              }
+          }
+      }
+
+      if(!$strPriveleges)
+          $strPriveleges = $intra->translate('NO PRIVILEGES');
+
+    } catch (Exception $e) {
+
+          $intra_ = new eiseIntra($oSQL, array('context'=>'/index.php', 'usrID'=>$q['usrID']));
+
+          $strRoles = '';
+          foreach($intra_->arrUsrData['roleIDs'] as $i=>$rolID){
+              $strRoles .= ($strRoles ? ",\n" : '').$intra_->arrUsrData['roles'][$i]." ({$rolID})";
+          }
+          if(!$strRoles)
+              $strRoles = $intra->translate('NO ROLES ASSIGNED');
+
+          $strPriveleges = $intra->translate('NO PRIVILEGES');
+
     }
-    if(!$strRoles)
-        $strRoles = $intra->translate('NO ROLES ASSIGNED');
 
-    $strPriveleges = '';
-    foreach ($intra_->arrUsrData as $key => $val) {
-        if(preg_match('/^Flag/', $key) && !is_array($val)){
-            if($val){
-                $strPriveleges .= ($strPriveleges ? ', ' : '').str_replace('Flag', '', $key);
-            }
-        }
-    }
-
-    if(!$strPriveleges)
-        $strPriveleges = $intra->translate('NO PRIVILEGES');
+    
 
     $intra->json('ok', '', array('user_roles'=>$strRoles, 'page_privileges'=>$strPriveleges));
 }
@@ -421,8 +438,10 @@ $(document).ready(function(){
             
 
         $.getJSON(location.pathname+location.search+'&DataAction=get_privileges&usrID='+encodeURIComponent(val), function(response){
+            var nCount = 0;
             $.each(response.data, function(key, val){
                 $('#span_'+key).text(val);
+
             });
         })
 
@@ -520,4 +539,3 @@ function deletePage(){
 
 <?php
 include eiseIntraAbsolutePath."inc_bottom.php";
-?>

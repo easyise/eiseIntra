@@ -743,17 +743,9 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
             , "{$entID}InsertDate"
             , "{$entID}EditBy"
             , "{$entID}EditDate");
-        $arrReservedColumnNames_Log = array("l{$entID}ID"
-            , "l{$entID}GUID"
-            , "l{$entID}InsertBy"
-            , "l{$entID}InsertDate"
-            , "l{$entID}EditBy"
-            , "l{$entID}EditDate");
 
         $arrMasterTable = array();
-        $arrLogTable = array();
         try { $arrMasterTable = $intra->getTableInfo($dbName, $strTBL); } catch (Exception $e) {$arrMasterTable['columns'] = array();}
-        try { $arrLogTable = $intra->getTableInfo($dbName, $strLTBL); } catch (Exception $e) { $arrLogTable['columns'] = array();}
 
         //determine last column name from master
         $ak = array_keys($arrMasterTable['columns']);
@@ -766,22 +758,10 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
             $ii++;
         }
 
-        //determine last column name from log
-        $ak = array_keys($arrLogTable['columns']);
-        $ii = 0;
-        foreach($arrLogTable['columns'] as $col=>$x){
-            $lastLogColName = $col;
-
-            if( in_array($ak[$ii+1], array("l{$entID}FlagDeleted", "l{$entID}InsertDate")) ){
-                break;
-            } 
-            $ii++;
-
-        }
-
         //collect attributes
         $strFieldsMaster = "";
         $strLogFields = "";
+        $atrs = [];
         $sqlATR = "SELECT * FROM stbl_attribute WHERE atrEntityID='{$entID}' ORDER BY atrOrder";
         $rsATR = $oSQL->do_query($sqlATR);
         while ($rwATR = $oSQL->fetch_array($rsATR)) {
@@ -829,19 +809,15 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
                         $strKeysMaster .= ($strKeyMaster!='' ? "\r\n\t, KEY {$strKeyMaster}" : '');
                     }
                 } 
+            $atrs[] = $rwATR["atrID"];
 
-            if(!in_array('l'.$rwATR['atrID'], $arrReservedColumnNames_Log))
-                if(!@array_key_exists('l'.$rwATR['atrID'], $arrLogTable['columns'])) {
-                    if(count($arrLogTable['columns'])>0){
-                        $strFieldsLog .= "\r\n\t, ADD COLUMN `l{$rwATR["atrID"]}` {$strType} COMMENT ".$oSQL->escape_string($rwATR["atrTitle"])." AFTER `{$lastLogColName}`";
-                        $strKeysLog .= ($strKeyLog ? "\r\n\t, ADD INDEX {$strKeyLog}" : '');
-                        $lastLogColName = 'l'.$rwATR['atrID'];
-                    } else {
-                        $strFieldsLog .= "\r\n\t, `l{$rwATR["atrID"]}` {$strType} COMMENT ".$oSQL->escape_string($rwATR["atrTitle"]);
-                        $strKeysLog .= ($strKeyLog ? "\r\n\t, KEY {$strKeyLog}" : '');
-                    }
-                }
-            
+        }
+
+        $strDropMaster = '';
+        foreach ($arrMasterTable['columns'] as $ix => $col) {
+            if(!in_array($col['Field'], $atrs) && !in_array($col['Field'], $arrReservedColumnNames)){
+                $strDropMaster .= "\n\t, DROP COLUMN {$col['Field']}";
+            }
         }
 
         if(count($arrMasterTable['columns'])==0){
@@ -893,31 +869,11 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
             }
             $strCode .= $strAlterBody;
             $strCode .= ($strAlterBody=='' ? "\r\n\t".preg_replace('/^(\s*,\s*)/', '' , $strFieldsMaster) : $strFieldsMaster);
+            $strCode .= ($strAlterBody=='' ? "\r\n\t".preg_replace('/^(\s*,\s*)/', '' , $strDropMaster) : $strDropMaster);
             $strCode .= $strIndexes.$strKeysMaster;
             $strCode .= ";\r\n\r\n";
         }
         
-        if(count($arrLogTable['columns'])==0){
-            //create log table
-            $strCode .= "\r\nDROP TABLE IF EXISTS `{$strLTBL}`;";
-            $strCode .= "\r\nCREATE TABLE `{$strLTBL}` (".
-                  "\r\n\t`l{$entID}GUID` VARCHAR(36) NOT NULL".
-                  "\r\n\t, `l{$entID}ID` VARCHAR(36) NOT NULL".
-                  "{$strFieldsLog}".
-                  "\r\n\t, `l{$entID}InsertBy` varchar(50) DEFAULT NULL".
-                  "\r\n\t, `l{$entID}InsertDate` datetime DEFAULT NULL".
-                  "\r\n\t, `l{$entID}EditBy` varchar(50) DEFAULT NULL".
-                  "\r\n\t, `l{$entID}EditDate` datetime DEFAULT NULL".
-                  "\r\n\t, PRIMARY KEY (`l{$rwEnt["entID"]}GUID`)".
-                  ($strKeys!="" ? $strKeys : "").
-                "\r\n) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8;\r\n";
-        } else {
-            if($strFieldsLog){
-                $strCode .= ($strCode!='' ? "\r\n\r\n" : '')."ALTER TABLE {$strLTBL}";
-                $strCode .= "\r\n\t".preg_replace('/^(\s*,\s*)/', '' , $strFieldsLog).$strKeysLog.';';    
-            }
-        }
-
         
         $strCode = str_replace("\t", CODE_INDENT, $strCode);
 
@@ -979,16 +935,16 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
         $strHTML .= "<ul>\r\n";
         while ($rwSta = $oSQL->fetch_array($rsSta)){
             $strHTML .= "<li><b>{$rwSta["staID"]}: {$rwSta["staTitle$strLocal"]}</b><br><br></li>\r\n";
-            $strHTML .= "<blockquote><b>Доступные для редактирования атрибуты:</b><br>\r\n";
+            $strHTML .= "<blockquote><b>Доступные для редактирования атрибуты:</b><br><pre>\r\n";
             $sqlSat = "SELECT * FROM stbl_status_attribute 
                INNER JOIN stbl_attribute ON satAttributeID=atrID AND satEntityID=atrEntityID
                WHERE satStatusID='{$rwSta["staID"]}' AND satEntityID='{$entID}' AND satFlagEditable=1
                ORDER BY atrOrder";
             $rsSat = $oSQL->do_query($sqlSat);
             while ($rwSat = $oSQL->fetch_array($rsSat)){
-               $strHTML .= " - {$rwSat["atrTitle$strLocal"]}<br />\r\n";
+               $strHTML .= "{$rwSat["atrTitle$strLocal"]}\t{$rwSat['atrID']}\r\n";
             }
-            $strHTML .= "</blockquote>\r\n";    
+            $strHTML .= "</pre></blockquote>\r\n";    
             
             $strHTML .= "<blockquote><b>Доступные действия:</b><ol>\r\n";
             $sqlAct = "SELECT * FROM stbl_action_status

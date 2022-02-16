@@ -4,6 +4,7 @@
  *
  */
 
+@ei-gutter-width: 5px;
 
 /** Core definitions */
 html { height: 100% }
@@ -316,7 +317,8 @@ td     {  	vertical-align: top; padding: 0;}
 
 
 .ei-pane {
-    padding-left: 0;
+    padding-left: @ei-gutter-width;
+    padding-right: @ei-gutter-width;
     padding-top: @ei-header-height;  
     &.no-header {
         padding-top: 0;
@@ -369,6 +371,9 @@ td     {  	vertical-align: top; padding: 0;}
     background-color: @ei-action-menu-bg;
     border-bottom: @ei-action-menu-border;
     font-family: Verdana, Helvetica, sans-serif;
+
+    margin-left: -1 * @ei-gutter-width;
+    margin-right: -1 * @ei-gutter-width;
 
     & .menubutton  {
         display: inline-block;
@@ -705,6 +710,22 @@ td     {  	vertical-align: top; padding: 0;}
     padding-right: 1% !important;
 }
 
+.eiseIntraForm  label {
+    font-weight: bold;
+    font-size: 11px;
+    margin-top: 1px;
+    line-height: 18px;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.eiseIntraForm  .eiseIntraValue {
+    font-size: 12px;
+    line-height: 20px;
+}
+
 .eif-form .eif-field > label {
     &:after {
         content: ":";
@@ -727,7 +748,6 @@ td     {  	vertical-align: top; padding: 0;}
     }
 }
 
-
 .eif-field-delimiter {
     padding-left: 10px;
     padding-right: 10px;
@@ -746,10 +766,32 @@ td     {  	vertical-align: top; padding: 0;}
     text-align: left;
 }
 
-.eiseIntraForm .eiseIntraValue{
+.eiseIntraForm .eiseIntraValue {
     clear: right;
     width: 73%;
 }
+
+.eif-form-dialog {
+
+    & label {
+        float: left;
+        clear: left;
+        font-size: 11px;
+        cursor: default !important;
+        width: 33%;
+        padding-right: 1% !important;
+    }
+    & .eiseIntraValue {
+
+        width: 63%;
+
+            & input[type="checkbox"], input[type="radio"] {
+                width: auto !important;
+            }
+    }
+
+}
+
 input[type=checkbox].eiseIntraValue {
     width: auto;
 }
@@ -900,8 +942,8 @@ input[type=checkbox].eiseIntraValue {
     padding-right: 0 !important;
     width: 100%;
 }
-
-.eif_actionButtons input {
+/* legacy */
+.eif_actionButtons input, button {
     display: inline-block;
     vertical-align: middle;
 }
@@ -910,6 +952,61 @@ input[type=checkbox].eiseIntraValue {
     text-align:center;
     line-height:1.5em;
 }
+/* /legacy */
+
+
+.eif-actionButtons {
+
+    text-align:center;
+    line-height:1.2em;
+    padding: 1em 0;
+
+    &.for-radios {
+        text-align: left;
+        padding: 5px 40px;
+    }
+
+    & input[type="button"], input[type="submit"], button {
+        font-weight: normal;
+        display: inline-block;
+        vertical-align: middle;
+        font-size: 14px;
+        padding: 0.12em 1.2em;
+        padding-bottom: 0.15em 1.2em;
+        cursor: pointer;
+        color: #fff;
+        background-color: #337ab7;
+        border-color: #2e6da4;
+        margin: 5px 2px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+
+        &:hover {
+            color: #fff;
+            background-color: #286090;
+            border-color: #204d74;
+        }
+
+
+    }
+
+    & .eif-btn-delete {
+
+        font-size: 0.95em;
+        
+        color: #333;
+        background-color: #fff;
+        border-color: #ccc;
+
+        &:hover {
+            color: #fff;
+            background-color: #d9534f;
+            border-color: #d43f3a;
+        }
+
+    }
+}
+
 
 .eiseIntraLogTitle {
     overflow: hidden;
@@ -1301,4 +1398,10 @@ div.eiseIntraComment {
             font-stretch: condensed;
         }
     }
+}
+
+.eiseList {
+    width: calc(~"100% + " 2 * @ei-gutter-width);
+    margin-left: -1 * @ei-gutter-width;
+    margin-right: -1 * @ei-gutter-width;
 }

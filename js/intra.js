@@ -65,10 +65,15 @@ var renderMenu = function(){
 
 var sideBarMenuChanged = function(){
 
+    this.pane_padding_left = (this.pane_padding_left 
+        ? this.pane_padding_left 
+        : parseFloat($('.ei-pane').css('padding-left'))
+        );
+
     var $iframe = $('.ei-pane-frame iframe'),
         padding = ($('.ei-sidebar-menu.visible')[0] 
-            ? $('.ei-sidebar-menu').outerWidth(true)
-            : '0');
+            ? $('.ei-sidebar-menu').outerWidth(true) + this.pane_padding_left
+            : this.pane_padding_left);
 
     $('.ei-pane-frame').css('left', padding );
     $('.ei-pane').css('padding-left', padding );
@@ -1420,7 +1425,7 @@ createDialog: function( conf ){
     if(!conf.fields)
         return null;
 
-    var $frm = $('<form/>').appendTo('body').addClass('eiseIntraForm');
+    var $frm = $('<form/>').appendTo('body').addClass('eiseIntraForm eif-form eif-form-dialog');
 
     if(conf.action)
         $frm.attr('action', conf.action);
@@ -1443,7 +1448,7 @@ createDialog: function( conf ){
 
     var btnCloseTitle = (conf.flagUnsubmittable ? 'Close' : 'Cancel');
 
-    $frm.append('<div class="eif_actionButtons">'
+    $frm.append('<div class="eif-actionButtons">'
         +(conf.flagUnsubmittable ? '' : '<input type="submit" value="OK">')
         +'<input type="button" value="'+btnCloseTitle+'" class="eif_btnClose">'
         +'</div>');
@@ -1464,8 +1469,9 @@ createDialog: function( conf ){
                 if(inp.nodeName.toUpperCase()=='SELECT'){
                     objVals[$(inp).attr('name')]['t'] = inp.options[inp.options.selectedIndex].text;
                 } 
-                if(typeof($frm.find('#'+$(inp).attr('name')+'_text')[0])!='undefined'){
-                    objVals[$(inp).attr('name')]['t'] = $frm.find('#'+$(inp).attr('name')+'_text').val();
+                var strFieldSafe = $(inp).attr('name').replace(/[^\-\w]+/, ''); //eiseGrid elems fixe
+                if(typeof($frm.find('#'+strFieldSafe+'_text')[0])!='undefined'){
+                    objVals[$(inp).attr('name')]['t'] = $frm.find('#'+strFieldSafe+'_text').val();
                 }
             }
                 
@@ -1530,6 +1536,8 @@ addField: function( field ){
         case 'textarea':
             element = $('<textarea>');
             element.addClass('eif-input');
+            if(field['rows'])
+                element.attr('rows', field['rows'])
             break;
         case 'combobox':
         case 'select':
@@ -1555,6 +1563,7 @@ addField: function( field ){
             break;
         case 'file':
             element = $('<input type="file">');
+            field.valueWidth = '49%'
             element.addClass('eif-input');
             break;
         case 'checkbox':
@@ -1603,22 +1612,34 @@ addField: function( field ){
     if((field.value===true || field.checked) && type=='checkbox')
         element.prop('checked', true);
 
+
+    var $field = null;
+
     if( field.type!='hidden' && field.title && $.inArray(type, ['hr', 'p'])<0 ){
 
         if(field.required){
             element.prop('required', true);
         }
 
-        var $field = ( (type=='checkbox' || type=='radio') && (field.labelLayout && field.labelLayout!='left')
+        $field = ( (type=='checkbox' || type=='radio') && (field.labelLayout && field.labelLayout!='left')
             ? $('<div>')
                 .append('<label></label>')
-                .append( $('<label>'+field.title+'</label>').prepend(element).addClass('eiseIntraValue') )
+                .append( $('<label>'+field.title+'</label>').prepend(element).addClass('eif-value eiseIntraValue') )
             : $('<div><label>'+field.title+':</label></div>').append(
                 (field.type=='ajax_dropdown'
                     ? $('<input type="hidden" name="'+field.name+'">').addClass('eif-input').val(field.value)
                     :  null)
-                ).append(element.addClass('eiseIntraValue'))
+                ).append(element.addClass('eif-value eiseIntraValue'))
             ).addClass('eiseIntraField');
+
+        if(field.valueWidth){
+            $field.find('.eif-value').first().css('width', field.valueWidth)
+            if(field.valueWidth.match(/%$/)){
+                var valueWidthPercent = parseFloat(field.valueWidth.replace(/%$/, ''))
+                if(valueWidthPercent)
+                    $field.find('label').first().css('width', ''+(100-valueWidthPercent-3)+'%')
+            }
+        }
 
     } else {
         
@@ -1684,8 +1705,17 @@ upload2batch: function( options ){
 
     options = $.extend(defaultOptions, (options ? options : {}))
 
-    if(options['fields'] && options['fields'].isArray())
-        fields = $.extend(fields, options['fields']);
+    if(options['fields']){
+        var fieldsBefore = [], fieldsAfter = []
+        for (var i = 0; i < options['fields'].length; i++) {
+            if(options.fields[i].position=='end')
+                fieldsAfter.push(options.fields[i])
+            else 
+                fieldsBefore.push(options.fields[i])
+        };
+        fields = fieldsBefore.concat(fields).concat(fieldsAfter)
+    }
+    
 
     $(this).eiseIntraForm('createDialog', {
         title: (options['title'] ? options['title'] : title)

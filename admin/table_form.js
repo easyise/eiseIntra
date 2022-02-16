@@ -63,3 +63,20 @@ function generateALTER(){
     $('#textarea_source').dialog({modal: true, width:'62%', title: 'ALTER TABLE'})    
     
 }
+
+$(document).ready(function(){
+    $('a[href="#dump_row"]').click(function(){
+        if($('.eiseList')[0]){
+
+            var list = $('.eiseList').eiseList('getListObject')
+                , selection = $('.eiseList').eiseList('getRowSelection')
+                , url = 'database_act.php?DataAction=dump&what=rows&strTables='+encodeURIComponent(list.conf['table_name'])
+                    +'&dbName='+encodeURIComponent(list.conf['db_name'])+'&flagDonwloadAsDBSV=0&flagNoData=0&rows='+encodeURIComponent(selection);
+            $(this).eiseIntraBatch(url)
+            
+        }
+        
+        
+        return false;
+    })
+})

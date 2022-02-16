@@ -201,13 +201,17 @@ function eiseList(divEiseList){
     var selectedTab = this.initTabs();
 
     if(!selectedTab){
-        this.getData(0,null,true);
+        console.log(list.conf)
+        this.getData(0,null, !list.conf['flagPostRequest'] );
     }
 
     this.thead.find('th').each(function(){
         var w = $(this).width(), sw = this.scrollWidth;
         if(w<=0){
-            $(this).css('width', sw+'px')
+            $(this).css('width', (parseInt($(this).css('min-width').replace('px', '')) 
+                ? $(this).css('min-width')
+                : '100px')
+            )
         }
     });
 
@@ -257,7 +261,7 @@ eiseList.prototype.initFilters = function(){
 
 eiseList.prototype.initResizer = function(){
     this.thead.find('th').each(function(){
-        
+
         $(this)
             .resizable({
                 handles: 'e',
@@ -289,15 +293,19 @@ eiseList.prototype.setFilters = function(filtersToApply){
     var list = this
 
     $.each(filtersToApply, function(field, value){
+
+
         
         if(!field)
             return true // continue
 
-        var selectorInp = '[name='+field+']',
+        var selectorInp = '[name="'+field+'"]',
             $inp = list.form.find(selectorInp)
         if( $inp[0] ){
+
             if(list.checkFilterVisible(field,value)){
                 $inp.val(value)
+
                 if(value!='' && value!=$inp.val() && $inp[0].nodeName=='SELECT'){
                     $inp.append('<option value='+value+' selected>'+value)
                 }
@@ -327,8 +335,8 @@ eiseList.prototype.checkFilterVisible = function(field, value){
         flagFound = false
 
     // check visible fields
-    var $inp = list.form.find('[name='+field+']');
-    if ($inp[0] && $inp.attr('type') && $inp.attr('type').toLowerCase()!='hidden') return true
+    var $inp = list.form.find('[name="'+field+'"]');
+    if ($inp[0] && (($inp.attr('type') && $inp.attr('type').toLowerCase()!='hidden')  || $inp[0].nodeName=='SELECT')) return true
 
     // check location.search
     $.each(list._qs2obj( location.search.replace(/^\?/, '') ), function(f,v){
@@ -728,6 +736,11 @@ eiseList.prototype.getData = function(iOffset, recordCount, flagResetCache, call
 
     $.ajax({ url: strURL
         , success: function(data, text){
+
+            // if(data.sql)
+            //     console.log(data.sql)
+            // if(data.sqlAggregate)
+            //     console.log(data.sqlAggregate)
             
             if (data.error!=undefined){
                 alert (list.conf['titleERRORBadResponse']+'\r\n'+list.conf['titleTryReload']+'\r\n'+data.error+'\r\n'+strARG);
@@ -842,9 +855,13 @@ eiseList.prototype.openInExcel = function(){
     
     var strARG = this.getQueryString();
     
-    strARG = "DataAction=excelXML&offset=0&noCache=1"+strARG;
+    strARG = "DataAction=excelXML&offset=0"
+        +(this.conf['flagPostRequest'] ? '' : "&noCache=1")
+        +strARG;
     var strURL = this.conf['dataSource']+'?'+strARG;
-    
+
+    // alert(strURL)
+
     window.open(strURL, "_blank");
      
 }
@@ -1346,15 +1363,16 @@ eiseList.prototype.showInput = function(cell, conf){
         ? conf.inpHTML
         : ($(cell).hasClass('el-combobox')
             ? '<select>'+$('#cb_'+field)[0].innerHTML+'</select>'
-            : '<input type="text" autocomplete="off">')
+            : (  $(cell).hasClass('el-boolean')
+                ? '<input type="checkbox" autocomplete="off"'+(cellText=='1' ? ' checked' : '')+'>'
+                : '<input type="text" autocomplete="off">')
+                )
             )
         )
     .appendTo($(cell))
     .addClass('el-cellInput');
     
     $(cell).css('overflow', 'visible');
-    
-    $(cell).css('padding', 0).css('margin', 0);
     
     $inp = $(cell).find('input[type!=hidden],select');
 
@@ -1375,13 +1393,20 @@ eiseList.prototype.showInput = function(cell, conf){
     }
     
     
-    $inp.css('display', 'block');
-    if( $(cell).css('box-sizing') == 'border-box'){
-        $inp.width(w)
-            .height(h);    
+    
+
+    if($inp.attr('type')!='checkbox'){
+        $(cell).css('padding', 0).css('margin', 0);
+        $inp.css('display', 'block');
+        if( $(cell).css('box-sizing') == 'border-box'){
+            $inp.width(w)
+                .height(h);    
+        } else {
+            $inp.width(w - ($inp.innerWidth()-$inp.width()))
+                .height(h - ($inp.innerHeight()-$inp.height()));    
+        }
     } else {
-        $inp.width(w - ($inp.innerWidth()-$inp.width()))
-            .height(h - ($inp.innerHeight()-$inp.height()));    
+        $inp.css('display', 'inline');
     }
     
     
@@ -1405,7 +1430,11 @@ eiseList.prototype.showInput = function(cell, conf){
                     if (typeof(conf.callback)=='undefined')
                         list.hideInput(cell, $(this).val())
                     else {
-                        conf.callback( cell, cellText, $(this).val(), (this.nodeName=='SELECT' ? $(this).find('option:selected').text() : '') );
+                        conf.callback( cell, cellText
+                            , (this.type!='checkbox'
+                                ? $(this).val()
+                                : +this.checked)
+                            , (this.nodeName=='SELECT' ? $(this).find('option:selected').text() : '') );
                     }
                     event.preventDefault(true);
                     break;
@@ -1422,13 +1451,20 @@ eiseList.prototype.showInput = function(cell, conf){
 }
 
 eiseList.prototype.hideInput = function(cell, newValue){
-    
+
     var $inp = $(cell).find('input,select');
     
     $inp.remove();
     
     $(cell).css('padding', '').css('margin', '');
     
+    if($(cell).hasClass('el-boolean')){
+        if(newValue==1){
+            $(cell).addClass('el-boolean-s')
+        } else {
+            $(cell).removeClass('el-boolean-s')
+        }
+    } 
     $(cell).text(newValue);
     
     this.adjustColumnsWidth();

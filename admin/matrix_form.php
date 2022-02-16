@@ -5,11 +5,58 @@ $intra->requireComponent('batch','grid');
 
 $DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['DataAction'] );
 
-$gridPGR = new eiseGrid($oSQL
+class cGridPGR extends eiseGrid{
+
+function Update($q = NULL, $conf = Array()){
+
+    GLOBAL $intra, $oSQL;
+
+    // $oSQL->startProfiling();
+
+    $oSQL->q('START TRANSACTION');
+    $oSQL->q('DELETE FROM stbl_page_role WHERE pgrRoleID='.$oSQL->e($q['rolID']));
+    foreach ($q['pagID'] as $i => $pagID) {
+        if(!$pagID)
+            continue;
+
+        $sqlIns = "INSERT INTO stbl_page_role SET
+            pgrPageID = ".$oSQL->e($pagID)."
+            , pgrRoleID = ".$oSQL->e($q['rolID'])."
+            , pgrFlagRead = ".(int)$q['pgrFlagRead'][$i]."
+            , pgrFlagWrite = ".(int)($q['pgrFlagWrite'][$i])."
+            , pgrInsertBy = '$intra->usrID', pgrInsertDate = NOW(), pgrEditBy = '$intra->usrID', pgrEditDate = NOW()
+            , pgrFlagCreate = ".(int)($q['pgrFlagCreate'][$i])."
+            , pgrFlagUpdate = ".(int)($q['pgrFlagUpdate'][$i])."
+            , pgrFlagDelete = ".(int)($q['pgrFlagDelete'][$i]);
+        $oSQL->q($sqlIns);
+
+    }
+
+    // $oSQL->showProfileInfo();
+    $oSQL->q('COMMIT');
+    
+    $this->redirectTo = $_SERVER['PHP_SELF'].'?rolID='.urlencode($q['rolID']);
+}
+
+}
+
+$rolID = (isset($_GET['rolID']) ? $_GET['rolID'] : $_COOKIE['rolID']);
+
+$rolID = $oSQL->d('SELECT rolID FROM stbl_role WHERE rolID='.$oSQL->e($rolID));
+
+if(isset($_GET['rolID']) && $rolID)
+    setcookie('rolID', $rolID, 0, $_SERVER['PHP_SELF']);
+
+if(!$rolID){
+    $rolID = $oSQL->d("SELECT rolID FROM stbl_role WHERE rolFlagDeleted=0 ORDER BY rolFlagDefault DESC, rolID ASC LIMIT 0,1");
+}
+
+$gridPGR = new cGridPGR($oSQL
         , 'pgr'
         , array('arrPermissions' => Array('FlagWrite'=>$intra->arrUsrData['FlagWrite'])
                 , 'strTable' => 'stbl_page_role'
                 , 'strPrefix' => 'pgr'
+                , 'extraInputs' => Array("DataAction"=>"update", 'rolID'=>$rolID)
                 )
         );
 
@@ -23,7 +70,12 @@ $gridPGR->Columns[] = Array(
         , 'type' => "text"
         , 'href' => 'page_form.php?dbName='.$dbName.'&pagID=[pgrPageID]'
         , 'static' => true
+        , 'mandatory' => true
         , 'width' => '100%'
+        , 'class' => '[pagFullTitle_class]'
+);
+$gridPGR->Columns[] = Array(
+        'field' => "pagID"
 );
 $gridPGR->Columns[] = Array(
         'field' => "pgrRoleID"
@@ -64,25 +116,7 @@ $gridPGR->Columns[] = Array(
         , 'headerClickable' => true
 );
 
-switch($DataAction){
-    case "update":
-        $gridPGR->Update();
-        $intra->redirect("Data is updated", $_SERVER["PHP_SELF"]);
-    default:
-        break;
-}
-
-
-$rolID = (isset($_GET['rolID']) ? $_GET['rolID'] : $_COOKIE['rolID']);
-
-$rolID = $oSQL->d('SELECT rolID FROM stbl_role WHERE rolID='.$oSQL->e($rolID));
-
-if(isset($_GET['rolID']) && $rolID)
-    setcookie('rolID', $rolID, 0, $_SERVER['PHP_SELF']);
-
-if(!$rolID){
-    $rolID = 'admin';
-}
+$intra->dataAction('update', $gridPGR);
 
 $arrActions[]= Array ('title' => $intra->translate('Save')
        , 'action' => "#save"
@@ -111,6 +145,9 @@ include eiseIntraAbsolutePath.'inc_top.php';
 td.pgr-pagFullTitle > div {
     white-space: pre;
 }
+.in-menu  {
+    font-weight: bold;
+}
 </style>
 
 <script>
@@ -134,6 +171,7 @@ $(document).ready(function(){
 $sqlPGR = "SELECT PG1.pagID
         , PG1.pagParentID
         , PG1.pagTitle
+        , PG1.pagTitleLocal
         , PG1.pagFile
         , PG1.pagIdxLeft
         , PG1.pagIdxRight
@@ -157,6 +195,7 @@ GROUP BY
 PG1.pagID
         , PG1.pagParentID
         , PG1.pagTitle
+        , PG1.pagTitleLocal
         , PG1.pagFile
         , PG1.pagIdxLeft
         , PG1.pagIdxRight
@@ -174,8 +213,10 @@ PG1.pagID
 ORDER BY PG1.pagIdxLeft";
 $rsPGR = $oSQL->do_query($sqlPGR);
 while ($rwPGR = $oSQL->fetch_array($rsPGR)){
-    $rwPGR['pagFullTitle'] = str_repeat('    ', $rwPGR['iLevelInside']).($rwPGR['pagTitle'.$intra->local] ? $rwPGR['pagTitle'.$intra->local] : $rwPGR['pagTitle'])
-        .($rwPGR['pagTitle'.$intra->local] && $rwPGR['pagFile'] ? " ({$rwPGR['pagFile']})" : $rwPGR['pagFile']);
+    $title = $rwPGR['pagTitle'.$intra->local] ? $rwPGR['pagTitle'.$intra->local] : $rwPGR['pagTitle'];
+    $rwPGR['pagFullTitle'] = str_repeat('    ', $rwPGR['iLevelInside']).$title
+        .($title && $rwPGR['pagFile'] ? " ({$rwPGR['pagFile']})" : $rwPGR['pagFile']);
+    $rwPGR['pagFullTitle_class'] = ($rwPGR['pagFlagShowInMenu'] ? 'in-menu' : '');
     $gridPGR->Rows[] = $rwPGR;
 }
 

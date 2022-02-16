@@ -1157,6 +1157,11 @@ function requireComponent($components){
                 $arrJS[] = eiseIntraRelativePath.'grid/eiseGrid.jQuery.js';
                 break;
 
+            case 'reports':
+                $this->requireComponent('jquery-ui');
+                $arrJS[] = eiseIntraRelativePath.'js/eiseIntraReports.jQuery.js';
+                break;
+
             default:
                 # code...
                 break;
@@ -1215,6 +1220,11 @@ function redirect($strMessage, $strLocation, $arrConfig = array()){
 
     if($this->cancelRedirect)
         return;
+
+    if($this->flagBatch){
+        $this->batchEcho($strMessage);
+        return;
+    }
 
     $conf = array_merge($this->conf, $arrConfig);
 
@@ -1345,6 +1355,9 @@ function file($name, $type, $pathOrData){
  * @category Batch run
  */
 function batchStart($conf = array()){
+
+    if($this->flagBatch)
+        return;
     
     header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
     header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
@@ -1649,15 +1662,25 @@ function setting($stpVarName, $stpCharValue = null, $flagLocal = false){
  * @category Forms
  *
  */
-public function field( $title, $name=null, $value=null, $conf=array() ){
+public function field( $title, $name=null, $val_in=null, $conf=array() ){
 
     $oSQL = $this->oSQL;
 
-    $value = (is_array($value) ? $value[$name] : $value);
+    $value = (is_array($val_in) ? $val_in[$name] : $val_in);
 
-    
     if(in_array($conf['type'], array('row_id', 'hidden')) )
         return '<input type="hidden" name="'.$name.'" id="'.$name.'" value="'.htmlspecialchars($value).'">'."\r\n";
+
+    if($conf['href'] && $name){
+        $vals = (is_array($val_in) ? $val_in : array($name=>$val_in));
+        foreach ($vals as $field => $fieldVal) {
+            if(is_array($fieldVal))
+                continue;
+            $conf['href'] = preg_replace('/\['.preg_quote($field, '/').'\]/', $fieldVal, $conf['href']);    
+        }
+        if(preg_match('/\[[a-z0-9\-\_]+\]/', $conf['href']))
+            $conf['href'] = '';
+    }
 
     $html = '';
 
@@ -1709,6 +1732,8 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
     }
 
     if($name){
+
+        $name = $name.$conf['field_suffix'];
 
         $this->fieldTypes[(preg_replace('/\[\]$/', '', $name))] = $conf['type'];
 
@@ -1788,9 +1813,15 @@ public function field( $title, $name=null, $value=null, $conf=array() ){
                         }
                     } catch (Exception $e) { $html .= 'ERROR: '.$e->getMessage(); return $html; }
                     $opts = Array();
-                    while($rwCMB = $oSQL->f($rsCMB))
+                    $optsData = Array();
+                    while($rwCMB = $oSQL->f($rsCMB)){
                         $opts[$rwCMB["optValue"]]=$rwCMB["optText"];
+                        if(isset($rwCMB['optData']))
+                            $optsData[$rwCMB["optValue"]]=$rwCMB["optData"];
+                    }
                 }
+                if(count($optsData))
+                    $conf['optsData'] = $optsData;
                 $html .= $this->showCombo($name, $value, $opts, $conf);
                 break;
 
@@ -2027,6 +2058,7 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
 
     if ($flagWrite){
         $strRet .= "<textarea class=\"{$strClassInput}\""
+            .($arrConfig['rows'] ? " rows=\"{$arrConfig['rows']}\"" : '')
             ." id=\"$id\""
             ." name=\"".$strName."\"";
         if($strAttrib) $strRet .= " ".$strAttrib;
@@ -2188,7 +2220,9 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
                 }
                 $retVal .= '</optgroup>';
             } else
-                $retVal .= "<option value='$key'".((string)$key==(string)$strValue
+                $retVal .= "<option value='$key'"
+                    .($confOptions['optsData'][$key] ? ' data-metadata="'.htmlspecialchars($confOptions['optsData'][$key]).'"' : '')
+                    .((string)$key==(string)$strValue
                     || is_integer($key) && (string)$value==(string)$strValue 
                         ? " SELECTED " 
                         : "").
@@ -2362,14 +2396,10 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
         $txt = $rw["optText"];
     }
 
-    if($arrConfig['href'] && $strValue && !$flagWrite ){
-        $arrConfig['href'] = preg_replace('/\['.preg_quote($strFieldName, '/').'\]/', $strValue, $arrConfig['href']);
-    }
-    
     $strOut = "";
     $strOut .= "<input type=\"hidden\" name=\"$strFieldName\" class=\"eif-input\" id=\"$strFieldName\" value=\"".htmlspecialchars($strValue)."\">\r\n";
 
-    $attr = (preg_match('/\['.preg_quote($strFieldName, '/').'\]/', $arrConfig['href']) 
+    $attr = ($arrConfig['href']
                 ? 'data-href="'.htmlspecialchars($arrConfig['href']).'" '
                 : '')
         .' data-source="'.htmlspecialchars(json_encode($aSource)).'"'

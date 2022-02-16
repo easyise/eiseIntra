@@ -47,7 +47,7 @@ class excelXML
         "<Style ss:ID=\"Hdr\"><Font ss:Bold=\"1\"/></Style>"
         .'<Style ss:ID="s22"><NumberFormat ss:Format="Short Date"/></Style>'
         // .'<Style ss:ID="s23"><NumberFormat ss:Format="[$-419]d\ mmm\ yy;@"/>/Style>'
-        .'<Style ss:ID="s23"><NumberFormat ss:Format="h:mm;@"/></Style>'
+        .'<Style ss:ID="s23"><NumberFormat ss:Format="[$]hh:mm;@"/></Style>'
         ."</Styles>";
 
     /**
@@ -162,10 +162,23 @@ class excelXML
                     $srcType = strtolower($types[$k]);
                     switch ($srcType) {
                         case 'date':
+                            if($v){
+                                $v = ($v ? date('Y-m-d', strtotime($v)) : '');
+                                $style = ' ss:StyleID="s22"';
+                                $type = "DateTime";
+                            }                            
+                            break;
                         case 'datetime':
                             if($v){
-                                $v = date('Y-m-d\TH:i:s.000', strtotime($v));
+                                $v = ($v ? date('Y-m-d\TH:i:s.000', strtotime($v)) : '');
                                 $style = ' ss:StyleID="s22"';
+                                $type = "DateTime";
+                            }                            
+                            break;
+                        case 'time':
+                            if($v){
+                                $v = ($v ? date('1899-12-31\TH:i:s.000', strtotime($v)) : '');
+                                $style = ' ss:StyleID="s23"';
                                 $type = "DateTime";
                             }                            
                             break;

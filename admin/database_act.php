@@ -78,6 +78,8 @@ case 'dump':
     header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
     header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
     
+    $arrOptions= Array();
+
     switch ($_GET['what']) {
         case 'security':
             $arrTablesToDump = eiseAdmin::$arrMenuTables;
@@ -86,13 +88,18 @@ case 'dump':
             $arrTablesToDump = eiseAdmin::$arrEntityTables;
             break;
         case 'tables':
+        case 'rows':
             $arrTablesToDump = explode('|', $_GET['strTables']);
+            if($_GET['what']=='rows'){
+                $arrOptions['rows'] = explode('|', $_GET['rows']);
+                $arrOptions['sql_type'] = 'UPDATE';
+                $arrOptions['DropCreate'] = False;
+            }
             break;
         default:
             break;
     }
-
-    $arrOptions= Array();
+    
     if($_GET['flagNoData']) $arrOptions['flagNoData'] = true;
 
     $strTables = $intra->dumpTables($arrTablesToDump, $arrOptions);

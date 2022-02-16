@@ -123,7 +123,7 @@ td.el-boolean-s {
     background: @el-boolean-background-selected !important;
 }
 
-.el-checkbox  { 
+.el-checkbox, .el-boolean  { 
     text-align: center; 
     &  input{    width: auto; }
 }

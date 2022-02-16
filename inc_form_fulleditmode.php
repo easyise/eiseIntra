@@ -1,6 +1,8 @@
 <?php
 include_once eiseIntraAbsolutePath."inc_item_traceable.php";
 
+$intra->requireComponent('batch');
+
 ///*
 try {
     $item = new eiseItemTraceable( $_GET['ID'], array('entID'=>($_POST['entID'] ? $_POST['entID'] : $_GET['entID'])) );
@@ -15,6 +17,8 @@ $intra->dataAction('undo', $item);
 $intra->dataAction('undoEdit', $item);
 $intra->dataAction('remove_acl', $item);
 $intra->dataAction('remove_stl', $item);
+$intra->dataAction('backup', $item);
+$intra->dataAction('restore', $item);
 
 $arrActions[]= Array ("title" => $intra->translate("Normal Edit Mode")
                , "action" => $item->conf['form'].'?'.$item->getURI()
@@ -31,6 +35,16 @@ if ($intra->arrUsrData['FlagWrite']) {
     $arrActions[]= Array ("title" => $intra->translate("Superaction!")
        , "action" => '#superaction'
        , "class"=> "ss_lightning_go bold"
+    );
+
+    $arrActions[]= Array ("title" => $intra->translate("Backup")
+       , "action" => '#backup'
+       , "class"=> "ss_script"
+    );
+
+    $arrActions[]= Array ("title" => $intra->translate("Restore")
+       , "action" => '#restore'
+       , "class"=> "ss_script"
     );
 
     $arrActions[]= Array ("title" => $intra->translate("Save")." ".$entItem->conf["entTitle{$intra->local}"]
@@ -90,6 +104,19 @@ a.remove:visited {
 </style>
 <script>
 $(document).ready(function(){
+    $('a[href="#backup"]').click(function(){
+        location.href = location.pathname+location.search+'&DataAction=backup&asFile=true';
+        return false;
+    })
+    $('a[href="#restore"]').click(function(){
+        $(this).eiseIntraForm('upload2batch', {
+            'DataAction': 'restore',
+            'fileFieldName': 'backup_file',
+            'allowedExts': 'json',
+            'action': location.pathname+location.search+'&fromBatch=true'
+        });
+        return false;
+    })
     $('a[href="#superaction"]').click(function(){
 
         var aStatuses = JSON.parse($('#aStatuses').val());
