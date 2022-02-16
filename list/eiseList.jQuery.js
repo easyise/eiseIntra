@@ -293,15 +293,19 @@ eiseList.prototype.setFilters = function(filtersToApply){
     var list = this
 
     $.each(filtersToApply, function(field, value){
+
+
         
         if(!field)
             return true // continue
 
-        var selectorInp = '[name='+field+']',
+        var selectorInp = '[name="'+field+'"]',
             $inp = list.form.find(selectorInp)
         if( $inp[0] ){
+
             if(list.checkFilterVisible(field,value)){
                 $inp.val(value)
+
                 if(value!='' && value!=$inp.val() && $inp[0].nodeName=='SELECT'){
                     $inp.append('<option value='+value+' selected>'+value)
                 }
@@ -331,8 +335,8 @@ eiseList.prototype.checkFilterVisible = function(field, value){
         flagFound = false
 
     // check visible fields
-    var $inp = list.form.find('[name='+field+']');
-    if ($inp[0] && $inp.attr('type') && $inp.attr('type').toLowerCase()!='hidden') return true
+    var $inp = list.form.find('[name="'+field+'"]');
+    if ($inp[0] && (($inp.attr('type') && $inp.attr('type').toLowerCase()!='hidden')  || $inp[0].nodeName=='SELECT')) return true
 
     // check location.search
     $.each(list._qs2obj( location.search.replace(/^\?/, '') ), function(f,v){

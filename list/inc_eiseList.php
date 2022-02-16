@@ -994,46 +994,58 @@ private function handleInput(){
         );
     $this->orderBy =  (isset($_GET[$this->name."OB"])
         ? $_GET[$this->name."OB"]
-        : $this->defaultOrderBy
+        : ($this->arrCookie['OB']
+            ? $this->arrCookie['OB']
+            : $this->defaultOrderBy
+            )
         );
     $this->sortOrder = (isset($_GET[$this->name."ASC_DESC"])
         ? $_GET[$this->name."ASC_DESC"]
-        : ($this->defaultSortOrder=="" 
-            ? (in_array($this->Columns[$this->orderBy]['type'], array('date', 'datetime ')) 
-                ? 'DESC'
-                : 'ASC'
-                )
-            : $this->defaultSortOrder )
+        : ($this->arrCookie["ASC_DESC"]
+            ? $this->arrCookie["ASC_DESC"]
+            : ($this->defaultSortOrder=="" 
+                ? (in_array($this->Columns[$this->orderBy]['type'], array('date', 'datetime ')) 
+                    ? 'DESC'
+                    : 'ASC'
+                    )
+                : $this->defaultSortOrder )
+            )
         );
     $this->sortOrderAlt = ($this->sortOrder=="ASC" ? "DESC" : "ASC");
 
     $this->arrCookieToSet["HiddenCols"] = $hiddenCols;
+    $this->arrCookieToSet["OB"] = $this->orderBy;
+    $this->arrCookieToSet["ASC_DESC"] = $this->sortOrder;
 
     $this->arrOrderByCols = Array();
 
     /* dealing with filters and order_field */
     $this->flagFiltersSet = $this->flagHasFilters = false;
 
-    foreach ($this->Columns as $i=>&$col){
+    $arrCookieFilter = [];
+
+    foreach ($this->Columns as $i=>$col){
         $this->arrOrderByCols[] = ($col["order_field"]!="" ? $col["order_field"] : $col["field"]);
         if ($col["filter"]) {
 
             foreach((array)$this->Tabs as $ix=>$tab){
                 if($tab['filter']==$col['filter']){
-                    $col['exactMatch'] = true;
-                    $col['tabsFilter'] = true;
+                    $this->Columns[$i]['exactMatch'] = true;
+                    $this->Columns[$i]['tabsFilter'] = true;
                     break;
                 }
             }
 
             if($this->conf['tabsFilterColumn']==$col['field']){
-                $col['exactMatch'] = true;
-                $col['tabsFilter'] = true;
+                $this->Columns[$i]['exactMatch'] = true;
+                $this->Columns[$i]['tabsFilter'] = true;
             }
 
-            if( ($filterValue = $this->getFilterValue($col['filter']))!=='' || ($col['exactMatch'] && !$col['tabsFilter']) ){
-                $col['filterValue'] = $filterValue;
+            $filterValue = $this->getFilterValue($col['filter']);
+            if( $filterValue !=='' || ($this->Columns[$i]['exactMatch'] && !$this->Columns[$i]['tabsFilter']) ){
+                $this->Columns[$i]['filterValue'] = $filterValue;
                 $this->flagFiltersSet = true;
+                // $arrCookieFilter[$col["filter"]] = $filterValue;
             }
 
             $this->flagHasFilters = true;
@@ -1041,8 +1053,13 @@ private function handleInput(){
         }
 
     }
-    
-    SetCookie($this->conf["cookieName"], serialize($this->arrCookieToSet), $this->conf["cookieExpire"], $_SERVER["PHP_SELF"]);
+
+    // die('<pre>'.var_export($arrCookieFilter, true));
+    // die('<pre>'.var_export(array_merge($this->arrCookieToSet, $arrCookieFilter), true));
+
+    $s_cookie_w_filter = serialize(array_merge($this->arrCookieToSet, $arrCookieFilter));
+
+    SetCookie($this->conf["cookieName"], (strlen($s_cookie_w_filter) >= 4094 ? serialize($this->arrCookieToSet) : $s_cookie_w_filter), $this->conf["cookieExpire"], $_SERVER["PHP_SELF"]);
 
     if ($this->flagExcel)
         $this->iMaxRows = 0;
@@ -1154,7 +1171,10 @@ public function getFilterValue( $field ){
     return (
         isset($_GET[$strColInputName]) 
             ? $_GET[$strColInputName] 
-            : null 
+            : ($this->arrCookie[$field]
+                ? $this->arrCookie[$field]
+                : '' 
+                )
             );
 
 }
@@ -1211,11 +1231,11 @@ private function composeSQL(){
                         $this->sqlFrom .= $sqlJoin;
                         $this->sqlFromAggregate.= $sqlJoin;
                         $sqlTextField = ($col['textField_intl']!=$col['textField'] && $col["type"]=="combobox"
-                            ? "CASE WHEN IFNULL({$col['tableAlias']}.{$col['textField']}, '')='' THEN {$col['tableAlias']}.{$col['textField_intl']} ELSE NULL END"
+                            ? "CASE WHEN IFNULL({$col['tableAlias']}.{$col['textField']}, '')='' THEN {$col['tableAlias']}.{$col['textField_intl']} ELSE {$col['tableAlias']}.{$col['textField_intl']} END"
                             : "{$col['tableAlias']}.{$col['textField']}" );
                     } else {
                         $text_field_full = ($col['textField_intl']!=$col['textField'] && $col["type"]=="combobox"
-                            ? "CASE WHEN IFNULL({$col['textField']}, '')='' THEN {$col['textField_intl']} ELSE NULL END"
+                            ? "CASE WHEN IFNULL({$col['textField']}, '')='' THEN {$col['textField_intl']} ELSE {$col['textField_intl']} END"
                             : "{$col['textField']}"
                             );
                         $sqlTextField = "(SELECT {$text_field_full} FROM `{$col["source"]}` WHERE {$col['idField']}="
