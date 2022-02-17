@@ -125,6 +125,7 @@ function __construct($oSQL, $strName, $arrConfig=Array()){
     $this->conf["dataSource"] = ($this->conf["dataSource"]!="" ? $this->conf["dataSource"] : $_SERVER["PHP_SELF"]);
     
     $this->conf["cookieName"] = (isset($this->conf["cookieName"]) ? $this->conf["cookieName"] : $this->name).self::cookieNameSuffix;
+    $this->conf["cookieName_filters"] = (isset($this->conf["cookieName_filters"]) ? $this->conf["cookieName_filters"] : $this->conf["cookieName"]);
 
 }
 

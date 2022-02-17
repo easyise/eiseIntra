@@ -402,7 +402,7 @@ eiseList.prototype._qs2obj = function(qs, options){
 eiseList.prototype.getFilters = function(){
     
     var list = this
-        , lsFiltersKey = this.conf.cookieName
+        , lsFiltersKey = this.conf.cookieName_filters
         , jsonFilters = localStorage[lsFiltersKey];
 
     return (jsonFilters ? JSON.parse(jsonFilters) : [list.filters_default])
@@ -441,7 +441,7 @@ eiseList.prototype.saveFilters = function(){
         filters[0].filters[oActiveTab.field] = oActiveTab.value
     filters[ixFilter].filters = oFilters
 
-    localStorage[this.conf.cookieName] = JSON.stringify(filters)
+    localStorage[this.conf.cookieName_filters] = JSON.stringify(filters)
 
 }
 
@@ -1287,8 +1287,11 @@ eiseList.prototype.reset = function (ev, options){
     if(options.reloadPage)
         list.conf.doNotSubmitForm = false;
 
-    if(options.clearAllStorage)
+    if(options.clearAllStorage){
         localStorage.removeItem(list.conf.cookieName)
+        localStorage.removeItem(list.conf.cookieName+'_column_order')
+        localStorage.removeItem(list.conf.cookieName_filters)
+    }
 
     list.form[0].submit();
       
