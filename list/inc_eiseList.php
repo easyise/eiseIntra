@@ -986,7 +986,7 @@ private function handleInput(){
     $this->getSession();
 
     $hiddenCols = (isset($_GET[$this->name."HiddenCols"]) ? $_GET[$this->name."HiddenCols"] : $this->arrCookie["HiddenCols"]);
-    //print_r($hiddenCols);
+    // print_r($hiddenCols);die();
     $this->arrHiddenCols = explode(",", $hiddenCols);
     $this->iMaxRows = (int)(isset($_GET[$this->name."MaxRows"])
            ? $_GET[$this->name."MaxRows"]

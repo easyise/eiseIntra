@@ -174,11 +174,11 @@ function eiseList(divEiseList){
         $td_prev = $td;
         if(list.tfoot_tr[0]){
 
-            if($th[0].dataset['aggregate']){
+            if($th[0] && $th[0].dataset['aggregate']){
                 if(!flagAggregates){
                     list.tfoot_tr.html('');
                     list.tfoot_tr.append('<td colspan="'+( i )+'">&nbsp;</td>');
-                    list.tfoot_tr.append('<td class="'+$td.attr('class')+'">qqhaha</td>');
+                    list.tfoot_tr.append('<td class="'+$td.attr('class')+'">&nbsp;</td>');
                     flagAggregates = true;
                     continue;
                 } else {
