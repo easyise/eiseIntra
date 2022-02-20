@@ -2619,9 +2619,26 @@ function dataAction($dataAction, $funcOrObj=null){
     }
 
 }
-function cancelDataAction(&$nd=null){
-    unset($nd[$this->conf['dataActionKey']]);
-    unset($_POST[$this->conf['dataActionKey']]);
+function cancelDataAction( &$nd = null, $flagRestore = false){
+    
+    static $dataAction;
+
+    if ($dataAction===null){
+        $dataAction = $nd[$this->conf['dataActionKey']] ? $nd[$this->conf['dataActionKey']] : $_POST[$this->conf['dataActionKey']];
+    }
+
+    if($nd!==null)
+        unset($nd[$this->conf['dataActionKey']]);
+    
+    if(!$flagRestore)
+        unset($_POST[$this->conf['dataActionKey']]);
+    else 
+        if ($dataAction!==null){
+            if($nd!==null)
+                $nd[$this->conf['dataActionKey']] = $dataAction;
+            $_POST[$this->conf['dataActionKey']] = $dataAction;
+        }
+
 }
 
 /**

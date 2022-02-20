@@ -1694,7 +1694,9 @@ adjustFieldsetHeights: function(ixStart, ixFinish){
 
 upload2batch: function( options ){
     
-    var defaultOptions = {'maxFileSize': 100000000},
+    var defaultOptions = {'maxFileSize': 100000000, 
+            'target': 'batch', 
+            },
         title = $(this).text(),
         fields = [{name: 'DataAction'
                 , type: 'hidden'
@@ -1745,14 +1747,24 @@ upload2batch: function( options ){
                         .addClass('btn_spinner')
                         .prop('disabled', true);
 
-                    $form.eiseIntraBatch('submit', {
-                        timeoutTillAutoClose: null
-                        , flagAutoReload: true
-                        , title: title
-                        , onload: function(){
-                            $dialog.dialog('close').remove();
-                        }
-                    });
+                    if(options['target']==='batch'){
+                        $form.eiseIntraBatch('submit', {
+                            timeoutTillAutoClose: null
+                            , flagAutoReload: true
+                            , title: title
+                            , onload: function(){
+                                $dialog.dialog('close').remove();
+                            }
+                        });
+                    } else {
+                        $form.prop('target', options['target']);
+                        // console.log('qq')
+                        // $form.submit();
+
+                        window.setTimeout(function(){ $dialog.dialog('close'); }, 3000);
+                        return true;
+                        
+                    }
 
                 }
 
