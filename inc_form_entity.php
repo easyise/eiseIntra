@@ -113,7 +113,7 @@ if($easyAdmin){
             'title' => $intra->translate("Title")
             , 'field' => "atrTitle{$strLocal}"
             , 'type' => "text"
-            , 'width' => "30%"
+            , 'width' => "100%"
             , 'href' => ($flagEiseIntra ? "attribute_form.php?dbName=$dbName&atrID=[atrID]&atrEntityID=$entID" : null)
     );
 if($flagEiseIntra)
@@ -156,7 +156,7 @@ $gridATR->Columns[] = Array(
         , 'arrValues' => $arrAvailableTypes
         , 'defaultText' => '-'
         , 'default' => "text"
-        , "width" => "55px"
+        , "width" => "100px"
 );
 if($oSQL->d("SHOW TABLES LIKE 'stbl_uom'"))
 $gridATR->Columns[] = Array(
@@ -176,7 +176,7 @@ if ($easyAdmin) {
         'title' => $intra->translate("Def")
         , 'field' => "atrDefault"
         , 'type' => "text"
-        , 'width' => '60px'
+        , 'width' => '80px'
     );
     /*
     $gridATR->Columns[] = Array(
@@ -196,7 +196,7 @@ if ($easyAdmin) {
             'title' => $intra->translate("Prg")
             , 'field' => "atrProgrammerReserved"
             , 'type' => "text"
-            , 'width' => ($flagEiseIntra ? '25px' : '80px')
+            , 'width' => '80px'
     );
     /*
     $gridATR->Columns[] = Array(
