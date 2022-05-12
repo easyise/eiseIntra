@@ -58,7 +58,7 @@ $intra->loadCSS();
 $intra->loadJS();
 ?>
 </head>
-<body data-conf="<?php  echo htmlspecialchars(json_encode($intra->conf)) ; ?>">
+<body class="form-login" data-conf="<?php  echo htmlspecialchars(json_encode($intra->conf)) ; ?>">
 
 <?php
 $arrUsr = explode("[\\]", $AUTH_USER);
@@ -98,12 +98,12 @@ $(document).ready(function(){
 
 <div style="margin: 0 auto;width:33%">
 
-<h1 style="text-align: center;">Welcome to <?php  echo $title ; ?></h1>
+<h1>Welcome to <?php  echo $title ; ?></h1>
 
 <?php 
 if ($_GET["error"]){
 ?>
-<div class="eiseIntraError" style="text-align: center;width: 66%;margin: 0 auto;">ERROR: <?php  echo $_GET["error"] ; ?></div>
+<div class="eiseIntraError" style="text-align: center; margin-left: auto; margin-right: auto; margin-top: 30px; text-align: left; padding-left: 30px;">ERROR: <?php  echo $_GET["error"] ; ?></div>
 <?php
 }
  ?>
@@ -113,31 +113,19 @@ if ($_GET["error"]){
 <fieldset class="eiseIntraMainForm">
 
 <?php 
-if ($flagShowHost) {?>
-<div>
-   <label class="eiseIntraField">Host:</label>
-   <input type="text" id="host" name="host" value="" class="eiseIntraValue">
-</div>
-<?php
-}
+if ($flagShowHost) 
+    echo $intra->field('Host', 'host', '');
+
+echo $intra->field('Login', 'login', $_COOKIE["last_succesfull_usrID"], ['FlagWrite'=>true]);
+echo $intra->field('Password', 'password', '', ['FlagWrite'=>true, 'type'=>'password']);
+
+$login_info = "Please enter your <strong>".($binding ? "Windows" : "database")."</strong> login/password.";
+
+echo $intra->field('', null, $intra->showButton('btnsubmit'
+        , $intra->translate("Login"), ['type'=>'submit', 'FlagWrite'=>true]).'<br>'.$login_info
+        , ['id'=>'div-login'])
+
 ?>
-<div class="eiseIntraField">
-	<label>Login:</label>
-	<input type="text" id="login" name="login" value="<?php echo $_COOKIE["last_succesfull_usrID"] ; ?>" class="eiseIntraValue">
-</div>
-
-<div class="eiseIntraField">
-	<label>Password:</label>
-	<input type="password" id="password" name="password" value="" class="eiseIntraValue">
-</div>
-
-<div class="eiseIntraField">
-	<label>&nbsp;</label>
-	<input type="submit" id="btnsubmit" name="btnsubmit" class="eiseIntraSubmit" value="<?php  echo $intra->translate("Login") ; ?>">
-</div>
-
-<div><label>&nbsp;</label><div>Please enter your <strong><?php echo ($binding ? "Windows" : "database"); ?></strong> login/password.</div>
-</div>
 
 </fieldset>
 </form>

@@ -594,6 +594,43 @@ td     {  	vertical-align: top; padding: 0;}
 /* /Menubar stuff                                                   */
 /********************************************************************/
 
+
+.form-login {
+    & h1 {
+        font-size: 2em;
+        margin-bottom: -25px; 
+        text-transform: uppercase;
+    }
+    & .eif-field {
+        &:first-of-type {
+            margin-top: 0.67em;
+        }
+
+        margin-bottom: 0.2em;
+        & label  {
+            &:after {
+                content: ':'
+            }
+            font-size: 1em;
+        }
+        & input {
+            heigth: 1.1em;
+            font-size: 1em;   
+        }
+    }
+
+    & #div-login {
+        text-align: center; 
+
+        & input, button {
+            font-size: 1.3em;
+            width: 33%;
+            margin: 0.67em 0;
+        } 
+    }
+}
+
+
 /********************************************************************/
 .eiseIntraForm  fieldset
 ,  .eif-fieldset {
