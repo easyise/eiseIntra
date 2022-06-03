@@ -1775,7 +1775,7 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
                     $ds = @json_decode($conf['source'], true);
                     if(!$ds){
                         if(!$conf['source'])
-                            throw new Exception("Source for column {$name} not specified.", 1);
+                            throw new Exception("Source for column {$name} not specified ({$conf['source']}).", 1);
                         try {
                             @eval('$ds = '.$conf['source'].';');
                         } catch (ParseError $e) {}

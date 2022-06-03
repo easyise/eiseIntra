@@ -1637,8 +1637,8 @@ function getAttributeFields($fields, $item = null, $conf = array()){
             );
 
         if(in_array($atr['atrType'], array('combobox', 'select', 'ajax_dropdown')) ) { 
-            
-                if (preg_match("/^(svw|vw|tbl)_/", $atr["atrDataSource"]) ) {
+                
+                if (preg_match("/^(svw_|vw_|tbl_|\[|\{)/", $atr["atrDataSource"]) ) {
                     $options['source'] = $atr["atrDataSource"];
                 } else if (preg_match("/^Array/i", $atr["atrProgrammerReserved"])){
                     eval ("\$options['source']={$atr["atrProgrammerReserved"]};");
