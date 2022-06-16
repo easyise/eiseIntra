@@ -6,6 +6,8 @@
  * @requires jquery
  */
 
+
+
 var eiseTable2Excel_scripts = document.getElementsByTagName("script"),
     eiseTable2Excel_src = eiseTable2Excel_scripts[eiseTable2Excel_scripts.length-1].src;
 
