@@ -1093,8 +1093,8 @@ eiseList.prototype.handleScroll = function(){
     var windowHeight = list.divTable.outerHeight(true);
     
     var nCells = 4 * Math.ceil(windowHeight/cellHeight);
-    
-    if (list.divTable[0].scrollHeight - windowHeight <= list.divTable.scrollTop() 
+
+    if (list.divTable[0].scrollHeight - windowHeight - list.thead.outerHeight(true) <= list.divTable.scrollTop() 
         && (list.nTotalRows===null ? true : list.currentOffset<list.nTotalRows)){
         
         list.getData(list.currentOffset, nCells);
