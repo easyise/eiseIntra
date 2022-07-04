@@ -1687,7 +1687,7 @@ public function arrActionButtons(){
 
             if ($this->id) {
                 try {
-                    $act = new eiseAction($this, $rwAct, array('flagDoNoRefresh'=>true));
+                    $act = new eiseAction($this, $rwAct, array('flagDoNotRefresh'=>true));
                     $act->checkPermissions();
                 } catch (Exception $e) {
                     continue;
