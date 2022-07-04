@@ -2994,7 +2994,7 @@ static function debug($to_echo){
         foreach($a as $num=>$debug_data){
             echo "#{$num} ".($debug_data['class'] ? $debug_data['class'].'::' : '')
                            #.($debug_data['object'] ? $debug_data['object'].'->' : '')
-                           .$debug_data['function'].'( '.($debug_data['args'] ? var_export($debug_data['args'], true) : '').' ) '
+                           .$debug_data['function'].'( '.(/*$debug_data['args']*/false ? var_export($debug_data['args'], true) : '').' ) '
                            ."called at [{$debug_data['file']}:{$debug_data['line']}]\n";
         }
 
