@@ -712,7 +712,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
         $cell['disabled'] = (is_string($cell['disabled']) ? 0 : $cell['disabled']) ;
         $cell['href'] = "" ;
     } else // calculate row-dependent options: class, static/disabled, or href 
-        foreach(array('class', 'static', 'readonly', 'source', 'extra', 'placeholder', 'href') as $prop){
+        foreach(array('class', 'static', 'readonly', 'source', 'extra', 'placeholder', 'href', 'disabled') as $prop){
             foreach($this->Rows[$ixRow] as $rowKey=>$rowValue){
                 if(!isset($cell[$prop]))
                     continue;
