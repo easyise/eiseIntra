@@ -403,6 +403,30 @@ init: function( options ) {
                     .eiseIntraAJAX('fillTable', location.pathname+location.search+"&DataAction=getFiles");  
                 return false; 
             });
+        $('a[href="#ei_get_whos_next"]').click( function(ev) { 
+
+                var $initiator = $(this);
+                $.get(location.pathname+location.search+'&DataAction=get_whos_next', function(response){
+                    $(response).dialog({
+                        title: $initiator.text(),
+                        close: function(){
+                            $(this).remove();
+                        },
+                        position: {
+                            my: "left top",
+                            at: 'left top',
+                            of: $initiator
+                          },
+                        width: 'auto',
+                        height: 'auto',
+                        modal: false,
+                        buttons: [{text: 'Ok', click: function(){
+                            $(this).dialog('close').remove();
+                        }}]
+                    });
+                })  
+                return false; 
+            });
 
         /********** initialize Start/Finish/Cancel buttons ***********/
         $this.find(".eiseIntraActionButton").bind("click", function(){
