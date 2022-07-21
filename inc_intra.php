@@ -1671,16 +1671,23 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
     if(in_array($conf['type'], array('row_id', 'hidden')) )
         return '<input type="hidden" name="'.$name.'" id="'.$name.'" value="'.htmlspecialchars($value).'">'."\r\n";
 
-    if($conf['href'] && $name){
-        $vals = (is_array($val_in) ? $val_in : array($name=>$val_in));
-        foreach ($vals as $field => $fieldVal) {
-            if(is_array($fieldVal))
-                continue;
-            $conf['href'] = preg_replace('/\['.preg_quote($field, '/').'\]/', $fieldVal, $conf['href']);    
+
+    if($name){
+        foreach(['href', 'extra'] as $opts_key){
+            if($conf[$opts_key] && $name){
+                $vals = (is_array($val_in) ? $val_in : array($name=>$val_in));
+                foreach ($vals as $field => $fieldVal) {
+                    if(is_array($fieldVal))
+                        continue;
+                    $conf[$opts_key] = preg_replace('/\['.preg_quote($field, '/').'\]/', $fieldVal, $conf[$opts_key]);    
+                }
+                if(preg_match('/\[[a-z0-9\-\_]+\]/', $conf[$opts_key]))
+                    $conf[$opts_key] = '';
+            }
         }
-        if(preg_match('/\[[a-z0-9\-\_]+\]/', $conf['href']))
-            $conf['href'] = '';
+        
     }
+    
 
     $html = '';
 
