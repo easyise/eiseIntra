@@ -277,6 +277,8 @@ switch($DataAction){
         $sqlUpd = "UPDATE stbl_action SET
             actTitle = ".$oSQL->escape_string($_POST['actTitle'])."
             , actTitleLocal = ".$oSQL->escape_string($_POST['actTitleLocal'])."
+            , actButtonClass = ".$oSQL->escape_string($_POST['actButtonClass'])."
+            , actPriority = ".(int)($_POST['actPriority'])."
             , actTitlePast = ".$oSQL->escape_string($_POST['actTitlePast'])."
             , actTitlePastLocal = ".$oSQL->escape_string($_POST['actTitlePastLocal'])."
             , actOldStatusID = ".($_POST['atsOldStatusID'][1] ? $oSQL->escape_string($_POST['atsOldStatusID'][1]) : 'NULL')."
@@ -294,6 +296,7 @@ switch($DataAction){
             , actFlagMultiple = '".($_POST['actFlagMultiple']=='on' ? 1 : 0)."'
             , actFlagNot4Editor = '".($_POST['actFlagNot4Editor']=='on' ? 1 : 0)."'
             , actFlagNot4Creator = '".($_POST['actFlagNot4Creator']=='on' ? 1 : 0)."'
+            , actFlagSystem = '".($_POST['actFlagSystem']=='on' ? 1 : 0)."'
             , actFlagDeleted = '".($_POST['actFlagDeleted']=='on' ? 1 : 0)."'
             , actEditBy = '$usrID', actEditDate = NOW()
             WHERE actID = '".$_POST['actID']."'";
@@ -571,9 +574,22 @@ echo $intra->field($intra->translate("Not for creator?"), 'actFlagNot4Creator', 
 echo $intra->field($intra->translate("Not for last editor?"), 'actFlagNot4Editor', $rwAct, array('type'=>'checkbox'));
 
  ?>
+<hr>
+
+<div class="eiseIntraField"><label><?php echo $intra->translate("CSS Class") ?>:</label>
+<?php  echo $intra->showTextBox("actButtonClass", $rwAct["actButtonClass"]) ; ?>
+</div>
+<div class="eiseIntraField"><label><?php echo $intra->translate("Priority") ?>:</label>
+<?php  echo $intra->showTextBox("actPriority", $rwAct["actPriority"]) ; ?>
+</div>
+
 
 <hr>
 
+
+<div class="eiseIntraField"><label><?php echo $intra->translate("System?") ?>:</label>
+<?php  echo $intra->showCheckBox("actFlagSystem", $rwAct["actFlagSystem"]) ; ?>
+</div>
 <div class="eiseIntraField"><label><?php echo $intra->translate("Deleted?") ?>:</label>
 <?php  echo $intra->showCheckBox("actFlagDeleted", $rwAct["actFlagDeleted"]) ; ?>
 </div>
