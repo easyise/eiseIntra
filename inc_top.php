@@ -4,7 +4,9 @@ $intra->requireComponent('simpleTree');
 <html>
 <head>
 	<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
-    <title><?php echo ($title ? $title : $intra->arrUsrData["pagTitle{$intra->local}"]); ?></title>
+    <title><?php echo ($pageTitle ? $pageTitle 
+        : ($title ? $title : $intra->arrUsrData["pagTitle{$intra->local}"])
+        ); ?></title>
 <?php 
 $intra->loadCSS();
 $intra->loadJS();

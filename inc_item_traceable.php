@@ -87,8 +87,12 @@ public function __construct($id = null,  $conf = array() ){
 
     $this->conf['attr_types'] = array_merge($this->table['columns_types'], $this->conf['attr_types']);
 
-    $this->intra->dataRead(array('getActionLog', 'getActionDetails', 'getFiles', 'getFile', 'getMessages','sendMessage'), $this);
-    $this->intra->dataAction(array('insert', 'update', 'updateMultiple', 'delete', 'attachFile', 'deleteFile'), $this);
+    $a_reads = array_diff(['getActionLog', 'getActionDetails', 'getFiles', 'getFile', 'getMessages','sendMessage']
+        , (array)$conf['aExcludeReads']);
+    $a_actions = array_diff(['insert', 'update', 'updateMultiple', 'delete', 'attachFile', 'deleteFile'], (array)$conf['aExcludeActions']);
+
+    $this->intra->dataRead($a_reads, $this);
+    $this->intra->dataAction($a_actions , $this);
 
 }
 
@@ -614,7 +618,7 @@ private function init(){
             AND IFNULL(ORIG.staFlagDeleted,0)=0
             AND IFNULL(DEST.staFlagDeleted,0)=0
             ) OR actEntityID IS NULL
-        ORDER BY atsOldStatusID, actPriority";
+        ORDER BY atsOldStatusID, actPriority DESC, actNewStatusID";
     $rsATS = $oSQL->q($sqlATS);
     while($rwATS = $oSQL->f($rsATS)){
         $this->conf['ACT'][$rwATS['atsActionID']]['aclOldStatusID'] = (isset($this->conf['ACT'][$rwATS['atsActionID']]['aclOldStatusID']) ? $this->conf['ACT'][$rwATS['atsActionID']]['aclOldStatusID'] : $rwATS['atsOldStatusID']);
@@ -2247,7 +2251,7 @@ public function getWhosNextStatus($staID, $counter){
 
     $defaultActID = null;
     $nextBiggerStatus = max(array_keys($this->conf['STA']));
-    foreach ($sta['ACT'] as $act){
+    foreach ((array)$sta['ACT'] as $act){
         if($act['actNewStatusID'][0]===null || $act['actNewStatusID'][0]==$staID)
             continue;
         if($act['actNewStatusID'][0]>$staID && $act['actNewStatusID'][0] < $nextBiggerStatus){
@@ -2257,7 +2261,7 @@ public function getWhosNextStatus($staID, $counter){
     }
 
     $html .= '<ul class="actions">';
-    foreach ($sta['ACT'] as $act) {
+    foreach ((array)$sta['ACT'] as $act) {
         if($act['actNewStatusID'][0]==$staID)
             continue;
         $classes = ($defaultActID==$actID ? ' default' : '');
@@ -2318,11 +2322,11 @@ public function getWhosNextStatus($staID, $counter){
             $html .= $htmlUserList;
             $html .= '<li class="roles">';
             $htmlRoleList = '';
-            foreach ($act['RLA_tiers'] as $rolID => $tier) {
+            foreach ((array)$act['RLA_tiers'] as $rolID => $tier) {
                 if(!$this->conf['Roles'][$rolID]['rolFlagVirtual']) {
                     $htmlRoleList .= ($htmlRoleList ? ', </span>' : '').'<span class="role-info">'.$this->conf['Roles'][$rolID]['rolTitle'.$this->intra->local];
                 } else {
-                    $rolIDs_original = array_unique($aVirtualRoles[$rolID]);
+                    $rolIDs_original = array_unique((array)$aVirtualRoles[$rolID]);
                     foreach ($rolIDs_original as $rolID_original) {
                         $htmlRoleList .= ($htmlRoleList ? ', </span>' : '').'<span class="role-info">'
                             .($rolID_original 
