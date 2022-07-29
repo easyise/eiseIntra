@@ -657,6 +657,8 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
                 , "orderField" => "{$strPrefix}Order"
                 , "delField" => "{$strPrefix}FlagDeleted"
                 , "classField" => "{$strPrefix}Class"
+                , "groupField" => "{$strPrefix}Group"
+                , "groupFieldLocal" => "{$strPrefix}GroupLocal"
                 , "extraField" => "{$strPrefix}Extra"
                 , "dataField" => "{$strPrefix}Data"
                 );
@@ -668,6 +670,8 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
                 , "orderField" => "optOrder"
                 , "delField" => "optFlagDeleted"
                 , "classField" => "optClass"
+                , "groupField" => "optGroup"
+                , "groupFieldLocal" => "optGroupLocal"
                 , "extraField" => "extra"
                 , "dataField" => "data"
             );
@@ -698,6 +702,15 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
              ".(isset($arrFields['dataField']) 
                 ? ", {$arrFields["dataField"]} as optData"
                 : '')."
+            ".(isset($arrFields['groupField'])
+                ? (($this->local && isset($arrFields['groupFieldLocal']))
+                    ? ", (CASE WHEN IFNULL(`{$arrFields["groupField{$this->local}"]}`, '')='' 
+                        THEN `".$arrFields["groupField"]."` 
+                        ELSE `".$arrFields["groupField{$this->local}"]."`
+                        END)" 
+                    : ", `".$arrFields['groupField']."`")
+                    ." as optGroup"
+                : '')." 
         FROM `{$strTable}`";
     
     if ($strValue!=""){ // key-based search

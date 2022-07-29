@@ -1815,7 +1815,10 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
                     $opts = Array();
                     $optsData = Array();
                     while($rwCMB = $oSQL->f($rsCMB)){
-                        $opts[$rwCMB["optValue"]]=$rwCMB["optText"];
+                        if(isset($rwCMB['optGroup']))
+                            $opts[$rwCMB['optGroup']][$rwCMB["optValue"]]=$rwCMB["optText"];
+                        else
+                            $opts[$rwCMB["optValue"]]=$rwCMB["optText"];
                         if(isset($rwCMB['optData']))
                             $optsData[$rwCMB["optValue"]]=$rwCMB["optData"];
                     }
