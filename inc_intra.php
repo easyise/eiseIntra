@@ -2244,6 +2244,7 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
 
     } else {
         
+        $arrOptions = new RecursiveIteratorIterator(new RecursiveArrayIterator($arrOptions));
         foreach ($arrOptions as $key => $value){
             if ((string)$key==(string)$strValue) {
                $valToShow = $value;
