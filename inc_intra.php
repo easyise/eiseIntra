@@ -1839,7 +1839,10 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
                     $opts = Array();
                     $optsData = Array();
                     while($rwCMB = $oSQL->f($rsCMB)){
-                        $opts[$rwCMB["optValue"]]=$rwCMB["optText"];
+                        if(isset($rwCMB['optGroup']))
+                            $opts[$rwCMB['optGroup']][$rwCMB["optValue"]]=$rwCMB["optText"];
+                        else
+                            $opts[$rwCMB["optValue"]]=$rwCMB["optText"];
                         if(isset($rwCMB['optData']))
                             $optsData[$rwCMB["optValue"]]=$rwCMB["optData"];
                     }
@@ -2258,6 +2261,7 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
 
     } else {
         
+        $arrOptions = new RecursiveIteratorIterator(new RecursiveArrayIterator($arrOptions));
         foreach ($arrOptions as $key => $value){
             if ((string)$key==(string)$strValue) {
                $valToShow = $value;
