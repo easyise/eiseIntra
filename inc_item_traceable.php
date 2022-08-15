@@ -2260,7 +2260,10 @@ public function getWhosNextStatus($staID, $counter){
         }
     }
 
+    $html .= '<div class="status-description">'.$sta['staDescription'.$this->intra->local].'</div>';
+
     $html .= '<ul class="actions">';
+    // $html .= '<pre>'.var_export((array)$sta['ACT'], true).'</pre>';
     foreach ((array)$sta['ACT'] as $act) {
         if($act['actNewStatusID'][0]==$staID)
             continue;
