@@ -518,6 +518,8 @@ function session_initialize(){
  */
 function logout(){
 
+    GLOBAL $_DEBUG;
+
     session_set_cookie_params(0, $this->conf['cookiePath']);
 
     session_start();
@@ -534,6 +536,22 @@ function logout(){
     session_destroy();
 
     SetCookie("last_succesfull_usrID", $this->usrID, $this->conf['cookieExpire'], $this->conf['cookiePath']);
+
+    $prj_dir = str_replace('/login.php', '', $_SERVER['PHP_SELF']);
+    if( $prj_dir !== $_SERVER['PHP_SELF']
+        && !(isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+        && ( $_SERVER['HTTP_REFERER'] && preg_match('/^'.preg_quote($prj_dir, '/').'/', parse_url($_SERVER['HTTP_REFERER'], PHP_URL_PATH)) )
+        && $_DEBUG
+        ){
+
+        $PageNoAuth = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_PATH).(parse_url($_SERVER['HTTP_REFERER'], PHP_URL_QUERY)!="" 
+                ? "?".parse_url($_SERVER['HTTP_REFERER'], PHP_URL_QUERY) 
+                : '');
+        SetCookie("PageNoAuth", $PageNoAuth);
+
+    }
+
+    
 
 }
 
@@ -568,12 +586,11 @@ function getUserRoles($usrID = null) {
         OR rolFlagDefault=1";
     $rs = $this->oSQL->q($sql);
     while ($rw = $this->oSQL->f($rs)){
-        $arrRet[(string)$rw['id']] = $rw['title'];
-    }
-
-    if(!$usrID_src){
-        $this->arrUsrData['roleIDs'] = array_keys($arrRet);
-        $this->arrUsrData['roles'] = array_values($arrRet);
+        $arrRet[(string)$rw['id']] = (string)$rw['title'];
+        if(!$usrID_src){
+            $this->arrUsrData['roleIDs'][] = (string)$rw['id'];
+            $this->arrUsrData['roles'][] = (string)$rw['title'];
+        }
     }
 
     return $arrRet;
