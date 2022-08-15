@@ -194,7 +194,12 @@ function dumpTable ($tableName, $tableOptions){
 
     $oSQL = $this->oSQL;
 
-    $tableInfo = $oSQL->getTableInfo($tableName);
+    try {
+        $tableInfo = $oSQL->getTableInfo($tableName);
+    } catch (Exception $e) {
+        return "\n/* Warning: table '{$tableName}' could not be dumped because of error: ".$e->getMessage()." */\n";
+    }
+    
 
     $crlf = $tableOptions['crlf'];
     $strDump = '';
@@ -202,6 +207,7 @@ function dumpTable ($tableName, $tableOptions){
     // recognize is it table or view or hell knows what it is
     $sqlKind = "SHOW FULL TABLES LIKE '{$tableName}'";
     $rsKind = $oSQL->q($sqlKind);
+
     $rwKind = $oSQL->f($rsKind);
     switch($rwKind['Table_type']){
 

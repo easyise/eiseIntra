@@ -28,6 +28,8 @@ switch($DataAction){
             , staTrackPrecision = ".$oSQL->escape_string($_POST['staTrackPrecision'])."
             , staFlagCanUpdate = '".($_POST['staFlagCanUpdate']=='on' ? 1 : 0)."'
             , staFlagCanDelete = '".($_POST['staFlagCanDelete']=='on' ? 1 : 0)."'
+            ".(isset($ffSta['staDescription']) ? ', staDescription='.$oSQL->e($_POST['staDescription']) : '')."
+            ".(isset($ffSta['staDescriptionLocal']) ? ', staDescriptionLocal='.$oSQL->e($_POST['staDescriptionLocal']) : '')."
             ".(isset($ffSta['staMenuItemClass']) ? ', staMenuItemClass='.$oSQL->e($_POST['staMenuItemClass']) : '')."
 			  , staFlagDeleted = '".($_POST['staFlagDeleted']=='on' ? 1 : 0)."'
             , staEditBy = '$usrID', staEditDate = NOW()
@@ -138,12 +140,19 @@ $(document).ready(function(){
 
 <?php echo $intra->field($intra->translate('ID'), 'staID', $rwSta); ?>
 
-<div class="eiseIntraField"><label><?php echo $intra->translate("Title") ?>:</label>
+<div class="eiseIntraField"><label><?php echo $intra->translate("Title (Eng.)") ?>:</label>
 <?php  echo $intra->showTextBox("staTitle", $rwSta["staTitle"]) ; ?>
 </div>
 
-<div class="eiseIntraField"><label><?php echo $intra->translate("Title Local") ?>:</label>
+<div class="eiseIntraField"><label><?php echo $intra->translate("Title") ?>:</label>
 <?php  echo $intra->showTextBox("staTitleLocal", $rwSta["staTitleLocal"]) ; ?>
+</div>
+
+<div class="eiseIntraField"><label><?php echo $intra->translate("Description (Eng.)") ?>:</label>
+<?php  echo $intra->showTextArea("staDescription", $rwSta["staDescription"]) ; ?>
+</div>
+<div class="eiseIntraField"><label><?php echo $intra->translate("Description") ?>:</label>
+<?php  echo $intra->showTextArea("staDescriptionLocal", $rwSta["staDescriptionLocal"]) ; ?>
 </div>
 
 <?php echo (isset($ffSta['staMenuItemClass']) 
