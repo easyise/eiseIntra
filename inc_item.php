@@ -740,10 +740,18 @@ static function sendMessages($conf){
 
             $rwUsr_From = $intra->getUserData_All($rwMsg['msgFromUserID'], 'all');
             $arrAuth = array();
-            if($conf['authenticate']){
-                $arrAuth['login'] = ($conf['authenticate']=='email'
-                    ? $rwUsr_From['usrEmail']
-                    : $rwUsr_From['usrID'] );
+            switch($conf['authenticate']){
+                case 'email':
+                    $arrAuth['login'] = $rwUsr_From['usrEmail'];
+                    break;
+                case 'onbehalf':
+                    $arrAuth['login'] = $conf['login'];
+                    $rwMsg['msgPassword'] = $conf['password'];
+                    break;
+                default:
+                    $arrAuth['login'] = $rwUsr_From['usrID'] ;
+                    break;
+                
             }
             $username = $rwMsg['msgFromUserID'];
             $senders[$rwMsg['msgFromUserID']]  = new eiseMail(array_merge($conf, $arrAuth));
@@ -759,14 +767,14 @@ static function sendMessages($conf){
         	$rwMsg = array_merge($rwMsg, $metadata);
         }
 
-        if( $conf['login']){
-            $dd = 'acme.com';
-            $a1 = imap_rfc822_parse_adrlist($conf['login'], $dd);
-            $a2 = imap_rfc822_parse_adrlist($rwUsr_From['usrID'], $dd);
-            $o1 = $a1[0]; $o2 = $a2[0];
-            if(strtolower($o1->mailbox)!=strtolower($o2->mailbox))
-                continue;
-        } 
+        // if( $conf['login']){
+        //     $dd = 'acme.com';
+        //     $a1 = imap_rfc822_parse_adrlist($conf['login'], $dd);
+        //     $a2 = imap_rfc822_parse_adrlist($rwUsr_From['usrID'], $dd);
+        //     $o1 = $a1[0]; $o2 = $a2[0];
+        //     if(strtolower($o1->mailbox)!=strtolower($o2->mailbox))
+        //         continue;
+        // } 
 
         $msg = array('From'=> ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : '')
             , 'To' => ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\"  <".$rwUsr_To['usrEmail'].">" : '')
@@ -784,15 +792,18 @@ static function sendMessages($conf){
 
     }
 
-    foreach($senders as $user=>$sender){
+    foreach((array)$senders as $user=>$sender){
 
         if($conf['authenticate'] && !$sender->conf['password']){
-            foreach($sender->arrMessages as &$msg){
-                $msg['error'] = 'No password';
+            foreach($sender->arrMessages as $ix=>$msg){
+                $sender->arrMessages[$ix]['error'] = 'No password';
                 $arrMessages[] = $msg;    
             }
             continue;
         }
+
+        // echo '<pre>'.var_export($sender->arrMessages, true);
+        // die();
 
         try {
             $sentMessages = $sender->send();
@@ -802,6 +813,7 @@ static function sendMessages($conf){
             $arrMessages = array_merge($arrMessages, $e->getMessages());
         }
     }
+
 
     foreach((array)$arrMessages as $msg){
         $sqlMarkSent = "UPDATE stbl_message SET msgSendDate=".($msg['send_time'] ? "'".date('Y-m-d H:i:s', $msg['send_time'])."'" : 'NULL' )."
