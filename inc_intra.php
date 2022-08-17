@@ -578,6 +578,8 @@ function getUserRoles($usrID = null) {
         $usrID = $this->usrID;
 
     $arrRet = array();
+    $this->arrUsrData['roleIDs'] = [];
+    $this->arrUsrData['roles'] = [];
 
     $sql = "SELECT rolID as id, rolTitle{$this->local} as title
        FROM stbl_role ROL
