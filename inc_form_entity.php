@@ -744,7 +744,7 @@ $flagActionStatus
   "
   )."
  FROM stbl_action ".$roleJoins." 
- WHERE actEntityID='$entID' ORDER BY minStaID".($flagEiseIntra ? ', actPriority' : '');
+ WHERE actEntityID='$entID' ORDER BY actFlagDeleted, minStaID".($flagEiseIntra ? ', actPriority' : '');
 $rsAct = $oSQL->do_query($sqlAct);
 while ($rwAct = $oSQL->fetch_array($rsAct)){
     $rwAct['actID_'] = $rwAct['actID'];
