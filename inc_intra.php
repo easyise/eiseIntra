@@ -196,8 +196,11 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
 
                 switch($e->getCode()){
                     case 401:
-                        SetCookie("PageNoAuth", $_SERVER["PHP_SELF"].($_SERVER["QUERY_STRING"]!="" ? ("?".$_SERVER["QUERY_STRING"]) : ""));
-                        header ("Location: login.php?error=".$e->getMessage());
+                        $PageNoAuth = $_SERVER["PHP_SELF"].($_SERVER["QUERY_STRING"]!="" ? ("?".$_SERVER["QUERY_STRING"]) : "");
+                        SetCookie("PageNoAuth", $PageNoAuth);
+                        header ("Location: login.php?error=".$e->getMessage()
+                             //.'&noauth='.urlencode($PageNoAuth)
+                            );
                         die();
                     default:
                         $backref = $this->backref(false);
@@ -544,7 +547,8 @@ function logout(){
         && $_DEBUG
         ){
 
-        $PageNoAuth = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_PATH).(parse_url($_SERVER['HTTP_REFERER'], PHP_URL_QUERY)!="" 
+        $PageNoAuth = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_PATH)
+            .(parse_url($_SERVER['HTTP_REFERER'], PHP_URL_QUERY)!="" 
                 ? "?".parse_url($_SERVER['HTTP_REFERER'], PHP_URL_QUERY) 
                 : '');
         SetCookie("PageNoAuth", $PageNoAuth);
