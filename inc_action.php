@@ -567,6 +567,11 @@ function checkMandatoryFields(){
 }
 
 public function checkPermissions(){
+
+    if($this->arrAction['actFlagSystem']){ // system actions has no UI but it can be invoked in code
+        return;
+    }
+
     $rwAct = $this->arrAction;
     $aUserRoles = array_merge(array($this->item->conf['RoleDefault']), $this->intra->arrUsrData['roleIDs']);
     if(count(array_intersect($aUserRoles, $rwAct['RLA']))==0)

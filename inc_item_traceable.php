@@ -2267,6 +2267,8 @@ public function getWhosNextStatus($staID, $counter){
     foreach ((array)$sta['ACT'] as $act) {
         if($act['actNewStatusID'][0]==$staID)
             continue;
+        if($act['actFlagSystem'])
+            continue;
         $classes = ($defaultActID==$actID ? ' default' : '');
         $iconClass = (preg_match('/^fa\-/', trim($act['actButtonClass'])) ? 'fa ' : (preg_match('/^ss\_/', trim($act['actButtonClass'])) ? 'ss_sprite ' : '')).$act['actButtonClass'];
         $html .= '<li class="'.$classes.'"><i class="'.$iconClass.'"> </i>'.$act["actTitle{$this->intra->local}"];
