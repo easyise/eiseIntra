@@ -85,6 +85,14 @@ public function __construct($id = null,  $conf = array() ){
         $this->RLAByMatrix();
     }
 
+    $this->conf['flagSuperuser'] = 
+        ($this->conf['entManagementRoles'] 
+        ? (bool)count(array_intersect($this->intra->arrUsrData['roleIDs']
+        , explode(',', $this->conf['entManagementRoles'])))
+        : false);
+
+    ;
+
     $this->conf['attr_types'] = array_merge($this->table['columns_types'], $this->conf['attr_types']);
 
     $a_reads = array_diff(['getActionLog', 'getActionDetails', 'getFiles', 'getFile', 'getMessages','sendMessage']

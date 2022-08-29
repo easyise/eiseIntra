@@ -6,6 +6,10 @@ $intra->requireComponent('batch');
 ///*
 try {
     $item = new eiseItemTraceable( $_GET['ID'], array('entID'=>($_POST['entID'] ? $_POST['entID'] : $_GET['entID'])) );
+    $intra->arrUsrData['FlagWrite'] = ($item->conf['entManagementRoles'] ? $item->conf['flagSuperuser'] : $intra->arrUsrData['FlagWrite']);
+    if(!$intra->arrUsrData['FlagWrite'])
+        throw new Exception("Full Edit Mode is not allowed for user {$intra->usrID}".($item->conf['entManagementRoles'] ? ", ask someone from roles {$item->conf['entManagementRoles']}" : ''), 1);
+        
     $item->conf['logTable'] = $oSQL->d("SHOW TABLES LIKE '{$item->conf['table']}_log'") ;
 } catch (Exception $e) {
     $intra->redirect('ERROR: '.$e->getMessage(), $intra->backref(false));
