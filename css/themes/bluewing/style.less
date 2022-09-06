@@ -419,6 +419,45 @@ option.deleted {
     font-family: GTPressuraMono, Calibri, sans-serif;
 }
 
+
+
+/*************************************************/
+/* Yusen-style fieldset
+/*************************************************/
+.yusen-style    {
+
+    & fieldset {
+        margin:10px 5px 5px;
+        border: 2px solid #FF6D10;
+        background: #FFF;
+        padding: 10px;
+    }
+
+    & legend {
+        font-weight:700;
+        color:#000;
+        background-color: #FFF;
+        border: 2px solid #FF6D10;
+        line-height: normal;
+        height: auto;
+        padding: 3px 5px;
+        text-indent: -12px;
+        text-transform: uppercase;
+        font: 14px "GTPressuraMono", Calibri, sans-serif;
+        text-transform:uppercase;
+    }
+
+    & legend:before{
+        font:12px FontAwesome;
+        /* content:'\26AB'; */
+        content: "\f111";
+        color:#FF6D10;
+        margin-right:8px;
+        margin-left: 1px;
+    }
+}
+
+
 /*************************************************/
 /* Backward compatibility                        */
 .field_title {
@@ -469,5 +508,7 @@ option.deleted {
     min-width: 64px;
     min-height: 64px;
 }
+
+
 
  
