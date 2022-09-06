@@ -15,7 +15,7 @@ $paneClass = "ei-pane{$intra->conf['frame']}".($flagNoHeader ? ' no-header' : ''
 $conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)$intra->arrUsrData['FlagWrite'] ]  );
  ?>
 </head>
-<body data-conf="<?php  echo htmlspecialchars(json_encode( $conf_to_set )) ; ?>" data-message="<?php  echo htmlspecialchars($intra->getUserMessage()) ; ?>" class="<?php echo eiseIntra::getSlug(); ?>">  
+<body data-conf="<?php  echo htmlspecialchars(json_encode( $conf_to_set )) ; ?>" data-message="<?php  echo htmlspecialchars($intra->getUserMessage()) ; ?>" class="<?php echo eiseIntra::getSlug().($pageClass ? ' '.$pageClass : ''); ?>">  
 
 <?php if (!$flagNoHeader): ?>
     <div id="header" class="ei-header" role="nav">
