@@ -592,6 +592,27 @@ init: function(options){
     
 }
 
+, adjustLegendHeight: function(selector){
+
+    var $flds = $(selector)
+        , flds = ($flds[0] && $flds[0].nodeName.toLowerCase()=='fieldset' ? $flds[0] : null)
+
+
+    if(!flds)
+        return;
+
+    var $legend = $flds.find('legend').first()
+        , legend = $legend[0];
+
+    if(!legend)
+        return;
+
+    console.log(legend.scrollHeight, $flds.css('margin-top'));
+    $flds.css('margin-top', (legend.scrollHeight+5)+'px');
+    $legend.css('top', -(legend.scrollHeight+5)+'px');
+
+}
+
 }
 
 
