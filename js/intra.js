@@ -607,7 +607,6 @@ init: function(options){
     if(!legend)
         return;
 
-    console.log(legend.scrollHeight, $flds.css('margin-top'));
     $flds.css('margin-top', (legend.scrollHeight+5)+'px');
     $legend.css('top', -(legend.scrollHeight+5)+'px');
 
