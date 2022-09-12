@@ -5,6 +5,21 @@
  */
 class eiseItem {
 	
+/**
+ * This is configuration array for an item. Exact configuration parameters list is:
+ * 
+ * - 'name' - key entity identificator, works as the base for table name, form script name, etc, e.g. 'item'. Mandatory.
+ * - 'title' - entity name in English, e.g. 'the Item'
+ * - 'titleLocal' - entity name in local language, e.g. 'Штуковина'
+ * - 'table' - table name. If not set, it is calculated from entity name: e.g. 'tbl_item'
+ * - 'prefix' - table prefix, e.g. 'itm'. If not set - it is calculated from table using getTableInfo() function
+ * - 'form' - PHP script name for form. E.g. 'item_form.php'. Not mandatory. If not set, it is calculated from 'name'.
+ * - 'list' - PHP script name for form. E.g. 'item_list.php'. Not mandatory. If not set, it is calculated from 'name'.
+ * - 'flagFormShowAllFields' - this parameter is used in function [eiseItem::getFields()](#eiseitem-getfields), see ref.
+ * 
+ * @category Initialization
+ * 
+ */
 public $conf = array(
 	'title' => 'The Item'
 	, 'titleLocal' => 'Штуковина'
@@ -17,20 +32,36 @@ public $conf = array(
 	);
 
 /**
- * Basic array with item data.
+ * Basic array with item data. To be filled inside [eiseItem::getData()](#eiseitem-getdata).
+ * 
+ * 
+ * @category Initialization
  */
 public $item = array();
 
 /**
- * Historical item data obtained on initialization, before any changes made to the object.
+ * Historical item data obtained on initialization, before any changes made to the object. To be filled inside [eiseItem::getData()](#eiseitem-getdata).
+ * 
+ * @category Initialization
  */
 public $item_before = array();
 
 /**
- * The array with the table information.
+ * The array with the table information. To be filled inside [eiseItem::getData()](#eiseitem-getdata).
+ * 
+ * @category Initialization
  */
 public $table = null;
 
+
+/**
+ * Class constructor. Can be called without any paramemters. Constructor obtains info on table, obtains data and entity configuration.
+ * 
+ * @category Initialization
+ * 
+ * @param variant $id - item unique identificator.
+ * @param array $conf - associative array with configuration options. Defaults are set at [eiseItem::$conf](#eiseitem-conf)
+ */
 public function __construct($id = null,  $conf = array() ){
 
 	GLOBAL $intra, $oSQL;
@@ -77,6 +108,8 @@ public function __construct($id = null,  $conf = array() ){
 
 /**
  * This function gets PK (primary key) values from GET or POST query strings.
+ * 
+ * @category Initialization
  */
 public function getIDFromQueryString(){
 
@@ -94,6 +127,8 @@ public function getIDFromQueryString(){
 
 /**
  * This function returns SQL search condition basing on primary keys. 
+ * 
+ * @category Initialization
  */
 public function getSQLWhere($pkValue = null){
 
@@ -124,6 +159,8 @@ public function getSQLWhere($pkValue = null){
 
 /**
  * This function returns URI for a form basing on primary keys. 
+ * 
+ * @category Initialization
  */
 public function getURI( $pkValue = null ){
 
@@ -150,7 +187,9 @@ public function getURI( $pkValue = null ){
 
 
 /**
- * Reads record from database table $conf['table'] associated with current $pk
+ * Reads record from database table $conf['table'] associated with current $pk.
+ * 
+ * @category Initialization
  */
 public function getData($pk = null){
 
@@ -183,7 +222,10 @@ public function getData($pk = null){
 }
 
 /**
- * Returns form HTML. By default it contains DataAction and Primary Keys inputs
+ * Returns form HTML. By default it contains DataAction and Primary Keys inputs.
+ * 
+ *
+ * @category Forms
  */
 public function form( $fields = null, $conf = array() ){
 
@@ -343,6 +385,12 @@ public function updateTable($nd, $flagDontConvertToSQL = false){
 }
 
 public function getDelta($old, $new){
+	foreach($old as $key=>$value){
+		$old[$key] = (is_numeric($value) ? (double)$value : $value);
+	}
+	foreach($new as $key=>$value){
+		$new[$key] = (is_numeric($value) ? (double)$value : $value);
+	}
 	$this->delta = array_diff_assoc($new, $old);
 	return $this->delta;
 }
