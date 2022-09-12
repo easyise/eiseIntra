@@ -1708,7 +1708,9 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
                     $conf[$opts_key] = '';
             }
         }
-        
+        $this->__fieldsShown[] = $name;
+        if($title)
+            $this->__titlesShown[$name] = $title;
     }
     
 
