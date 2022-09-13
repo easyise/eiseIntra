@@ -395,6 +395,34 @@ public function getDelta($old, $new){
 	return $this->delta;
 }
 
+/**
+ * This function fixes the situation when booelan (checkbox) field presents on the form but being unchecked, it doesn't appear in $nd ($_POST) array of data. This function returns fixed array of $nd, where unchecked elements are present with value of '0' (string zero). So [eiseItem::updateTable()](#eiseitem-updatetable) function updates these fields with 0 values. Function ```convertBooleanData()``` should be called prior to ```updateTable()```.
+ * 
+ * @category Data handling
+ * 
+ * @param array $nd - new data, it might be a copy of $_POST array.
+ * @param array $aBooleanFields - list of boolean fields to be fixed. If not set - it is filled from the $table property.
+ * 
+ * @return array - updated $nd, all unchecked and therefore missing boolean fields presents there with '0' (string with zero symbol) values.
+ */
+public function convertBooleanData($nd, $aBooleanFields = null){
+
+	if($aBooleanFields===null)
+		foreach ($this->table['columns_types'] as $field => $type) {
+			if ($type=='boolean') {
+				$aBooleanFields[] = $field;
+			}
+		}
+
+	foreach ((array)$aBooleanFields as $field) {
+		if(!in_array($field, array_keys($nd)))
+			$nd[$field] = '0';
+	}
+
+	return $nd;
+	
+}
+
 //////////////////////////////////
 // File routines
 //////////////////////////////////
