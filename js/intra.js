@@ -607,8 +607,10 @@ init: function(options){
     if(!legend)
         return;
 
-    $flds.css('margin-top', (legend.scrollHeight+5)+'px');
-    $legend.css('top', -(legend.scrollHeight+5)+'px');
+    var bias = $flds.hasClass('has-subtitle') ? 2 : 5;
+
+    $flds.attr('style', 'margin-top: '+(legend.scrollHeight + bias+5)+'px !important');
+    $legend.css('top', -(legend.scrollHeight + bias)+'px');
 
 }
 
