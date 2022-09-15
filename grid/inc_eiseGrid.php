@@ -323,8 +323,9 @@ function get_html($allowEdit=true){
         if ((int)$this->permissions["FlagWrite"]==0){
             $this->Columns[$ix]['static'] = true;
         }
-        if ($col['class'])
+        if ($col['class']){
             $this->Columns[$ix]['staticClass'] = ' '.preg_replace("/\[.+?\]/", "", $col['class']);
+        }
         
         if ($col["title"]){
 
@@ -706,7 +707,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
 
     
     if ($ixRow===null){ //for template row: all calcualted class are grounded, static/disabled set to 0, href grounded
-        $cell['class'] = $cell['staticClass'];
+        $cell['class'] = trim( $this->visibleColumns[$ixCol]['staticClass'] );
         $cell['static'] = (is_string($cell['static']) ? 0 : $cell['static']);
         $cell['readonly'] = (is_string($cell['readonly']) ? 0 : $cell['readonly']);
         $cell['disabled'] = (is_string($cell['disabled']) ? 0 : $cell['disabled']) ;
