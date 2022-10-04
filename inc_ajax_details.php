@@ -58,6 +58,19 @@ switch ($DataAction){
 
     case 'getActionLog':
         
+        include eiseIntraAbsolutePath."inc_item_traceable.php";
+        try {
+            $o = new eiseItemTraceable($arrIn['entItemID'], ['entID'=>$arrIn['entID']]);    
+            $arrACL = $o->getActionLog();
+
+            $intra->json('ok', $intra->translate('Events: ').count($arrACL), $arrACL);
+
+        } catch (Exception $e){
+            $intra->json('error', $e->getMessage());
+        }
+
+    case 'getActionLog_':
+        
         include eiseIntraAbsolutePath."inc_entity_item_form.php";
         try {
             $o = new eiseEntityItemForm($oSQL, $intra, $arrIn['entID'], $arrIn['entItemID']);    
