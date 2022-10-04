@@ -36,7 +36,7 @@ public function __construct($id = null,  $conf = array() ){
 
     $arrJS[] = eiseIntraJSPath."action.js";
 
-    $this->conf = array_merge($this->conf, $conf);
+    $this->conf = @array_merge($this->conf, $conf);
 
     if(!$this->conf['entID'])
         throw new Exception ("Entity ID not set");
@@ -67,7 +67,7 @@ public function __construct($id = null,  $conf = array() ){
     if($this->id){
         $this->item_before = $this->item; 
         $this->staID = $this->item[$this->conf['statusField']];
-        foreach ($this->conf['RolesVirtual'] as $ix => $rwRole) {
+        foreach ((array)$this->conf['RolesVirtual'] as $ix => $rwRole) {
             $roleMembers = $this->getVirtualRoleMembers($rwRole['rolID']);
             if(in_array(strtoupper($this->intra->usrID), array_keys($roleMembers))){
                 $this->intra->arrUsrData['roles'][] = $rwRole['rolTitle'.$this->intra->local];
@@ -93,7 +93,7 @@ public function __construct($id = null,  $conf = array() ){
 
     ;
 
-    $this->conf['attr_types'] = array_merge($this->table['columns_types'], $this->conf['attr_types']);
+    $this->conf['attr_types'] = @array_merge($this->table['columns_types'], $this->conf['attr_types']);
 
     $a_reads = array_diff(['getActionLog', 'getActionDetails', 'getFiles', 'getFile', 'getMessages','sendMessage']
         , (array)$conf['aExcludeReads']);
@@ -1152,6 +1152,7 @@ function getAllData($toRetrieve = null){
     if(in_array('ACL', $toRetrieve) || in_array('STL', $toRetrieve)) {
         $this->item["ACL"]  = Array();
         $sqlACL = "SELECT * FROM stbl_action_log 
+                INNER JOIN stbl_action ON actID= aclActionID AND (actEntityID='{$this->conf['entID']}' OR actEntityID IS NULL)
                 WHERE aclEntityItemID='{$this->id}'
                 ORDER BY aclActionPhase, IFNULL(aclATA, NOW()) DESC, aclOldStatusID DESC";
         $rsACL = $this->oSQL->do_query($sqlACL);
