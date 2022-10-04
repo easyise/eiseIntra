@@ -476,7 +476,7 @@ function getActionLog($arrConfig = array()){
       WHERE aclEntityItemID='{$this->entItemID}' AND actEntityID='{$this->entID}'".
       (!$arrConfig['flagIncludeUpdate'] ? " AND aclActionID<>2" : "")
       ."
-      ORDER BY aclInsertDate DESC, aclNewStatusID DESC";
+      ORDER BY aclInsertDate DESC, aclNewStatusID DESC, aclATA DESC";
     $rs = $this->oSQL->do_query($sql);
     $flagHasCreate = false;
     while ($rw = $this->oSQL->fetch_array($rs)) {
