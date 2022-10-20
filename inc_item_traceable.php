@@ -1503,34 +1503,44 @@ public function form4list(){
 
 }
 
-public function getStatusField(){
+public function getStatusField($conf=[]){
+
+    $defaultConf = ['clickable'=>True];
+    $conf = array_merge($defaultConf, $conf);
 
     return ($this->conf['flagNoStatusField'] 
         ? ''
-        : '<div class="statusTitle">'.$this->intra->translate('Status').': <span class="eif_curStatusTitle"><u>'.$this->conf['STA'][$this->staID]["staTitle{$this->intra->local}"].'</u></span></div>'
+        : '<div class="statusTitle">'.$this->intra->translate('Status').': <span class="eif_curStatusTitle'
+                .($conf['clickable'] ? ' clickable' : ' non-clickable')
+                .'"><u>'.$this->conf['STA'][$this->staID]["staTitle{$this->intra->local}"].'</u></span></div>'
         );
 
 }
 
-public function getActionLogSkeleton(){
+public function getActionLogSkeleton($conf=[]){
 
-    return '<div id="eiseIntraActionLog" class="eif-action-log" title="'.$this->intra->translate('Action Log').'">'."\n"
+    $defaultConf = ['class'=>'',
+            'id'=>'eiseIntraActionLog'];
+
+    $conf = array_merge($defaultConf, $conf);
+
+    return '<div id="'.$conf['id'].'" class="eif-action-log'.($conf['class'] ? " {$conf['class']}" : '').'" title="'.__('Action Log').'">'."\n"
             ."<table class='eiseIntraActionLogTable'>\r\n"."<tbody class=\"eif_ActionLog\">"
             ."<tr class=\"eif_template eif_evenodd\">\r\n"
             ."<td class=\"eif_actTitlePast\"></td>\r\n"
             ."<td class=\"eif_aclFinishBy\"></td>"
             ."<td class=\"eif_aclATA\" style=\"text-align:right;\"></td>"
             ."</tr>"
-            ."<tr class=\"eif_template eif_evenodd eif_invisible\">"
-            ."<td class=\"eif_commentsTitle\">".$this->intra->translate("Traced data").":</td>\r\n"
-            ."<td colspan='2' class=\"eif_aclTracedHTML\"></td>"
+            ."<tr class=\"eif_template eif_evenodd eif_tr_traced eif_invisible\">"
+            ."<td class=\"eif_commentsTitle\">".__("Traced data").":<div class=\"eif_aclNFieldsToTrack\" style='display:none'/></td>\r\n"
+            ."<td colspan='2' class=\"eif_aclTracedHTML\" data-hidden_title=\"".__("click")."\"></td>"
             ."</tr>"
             ."<tr class=\"eif_template eif_evenodd eif_invisible\">"
-            ."<td class=\"eif_commentsTitle\">".$this->intra->translate("Comments").":</td>\r\n"
+            ."<td class=\"eif_commentsTitle\">".__("Comments").":</td>\r\n"
             ."<td colspan='2' class=\"eif_aclComments\"></td>"
             ."</tr>"
-            ."<tr class=\"eif_notfound\">"
-            ."<td colspan='3'>".$this->intra->translate("No Events Found")."</td>"
+            ."<tr class=\"eif_notfound\" style=\"display: none;\">"
+            ."<td colspan='3'>".__("No Events Found")."</td>"
             ."</tr>"
             ."<tr class=\"eif_spinner\">"
             ."<td colspan='3'></td>"
@@ -1546,7 +1556,12 @@ public function getActionLog($q){
         $this->getAllData('ACL');
 
     $aRet = array();$aActionIDs = array();
-    foreach ((array)$this->item['ACL'] as $aclGUID => $acl) {
+
+    $arrACL = (array)$this->item['ACL'];
+    if($q['order']='reverse'){
+        $arrACL = array_reverse($arrACL);
+    }
+    foreach ($arrACL as $aclGUID => $acl) {
 
 
         if($acl['aclActionID']==2 && !$q['flagFull'])
@@ -1576,11 +1591,14 @@ public function getActionLog($q){
                     .(strtotime($acl["aclATA"])!=strtotime(date('Y-m-d', strtotime($acl["aclATA"]))) ? " {$this->intra->conf['timeFormat']}" : '')
                 , strtotime($acl["aclATA"]))
             );
-        if($acl['aclItemTraced']){
-            $tracedHTML = $this->getAttributeFields(array_keys((array)$this->conf['ACT'][$acl['actID']]['aatFlagToTrack']), $this->getTracedData($acl)
-                , array('suffix'=>'_'.$acl['aclGUID'], 'FlagWrite'=>false)
+        $aclFieldsToTrack = array_keys((array)$this->conf['ACT'][$acl['actID']]['aatFlagToTrack']);
+        if($acl['aclItemTraced'] && count($aclFieldsToTrack)){
+            $tracedHTML = $this->getAttributeFields($aclFieldsToTrack, $this->getTracedData($acl)
+                , array('suffix'=>'_'.$acl['aclGUID'], 'FlagWrite'=>false, 'flagNonEmpty'=>true, 'flagNoInputName'=>true)
                 );   
-            $rw['aclTracedHTML'] = $tracedHTML;
+            $rw['aclTracedHTML'] = '<div class="eif-traced-data">'.$tracedHTML.'</div>';
+            // $rw['aclTracedHTML'] = '<div class="eif-traced-data">'.htmlspecialchars(var_export($acl['aclItemTraced'], true)).'</div>';
+            $rw['aclNFieldsToTrack'] = count($aclFieldsToTrack);
         }
         $aActionIDs[] = $acl['actID'];
         $aRet[] = $rw;
@@ -1588,7 +1606,7 @@ public function getActionLog($q){
     }
 
     if(!in_array(1, $aActionIDs)){
-        $aRet[] = array('alGUID' => null
+        $aCreate = array('alGUID' => null
                     , 'actID' => 1
                     , 'aclActionPhase' => 2
                     , 'aclOldStatusID' => null
@@ -1604,6 +1622,8 @@ public function getActionLog($q){
                     , 'aclATA' => $this->intra->datetimeSQL2PHP($this->item[$this->conf['prefix'].'InsertDate'])
                     );
     }
+
+    $aRet = ($q['order']=='reverse' ? array_merge([$aCreate], $aRet) : array_merge($aRet, [$aCreate]));
 
     return $aRet;
 }
@@ -1643,6 +1663,9 @@ function getAttributeFields($fields, $item = null, $conf = array()){
     foreach($fields as $field){
         $atr = $this->conf['ATR'][$field];
 
+        if($conf['flagNonEmpty'] && !$item[$field])
+            continue;
+
         $options = array('type'=>$atr['atrType']
             , 'FlagWrite'=>($conf['forceFlagWrite'] 
                 ? $conf['FlagWrite']
@@ -1665,6 +1688,9 @@ function getAttributeFields($fields, $item = null, $conf = array()){
             $options['href'] = $atr['atrHref'];
         if($conf['suffix'])
             $options['field_suffix'] = $conf['suffix'];
+        if($conf['flagNoInputName'] && !$options['FlagWrite']){
+            $options['no_input_name'] = true;
+        }
 
         $html .= $this->intra->field($atr["atrTitle{$this->intra->local}"], $field, $item, $options);
     }

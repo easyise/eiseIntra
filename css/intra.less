@@ -917,9 +917,59 @@ input[type=checkbox].eiseIntraValue {
                 width: 150px;
                 text-align: right;
                 margin-right: 5px;
-                &:after {
-                    content: ':';
-                }
+                
+            }
+        }
+    }
+}
+
+.eif-action-log-visible {
+    display: block !important;
+
+    & .eif-traced-data {
+        overflow-x: hidden;
+        overflow-y: auto;
+        max-height: 4.8em;
+        position: relative;
+        mix-blend-mode: hard-light;
+
+        &::after {
+            position: absolute;
+            content: "";
+            left: 0px;
+            bottom: 0px;
+            height: 1.2em;
+            width: 100%;
+            background: linear-gradient(transparent, gray);
+            pointer-events: none;
+        }
+    }
+
+    & .eif_aclTracedHTML {
+
+        & .eiseIntraValue {
+            font-size: 1em;
+            line-height: 1.1em;
+
+            & > label {
+                font-weight: inherit;
+                font-size: inherit;
+            }
+        }
+
+        & .eif-field {
+            display: block;
+            background-color: #00000008;
+            
+            & > label {
+                width: 25%;
+                text-align: right;
+                margin-right: 5px;
+                font-family: ArialNarrow, serif;
+                font-weight: normal;
+                font-size: 0.95em;
+                line-height: 1.1em;
+
             }
         }
     }
@@ -1133,7 +1183,15 @@ div.eiseIntraComment {
     text-align: right;
 }
 .eif_curStatusTitle {
-    cursor: pointer;
+    &.clickable {
+        &:after { 
+            content: " \25bc  ";
+        }
+        :hover {
+            border: 1px dotted black;
+        }
+        cursor: pointer;
+    }
     font-weight: bold;
     text-decoration: none;
 }
@@ -1145,14 +1203,6 @@ div.eiseIntraComment {
 .eif_curStatusTitle u {
     text-decoration: none;
     border-bottom: 1px dotted black;
-}
-
-.eif_curStatusTitle:hover {
-    border: 1px dotted black;
-}
-
-.eif_curStatusTitle:after { 
-    content: " \25bc  ";
 }
 /*****************************************************/
 /* /status modal screen  */

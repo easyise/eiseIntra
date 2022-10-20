@@ -208,9 +208,29 @@ var fillActionLogAJAX = function($form, extra_entID){
 
     var entID = (extra_entID ?  extra_entID : $form.data('eiseIntraForm').entID);
     var entItemID = $form.data('eiseIntraForm').entItemID;
+    var strActionLogSelectors = '#eiseIntraActionLog, #eif_actionLog',
+        strAjaxActionURL = ajaxActionURL+"?DataAction=getActionLog&entItemID="+encodeURIComponent(entItemID)+
+                "&entID="+encodeURIComponent(entID),
+        strLocalURL = location.pathname+location.search+"&DataAction=getActionLog";
+
+    if($(this).hasClass('non-clickable')){
+
+        var $div = $(strActionLogSelectors),
+            strURL = ($div.hasClass('eif-action-log') ? strAjaxActionURL : strLocalURL)+'&order=reverse',
+            conf = {};
+        conf.afterFill = function(){
+            $div.find('.eif_startblock').each(function(){
+                console.log( $(this).next('.eif_tr_traced')[0] )
+            })
+        }
+        $div.find('.eif_ActionLog')
+            .eiseIntraAJAX('fillTable', strURL, conf);
+
+        return;
+    } 
 
     if(!this.htmlStatusLog){
-        var $f = $('#eiseIntraActionLog, #eif_actionLog');
+        var $f = $(strActionLogSelectors);
         if($f[0]){
             this.htmlStatusLog = $f[0].outerHTML;
             $f.remove();
@@ -220,13 +240,10 @@ var fillActionLogAJAX = function($form, extra_entID){
     if(!this.htmlStatusLog)
         return
 
-    var $elem = $(this.htmlStatusLog),
-        strURL = !$elem.hasClass('eif-action-log') 
-            ? ajaxActionURL+"?DataAction=getActionLog&entItemID="+encodeURIComponent(entItemID)+
-                "&entID="+encodeURIComponent(entID)
-            : location.pathname+location.search+"&DataAction=getActionLog";
+    var $div = $(this.htmlStatusLog),
+        strURL = $div.hasClass('eif-action-log') ? strAjaxActionURL : strLocalURL;
 
-    $elem.dialog({
+    $div.dialog({
                 modal: true
                 , width: '40%'
             })
@@ -345,7 +362,13 @@ init: function( options ) {
             data = $this.data('eiseIntraForm');
         
         var entID = $this.find('#entID').val();
-        var entItemID = $this.find('#'+entID+'ID').val();
+        var $entItemID = ($this.find('#'+entID+'ID')[0] 
+                ? $this.find('#'+entID+'ID') 
+                : ( $form.find('input[data-pk="1"]')[0]
+                    ? $form.find('input[data-pk="1"]')
+                    : null)
+                ),
+            entItemID = $entItemID ? $entItemID.val() : null;
         var conf = $('body').eiseIntra('conf');
 
         if ( ! data ) {
@@ -445,9 +468,15 @@ init: function( options ) {
         });
         
         //current status title: clickable and shows history by AJAX
-        $this.find('.eif_curStatusTitle').click(function(){
-            fillActionLogAJAX.call(this, $this, this.dataset.entID);
+        $form.find('.eif_curStatusTitle.clickable').click(function(){
+            fillActionLogAJAX.call(this, $form, this.dataset.entID);
         });
+
+        var statusFieldNonClickable = $this.find('.eif_curStatusTitle.non-clickable')[0];
+        if(statusFieldNonClickable){
+            console.log('#'+entID+'ID', $this.find('#'+entID+'ID'))
+            fillActionLogAJAX.call(statusFieldNonClickable, $form, statusFieldNonClickable.dataset.entID);
+        }
 
         $form.submit(function(event) {
 
