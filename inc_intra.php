@@ -1691,8 +1691,10 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
 
     $value = (is_array($val_in) ? $val_in[$name] : $val_in);
 
+    $dataset = self::processHTMLDataset($conf);
+
     if(in_array($conf['type'], array('row_id', 'hidden')) )
-        return '<input type="hidden" name="'.$name.'" id="'.$name.'" value="'.htmlspecialchars($value).'">'."\r\n";
+        return '<input type="hidden" name="'.$name.'" id="'.$name.'" value="'.htmlspecialchars($value).'"'.$dataset.'>'."\r\n";
 
 
     if($name){
@@ -1725,7 +1727,6 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
 
         $conf['type'] = ((trim($title)!=='' && !isset($conf['type'])) ? 'text' : $conf['type']);
 
-        $dataset = self::processHTMLDataset($conf);
 
         $html .= "<div class=\"eiseIntraField eif-field".
                 ' eif-field-'.$conf['type'].
@@ -1768,6 +1769,11 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
         $name = $name.$conf['field_suffix'];
 
         $this->fieldTypes[(preg_replace('/\[\]$/', '', $name))] = $conf['type'];
+
+        if($conf['no_input_name']){
+            $conf['id'] = $name;
+            $name = '';
+        }
 
         $conf['id'] = ($conf['id'] 
             ? $conf['id']

@@ -251,7 +251,7 @@ public function form( $fields = null, $conf = array() ){
 public function getPKFields(){
 	$fields = '';
 	foreach ($this->table['PK'] as $pk) {
-		$fields .= ($fields ? "\n" : '').$this->intra->field(null, $pk, $this->item[$pk], array('type'=>'hidden'));
+		$fields .= ($fields ? "\n" : '').$this->intra->field(null, $pk, $this->item[$pk], array('type'=>'hidden', 'dataset'=>['PK'=>True]));
 	}
 	return $fields;
 }
