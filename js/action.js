@@ -220,7 +220,7 @@ var fillActionLogAJAX = function($form, extra_entID){
             conf = {};
         conf.afterFill = function(){
             $div.find('.eif_startblock').each(function(){
-                console.log( $(this).next('.eif_tr_traced')[0] )
+                // console.log( $(this).next('.eif_tr_traced')[0] )
             })
         }
         $div.find('.eif_ActionLog')
@@ -474,7 +474,6 @@ init: function( options ) {
 
         var statusFieldNonClickable = $this.find('.eif_curStatusTitle.non-clickable')[0];
         if(statusFieldNonClickable){
-            console.log('#'+entID+'ID', $this.find('#'+entID+'ID'))
             fillActionLogAJAX.call(statusFieldNonClickable, $form, statusFieldNonClickable.dataset.entID);
         }
 
