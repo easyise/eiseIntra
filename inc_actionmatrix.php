@@ -159,7 +159,8 @@ function table(){
 	$dstID = array();
 	$dstTitle = array();
 
-	if($this->conf['STA'][0]['staID']!=='0'){
+	if(isset($this->conf['STA'][0]) && $this->conf['STA'][0]['staID']!=='0'){
+	// if($this->conf['STA'][0]['staID']!=='0'){
 		$dstID[] = 0;
 		$dstTitle[] = $strLocal ? "Новый" : "New";
 	}
