@@ -1606,7 +1606,7 @@ public function getActionLog($q){
     }
 
     if(!in_array(1, $aActionIDs)){
-        $aCreate = array('alGUID' => null
+        $aCreate = array('aclGUID' => null
                     , 'actID' => 1
                     , 'aclActionPhase' => 2
                     , 'aclOldStatusID' => null
@@ -1621,9 +1621,10 @@ public function getActionLog($q){
                     , 'aclEditDate' => $this->intra->datetimeSQL2PHP($this->item[$this->conf['prefix'].'InsertDate'])
                     , 'aclATA' => $this->intra->datetimeSQL2PHP($this->item[$this->conf['prefix'].'InsertDate'])
                     );
-    }
 
-    $aRet = ($q['order']=='reverse' ? array_merge([$aCreate], $aRet) : array_merge($aRet, [$aCreate]));
+        $aRet = ($q['order']=='reverse' ? array_merge([$aCreate], $aRet) : array_merge($aRet, [$aCreate]));
+
+    }
 
     return $aRet;
 }

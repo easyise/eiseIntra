@@ -525,7 +525,7 @@ function getActionLog($arrConfig = array()){
 
 function showActionLog_skeleton(){
 
-    $strRes = "<div id=\"eiseIntraActionLog\" title=\"".$this->intra->translate('Action Log')."\">\r\n";
+    $strRes = "<div id=\"eiseIntraActionLog\" title=\"".$this->intra->translate('Action Log')."\" class=\"eif-action-log\">\r\n";
     $strRes .= "<table class='eiseIntraActionLogTable'>\r\n";
     $strRes .= "<tbody class=\"eif_ActionLog\">";
     
