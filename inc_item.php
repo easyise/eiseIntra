@@ -908,5 +908,22 @@ static function sendMessages($conf){
 
 }
 
+public static function convert_size_human($size){
+	
+	if(!$size) return (false);
+
+    $unit=array('','KB','MB','GB','TB','PB');
+    $byte_size = $size/pow(1024,($i=floor(log($size,1024))));
+
+    if((integer)$byte_size==$byte_size){
+        return $byte_size.' '.$unit[$i];
+    }else{
+        preg_match('/^[0-9]+\.[0-9]{2}/', $byte_size, $matches);
+        return $matches[0].' '.$unit[$i];
+    }
+}
+
+
+
 
 }
