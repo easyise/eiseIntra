@@ -793,11 +793,9 @@ static function sendMessages($conf){
 
     $oSQL = $intra->oSQL;
 
-    $oSQL->q('START TRANSACTION');
     $oSQL->q("UPDATE stbl_message SET msgSendDate=NOW()
             , msgStatus='Sending' 
             WHERE msgSendDate IS NULL");
-   	$oSQL->q('COMMIT');
 
     // scan table for unsent messages
     $sqlMsg = "SELECT * FROM stbl_message 
@@ -892,7 +890,12 @@ static function sendMessages($conf){
 
 
     foreach((array)$arrMessages as $msg){
-        $sqlMarkSent = "UPDATE stbl_message SET msgSendDate=".($msg['send_time'] ? "'".date('Y-m-d H:i:s', $msg['send_time'])."'" : 'NULL' )."
+        $sqlMarkSent = "UPDATE stbl_message SET msgSendDate=".($msg['error'] 
+                ? 'NULL' 
+                : ($msg['send_time'] 
+                    ? "'".date('Y-m-d H:i:s', $msg['send_time'])."'" 
+                    : 'NOW()' )
+                )."
             , msgStatus=".($msg['error'] ? $oSQL->e($msg['error']) : $oSQL->e('Sent'))."
             , msgPassword=NULL
             , msgEditDate=NOW()
