@@ -106,7 +106,7 @@ public function __construct($id = null,  $conf = array() ){
 
 function checkForCheckboxes(&$nd){
     foreach ($this->conf['ATR'] as $atrID => $props) {
-        if( $props['atrType'] == 'boolean' && !isset($nd[$atrID]) )
+        if( in_array($props['atrType'], ['boolean', 'checkbox']) && !isset($nd[$atrID]) )
             $nd[$atrID] = 0;
     }
 }
