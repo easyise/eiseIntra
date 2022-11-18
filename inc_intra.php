@@ -1276,19 +1276,37 @@ function redirect($strMessage, $strLocation, $arrConfig = array()){
  *
  * @return string URL
  */
-function backref($urlIfNoReferer){
+function backref($urlIfNoReferer=null){
+
+    $urlIfNoReferer = ($urlIfNoReferer ? $urlIfNoReferer : 'javascript:history.go(-1)');
+    $backref = ($_COOKIE["referer"] ? $_COOKIE["referer"] : $urlIfNoReferer); // to be returned if there's no specific referers
+
+    if($_SERVER["HTTP_REFERER"]){
+        $url_referer = parse_url($_SERVER["HTTP_REFERER"]);
+        $request_uri_referer = $url_referer['path'].'?'.$url_referer['query'];
+
+        if($_SERVER['REQUEST_METHOD']=='GET'){
+
+            if( strpos($_SERVER["REQUEST_URI"], $request_uri_referer) === false // if referer is not from itself (referer is NOT a part of REQUEST_URI )
+                &&
+                strpos($_SERVER["HTTP_REFERER"], 'index.php?pane=')===false  //and not from fullEdit framed
+                && 
+                strpos($_SERVER["HTTP_REFERER"], 'entityitem_form.php')===false  //and not from old fullEdit
+                &&
+                !preg_match('/login.php/', $request_uri_referer) // and not from login form
+
+            ){
+                if ($_SERVER["HTTP_REFERER"]!=$_COOKIE['referer'])
+                    SetCookie("referer", $_SERVER["HTTP_REFERER"], 0, $_SERVER["PHP_SELF"]);
+                return $_SERVER["HTTP_REFERER"];
+            } else {
+                return $backref;
+            }
+        } else 
+            return $backref;    
+
+    } 
     
-    if (strpos($_SERVER["HTTP_REFERER"], $_SERVER["REQUEST_URI"])===false //if referer is not from itself
-        &&
-        strpos($_SERVER["HTTP_REFERER"], 'index.php?pane=')===false  //and not from fullEdit framed
-        &&
-        strpos($_SERVER["HTTP_REFERER"], 'entityitem_form.php')===false ) //and not from fullEdit
-    {
-        SetCookie("referer", $_SERVER["HTTP_REFERER"], 0, $_SERVER["PHP_SELF"]);
-        $backref = ($_SERVER["HTTP_REFERER"] && !preg_match('/login.php/', $_SERVER["HTTP_REFERER"]) ? $_SERVER["HTTP_REFERER"] : $urlIfNoReferer);
-    } else {
-        $backref = ($_COOKIE["referer"] ? $_COOKIE["referer"] : $urlIfNoReferer);
-    }
     return $backref;
 
 }
