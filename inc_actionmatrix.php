@@ -51,11 +51,27 @@ public function __construct($ent){
     } else {
         $sqlRoleAction = "SELECT * FROM stbl_role_action 
             LEFT OUTER JOIN stbl_action ON actID=rlaActionID
-            LEFT OUTER JOIN stbl_role ON rolID=rlaRoleID
+            LEFT OUTER JOIN svw_role ON rolID=rlaRoleID
             WHERE actEntityID='{$rwEnt['entID']}'";
     }
 
-    $rsRoles = $this->oSQL->q("SELECT * FROM stbl_role WHERE rolFlagDeleted=0");
+    /* svw_role */
+    if(!$this->oSQL->d("SHOW TABLES LIKE 'svw_role'")){
+	    $this->oSQL->q("DROP VIEW IF EXISTS svw_role");
+		$this->oSQL->q("CREATE VIEW svw_role AS 
+			SELECT rolID AS optValue
+					, rolFlagDeleted AS optFlagDeleted
+					, cast(concat(rolID, ' - ', rolTitleLocal) as char charset utf8) collate utf8_general_ci AS optTextLocal
+					, cast(concat(rolID, ' - ', rolTitle) as char charset utf8) collate utf8_general_ci AS optText
+					, rolID
+					, cast(concat(rolID, ' - ', rolTitle) as char charset utf8) collate utf8_general_ci AS rolTitle
+					, cast(concat(rolID, ' - ', rolTitleLocal) as char charset utf8) collate utf8_general_ci AS rolTitleLocal
+					, rolFlagDeleted
+			FROM stbl_role");	
+    }
+    
+
+    $rsRoles = $this->oSQL->q("SELECT * FROM svw_role WHERE rolFlagDeleted=0");
     while ($rwRol = $this->oSQL->f($rsRoles)) {
     	$this->roles[$rwRol['rolID']] = $rwRol['rolTitle'.$this->intra->local];
     }
@@ -80,11 +96,11 @@ public function __construct($ent){
 	$gridMTX->Columns[] = array('title' => '##',
 		'field' => 'mtxOrder',
 		'type' => 'order');
-	$gridMTX->Columns[] = array('title' => 'Role',
+	$gridMTX->Columns[] = array('title' => __('Role'),
 		'field' => 'mtxRoleID',
 		'type' => 'combobox',
-		'source' => 'stbl_role',
-		'source_prefix' => 'rol',
+		'source' => 'svw_role',
+		'defaultText' => __('--please set')
 		);
 
 	foreach ($this->mtxDataAttrs as $ix=>$field) {
