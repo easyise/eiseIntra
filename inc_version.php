@@ -1,2 +1,2 @@
 <?php
-define('EISEINTRA_VERSION', '2.3.056');
+define('EISEINTRA_VERSION', '2.3.058');

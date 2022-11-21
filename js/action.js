@@ -173,7 +173,7 @@ var eiseIntraActionSubmit = function(event, $form){
                     }
                 });
 
-            if (o.act.actFlagComment=='1'){
+            if (o.act.actFlagComment=='1' || ((event.originalEvent.ctrlKey || event.originalEvent.metaKey))){
                 arrFieldsToFill.push({name: 'aclComments', title: 'Comments', type: 'textarea', required: true});
             }
 
