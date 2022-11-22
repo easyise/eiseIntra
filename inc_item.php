@@ -820,7 +820,7 @@ static function sendMessages($conf){
                     break;
                 case 'onbehalf':
                     $arrAuth['login'] = $conf['login'];
-                    $rwMsg['msgPassword'] = $conf['password'];
+                    $arrAuth['password'] = $intra->decrypt($conf['password']);
                     break;
                 default:
                     $arrAuth['login'] = $rwUsr_From['usrID'] ;
@@ -859,8 +859,10 @@ static function sendMessages($conf){
 
         $msg = array_merge($msg, $rwMsg);
 
-        if($conf['authenticate'] && $rwMsg['msgPassword'])
-            $senders[$rwMsg['msgFromUserID']]->conf['password'] = $intra->decrypt($rwMsg['msgPassword']);
+        if($conf['authenticate']!='onbehalf'){
+	        if($conf['authenticate'] && $rwMsg['msgPassword'])
+	            $senders[$rwMsg['msgFromUserID']]->conf['password'] = $intra->decrypt($rwMsg['msgPassword']);
+    	}
 
         $senders[$rwMsg['msgFromUserID']]->addMessage($msg);
 
