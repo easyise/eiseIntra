@@ -1,0 +1,1 @@
+ALTER TABLE stbl_message ADD KEY `IX_msgFlagBroadcast` (msgFlagBroadcast);

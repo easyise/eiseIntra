@@ -730,11 +730,17 @@ public function getMessages(){
     $entID = ($this->conf['entID'] ? $this->conf['entID'] : $this->conf['prefix']);
     $intra = $this->intra;
 
+    $fields = $oSQL->ff('SELECT * FROM stbl_message WHERE 1=0');
+
     $sqlMsg = "SELECT *
     , (SELECT optText FROM svw_user WHERE optValue=msgFromUserID) as msgFrom
     , (SELECT optText FROM svw_user WHERE optValue=msgToUserID) as msgTo
     , (SELECT optText FROM svw_user WHERE optValue=msgCCUserID) as msgCC
-     FROM stbl_message WHERE msgEntityID='$entID' AND msgEntityItemID='{$this->id}'
+     FROM stbl_message 
+     WHERE msgEntityID='$entID' AND msgEntityItemID='{$this->id}'
+     ".($fields['msgFlagBroadcast'] 
+     	? "AND msgFlagBroadcast=0" 
+     	: '')."
     ORDER BY msgInsertDate DESC";
     $rsMsg = $oSQL->q($sqlMsg);
 
@@ -773,8 +779,9 @@ public function sendMessage($nd){
         , msgToUserID = ".($nd['msgToUserID']!="" ? $oSQL->e($nd['msgToUserID']) : "NULL")."
         , msgCCUserID = ".($nd['msgCCUserID']!="" ? $oSQL->e($nd['msgCCUserID']) : "NULL")."
         , msgSubject = ".$oSQL->e($nd['msgSubject'])."
-        , msgText = ".$oSQL->e($nd['msgText']).
-        ($fields['msgPassword'] ? ", msgPassword=".$oSQL->e($intra->encrypt($password)) : '')
+        , msgText = ".$oSQL->e($nd['msgText'])
+        .($fields['msgPassword'] ? ", msgPassword=".$oSQL->e($intra->encrypt($password)) : '')."\n"
+        .($fields['msgFlagBroadcast'] ? ", msgFlagBroadcast=".(int)($nd['msgFlagBroadcast']) : '')."\n"
         ."
         , msgMetadata = ".$oSQL->e(json_encode($metadata, true))."
         , msgSendDate = NULL

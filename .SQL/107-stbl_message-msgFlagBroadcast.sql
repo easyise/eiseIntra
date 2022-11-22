@@ -1,0 +1,1 @@
+ALTER TABLE stbl_message ADD COLUMN msgFlagBroadcast tinyint(4) NOT NULL DEFAULT '0' COMMENT 'Flag if broadcast' AFTER msgText;
