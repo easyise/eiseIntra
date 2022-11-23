@@ -64,6 +64,10 @@ public function __construct($item, $arrAct, $options = array()){
             $this->arrAction['RLA'] = ($this->intra->arrUsrData['FlagWrite'] || $this->intra->arrUsrData['FlagUpdate'] ? array($item->conf['RoleDefault']) : array());
             break;
         default:
+            if($this->arrAction['actNewStatusID'][0]===null){ // if we move to the same status
+                $this->arrAction['aclNewStatusID'] = $item->staID;
+                // die('<pre>'.var_export($this->arrAction, true));
+            }
             break;
     }
 
