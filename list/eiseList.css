@@ -15,6 +15,16 @@
     width: 100%;
     overflow: hidden;
     line-height: 2em;
+
+    & h1 small {
+        display: block;
+        color: #666;
+        font-size: 0.75em;
+    }
+
+    & h1 .el-foundRows {
+        color: #999;
+    }
 }
 
 .el-foundRows {
