@@ -182,9 +182,13 @@ public function superaction($nd){
         throw $e;
     }
 
-    //$oSQL->showProfileInfo();
+
     $oSQL->q('COMMIT');
     parent::update($nd);
+
+    // $oSQL->showProfileInfo();
+    // $oSQL->q('ROLLBACK');
+    // die();
 }
 
 public function undo($nd){
