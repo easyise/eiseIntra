@@ -800,15 +800,29 @@ static function sendMessages($conf){
 
     $oSQL = $intra->oSQL;
 
-    $oSQL->q("UPDATE stbl_message SET msgSendDate=NOW()
-            , msgStatus='Sending' 
-            WHERE msgSendDate IS NULL");
+    $oSQL->q('COMMIT'); // commit all started transactions
 
-    // scan table for unsent messages
+    $oSQL->q('START TRANSACTION');
+
+    // get all unsent messages and mark them as "Sending"
+    $whereUnsent = "msgSendDate IS NULL 
+        	AND msgInsertDate>DATE_ADD(NOW(), INTERVAL -1 DAY) ";
+
     $sqlMsg = "SELECT * FROM stbl_message 
-        WHERE msgStatus='Sending' AND msgInsertDate>DATE_ADD(NOW(), INTERVAL -1 DAY) ORDER BY msgFromUserID, msgInsertDate DESC";
+        WHERE 
+        	{$whereUnsent}
+        ORDER BY msgFromUserID, msgInsertDate DESC";
     $rsMsg = $oSQL->q($sqlMsg);
     $fieldsMsg = $oSQL->ff($rsMsg);
+
+    // mark all messages as sent apriori
+    $oSQL->q("UPDATE stbl_message SET msgSendDate=NOW()
+    	, msgStatus='Sending'
+    	, msgEditDate=NOW()
+        , msgEditBy='ROBOT' 
+        WHERE {$whereUnsent}");
+
+    $oSQL->q('COMMIT'); // commit message mark
 
     include_once(commonStuffAbsolutePath.'/eiseMail/inc_eisemail.php');
 
@@ -816,6 +830,8 @@ static function sendMessages($conf){
     $arrMessages = array();
 
     while($rwMsg = $oSQL->f($rsMsg)){
+
+    	// $rwMsg['msgToUserID'] = 'ELISEEV';
 
         if($username != $rwMsg['msgFromUserID']){
 
@@ -840,7 +856,8 @@ static function sendMessages($conf){
         }
 
         $rwUsr_To = $intra->getUserData_All($rwMsg['msgToUserID'], 'all');
-        $rwUsr_CC = $intra->getUserData_All($rwMsg['msgCCUserID'], 'all');
+        if ($rwMsg['msgCCUserID'])
+            $rwUsr_CC = $intra->getUserData_All($rwMsg['msgCCUserID'], 'all');
 
         $rwMsg['system'] = $conf['system'];
         $metadata = json_decode($rwMsg['msgMetadata'], true);
@@ -875,42 +892,51 @@ static function sendMessages($conf){
 
     }
 
+    $strError = '';
     foreach((array)$senders as $user=>$sender){
 
-        if($conf['authenticate'] && !$sender->conf['password']){
+
+        $sql = "UPDATE stbl_message SET msgEditDate=NOW()
+            	, msgEditBy='{$user}'
+            	%s
+        		".($fieldsMsg['msgPassword'] ? ", msgPassword=NULL\n" : '').
+				"WHERE msgID='%s'";
+
+
+        if($conf['authenticate'] && (!$sender->conf['password'] && !$sender->conf['xoauth2_token'])) {
             foreach($sender->arrMessages as $ix=>$msg){
-                $sender->arrMessages[$ix]['error'] = 'No password';
-                $arrMessages[] = $msg;    
+               $oSQL->q(sprintf($sql, ", msgStatus='NO PASSWORD'
+                        , msgSendDate=NOW()", $msg['msgID']));
             }
             continue;
         }
 
-        // echo '<pre>'.var_export($sender->arrMessages, true);
-        // die();
-
         try {
+
             $sentMessages = $sender->send();
-            $arrMessages = array_merge($arrMessages, $sentMessages);
+
+            foreach($sentMessages as $msg){
+            	$oSQL->q(sprintf($sql, ", msgStatus='Sent'
+            		, msgSendDate='".date('Y-m-d H:i:s', $msg['send_time'])."'", $msg['msgID']));
+            }
         } catch (eiseMailException $e){
-            $strError = $e->getMessage();
-            $arrMessages = array_merge($arrMessages, $e->getMessages());
+
+            foreach ($e->getMessages() as $msg) {
+                try {
+                    if($msg['send_time']){
+                        $oSQL->q(sprintf($sql, ", msgStatus='Sent'
+                            , msgSendDate='".date('Y-m-d H:i:s', $msg['send_time'])."'", $msg['msgID']));
+                    } else {
+                        $strError .= "\n".($msg['error'] ? $msg['error'] : 'NOT SENT');
+                        $oSQL->q(sprintf($sql, ", msgStatus=".($msg['error'] ? $oSQL->e($msg['error']) : $oSQL->e('NOT SENT'))."
+                            , msgSendDate=NULL", $msg['msgID']));
+                    }
+                } catch (Exception $e) {
+                    $strError .= "\n".$e->getMessage();
+                }
+            	
+            }
         }
-    }
-
-
-    foreach((array)$arrMessages as $msg){
-        $sqlMarkSent = "UPDATE stbl_message SET msgSendDate=".($msg['error'] 
-                ? 'NULL' 
-                : ($msg['send_time'] 
-                    ? "'".date('Y-m-d H:i:s', $msg['send_time'])."'" 
-                    : 'NOW()' )
-                )."
-            , msgStatus=".($msg['error'] ? $oSQL->e($msg['error']) : $oSQL->e('Sent'))."
-            , msgPassword=NULL
-            , msgEditDate=NOW()
-            , msgEditBy='{$msg['msgFromUserID']}'
-            WHERE msgID=".$oSQL->e($msg['msgID']);
-        $oSQL->q($sqlMarkSent);
 
     }
 
