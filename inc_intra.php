@@ -2586,7 +2586,7 @@ function loadCSS(){
     
     foreach($arrCSS as $css){
         if(is_array($css)){
-            echo "<link rel=\"STYLESHEET\" type=\"text/css\" href=\"{$css['file']}?{$cachePreventor}\" media=\"{css['media']}\">\r\n";
+            echo "<link rel=\"STYLESHEET\" type=\"text/css\" href=\"{$css['file']}?{$cachePreventor}\" media=\"{$css['media']}\">\r\n";
         } else {
             echo "<link rel=\"STYLESHEET\" type=\"text/css\" href=\"{$css}?{$cachePreventor}\" media=\"screen\">\r\n";
         }
