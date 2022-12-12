@@ -760,6 +760,8 @@ public function sendMessage($nd){
     }
 
     $metadata = array('title'=>$this->conf['title'.$intra->local]
+        , 'number'=>$this->id
+        , 'id'=>$this->id
     	, 'href'=>eiseIntra::getFullHREF($this->conf['form'].'?'.$this->getURI())
     	);
     if(isset($nd['msgMetadata'])){
