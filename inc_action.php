@@ -288,14 +288,16 @@ public function validate(){
 	            break;
 	    }
 	} else {
+
         
-        if(!in_array($this->item->item["{$this->item->conf['prefix']}StatusID"], $this->conf['actOldStatusID'])){
-            throw new Exception($this->intra->translate("%s %s: Action \"%s\" could not run in status \"%s\""
-                , $this->item->conf['entTitle'.$this->intra->local] 
-                , $this->item->id
-                , ( $this->conf['actTitle'.$this->intra->local] ? $this->conf['actTitle'.$this->intra->local] : $this->conf['actTitle'])
-                , $this->item->conf['STA'][$this->item->item["{$this->item->conf['prefix']}StatusID"]]['staTitle'.$this->intra->local]));
-	    }
+        if(!count(array_intersect($this->intra->arrUsrData['roleIDs'], explode(',', $this->item->conf['entManagementRoles'])  ) )) 
+            if(!in_array($this->item->item["{$this->item->conf['prefix']}StatusID"], $this->conf['actOldStatusID'])){
+                throw new Exception($this->intra->translate("%s %s: Action \"%s\" could not run in status \"%s\""
+                    , $this->item->conf['entTitle'.$this->intra->local] 
+                    , $this->item->id
+                    , ( $this->conf['actTitle'.$this->intra->local] ? $this->conf['actTitle'.$this->intra->local] : $this->conf['actTitle'])
+                    , $this->item->conf['STA'][$this->item->item["{$this->item->conf['prefix']}StatusID"]]['staTitle'.$this->intra->local]));
+    	    }
 	    if($this->conf['actNewStatusID'][0] && $this->arrAction["aclNewStatusID"] != $this->conf['actNewStatusID'][0]){
 	        throw new Exception($this->intra->translate("%s %s: Action \"%s\" could not run for destination status \"%s\""
                 , $this->item->conf['entTitle'.$this->intra->local] 
