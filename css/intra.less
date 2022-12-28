@@ -156,6 +156,59 @@ td     {  	vertical-align: top; padding: 0;}
     
 }
 
+/* SEARCH */
+
+#headerSearch {
+    color: #003366;
+    font-size: 1em;
+    margin-top: 0.75em;
+    margin-right: 1.5em;
+    float: left;
+    z-index: 102;
+}
+
+.searchInactive {
+    color: #999;
+}
+.searchActive {
+    color: #000;
+}
+
+.search-title {
+    vertical-align: middle;
+}
+
+.search-green .search-title:after {
+    content: url(../common/images/icons/bullet_green.png);
+}
+.search-red .search-title:after {
+    content: url(../common/images/icons/bullet_red.png);
+}
+.search-lock .search-title:after {
+    content: url(../common/images/icons/lock.png);
+}
+.search-yellow .search-title:after {
+    content: url(../common/images/icons/bullet_yellow.png);
+}
+
+.search-result a {
+    text-decoration: none;
+}
+
+.search-result .ui-menu-item-wrapper {
+    position: relative;
+    padding: 3px 0.2em 3px 0.4em;
+}
+
+.search-result a:hover {
+    text-decoration: underline;
+}
+
+.search-descr {
+    font-size: 10px;
+    color: #666;
+}
+
 .ei-current-user-info-wrapper .ui-dialog-titlebar {
     display:none;
 }
