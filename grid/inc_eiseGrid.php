@@ -998,7 +998,7 @@ function getSelectValue($cell, $row, $suffix=''){
     } else {
         
         if ($cell['source']!=''){
-            list($prefix, $extra) = explode('|', $fld['source_prefix']);
+            list($prefix, $extra) = explode('|', $cell['source_prefix']);
             $rs = $this->getDataFromCommonViews($this->oSQL, $_val, "", $cell['source'], $prefix, 1, $extra);
             $rw = $oSQL->fetch_array($rs);
             $ret = $rw["optText"];
