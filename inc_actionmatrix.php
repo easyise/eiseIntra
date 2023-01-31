@@ -240,7 +240,7 @@ for ($j=0; $j<count($dstID); $j++){
 									foreach ((array)$this->mtxByAction[$rw['actID']] as $rwMTX) {
 										$conditions = '';
 										foreach ($this->mtxDataFields as $ix=>$field) {
-											if($rwMTX[$field] && $rwMTX[$field]!='%'){
+											if($rwMTX[$field]!==null && $rwMTX[$field]!=='' && $rwMTX[$field]!='%'){
 											// if(true){
 												$atr = $this->conf['ATR'][$this->mtxDataAttrs[$ix]];
 												$cndts = preg_replace('/[^\<\>\=]/', '', $atr['atrMatrix']);
