@@ -186,9 +186,12 @@ public function superaction($nd){
     $oSQL->q('COMMIT');
     parent::update($nd);
 
+    // echo('<pre>'.var_export($nd, true));
+
     // $oSQL->showProfileInfo();
     // $oSQL->q('ROLLBACK');
     // die();
+    
 }
 
 public function undo($nd){
@@ -203,7 +206,7 @@ public function undo($nd){
         if($acl['aclActionPhase']!=2 || in_array($acl['aclActionID'], [1,2,3,4]))
             continue;
 
-        if($acl['aclActionID']==2){
+        if(!in_array($acl['aclActionID'], [2])) {
             if(!$acl_undo)
                 $aUpdates[] = $acl['aclGUID'];
             continue;
@@ -1156,15 +1159,15 @@ function getAllData($toRetrieve = null){
     if(in_array('ACL', $toRetrieve) || in_array('STL', $toRetrieve)) {
         $this->item["ACL"]  = Array();
         $sqlACL = "SELECT * FROM stbl_action_log 
-                INNER JOIN stbl_action ON actID= aclActionID AND (actEntityID='{$this->conf['entID']}' OR actEntityID IS NULL)
+                INNER JOIN stbl_action ON actID= aclActionID AND (actEntityID='{$this->conf['entID']}' OR actID IN (1,2,3,4))
                 WHERE aclEntityItemID='{$this->id}'
                 ORDER BY aclActionPhase, IFNULL(aclATA, NOW()) DESC, aclOldStatusID DESC";
         $rsACL = $this->oSQL->do_query($sqlACL);
         while($rwACL = $this->oSQL->fetch_array($rsACL)){
             if($rwACL['aclActionPhase']<=2)
-                $this->item["ACL"][$rwACL["aclGUID"]] = $this->getActionData($rwACL["aclGUID"]);
+                $this->item["ACL"][$rwACL["aclGUID"]] = $this->getActionData($rwACL["aclGUID"], $rwACL);
             else 
-                $this->item["ACL_Cancelled"][$rwACL["aclGUID"]] = $this->getActionData($rwACL["aclGUID"]);
+                $this->item["ACL_Cancelled"][$rwACL["aclGUID"]] = $this->getActionData($rwACL["aclGUID"], $rwACL);
         } 
 
     }    
@@ -1588,8 +1591,8 @@ public function getActionLog($q){
             , 'actTitle' => $act['actTitle'.$this->intra->local]
             , 'actTitlePast' => $act['actTitlePast'.$this->intra->local]
             , 'aclComments' => $acl['aclComments']
-            , 'aclFinishBy' => $this->intra->translate('%s by %s', ucfirst($acl['actTitlePast'.$this->intra->local]), $this->intra->getUserData($acl['aclFinishBy']))
-            , 'aclEditBy' => $this->intra->translate('%s by %s', ucfirst($acl['actTitlePast'.$this->intra->local]), $this->intra->getUserData($acl['aclEditBy']))
+            , 'aclFinishBy' => $this->intra->translate('by %s', $this->intra->getUserData($acl['aclFinishBy']))
+            , 'aclEditBy' => $this->intra->translate('by %s', $this->intra->getUserData($acl['aclEditBy']))
             , 'aclEditDate' => $this->intra->datetimeSQL2PHP($acl["aclEditDate"])
             , 'aclATA' => date("{$this->intra->conf['dateFormat']}"
                     .(strtotime($acl["aclATA"])!=strtotime(date('Y-m-d', strtotime($acl["aclATA"]))) ? " {$this->intra->conf['timeFormat']}" : '')
@@ -2211,7 +2214,7 @@ switch ($da) {
 
 }
 
-public function getActionData($aclGUID){
+public function getActionData($aclGUID, $rwACL=null){
     
     $oSQL = $this->oSQL;
     $entID = $this->entID;
@@ -2220,11 +2223,15 @@ public function getActionData($aclGUID){
     
     if (!$aclGUID) return;
     
-    $sqlACT = "SELECT ACL.*
-       FROM stbl_action_log ACL
-       WHERE aclGUID='{$aclGUID}'";
-    
-    $rwACT = $oSQL->fetch_array($oSQL->do_query($sqlACT));
+    if(is_array($rwACL)){
+        $rwACT = $rwACL;
+    } else {
+        $sqlACT = "SELECT ACL.*
+           FROM stbl_action_log ACL
+           WHERE aclGUID='{$aclGUID}'";
+        
+        $rwACT = $oSQL->fetch_array($oSQL->do_query($sqlACT));
+    }
     $rwACT['actID'] = $rwACT['aclActionID'];
 
     //$rwACT = @array_merge($this->conf['ACT'][$rwACT['aclActionID']], $rwACT);
@@ -2239,9 +2246,7 @@ public function getActionData($aclGUID){
         , 'staTitleLocal_New' => $this->conf['STA'][$rwACT['aclNewStatusID']]['staTitleLocal']
         ));
     
-    $arrRet = $rwACT;
-    
-    return $arrRet;
+    return $rwACT;
     
 }
 

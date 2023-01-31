@@ -2,13 +2,15 @@
 class eiseAction {
 
 public static $ts = array('ETD', 'ATD', 'ETA', 'ATA');
-	
+
 public function __construct($item, $arrAct, $options = array()){
 
 	$this->item = $item;
 	$this->oSQL = $item->oSQL;
 	$this->intra = $item->intra;
 	$this->entID = $item->conf['entID'];
+
+    $this->flagIsManagement = ( count(array_intersect($this->intra->arrUsrData['roleIDs'], explode(',', $this->item->conf['entManagementRoles'])  ) ) > 0 );
 
     $nd = $arrAct;
 	
@@ -62,6 +64,19 @@ public function __construct($item, $arrAct, $options = array()){
             $this->arrAction['aclOldStatusID'] = $item->staID;
             $this->arrAction['aclNewStatusID'] = $item->staID;
             $this->arrAction['RLA'] = ($this->intra->arrUsrData['FlagWrite'] || $this->intra->arrUsrData['FlagUpdate'] ? array($item->conf['RoleDefault']) : array());
+            break;
+        case 4: 
+            if(!$this->flagIsManagement){
+                throw new Exception("Only management ({$this->item->conf['entManagementRoles']}) can run the Superaction");
+            }
+            $this->arrAction['aclOldStatusID'] = $item->staID;
+            $this->arrAction['aclNewStatusID'] = $arrAct['aclNewStatusID'];
+            $this->arrAction['aclComments'] = __("Status '%s' set by %s@%s:"
+                , $this->item->oSQL->d("SELECT staTitle{$this->intra->local} FROM stbl_status WHERE staID=".$this->item->oSQL->e($arrAct['aclNewStatusID']))
+                , $this->intra->arrUsrData['usrID']
+                , $this->intra->datetimeSQL2PHP(date('Y-m-d H:i:s')))
+                ."<br>\n"
+                .$arrAct['aclComments'];
             break;
         default:
             if($this->arrAction['actNewStatusID'][0]===null){ // if we move to the same status
@@ -290,7 +305,7 @@ public function validate(){
 	} else {
 
         
-        if(!count(array_intersect($this->intra->arrUsrData['roleIDs'], explode(',', $this->item->conf['entManagementRoles'])  ) )) 
+        if( !$this->flagIsManagement ) 
             if(!in_array($this->item->item["{$this->item->conf['prefix']}StatusID"], $this->conf['actOldStatusID'])){
                 throw new Exception($this->intra->translate("%s %s: Action \"%s\" could not run in status \"%s\""
                     , $this->item->conf['entTitle'.$this->intra->local] 
