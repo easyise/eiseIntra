@@ -473,7 +473,8 @@ function get_html($allowEdit=true){
                         $rs = $oSQL->do_query($fld['source']);
                     } else 
                         if ($fld['source']){
-                            $rs = $this->getDataFromCommonViews($oSQL, "", "", $fld['source'], $fld['source_prefix']);
+                            list($prefix, $extra) = explode('|', $fld['source_prefix']);
+                            $rs = $this->getDataFromCommonViews($oSQL, "", "", $fld['source'], $prefix, 0, $extra);
                         }
                     if (is_resource($rs) // for mysql_query() function
                         || is_object($rs) // for mysqli::query() function
@@ -997,7 +998,8 @@ function getSelectValue($cell, $row, $suffix=''){
     } else {
         
         if ($cell['source']!=''){
-            $rs = $this->getDataFromCommonViews($this->oSQL, $_val, "", $cell['source'], $cell['source_prefix']);
+            list($prefix, $extra) = explode('|', $fld['source_prefix']);
+            $rs = $this->getDataFromCommonViews($this->oSQL, $_val, "", $cell['source'], $prefix, 1, $extra);
             $rw = $oSQL->fetch_array($rs);
             $ret = $rw["optText"];
         }

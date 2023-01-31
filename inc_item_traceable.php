@@ -2265,7 +2265,7 @@ public function getDropDownText($arrATR, $value){
             : $arrATR["atrTextIfNull"]);
     } else {
         list($prefix, $extra) = self::getPrefixExtra($arrATR["atrProgrammerReserved"]);
-        $strRet = ($value != ""
+        $strRet = ($value != "" && $arrATR["atrDataSource"]
             ? $this->oSQL->d($this->intra->getDataFromCommonViews($value, null, $arrATR["atrDataSource"], $prefix, true, $extra))
             : $arrATR["atrTextIfNull"]
         );
@@ -2308,6 +2308,8 @@ public function getWhosNextStatus($staID, $counter){
         if($act['actNewStatusID'][0]==$staID)
             continue;
         if($act['actFlagSystem'])
+            continue;
+        if(!count($act['RLA']))
             continue;
         $classes = ($defaultActID==$actID ? ' default' : '');
         $iconClass = (preg_match('/^fa\-/', trim($act['actButtonClass'])) ? 'fa ' : (preg_match('/^ss\_/', trim($act['actButtonClass'])) ? 'ss_sprite ' : '')).$act['actButtonClass'];

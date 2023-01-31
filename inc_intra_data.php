@@ -712,21 +712,21 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
                     ." as optGroup"
                 : '')." 
         FROM `{$strTable}`";
-    
-    if ($strValue!=""){ // key-based search
-        $sql .= "\r\nWHERE `{$arrFields["idField"]}`=".$oSQL->escape_string($strValue);
-    } else { //value-based search
-        $strExtra = '';
-        if ($extra!=''){
-            $arrExtra = explode("|", $extra);
-            foreach($arrExtra as $ix=>$ex){ 
-                $ex = trim($ex);
-                $strExtra .= ($ex!='' 
-                    ? ' AND '.$arrFields['extraField'].($ix==0 ? '' : $ix).' = '.$oSQL->e($ex) 
-                    : ''); 
-            }
-        }
 
+    $strExtra = '';
+    if ($extra!=''){
+        $arrExtra = explode("|", $extra);
+        foreach($arrExtra as $ix=>$ex){ 
+            $ex = trim($ex);
+            $strExtra .= ($ex!='' 
+                ? ' AND '.$arrFields['extraField'].($ix==0 ? '' : $ix).' = '.$oSQL->e($ex) 
+                : ''); 
+        }
+    }
+    
+    if ($strValue!=="" && $strValue!==null){ // key-based search
+        $sql .= "\r\nWHERE `{$arrFields["idField"]}`=".$oSQL->escape_string($strValue).$strExtra;
+    } else { //value-based search
         $arrVariations = eiseIntra::getKeyboardVariations($strText);
         $sqlVariations = '';
         

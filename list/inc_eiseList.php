@@ -1243,6 +1243,9 @@ private function composeSQL(){
                             .($col["sql"]!='' && $col['sql']!=$col['field'] 
                                 ? "({$col['sql']})"
                                 : $col['field']
+                            ).($col['extra'] 
+                                ? " AND ".($col["source_prefix"]!="" ? $col["source_prefix"] : "opt")."Extra=".$this->oSQL->e($col['extra'])
+                                : ''
                             ).")";
                     }
 
