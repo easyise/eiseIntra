@@ -201,7 +201,6 @@ function eiseList(divEiseList){
     var selectedTab = this.initTabs();
 
     if(!selectedTab){
-        console.log(list.conf)
         this.getData(0,null, !list.conf['flagPostRequest'] );
     }
 
@@ -439,6 +438,7 @@ eiseList.prototype.saveFilters = function(){
 
     if(oActiveTab)
         filters[0].filters[oActiveTab.field] = oActiveTab.value
+
     filters[ixFilter].filters = oFilters
 
     localStorage[this.conf.cookieName_filters] = JSON.stringify(filters)
@@ -570,12 +570,10 @@ eiseList.prototype.filterByTab = function(tab, conf){
         var $inp = this.form.find('[name='+tabData.field+']');
 
         if (!$inp[0]){
-            
             $inp = this.form.append('<input type=hidden id="'+tabData.field+'" value="'+tabData.value+'" name="'+tabData.field+'" class="el-filter">');
-
         } 
         
-        $inp.val(tabData.value);  
+        $inp.val(tabData.value);
 
         if(list.tabsInitialized){
             var tabFilters = this.getFiltersForTab(tabData, list.getFilters())

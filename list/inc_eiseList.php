@@ -207,13 +207,13 @@ public function addColumn($arrCol){
  */
 public function setColumnProperty($field, $property, $value){
     $retVal = null;
-    foreach($this->Columns as &$col){
+    foreach($this->Columns as $ix=>$col){
         if($col['field']==$field){
             $retVal = $col[$property];
             if($value!==null)
-                $col[$property] = $value;
+                $this->Columns[$ix][$property] = $value;
             else 
-                unset($col[$property]);
+                unset($this->Columns[$ix][$property]);
             break;
         }
     }
@@ -259,7 +259,7 @@ public function getColumn($field, &$key=''){
         $key = $field;
         return $this->Columns[$field];
     }
-    foreach($this->Columns as $ix=>&$col){
+    foreach($this->Columns as $ix=>$col){
         if($col['field']==$field){
             $key = $ix;
             return $col;
@@ -281,6 +281,8 @@ public function removeColumn($field){
 }
 
 public function handleDataRequest(){ // handle requests and return them with Ajax, Excel, XML, PDF, whatsoever user can ask
+
+    // die('<pre>'.var_export($this->Columns, true));
     
     $DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
     if (!$DataAction)
@@ -518,6 +520,9 @@ public function show(){ // draws the wrapper
 
     $this->handleInput();
 
+    // if ($this->conf['tabsFilterColumn'])
+    //     $this->setColumnProperty($this->conf['tabsFilterColumn'], 'title', null);
+
     $col_order = [];
     foreach ($this->Columns as $ix => $col) {
         if(!$col['title'] || in_array($col["field"], $this->arrHiddenCols))
@@ -610,7 +615,7 @@ private function showTableHeader(){
     $this->cols = '';
 
     /* first and second rows - titles and filter inputs */
-    foreach($this->Columns as &$col) {
+    foreach($this->Columns as $ix=>$col) {
 
         if ($col["title"]=="" || in_array($col["field"], $this->arrHiddenCols)) {
             continue;
@@ -625,7 +630,7 @@ private function showTableHeader(){
             $strClassList .= ($strClassList!='' ? ' ' : '')."el-sorted-".strtolower($this->sortOrder);
         }
         
-        $col['width'] = $col['width'].(preg_match('/^[0-9]+$/', $col['width']) ? 'px' : '');
+        $this->Columns[$ix]['width'] = $col['width'].(preg_match('/^[0-9]+$/', $col['width']) ? 'px' : '');
 
         $strClassList .= ($strClassList!='' ? ' ' : '')
             .($col['type']
@@ -857,7 +862,7 @@ protected function breakDownByTabs(){
                             ? $this->intra->translate('- not set -')
                             : '- not set -' )
                         )." ({$nullTab['optCount']})"
-                    , 'filter' => $col['field']
+                    , 'filter' => $filter
                     , 'value' => null
               );
     }
@@ -880,7 +885,7 @@ protected function breakDownByTabs(){
                             ? $this->intra->translate($this->conf['titleTabAny'], $col['title'])
                             : sprintf($this->conf['titleTabAny'], $col['title']) 
                         )." ({$totalCount})"
-                    , 'filter' => $col['field']
+                    , 'filter' => $filter
                     , 'value' => ''
               );
     }
@@ -1182,7 +1187,7 @@ public function getFilterValue( $field ){
 
 private function composeSQL(){
     
-    GLOBAL $_DEBUG;
+    GLOBAL $_DEBUG, $intra;
     
     $this->flagGroupBy = false;
     $this->fieldsForCount = Array();
@@ -1194,7 +1199,7 @@ private function composeSQL(){
     $this->sqlFromAggregate = $this->sqlFrom;
 
 
-    foreach ($this->Columns as $i => &$col){
+    foreach ($this->Columns as $i => $col){
         if ($col["field"]=="" || $col["field"]=="phpLNums") 
             continue;
             
@@ -1226,7 +1231,13 @@ private function composeSQL(){
                     $col['textField'] .= ($this->conf['strLocal'] && in_array($col['textField'].$this->conf['strLocal'], $fields) ? $this->conf['strLocal'] : '');
                     $col['idField'] = ($col["source_prefix"]!="" ? $col["source_prefix"]."ID" : "optValue");
                     $col['tableAlias'] = "t_{$col['field']}";
-                    $sqlJoin = " LEFT OUTER JOIN {$col['source']} {$col['tableAlias']} ON {$col['field']}={$col['tableAlias']}.{$col['idField']}\r\n";
+
+                    $extraConditions = ($col['extra'] && in_array(($col["source_prefix"]!="" ? $col["source_prefix"] : "opt")."Extra", $fields)
+                                ? " AND {$col['tableAlias']}.".($col["source_prefix"]!="" ? $col["source_prefix"] : "opt")."Extra=".$this->oSQL->e($col['extra'])
+                                : ''
+                            );
+
+                    $sqlJoin = " LEFT OUTER JOIN {$col['source']} {$col['tableAlias']} ON {$col['field']}={$col['tableAlias']}.{$col['idField']} {$extraConditions}\r\n";
 
                     if(!($col["filterValue"]=="" && !($col['exactMatch'] && !$col['tabsFilter']) ) ){
                         $this->sqlFrom .= $sqlJoin;
@@ -1236,17 +1247,16 @@ private function composeSQL(){
                             : "{$col['tableAlias']}.{$col['textField']}" );
                     } else {
                         $text_field_full = ($col['textField_intl']!=$col['textField'] && $col["type"]=="combobox"
-                            ? "CASE WHEN IFNULL({$col['textField']}, '')='' THEN {$col['textField_intl']} ELSE {$col['textField_intl']} END"
+                            ? "CASE WHEN IFNULL({$col['textField']}, '')='' THEN {$col['textField_intl']} ELSE {$col['textField']} END"
                             : "{$col['textField']}"
                             );
-                        $sqlTextField = "(SELECT {$text_field_full} FROM `{$col["source"]}` WHERE {$col['idField']}="
+                        $sqlTextField = "(SELECT {$text_field_full} FROM `{$col["source"]}` {$col['tableAlias']} WHERE {$col['idField']}="
                             .($col["sql"]!='' && $col['sql']!=$col['field'] 
                                 ? "({$col['sql']})"
                                 : $col['field']
-                            ).($col['extra'] && in_array(($col["source_prefix"]!="" ? $col["source_prefix"] : "opt")."Extra", $fields)
-                                ? " AND ".($col["source_prefix"]!="" ? $col["source_prefix"] : "opt")."Extra=".$this->oSQL->e($col['extra'])
-                                : ''
-                            ).")";
+                            )
+                            .$extraConditions
+                            .")";
                     }
 
                     if($col['defaultText'])
@@ -1255,6 +1265,8 @@ private function composeSQL(){
                     $sqlTextField = $sqlTextField." as {$col["field"]}_Text";
 
                     $this->sqlFields .= ( $this->sqlFields!="" ? "\r\n, " : "").$sqlTextField;
+                } elseif (preg_match("/^SELECT/", $col["source"] )) {
+                    
                 }
             }
         }
@@ -1333,6 +1345,8 @@ private function composeSQL(){
 
     $this->strSQL .= "
         ORDER BY ".$this->orderBy." ".$this->sortOrder;
+
+    // echo '<pre>'.$this->strSQL.'</pre>';
    
 }
 
@@ -1561,6 +1575,8 @@ private function getRowArray($index, $rw){
         $arrField["t"] = ($valFormatted!="" ? $valFormatted : $val); // we will always display text in here
         if (in_array($col["type"], Array("combobox", "ajax_dropdown")))
             $arrField["v"] = $val;
+
+        $arrField['type'] = $col["type"];
             
         $arrFields[$col['field']] = $arrField;
         

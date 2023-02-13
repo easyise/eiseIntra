@@ -749,7 +749,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     $prfx = $this->conf['entPrefix'];
     $listName = $prfx;
     
-    $this->staID = ($_GET[$prfx."_staID"]==='' ? null : $_GET[$prfx."_staID"]);
+    $this->staID = ($_GET[$prfx."_staID"]==='' || $_GET['DataAction']=='json' ? null : $_GET[$prfx."_staID"]);
 
     $hasBookmarks = (boolean)$oSQL->d("SHOW TABLES LIKE 'stbl_bookmark'");
 
@@ -827,7 +827,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     if($this->staID===null){
         if (!in_array("staTitle", $arrExcludeCols))
             $lst->addColumn(array('title' => $intra->translate("Status")
-                , 'type'=>"combobox"
+                , 'type' => "combobox"
                 , 'source'=>"SELECT staID AS optValue, staTitle{$intra->local} AS optText, staTitle{$intra->local} AS optTextLocal, staFlagDeleted as optFlagDeleted FROM stbl_status WHERE staEntityID='$entID'"
                 , 'defaultText' => "All"
                 , 'field' => "staTitle{$intra->local}"
@@ -1064,6 +1064,9 @@ public function updateRolesVirtual(){
 
 }
 
+/**
+ * This function returns user list for virtual role members in a dictionary-like array of usrID=>roleID pairs.
+ */
 public function getVirtualRoleMembers($rolID){
     
     switch ($rolID) {
