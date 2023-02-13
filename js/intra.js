@@ -1156,7 +1156,7 @@ value: function(strFieldName, val, decimalPlaces){
                 if (arrMatch){
                     strDateFormat = ' '+strDateFormat.replace(/[^dmyhis]/gi, '');
                     var year = (strDateFormat.indexOf('y')>=0 ? '20'+arrMatch[strDateFormat.indexOf('y')] : arrMatch[strDateFormat.indexOf('Y')]);
-                    return new Date(year, arrMatch[strDateFormat.indexOf('m')]-1, +arrMatch[strDateFormat.indexOf('d')]);
+                    return new Date( new Date(year, arrMatch[strDateFormat.indexOf('m')]-1, +arrMatch[strDateFormat.indexOf('d')]) - ((new Date()).getTimezoneOffset() * 60000) );
                 } else {
                     return null;
                 }
