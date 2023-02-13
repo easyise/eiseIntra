@@ -1919,7 +1919,7 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
 
     } else {
 
-        $html .= ($value ? '<div class="eiseIntraValue">'.$value.'</div>' : '');
+        $html .= ($value ? '<div class="eiseIntraValue'.($conf['class'] ? " {$conf['class']}" : '').'">'.$value.'</div>' : '');
 
     }
 
