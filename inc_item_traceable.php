@@ -750,6 +750,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     $listName = $prfx;
     
     $this->staID = ($_GET[$prfx."_staID"]==='' || $_GET['DataAction']=='json' ? null : $_GET[$prfx."_staID"]);
+    // $this->staID = ($_GET[$prfx."_staID"]==='' ? null : $_GET[$prfx."_staID"]);
 
     $hasBookmarks = (boolean)$oSQL->d("SHOW TABLES LIKE 'stbl_bookmark'");
 

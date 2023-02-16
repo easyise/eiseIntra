@@ -194,6 +194,8 @@ public function addColumn($arrCol){
     } else {
         $this->Columns[$arrCol['field']] = $arrCol;
     }
+
+
 }
 
 /**
@@ -282,30 +284,30 @@ public function removeColumn($field){
 
 public function handleDataRequest(){ // handle requests and return them with Ajax, Excel, XML, PDF, whatsoever user can ask
 
-    // die('<pre>'.var_export($this->Columns, true));
-    
     $DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
-    if (!$DataAction)
+    if (!$DataAction || $DataAction=='getPostRequest'){
+        $this->cacheColumns();
         return;
+    }
+    
+    $this->getCachedColumns();
 
     if($DataAction=='updateCell')
         $this->updateCell($_POST);
     
     $oSQL = $this->oSQL;
     $this->error = "";
-    
+
     if (!$this->conf["cacheSQL"] || $_GET["noCache"] || $DataAction=='getPostRequest'){
 
         $this->handleInput();
         $this->composeSQL();
         if ($this->conf["cacheSQL"]) {
-            $this->cacheColumns();
             $this->cacheSQL();
         }
 
     } else {
         
-        $this->getCachedColumns();
         $this->getCachedSQL();
     }
 
