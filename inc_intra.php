@@ -2667,7 +2667,13 @@ function dataAction($dataAction, $funcOrObj=null){
             if($flagIsAJAX)
                 $this->json($status, $message, $data);
             if($redirect){
-                $this->redirect($message, $redirect);
+                if(!$this->flagBatch){
+                    $this->redirect($message, $redirect);
+                } else {
+                    $this->batchEcho($message);
+                    die();
+                }
+                
             }
             else {
                 if(!$this->flagBatch)
