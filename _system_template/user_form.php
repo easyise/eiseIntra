@@ -19,10 +19,16 @@ public function __construct($id = null, $conf = array()){
 
 public function update($nd){
 
+    if(!$this->id){
+        $nd['usrID'] = $nd['usrID_'];
+    }
+
     $nd_sql = $this->intra->arrPHP2SQL($nd, $this->table['columns_types']);
 
-    if($nd_sql['usrPass']!==cUser::$defaultPass)
+    if($nd_sql['usrPass']!==cUser::$defaultPass){
         $nd_sql['usrPass'] = $this->intra->password_hash($nd_sql['usrPass']);
+    } else 
+        unset($nd_sql['usrPass']);
 
     $sqlFields = $this->intra->getSQLFields($this->table, $nd_sql);
 
@@ -30,7 +36,7 @@ public function update($nd){
 
     if(!$this->id){
         $this->id = $nd[$this->table['PK'][0].'_'];
-        $sql = "INSERT INTO stbl_user SET {$this->table['PK'][0]}=".$this->oSQL->e($this->id).", {$this->conf['prefix']}InsertBy='{$this->intra->usrID}', {$this->conf['prefix']}InsertDate=NOW() 
+        $sql = "INSERT INTO stbl_user SET {$this->conf['prefix']}InsertBy='{$this->intra->usrID}', {$this->conf['prefix']}InsertDate=NOW() 
             , {$this->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->conf['prefix']}EditDate=NOW()
             {$sqlFields}";
         $this->oSQL->q($sql);
@@ -39,6 +45,10 @@ public function update($nd){
         $sql = "UPDATE stbl_user SET {$this->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->conf['prefix']}EditDate=NOW() {$sqlFields} WHERE ".$this->getSQLWhere();
         $this->oSQL->q($sql);
     }
+
+    // $this->oSQL->showProfileInfo();
+    // $this->oSQL->q('ROLLBACK');
+    // die();
 
     $this->oSQL->q('COMMIT');
 
@@ -77,9 +87,9 @@ $usr = new cUser();
 $intra->dataAction(array('insert', 'update', 'delete'), $usr, $_POST);
 
 $arrActions[]= Array ('title' => $intra->translate('Back')
-	   , 'action' => $usr->conf['list']
-	   , 'class'=> 'ss_arrow_left'
-	);
+       , 'action' => $usr->conf['list']
+       , 'class'=> 'ss_arrow_left'
+    );
 
 include eiseIntraAbsolutePath."inc{$intra->conf['frame']}_top.php";
 
