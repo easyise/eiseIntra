@@ -695,7 +695,7 @@ fillFileListAJAX: function(conf){
                     modal: true
                     , width: (conf && conf.width ? conf.width : '500px')
                 })
-        .eiseIntraAJAX('initFileUpload')
+        .eiseIntraAJAX('initFileUpload', conf)
         .find('tbody')
         .eiseIntraAJAX('fillTable', strURL, conf)
     }
