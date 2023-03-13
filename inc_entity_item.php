@@ -1473,6 +1473,8 @@ switch ($da) {
                 
                 $oSQL->q("COMMIT");
 
+                static::AfterAttachFile($filesPath, $filename, $f["type"], $fileGUID);
+
                 $nFiles++;
             }
         }
@@ -1497,6 +1499,7 @@ switch ($da) {
 }
 
 }
+static function AfterAttachFile($filesPath, $filename, $type, $fileGUID){}
 
 /**
  * This function obtains file list for current entity item

@@ -2012,6 +2012,9 @@ fillTable: function(URLorObj, conf){
 
     if(typeof(URLorObj)=='object'){
         
+        if(conf && conf.beforeFill)
+        conf.beforeFill.call($body, URLorObj);
+
         _fill($body, URLorObj, conf);
 
     } else {
@@ -2042,7 +2045,7 @@ fillTable: function(URLorObj, conf){
     
 },
 
-initFileUpload: function(){
+initFileUpload: function(conf){
 
     var $dropzone = this.find('.eif-file-dropzone')
         , $inpFile = this.find('.eif-attachment')
@@ -2101,7 +2104,7 @@ initFileUpload: function(){
                 $.getJSON(location.pathname+location.search+'&DataAction=deleteFile&filGUID='+encodeURIComponent($idField.val())
                     , function(response){
                         $('body').eiseIntra('showMessage', response.message);
-                        $tbody.eiseIntraAJAX('fillTable', response.data, {flagClear: true});
+                        $tbody.eiseIntraAJAX('fillTable', response.data, $.extend({flagClear: true}, conf));
                         _init_delete();
                     });
             }
@@ -2128,7 +2131,7 @@ initFileUpload: function(){
                 $dropzone.removeClass('uploading');
 
                 if($tbody[0] && response.status=='ok'){
-                    $tbody.eiseIntraAJAX('fillTable', response.data, {flagClear: true});
+                    $tbody.eiseIntraAJAX('fillTable', response.data,  $.extend({flagClear: true}, conf));
                     _init_delete();
                 }
 
