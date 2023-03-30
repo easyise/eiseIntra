@@ -271,9 +271,9 @@ $gridSAT->Columns[] = Array(
 $gridSAT->Columns[] = Array(
         'title' => $intra->translate("ID")
         , 'field' => "staID_"
-        , 'type' => "number"
+        , 'type' => "text"
         , 'disabled' => true
-        , 'width' => "30px"
+        , 'width' => "40px"
 );
 $gridSAT->Columns[] = Array(
         'title' => $intra->translate("Title")
