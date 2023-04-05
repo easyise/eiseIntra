@@ -268,7 +268,7 @@ public function getFields($aFields = null){
 			? $col['title'.$this->intra->local]
 			: ($col['title'] ? $col['title'] : $this->intra->translate($col['Comment']))
 			);
-		$conf = array_merge($col, array('type'=>(!$title ? 'hidden' : $col['DataType'])));
+		$conf = array_merge((array)$col, array('type'=>(!$title ? 'hidden' : $col['DataType'])));
 		if($conf['type']==='FK'){
 			$conf['type'] = 'combobox';
 			if($col['ref_table']){
