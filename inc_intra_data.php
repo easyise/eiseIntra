@@ -718,7 +718,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
         $arrExtra = explode("|", $extra);
         foreach($arrExtra as $ix=>$ex){ 
             $ex = trim($ex);
-            $strExtra .= ($ex!='' 
+            $strExtra .= ($ex!='' && !preg_match('/\\[\w+\]/', $ex)
                 ? ' AND '.$arrFields['extraField'].($ix==0 ? '' : $ix).' = '.$oSQL->e($ex) 
                 : ''); 
         }
