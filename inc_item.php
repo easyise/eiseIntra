@@ -469,6 +469,13 @@ public function attachFile($nd){
                 	
             }
             
+            try{
+            	$this->beforeAttachFile($f["tmp_name"], $f["name"], $f["type"], $filGUID);
+            } catch(Exception $e){
+            	$error .= "\n".$e->getMessage();
+            	continue;
+            }
+            
             copy($f["tmp_name"], $filesPath.$filename);
             
             //making the record in the database
@@ -484,6 +491,8 @@ public function attachFile($nd){
                 , filEditBy='{$this->intra->usrID}', filEditDate=NOW() ";
             
             $oSQL->q($sqlFileInsert);
+
+            $this->afterAttachFile($filesPath.$filename, $f["name"], $f["type"], $filGUID);
             
             $guids[] = $filGUID;
         }
@@ -505,6 +514,18 @@ function deleteFile($q){
 	$intra = $this->intra;
 	$oSQL = $this->oSQL;
 
+	try {
+		$this->beforeDeleteFile($q['filGUID']);
+	} catch (Exception $e) {
+
+		$this->msgToUser = 'ERROR: '.$e->getMessage();
+	    $this->redirectTo = eiseIntra::getFullHREF($this->conf['form'].'?'.$this->getURI());
+
+	    return $this->getFiles();
+
+	}
+	
+
     $oSQL->q("START TRANSACTION");
     $rwFile = $oSQL->f("SELECT * FROM stbl_file WHERE filGUID='{$q['filGUID']}'");
 
@@ -513,15 +534,32 @@ function deleteFile($q){
     @unlink($filesPath.$rwFile["filNamePhysical"]);
 
     $oSQL->do_query("DELETE FROM stbl_file WHERE filGUID='{$q['filGUID']}'");
-    $nFiles = 
     $oSQL->q("COMMIT");
 
-    $this->msgToUser = $intra->translate("Deleted files: %s", $nFiles);
+    $this->msgToUser = $err ? $err : $intra->translate("Deleted files: %s", $rwFile['filName']);
     $this->redirectTo = eiseIntra::getFullHREF($this->conf['form'].'?'.$this->getURI());
 
     return $this->getFiles();
 
 }
+
+/**
+ * ```beforeAttachFile()``` is allowed to trow exceptions in case when uploaded file has wrong type, etc. So wrong file can be excluded from upload routine.
+ *  @category Files
+ */
+function beforeAttachFile($filePath, $fileName, $fileMIME, $fileGUID){}
+
+/**
+ * ```afterAttachFile()``` runs when upload routine in completed for given file: file is copied and database record created. The best for post-processing.
+ * @category Files
+ */
+function afterAttachFile($filePath, $fileName, $fileMIME, $fileGUID){}
+
+/**
+ * This function can be used both to prevent file deletion (with an exception) and post-delete file hanling.
+ * @category Files
+ */
+function beforeDeleteFile($filGUID){}
 
 /**
  * This function obtains file list for current entity item
