@@ -167,7 +167,7 @@ public function update($nd = null){
         aclEditDate=NOW(), aclEditBy='{$this->intra->usrID}' 
         ".(count($aToUpdate) ? ", aclItemTraced=".$this->oSQL->e(json_encode($traced)) : '')."
         {$timestamps}
-        , aclComments = ".($aclComments ? $this->oSQL->e($aclComments) : 'NULL')."
+        , aclComments = ".($aclComments ? $this->oSQL->e($aclComments) : 'aclComments')."
     WHERE aclGUID='{$this->arrAction['aclGUID']}'";
 
     $this->oSQL->q($sqlACL);
