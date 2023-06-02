@@ -67,7 +67,7 @@ include eiseIntraAbsolutePath."inc_top.php";
 $aFields = array();
 
 foreach ($item->conf['ATR'] as $atrID => $arrAtr) {
-    if(in_array($atrID, $item->table['columns_index'])){
+    if( in_array($atrID, $item->table['columns_index']) && !in_array($item->table['columns_dict'][$atrID]['DataType'], ['activity_stamp', 'PK']) ){
         $aFields[] = $atrID;
     } 
 }
