@@ -1,0 +1,1 @@
+ALTER TABLE stbl_action ADD COLUMN IF NOT EXISTS actFlagSystem tinyint(4) NOT NULL DEFAULT 0  AFTER actFlagComment;
