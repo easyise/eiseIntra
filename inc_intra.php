@@ -859,6 +859,14 @@ public function menu($target = null){
     while ($rw = $this->oSQL->fetch_array($rs)){
         
         $rw["pagFile"] = preg_replace("/^\//", "", $rw["pagFile"]);
+
+        if($rw['pagEntityID']){
+            $rwEnt = $this->oSQL->f("SELECT * FROM stbl_entity WHERE entID='{$rw['pagEntityID']}'");
+            $entPrefix = ($rwEnt["entPrefix"] ? $rwEnt["entPrefix"] : $rwEnt['entID']);
+        } else {
+            unset($rwEnt);
+            unset($entPrefix);
+        }
         
         $hrefSuffix = "";
         
@@ -869,7 +877,7 @@ public function menu($target = null){
            $strRet .= '<ul class="sidebar-submenu">'."\n";
         
         if (preg_match("/list\.php$/", $rw["pagFile"]) && $rw["pagEntityID"]!=""){
-           $hrefSuffix = "?".$rw["pagEntityID"]."_staID=".($rw['pagFlagShowMyItems'] ? '&'.$rw["pagEntityID"].'_'.$rw["pagEntityID"].'FlagMyItems=' : '') ;
+           $hrefSuffix = "?".$entPrefix."_staID=".($rw['pagFlagShowMyItems'] ? '&'.$rw["pagEntityID"].'_'.$rw["pagEntityID"].'FlagMyItems=' : '') ;
            $rwEnt = $this->oSQL->f('SELECT * FROM stbl_entity WHERE entID='.$this->oSQL->e($rw["pagEntityID"]));
         }
         
@@ -902,13 +910,19 @@ public function menu($target = null){
                     ."</a>\n";
             }
 
-            $sqlSta = "SELECT * FROM stbl_status WHERE staEntityID='".$rw["pagEntityID"]."' AND staFlagDeleted=0";
+            $sqlSta = "SELECT * 
+                FROM stbl_status 
+                LEFT OUTER JOIN stbl_entity ON entID=staEntityID
+                WHERE staEntityID='".$rw["pagEntityID"]."' AND staFlagDeleted=0";
             $rsSta = $this->oSQL->do_query($sqlSta);
             while ($rwSta = $this->oSQL->fetch_array($rsSta)){
+
+                
+
                 $staMenuItemClass = $rwSta['staMenuItemClass'] ? $rwSta['staMenuItemClass'] : 'fa-circle-o';
                 $customSubMenu_sta = call_user_func_array(array($this, 'menuItem'), array($rw, $rwSta));
                 $strRet .= "<li id='".$rw["pagID"]."_".$rwSta["staID"]."'><a{$target} href='"
-                    .$rw["pagFile"]."?".$rw["pagEntityID"]."_staID=".$rwSta["staID"]."'>"
+                    .$rw["pagFile"]."?{$entPrefix}_staID={$rwSta["staID"]}'>"
                     .'<i class="fa '.$staMenuItemClass.'"></i>'
                     .($rwSta["staTitle{$this->local}Mul"] ? $rwSta["staTitle{$this->local}Mul"] : $rwSta["staTitle{$this->local}"])
                     .(preg_match('/^\<ul/i', ltrim($customSubMenu_sta))
