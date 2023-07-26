@@ -806,7 +806,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
         $lst->addColumn(array('field' => $fieldMyItems
             , 'filter' => $fieldMyItems
             , 'type' => 'boolean'
-            , 'sql'=> "bkmUserID='{$intra->usrID}' OR {$entID}InsertBy='{$intra->usrID}'"
+            , 'sql'=> "bkmUserID='{$intra->usrID}' OR {$prfx}InsertBy='{$intra->usrID}'"
             )
         );
     }
@@ -850,15 +850,6 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
             );
     }
 
-    if (!in_array("aclATA", $arrExcludeCols))
-        $lst->addColumn(array('title' => "ATA"
-            , 'type'=>"date"
-            , 'field' => "aclATA"
-            , 'sql' => "IFNULL(SAC.aclATA, SAC.aclInsertDate)"
-            , 'filter' => "aclATA"
-            , 'order_field' => "aclATA"
-            )
-        );
     if (!in_array("actTitle", $arrExcludeCols))
         $lst->addColumn(array('title' => "Action"
             , 'type'=>"text"
@@ -1000,9 +991,15 @@ public function getNewItemID($data = array()){
 public function newItem($nd = array()){
 
     $newID = $this->getNewItemID($nd);
+
+    $nd_sql = ($flagDontConvertToSQL ? $nd : $this->intra->arrPHP2SQL($nd, $this->table['columns_types']));
+
+    $sqlFields = $this->intra->getSQLFields($this->table, $nd_sql);
+
     $sql = "INSERT INTO {$this->conf['table']} SET 
         {$this->conf['prefix']}InsertBy=".$this->oSQL->e($this->intra->usrID)."
         , {$this->conf['prefix']}InsertDate=NOW()
+        {$sqlFields}
         ".($newID ? ", {$this->table['PK'][0]} = ".$this->oSQL->e($newID) : '');
 
     $this->oSQL->q($sql);
