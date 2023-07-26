@@ -459,24 +459,27 @@ public function attachFile($nd){
 
             $filGUID = $oSQL->d("SELECT UUID() as GUID");
             $filename = Date("Y/m/").$filGUID.".att";
-                                
-            if(!file_exists($filesPath.Date("Y/m"))){
-                $d = @mkdir($filesPath.Date("Y/m"), 0777, true);
-                if(!$d){
-                	$error = "ERROR: Unable to create directory: ".$filesPath.Date("Y/m");
-                	break;
-                }
-                	
-            }
-            
+
             try{
             	$this->beforeAttachFile($f["tmp_name"], $f["name"], $f["type"], $filGUID);
             } catch(Exception $e){
             	$error .= "\n".$e->getMessage();
             	continue;
             }
+
+            if($filesPath!='/dev/null'){
+            	
+	            if(!file_exists($filesPath.Date("Y/m"))){
+	                $d = @mkdir($filesPath.Date("Y/m"), 0777, true);
+	                if(!$d){
+	                	$error = "ERROR: Unable to create directory: ".$filesPath.Date("Y/m");
+	                	break;
+	                }   	
+	            }
             
-            copy($f["tmp_name"], $filesPath.$filename);
+            	copy($f["tmp_name"], $filesPath.$filename);
+
+            }
             
             //making the record in the database
             $sqlFileInsert = "INSERT INTO stbl_file SET
@@ -596,6 +599,11 @@ public function getFiles($opts = array()){
  * @category Files
  */
 public static function checkFilePath($filesPath){
+
+	if ($filesPath=='/dev/null') {
+		return $filesPath;
+	}
+
     if(!$filesPath)
         throw new Exception('File path not set');
 
