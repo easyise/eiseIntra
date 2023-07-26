@@ -280,7 +280,7 @@ function start(){
 
 public function validate(){
 
-	$aclOldStatusID = (isset($this->arrAction["aclOldStatusID"]) 
+	$aclOldStatusID = (array_key_exists("aclOldStatusID", $this->arrAction) 
 	    ? $this->arrAction["aclOldStatusID"] 
 	    : $this->item->item["{$this->item->conf['prefix']}StatusID"]
 	    );
