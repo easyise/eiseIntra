@@ -419,7 +419,7 @@ init: function( options ) {
             $this.eiseIntraEntityItemForm('showMessages');
             return false;
         });
-        $('a[href="#ei_files"]').click( function(ev) { 
+        $('a[href="#ei_files"]').on('click', function(ev) { 
                 $('#ei_files').dialog({modal: true, width: '40%'})
                     .eiseIntraAJAX('initFileUpload')
                     .find('tbody')
