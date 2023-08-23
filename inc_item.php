@@ -825,7 +825,9 @@ public function sendMessage($nd){
         , msgEntityItemID = ".(!$nd['entItemID'] ? $oSQL->e($this->id) : $oSQL->e($nd['entItemID']))."
         , msgFromUserID = '$intra->usrID'
         , msgToUserID = ".($nd['msgToUserID']!="" ? $oSQL->e($nd['msgToUserID']) : "NULL")."
-        , msgCCUserID = ".($nd['msgCCUserID']!="" ? $oSQL->e($nd['msgCCUserID']) : "NULL")."
+        , msgCCUserID = ".($nd['msgCCUserID']!="" ? $oSQL->e($nd['msgCCUserID']) : "NULL")."\n"
+        .($fields['msgToUserEmail'] ? ", msgToUserEmail=".$oSQL->e($nd['msgToUserEmail']) : '')."\n"
+        .($fields['msgCCUserEmail'] ? ", msgCCUserEmail=".$oSQL->e($nd['msgCCUserEmail']) : '')."
         , msgSubject = ".$oSQL->e($nd['msgSubject'])."
         , msgText = ".$oSQL->e($nd['msgText'])
         .($fields['msgPassword'] ? ", msgPassword=".$oSQL->e($intra->encrypt($password)) : '')."\n"
