@@ -3109,13 +3109,16 @@ function __construct($msg, $code = 0){
 }
 }
 
-function __(){
-    GLOBAL $intra;
-    $args = func_get_args();
-    if($intra && is_a($intra, 'eiseIntra')){
-        return call_user_func_array([$intra, 'translate'], $args);
-    } else {
-        return $args[0];
+
+if (!function_exists('__')) {
+    function __(){
+        GLOBAL $intra;
+        $args = func_get_args();
+        if($intra && is_a($intra, 'eiseIntra')){
+            return call_user_func_array([$intra, 'translate'], $args);
+        } else {
+            return $args[0];
+        }
     }
 }
 
