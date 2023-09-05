@@ -266,6 +266,7 @@ $grdMX->Columns[] = Array(
    'title' => $intra->translate("Old Status")
    , 'field' => 'actOldStatusIDs'
    , 'type' => "text"
+   , 'filterable' => true
    , 'disabled' => true
 );
 
@@ -306,6 +307,7 @@ $grdMX->Columns[] = Array(
    'title' => $intra->translate("New Status")
    , 'field' => 'actNewStatusIDs'
    , 'type' => "text"
+   , 'filterable' => true
    , 'disabled' => true
 );
 $grdMX->Columns[] = Array(
