@@ -1586,7 +1586,7 @@ public function getActionLog($q){
         $sta_old = $this->conf['STA'][$acl['aclOldStatusID']];
         $sta_new = $this->conf['STA'][$acl['aclNewStatusID']];
 
-        $rw = array('alGUID' => $acl['aclGUID']
+        $rw = array('aclGUID' => $acl['aclGUID']
             , 'actID' => $acl['aclActionID']
             , 'aclActionPhase' => $acl['aclActionPhase']
             , 'aclOldStatusID' => $acl['aclOldStatusID']
