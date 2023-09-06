@@ -832,6 +832,7 @@ public function sendMessage($nd){
         , msgText = ".$oSQL->e($nd['msgText'])
         .($fields['msgPassword'] ? ", msgPassword=".$oSQL->e($intra->encrypt($password)) : '')."\n"
         .($fields['msgFlagBroadcast'] ? ", msgFlagBroadcast=".(int)($nd['msgFlagBroadcast']) : '')."\n"
+        .($fields['msgGUID'] ? ", msgGUID=UUID()" : '')."\n"
         ."
         , msgMetadata = ".$oSQL->e(json_encode($metadata, true))."
         , msgSendDate = NULL
