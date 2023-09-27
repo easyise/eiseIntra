@@ -266,6 +266,7 @@ $grdMX->Columns[] = Array(
    'title' => $intra->translate("Old Status")
    , 'field' => 'actOldStatusIDs'
    , 'type' => "text"
+   , 'filterable' => true
    , 'disabled' => true
 );
 
@@ -306,21 +307,12 @@ $grdMX->Columns[] = Array(
    'title' => $intra->translate("New Status")
    , 'field' => 'actNewStatusIDs'
    , 'type' => "text"
+   , 'filterable' => true
    , 'disabled' => true
 );
 $grdMX->Columns[] = Array(
-         'title'=>$intra->translate("Autocmplt?")
-         , 'field'=>'actFlagAutocomplete'
-         , 'type'=>"checkbox"
-      );
-$grdMX->Columns[] = Array(
          'title'=>"ETA/ETD?"
          , 'field'=>'actFlagHasEstimates'
-         , 'type'=>"checkbox"
-      );
-$grdMX->Columns[] = Array(
-         'title'=>"ATD=ATA?"
-         , 'field'=>'actFlagDepartureEqArrival'
          , 'type'=>"checkbox"
       );
 $grdMX->Columns[] = Array(
@@ -730,9 +722,7 @@ $sqlAct = "SELECT actID
 $flagActionStatus
 ? "
   , actPriority
-  , actFlagAutocomplete
   , actFlagHasEstimates
-    , actFlagDepartureEqArrival
   , (SELECT GROUP_CONCAT(DISTINCT staTitle{$intra->local} ORDER BY staID SEPARATOR ', ') FROM stbl_action_status INNER JOIN stbl_status ON staEntityID='$entID' AND staID=atsOldStatusID WHERE atsActionID=actID) as actOldStatusIDs
   , (SELECT GROUP_CONCAT(DISTINCT staTitle{$intra->local} ORDER BY staID SEPARATOR ', ') FROM stbl_action_status INNER JOIN stbl_status ON staEntityID='$entID' AND staID=atsNewStatusID WHERE atsActionID=actID) as actNewStatusIDs
   , (SELECT MIN(staID) FROM stbl_action_status INNER JOIN stbl_status ON staEntityID='$entID' AND staID=atsOldStatusID WHERE atsActionID=actID) as minStaID

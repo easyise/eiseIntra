@@ -1,0 +1,1 @@
+ALTER TABLE stbl_action ADD COLUMN IF NOT EXISTS actOldStatusID int(11) NULL  AFTER actEntityID;

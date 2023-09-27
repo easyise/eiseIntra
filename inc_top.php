@@ -19,7 +19,7 @@ $conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)$intra->arrUsrData[
 
 <?php if (!$flagNoHeader): ?>
     <div id="header" class="ei-header" role="nav">
-        <div class="ei-app-title"><span class="sidebar-toggle fa fa-bars"></span><a href="<?php echo dirname($_SERVER['PHP_SELF']) ?>"><?php echo $title; ?></a></div>
+        <div class="ei-app-title"><span class="sidebar-toggle fa fa-bars"></span><a href="<?php echo dirname($_SERVER['PHP_SELF']).'/' ?>"><?php echo $title; ?></a></div>
         <div class="ei-top-level-menu-container"> </div>
         
         <?php if ($warning): ?>

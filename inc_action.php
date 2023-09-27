@@ -150,7 +150,7 @@ public function update($nd = null){
 
     $aToUpdate = array_merge($aToUpdate_old, $aToUpdate);
 
-    $timestamps = $this->getTimeStamps($aToUpdate);
+    $timestamps = $this->getTimeStamps($aToUpdate, 'ACL');
     $aclComments = (isset($this->arrAction['aclComments_'.$this->arrAction['aclGUID']])
         ? $this->arrAction['aclComments_'.$this->arrAction['aclGUID']]
         : (isset($nd['aclComments_'.$this->arrAction['aclGUID']])
@@ -167,7 +167,7 @@ public function update($nd = null){
         aclEditDate=NOW(), aclEditBy='{$this->intra->usrID}' 
         ".(count($aToUpdate) ? ", aclItemTraced=".$this->oSQL->e(json_encode($traced)) : '')."
         {$timestamps}
-        , aclComments = ".($aclComments ? $this->oSQL->e($aclComments) : 'NULL')."
+        , aclComments = ".($aclComments ? $this->oSQL->e($aclComments) : 'aclComments')."
     WHERE aclGUID='{$this->arrAction['aclGUID']}'";
 
     $this->oSQL->q($sqlACL);
@@ -206,7 +206,7 @@ public function add(){
             );
     }
 
-    $timestamps = $this->getTimeStamps($aToTrace);
+    $timestamps = $this->getTimeStamps($aToTrace, 'ACL');
 
     // 2. insert new ACL
     $sqlInsACL = "INSERT INTO stbl_action_log SET # add action {$this->arrAction['actTitle']}
@@ -280,7 +280,7 @@ function start(){
 
 public function validate(){
 
-	$aclOldStatusID = (isset($this->arrAction["aclOldStatusID"]) 
+	$aclOldStatusID = (array_key_exists("aclOldStatusID", $this->arrAction) 
 	    ? $this->arrAction["aclOldStatusID"] 
 	    : $this->item->item["{$this->item->conf['prefix']}StatusID"]
 	    );
@@ -362,6 +362,7 @@ public function finish(){
             {$this->item->conf['prefix']}ActionLogID=aclGUID
             {$tracedFields}
             {$userstamps}
+            {$timestamps}
             , {$this->item->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->item->conf['prefix']}EditDate=NOW()
         WHERE ".$this->item->getSQLWhere();
 
@@ -380,7 +381,6 @@ public function finish(){
         aclActionPhase = 2
         , aclItemAfter = ".$this->oSQL->e(json_encode($item_after))."
         , aclItemDiff = ".$this->oSQL->e(json_encode($item_diff))."
-        {$timestamps}
         ".($this->conf["actID"]!="2" && count($aTraced)>0
             ? ", aclItemTraced=".$this->oSQL->e(json_encode($aTraced))
             : ', aclItemTraced=NULL')."
@@ -596,13 +596,13 @@ public function checkPermissions(){
     $rwAct = $this->arrAction;
     $aUserRoles = array_merge(array($this->item->conf['RoleDefault']), $this->intra->arrUsrData['roleIDs']);
     if(count(array_intersect($aUserRoles, $rwAct['RLA']))==0)
-        throw new Exception($this->intra->translate("%s: not authorized because not member of (%s)",$this->arrAction['actTitle'.$this->intra->local], implode(', ', $rwAct['RLA'])) );
+        throw new Exception($this->intra->translate("%s: user %s not authorized because not member of (%s)",$this->arrAction['actTitle'.$this->intra->local], $this->intra->usrID, implode(', ', $rwAct['RLA'])) );
     $reason = '';
     if(count($this->item->checkDisabledRoleMembership($this->intra->usrID, $rwAct, $reason)) > 0)
          throw new Exception($this->intra->translate("Not authorized as %s", $reason));
 }
 
-public function getTimeStamps($nd = null, &$tsValues = array()){
+public function getTimeStamps($nd = null, $flag='all', &$tsValues = array()){
 
     $sql = '';
 
@@ -644,7 +644,14 @@ public function getTimeStamps($nd = null, &$tsValues = array()){
 
     foreach($tsValues as $ts=>$value){
         $sql .= "\n, acl{$ts} = {$value}"; //.' /*'.var_export($this->conf['aatFlagTimestamp'], true).' -- '.var_export($s, true).'*/';
+        if ( $flag=='all' && in_array($ts, array_keys($this->conf['aatFlagTimestamp'])) ) {
+            $sql .= "\n, {$this->conf['aatFlagTimestamp'][$ts]}={$value}";
+        }
     }
+
+    
+    // echo('<pre>'.var_export($sql, true));
+    // echo('<pre>'.var_export( $flag=='all' , true));
 
     return $sql;
 

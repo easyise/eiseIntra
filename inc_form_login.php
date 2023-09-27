@@ -4,6 +4,8 @@ $DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAc
 if(!isset($intra))
     $intra = new eiseIntra($oSQL, Array('version'=>$version));
 
+$flagEiseAdmin = is_a($intra, 'eiseAdmin');
+
 switch ($DataAction){
     case "login":
         
@@ -79,11 +81,6 @@ $(document).ready(function(){
 
     $('body').eiseIntra('cleanStorage');
 
-    var host = document.getElementById("host");
-    if(host!=null) {
-       host.value="localhost";
-    } 
-    
     $('#btnsubmit').removeAttr('disabled');
 
     $('#loginform').submit(function(){
@@ -117,10 +114,10 @@ if ($_GET["error"]){
 <fieldset class="eiseIntraMainForm">
 
 <?php 
-if ($flagShowHost) 
-    echo $intra->field('Host', 'host', '');
+if ($flagShowHost || $flagEiseAdmin) 
+    echo $intra->field('Host', 'host', $flagEiseAdmin ? '' : 'localhost');
 
-echo $intra->field('Login', 'login', $_COOKIE["last_succesfull_usrID"], ['FlagWrite'=>true]);
+echo $intra->field('Login', 'login', $flagEiseAdmin ? 'root' : $_COOKIE["last_succesfull_usrID"], ['FlagWrite'=>true]);
 echo $intra->field('Password', 'password', '', ['FlagWrite'=>true, 'type'=>'password']);
 
 $login_info = "Please enter your <strong>".($binding ? "Windows" : "database")."</strong> login/password.";

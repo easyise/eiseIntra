@@ -730,19 +730,20 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
 
         $entID = $_GET["entID"];
         $rwEnt = $oSQL->fetch_array($oSQL->do_query("SELECT * FROM stbl_entity WHERE entID='$entID'"));
+        $entPrefix = $rwEnt['entPrefix'] ? $rwEnt['entPrefix'] : $entID;
         $strTBL = $rwEnt["entTable"];
         $strLTBL = $rwEnt["entTable"]."_log";
 
-        $arrReservedColumnNames = array("{$entID}ID"
-            , "{$entID}StatusID"
-            , "{$entID}ActionLogID"
-            , "{$entID}StatusActionLogID"
-            , "{$entID}StatusLogID"
-            , "{$entID}FlagDeleted"
-            , "{$entID}InsertBy"
-            , "{$entID}InsertDate"
-            , "{$entID}EditBy"
-            , "{$entID}EditDate");
+        $arrReservedColumnNames = array("{$entPrefix}ID"
+            , "{$entPrefix}StatusID"
+            , "{$entPrefix}ActionLogID"
+            , "{$entPrefix}StatusActionLogID"
+            , "{$entPrefix}StatusLogID"
+            , "{$entPrefix}FlagDeleted"
+            , "{$entPrefix}InsertBy"
+            , "{$entPrefix}InsertDate"
+            , "{$entPrefix}EditBy"
+            , "{$entPrefix}EditDate");
 
         $arrMasterTable = array();
         try { $arrMasterTable = $intra->getTableInfo($dbName, $strTBL); } catch (Exception $e) {$arrMasterTable['columns'] = array();}
@@ -752,7 +753,7 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
         $ii = 0;
         foreach($arrMasterTable['columns'] as $col=>$x){
             $lastMasterColName = $col;
-            if( in_array($ak[$ii+1], array("{$entID}FlagDeleted", "{$entID}InsertDate")) ){
+            if( in_array($ak[$ii+1], array("{$entPrefix}FlagDeleted", "{$entPrefix}InsertDate")) ){
                 break;
             } 
             $ii++;
@@ -824,22 +825,23 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
             $strCode = "DROP TABLE IF EXISTS `{$strTBL}`;\r\n";
             //create master table
            $strCode .= "\r\nCREATE TABLE `{$strTBL}` (".
-                "\r\n\t`{$entID}ID` VARCHAR(36) NOT NULL".
-                "\r\n\t,`{$entID}StatusID` INT(11) NOT NULL DEFAULT '0'".
-                "\r\n\t,`{$entID}ActionLogID` VARCHAR(36) NULL DEFAULT NULL".
-                "\r\n\t,`{$entID}StatusActionLogID` VARCHAR(36) NULL DEFAULT NULL".
-                "\r\n\t,`{$entID}StatusLogID` VARCHAR(36) NULL DEFAULT NULL".
+                "\r\n\t`{$entPrefix}ID` VARCHAR(36) NOT NULL".
+                "\r\n\t,`{$entPrefix}StatusID` INT(11) NOT NULL DEFAULT 0".
+                "\r\n\t,`{$entPrefix}ActionID` INT(11) NOT NULL DEFAULT 1".
+                "\r\n\t,`{$entPrefix}ActionLogID` VARCHAR(36) NULL DEFAULT NULL".
+                "\r\n\t,`{$entPrefix}StatusActionLogID` VARCHAR(36) NULL DEFAULT NULL".
+                "\r\n\t,`{$entPrefix}StatusLogID` VARCHAR(36) NULL DEFAULT NULL".
                 "{$strFieldsMaster}".
-                "\r\n\t, `{$entID}FlagDeleted` tinyint(4) DEFAULT 0".
-                "\r\n\t, `{$entID}InsertBy` varchar(50) DEFAULT NULL".
-                "\r\n\t, `{$entID}InsertDate` datetime DEFAULT NULL".
-                "\r\n\t, `{$entID}EditBy` varchar(50) DEFAULT NULL".
-                "\r\n\t, `{$entID}EditDate` datetime DEFAULT NULL".
-                "\r\n\t, PRIMARY KEY (`{$rwEnt["entID"]}ID`)".
-                "\r\n\t, INDEX `IX_{$entID}StatusID` (`{$entID}StatusID`)".
-                "\r\n\t, INDEX `IX_{$entID}ActionLogID` (`{$entID}ActionLogID`)".
-                "\r\n\t, INDEX `IX_{$entID}StatusLogID` (`{$entID}StatusLogID`)".
-                "\r\n\t, INDEX `IX_{$entID}EditDate` (`{$entID}EditDate`)".
+                "\r\n\t, `{$entPrefix}FlagDeleted` tinyint(4) DEFAULT 0".
+                "\r\n\t, `{$entPrefix}InsertBy` varchar(50) DEFAULT NULL".
+                "\r\n\t, `{$entPrefix}InsertDate` datetime DEFAULT NULL".
+                "\r\n\t, `{$entPrefix}EditBy` varchar(50) DEFAULT NULL".
+                "\r\n\t, `{$entPrefix}EditDate` datetime DEFAULT NULL".
+                "\r\n\t, PRIMARY KEY (`{$entPrefix}ID`)".
+                "\r\n\t, INDEX `IX_{$entPrefix}StatusID` (`{$entPrefix}StatusID`)".
+                "\r\n\t, INDEX `IX_{$entPrefix}ActionLogID` (`{$entPrefix}ActionLogID`)".
+                "\r\n\t, INDEX `IX_{$entPrefix}StatusLogID` (`{$entPrefix}StatusLogID`)".
+                "\r\n\t, INDEX `IX_{$entPrefix}EditDate` (`{$entPrefix}EditDate`)".
                 "\r\n\t".($strKeysMaster!="" ? $strKeysMaster : "").
                 "\r\n) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8;\r\n";
         } else {
@@ -847,25 +849,25 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
             $strAlterBody = '';
             $strIndexes = '';
             $strLastColumn = $arrMasterTable['PK'][count($arrMasterTable['PK'])-1];
-            if(!array_key_exists("{$entID}StatusID", $arrMasterTable['columns'])){
-                $strAlterBody .= "\r\n\t".($strAlterBody!='' ? ', ' : '')."ADD COLUMN `{$entID}StatusID` INT(11) NOT NULL DEFAULT '0' AFTER {$strLastColumn}";
-                $strIndexes .= "\r\n\t, ADD INDEX `IX_{$entID}StatusID` (`{$entID}StatusID`)";
-                $strLastColumn = "{$entID}StatusID";
+            if(!array_key_exists("{$entPrefix}StatusID", $arrMasterTable['columns'])){
+                $strAlterBody .= "\r\n\t".($strAlterBody!='' ? ', ' : '')."ADD COLUMN `{$entPrefix}StatusID` INT(11) NOT NULL DEFAULT '0' AFTER {$strLastColumn}";
+                $strIndexes .= "\r\n\t, ADD INDEX `IX_{$entPrefix}StatusID` (`{$entPrefix}StatusID`)";
+                $strLastColumn = "{$entPrefix}StatusID";
             }
-            if(!array_key_exists("{$entID}ActionLogID", $arrMasterTable['columns'])){
-                $strAlterBody .= "\r\n\t".($strAlterBody!='' ? ', ' : '')."ADD COLUMN `{$entID}ActionLogID` VARCHAR(36) NULL DEFAULT NULL AFTER {$strLastColumn}";
-                $strIndexes .= "\r\n\t, ADD INDEX `IX_{$entID}ActionLogID` (`{$entID}ActionLogID`)";
-                $strLastColumn = "{$entID}ActionLogID";
+            if(!array_key_exists("{$entPrefix}ActionLogID", $arrMasterTable['columns'])){
+                $strAlterBody .= "\r\n\t".($strAlterBody!='' ? ', ' : '')."ADD COLUMN `{$entPrefix}ActionLogID` VARCHAR(36) NULL DEFAULT NULL AFTER {$strLastColumn}";
+                $strIndexes .= "\r\n\t, ADD INDEX `IX_{$entPrefix}ActionLogID` (`{$entPrefix}ActionLogID`)";
+                $strLastColumn = "{$entPrefix}ActionLogID";
             }
-            if(!array_key_exists("{$entID}StatusActionLogID", $arrMasterTable['columns'])){
-                $strAlterBody .= "\r\n\t".($strAlterBody!='' ? ', ' : '')."ADD COLUMN `{$entID}StatusActionLogID` VARCHAR(36) NULL DEFAULT NULL AFTER {$strLastColumn}";
-                $strIndexes .= "\r\n\t, ADD INDEX `IX_{$entID}StatusActionLogID` (`{$entID}StatusActionLogID`)";
-                $strLastColumn = "{$entID}StatusActionLogID";
+            if(!array_key_exists("{$entPrefix}StatusActionLogID", $arrMasterTable['columns'])){
+                $strAlterBody .= "\r\n\t".($strAlterBody!='' ? ', ' : '')."ADD COLUMN `{$entPrefix}StatusActionLogID` VARCHAR(36) NULL DEFAULT NULL AFTER {$strLastColumn}";
+                $strIndexes .= "\r\n\t, ADD INDEX `IX_{$entPrefix}StatusActionLogID` (`{$entPrefix}StatusActionLogID`)";
+                $strLastColumn = "{$entPrefix}StatusActionLogID";
             }
-            if(!array_key_exists("{$entID}StatusLogID", $arrMasterTable['columns'])){
-                $strAlterBody .= "\r\n\t".($strAlterBody!='' ? ', ' : '')."ADD COLUMN `{$entID}StatusLogID` VARCHAR(36) NULL DEFAULT NULL AFTER {$strLastColumn}";
-                $strIndexes .= "\r\n\t, ADD INDEX `IX_{$entID}StatusLogID` (`{$entID}StatusLogID`)";
-                $strLastColumn = "{$entID}StatusLogID";
+            if(!array_key_exists("{$entPrefix}StatusLogID", $arrMasterTable['columns'])){
+                $strAlterBody .= "\r\n\t".($strAlterBody!='' ? ', ' : '')."ADD COLUMN `{$entPrefix}StatusLogID` VARCHAR(36) NULL DEFAULT NULL AFTER {$strLastColumn}";
+                $strIndexes .= "\r\n\t, ADD INDEX `IX_{$entPrefix}StatusLogID` (`{$entPrefix}StatusLogID`)";
+                $strLastColumn = "{$entPrefix}StatusLogID";
             }
             $strCode .= $strAlterBody;
             $strCode .= ($strAlterBody=='' ? "\r\n\t".preg_replace('/^(\s*,\s*)/', '' , $strFieldsMaster) : $strFieldsMaster);

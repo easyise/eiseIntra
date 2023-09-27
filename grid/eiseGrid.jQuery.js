@@ -1569,6 +1569,10 @@ eiseGrid.prototype.text = function(oTr, strFieldName, text){
         || this.conf.fields[strFieldName].disabled !=undefined
         || (this.conf.fields[strFieldName].href !=undefined && this.value(oTr, strFieldName)!="")
         ){
+            if(this.conf.fields[strFieldName].type==='checkbox'){
+                return oTr.find('input[name="'+strFieldName+'[]"]').val()
+            }
+
             return (oTr.find('input[name="'+strFieldName+'_text[]"]')[0]
                         ? oTr.find('input[name="'+strFieldName+'_text[]"]').val()
                         : (oTr.find('td[data-field="'+strFieldName+'"]')[0]
@@ -2427,10 +2431,12 @@ eiseGrid.prototype.applyFilter = function($dlg, $button){
 
     $.each(grid.conf.fields, function(key, field){
         grid.tbodies.each(function(){
-            var text = grid.text($(this), key);
-            if(field.filterValue && text.search(new RegExp(field.filterValue, 'i'))<0){
-                $(this).addClass('eg-filtered');
-                rowsAffected += 1;
+            if(field.filterValue!==''){
+                var text = grid.text($(this), key);
+                if(text.search(new RegExp(field.filterValue, 'i'))<0 && field.filterValue!==text){
+                    $(this).addClass('eg-filtered');
+                    rowsAffected += 1;
+                }
             }
         })
     })

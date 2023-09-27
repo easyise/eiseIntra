@@ -11,7 +11,9 @@ $sqlAct = "SELECT * FROM stbl_action
   WHERE actID='$actID'";
 $rsAct = $oSQL->do_query($sqlAct);
 $rwAct = $oSQL->fetch_array($rsAct);
-  
+
+$fields = $oSQL->ff("SELECT * FROM stbl_action WHERE 1=0");
+
 $gridATS = new easyGrid($oSQL
         ,'ats'
         , Array(
@@ -177,7 +179,10 @@ switch($DataAction){
             , actShowConditions
             , actFlagHasEstimates
             , actFlagAutocomplete
-            , actFlagDepartureEqArrival
+            "
+            .(in_array('actFlagDepartureEqArrival', array_keys($fields)) ? ", actFlagDepartureEqArrival" : '')
+            .(in_array('actFlagHasDeparture', array_keys($fields)) ? ", actFlagHasDeparture" : '')
+            ."
             , actDepartureDescr
             , actArrivalDescr
             , actFlagInterruptStatusStay
@@ -199,7 +204,10 @@ switch($DataAction){
             , actShowConditions
             , actFlagHasEstimates
             , actFlagAutocomplete
-            , actFlagDepartureEqArrival
+            "
+            .(in_array('actFlagDepartureEqArrival', array_keys($fields)) ? ", actFlagDepartureEqArrival" : '')
+            .(in_array('actFlagHasDeparture', array_keys($fields)) ? ", actFlagHasDeparture" : '')
+            ."
             , actDepartureDescr
             , actArrivalDescr
             , actFlagInterruptStatusStay
@@ -291,7 +299,10 @@ switch($DataAction){
             , actTrackPrecision = ".$oSQL->escape_string($_POST['actTrackPrecision'])."
             , actFlagHasEstimates = '".($_POST['actFlagHasEstimates']=='on' ? 1 : 0)."'
             , actFlagAutocomplete = '".($_POST['actFlagAutocomplete']=='on' ? 1 : 0)."'
-            , actFlagDepartureEqArrival = '".($_POST['actFlagDepartureEqArrival']=='on' ? 1 : 0)."'
+            "
+            .(in_array('actFlagDepartureEqArrival', array_keys($fields)) ? ", actFlagDepartureEqArrival = '".($_POST['actFlagDepartureEqArrival']=='on' ? 1 : 0)."'" : '')
+            .(in_array('actFlagHasDeparture', array_keys($fields)) ? ", actFlagHasDeparture = '".($_POST['actFlagHasDeparture']=='on' ? 1 : 0)."'" : '')
+            ."
             , actFlagInterruptStatusStay = '".($_POST['actFlagInterruptStatusStay']=='on' ? 1 : 0)."'
             , actFlagMultiple = '".($_POST['actFlagMultiple']=='on' ? 1 : 0)."'
             , actFlagNot4Editor = '".($_POST['actFlagNot4Editor']=='on' ? 1 : 0)."'
@@ -551,9 +562,17 @@ echo $mtx->actionGrid($rwAct['actID']);
 <?php  echo $intra->showCheckBox("actFlagAutocomplete", $rwAct["actFlagAutocomplete"]) ; ?>
 </div>
 
+<?php if (in_array('actFlagDepartureEqArrival', array_keys($fields))): ?>
 <div class="eiseIntraField"><label>ATD=ATA?:</label>
 <?php  echo $intra->showCheckBox("actFlagDepartureEqArrival", $rwAct["actFlagDepartureEqArrival"]) ; ?>
 </div>
+<?php endif ?>
+
+<?php if (in_array('actFlagHasDeparture', array_keys($fields))): ?>
+<div class="eiseIntraField"><label>ATD(ETD)?:</label>
+<?php  echo $intra->showCheckBox("actFlagHasDeparture", $rwAct["actFlagHasDeparture"]) ; ?>
+</div>
+<?php endif ?>
 
 <div class="eiseIntraField"><label>ETA/ETD?:</label>
 <?php  echo $intra->showCheckBox("actFlagHasEstimates", $rwAct["actFlagHasEstimates"]) ; ?>

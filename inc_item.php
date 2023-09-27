@@ -268,7 +268,7 @@ public function getFields($aFields = null){
 			? $col['title'.$this->intra->local]
 			: ($col['title'] ? $col['title'] : $this->intra->translate($col['Comment']))
 			);
-		$conf = array_merge($col, array('type'=>(!$title ? 'hidden' : $col['DataType'])));
+		$conf = array_merge((array)$col, array('type'=>(!$title ? 'hidden' : $col['DataType'])));
 		if($conf['type']==='FK'){
 			$conf['type'] = 'combobox';
 			if($col['ref_table']){
@@ -459,17 +459,27 @@ public function attachFile($nd){
 
             $filGUID = $oSQL->d("SELECT UUID() as GUID");
             $filename = Date("Y/m/").$filGUID.".att";
-                                
-            if(!file_exists($filesPath.Date("Y/m"))){
-                $d = @mkdir($filesPath.Date("Y/m"), 0777, true);
-                if(!$d){
-                	$error = "ERROR: Unable to create directory: ".$filesPath.Date("Y/m");
-                	break;
-                }
-                	
+
+            try{
+            	$this->beforeAttachFile($f["tmp_name"], $f["name"], $f["type"], $filGUID);
+            } catch(Exception $e){
+            	$error .= "\n".$e->getMessage();
+            	continue;
             }
+
+            if($filesPath!='/dev/null'){
+            	
+	            if(!file_exists($filesPath.Date("Y/m"))){
+	                $d = @mkdir($filesPath.Date("Y/m"), 0777, true);
+	                if(!$d){
+	                	$error = "ERROR: Unable to create directory: ".$filesPath.Date("Y/m");
+	                	break;
+	                }   	
+	            }
             
-            copy($f["tmp_name"], $filesPath.$filename);
+            	copy($f["tmp_name"], $filesPath.$filename);
+
+            }
             
             //making the record in the database
             $sqlFileInsert = "INSERT INTO stbl_file SET
@@ -484,6 +494,8 @@ public function attachFile($nd){
                 , filEditBy='{$this->intra->usrID}', filEditDate=NOW() ";
             
             $oSQL->q($sqlFileInsert);
+
+            $this->afterAttachFile($filesPath.$filename, $f["name"], $f["type"], $filGUID);
             
             $guids[] = $filGUID;
         }
@@ -505,6 +517,18 @@ function deleteFile($q){
 	$intra = $this->intra;
 	$oSQL = $this->oSQL;
 
+	try {
+		$this->beforeDeleteFile($q['filGUID']);
+	} catch (Exception $e) {
+
+		$this->msgToUser = 'ERROR: '.$e->getMessage();
+	    $this->redirectTo = eiseIntra::getFullHREF($this->conf['form'].'?'.$this->getURI());
+
+	    return $this->getFiles();
+
+	}
+	
+
     $oSQL->q("START TRANSACTION");
     $rwFile = $oSQL->f("SELECT * FROM stbl_file WHERE filGUID='{$q['filGUID']}'");
 
@@ -513,15 +537,32 @@ function deleteFile($q){
     @unlink($filesPath.$rwFile["filNamePhysical"]);
 
     $oSQL->do_query("DELETE FROM stbl_file WHERE filGUID='{$q['filGUID']}'");
-    $nFiles = 
     $oSQL->q("COMMIT");
 
-    $this->msgToUser = $intra->translate("Deleted files: %s", $nFiles);
+    $this->msgToUser = $err ? $err : $intra->translate("Deleted files: %s", $rwFile['filName']);
     $this->redirectTo = eiseIntra::getFullHREF($this->conf['form'].'?'.$this->getURI());
 
     return $this->getFiles();
 
 }
+
+/**
+ * ```beforeAttachFile()``` is allowed to trow exceptions in case when uploaded file has wrong type, etc. So wrong file can be excluded from upload routine.
+ *  @category Files
+ */
+function beforeAttachFile($filePath, $fileName, $fileMIME, $fileGUID){}
+
+/**
+ * ```afterAttachFile()``` runs when upload routine in completed for given file: file is copied and database record created. The best for post-processing.
+ * @category Files
+ */
+function afterAttachFile($filePath, $fileName, $fileMIME, $fileGUID){}
+
+/**
+ * This function can be used both to prevent file deletion (with an exception) and post-delete file hanling.
+ * @category Files
+ */
+function beforeDeleteFile($filGUID){}
 
 /**
  * This function obtains file list for current entity item
@@ -558,6 +599,11 @@ public function getFiles($opts = array()){
  * @category Files
  */
 public static function checkFilePath($filesPath){
+
+	if ($filesPath=='/dev/null') {
+		return $filesPath;
+	}
+
     if(!$filesPath)
         throw new Exception('File path not set');
 
@@ -779,11 +825,19 @@ public function sendMessage($nd){
         , msgEntityItemID = ".(!$nd['entItemID'] ? $oSQL->e($this->id) : $oSQL->e($nd['entItemID']))."
         , msgFromUserID = '$intra->usrID'
         , msgToUserID = ".($nd['msgToUserID']!="" ? $oSQL->e($nd['msgToUserID']) : "NULL")."
-        , msgCCUserID = ".($nd['msgCCUserID']!="" ? $oSQL->e($nd['msgCCUserID']) : "NULL")."
+        , msgCCUserID = ".($nd['msgCCUserID']!="" ? $oSQL->e($nd['msgCCUserID']) : "NULL")."\n"
+        .($fields['msgToUserEmail'] ? ", msgToUserEmail=".$oSQL->e($nd['msgToUserEmail']) : '')."\n"
+        .($fields['msgCCUserEmail'] ? ", msgCCUserEmail=".$oSQL->e($nd['msgCCUserEmail']) : '')."
         , msgSubject = ".$oSQL->e($nd['msgSubject'])."
         , msgText = ".$oSQL->e($nd['msgText'])
         .($fields['msgPassword'] ? ", msgPassword=".$oSQL->e($intra->encrypt($password)) : '')."\n"
         .($fields['msgFlagBroadcast'] ? ", msgFlagBroadcast=".(int)($nd['msgFlagBroadcast']) : '')."\n"
+        .($fields['msgGUID'] 
+        	? ", msgGUID=".($nd['msgGUID']!="" 
+	        	? $oSQL->e($nd['msgGUID']) 
+	        	: "UUID()"
+        	) 
+        	: '')."\n"
         ."
         , msgMetadata = ".$oSQL->e(json_encode($metadata, true))."
         , msgSendDate = NULL
@@ -877,7 +931,10 @@ static function sendMessages($conf){
         // } 
 
         $msg = array('From'=> ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : '')
-            , 'To' => ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\"  <".$rwUsr_To['usrEmail'].">" : '')
+            , 'To' => ($rwMsg['msgToUserEmail']
+            	? ($rwMsg['msgToUserName'] ? "\"".$rwMsg['msgToUserName']."\"  <".$rwMsg['msgToUserEmail'].">" : $rwMsg['msgToUserEmail'])
+            	: ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\"  <".$rwUsr_To['usrEmail'].">" : '')
+            )
             , 'Text' => $rwMsg['msgText']
             );
         if ($rwMsg['msgCCUserID'])

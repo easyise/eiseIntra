@@ -206,11 +206,12 @@ public function undo($nd){
         if($acl['aclActionPhase']!=2 || in_array($acl['aclActionID'], [1,2,3,4]))
             continue;
 
-        if(!in_array($acl['aclActionID'], [2])) {
+        if(in_array($acl['aclActionID'], [2])) {
             if(!$acl_undo)
                 $aUpdates[] = $acl['aclGUID'];
             continue;
         }
+
         if( !$acl_undo ){
             $acl_undo = $acl;    
         } else {
@@ -249,6 +250,9 @@ public function undo($nd){
     $this->oSQL->q($sqlDelStl);
 
     // 4. remove all collected "update" actions
+
+    // die('<pre>'.var_export($aUpdates, true));
+
     if (count($aUpdates)){
         $strToDel = "'".implode("','", $aUpdates)."'";
         $this->oSQL->q("DELETE FROM stbl_action_log WHERE aclGUID IN ({$strToDel})");
@@ -802,7 +806,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
         $lst->addColumn(array('field' => $fieldMyItems
             , 'filter' => $fieldMyItems
             , 'type' => 'boolean'
-            , 'sql'=> "bkmUserID='{$intra->usrID}' OR {$entID}InsertBy='{$intra->usrID}'"
+            , 'sql'=> "bkmUserID='{$intra->usrID}' OR {$prfx}InsertBy='{$intra->usrID}'"
             )
         );
     }
@@ -846,15 +850,6 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
             );
     }
 
-    if (!in_array("aclATA", $arrExcludeCols))
-        $lst->addColumn(array('title' => "ATA"
-            , 'type'=>"date"
-            , 'field' => "aclATA"
-            , 'sql' => "IFNULL(SAC.aclATA, SAC.aclInsertDate)"
-            , 'filter' => "aclATA"
-            , 'order_field' => "aclATA"
-            )
-        );
     if (!in_array("actTitle", $arrExcludeCols))
         $lst->addColumn(array('title' => "Action"
             , 'type'=>"text"
@@ -996,9 +991,15 @@ public function getNewItemID($data = array()){
 public function newItem($nd = array()){
 
     $newID = $this->getNewItemID($nd);
+
+    $nd_sql = ($flagDontConvertToSQL ? $nd : $this->intra->arrPHP2SQL($nd, $this->table['columns_types']));
+
+    $sqlFields = $this->intra->getSQLFields($this->table, $nd_sql);
+
     $sql = "INSERT INTO {$this->conf['table']} SET 
         {$this->conf['prefix']}InsertBy=".$this->oSQL->e($this->intra->usrID)."
         , {$this->conf['prefix']}InsertDate=NOW()
+        {$sqlFields}
         ".($newID ? ", {$this->table['PK'][0]} = ".$this->oSQL->e($newID) : '');
 
     $this->oSQL->q($sql);
@@ -1585,7 +1586,7 @@ public function getActionLog($q){
         $sta_old = $this->conf['STA'][$acl['aclOldStatusID']];
         $sta_new = $this->conf['STA'][$acl['aclNewStatusID']];
 
-        $rw = array('alGUID' => $acl['aclGUID']
+        $rw = array('aclGUID' => $acl['aclGUID']
             , 'actID' => $acl['aclActionID']
             , 'aclActionPhase' => $acl['aclActionPhase']
             , 'aclOldStatusID' => $acl['aclOldStatusID']
@@ -1913,9 +1914,10 @@ function showStatusLog($conf = array()){
                     && $aclATA <= $stlATD)
                 )
                 continue;
-            //$html .= $rwACL['aclActionID'].': '.$stlATA.' <= '.$aclATA.' && '.$aclATA.' <= '.$stlATD.'<br>';
+            // $html .= $rwACL['aclActionID'].': '.$stlATA.' <= '.$aclATA.' && '.$aclATA.' <= '.$stlATD.'<br>';
             // $html .= '<pre>'.date('d.m.Y H:i:s', $stlATA).' <= '.date('d.m.Y H:i:s', $aclATA)
-            //         .' && '.date('d.m.Y H:i:s', $aclATA).' <= '.date('d.m.Y H:i:s', $stlATD).' '.$rwSTL['stlATD'].'</pre>'.$this->showActionInfo($aclGUID, $conf);
+            //         .' && '.date('d.m.Y H:i:s', $aclATA).' <= '.date('d.m.Y H:i:s', $stlATD).' '.$rwSTL['stlATD'].'</pre>';
+            $html .= $this->showActionInfo($aclGUID, $conf);
         }
         $html .= '</div>'."\n";
         
@@ -2026,7 +2028,9 @@ function showActionInfo($aclGUID, $conf = array()){
             , array_merge($conf, array('suffix'=>'_'.$aclGUID))
             );
 
-        $html .= ($rwACT['aclComments'] ? $this->intra->field($this->intra->translate('Comments', null, $rwACT['aclComments'])) : '');
+        $html .= ($rwACT['actFlagComment'] || $rwACL['aclComments'] || $conf['flagFullEdit']
+            ? $this->intra->field($this->intra->translate('Comments'), 'aclComments_'.$aclGUID, $rwACL['aclComments'])
+            : '');
 
         $html .= eval($actionCallBack.";");
 

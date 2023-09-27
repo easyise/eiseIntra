@@ -718,7 +718,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
         $arrExtra = explode("|", $extra);
         foreach($arrExtra as $ix=>$ex){ 
             $ex = trim($ex);
-            $strExtra .= ($ex!='' 
+            $strExtra .= ($ex!='' && !preg_match('/\\[\w+\]/', $ex)
                 ? ' AND '.$arrFields['extraField'].($ix==0 ? '' : $ix).' = '.$oSQL->e($ex) 
                 : ''); 
         }
@@ -849,7 +849,7 @@ public function getSQLFields($tableInfo, $data){
 
         if(!in_array($field, $tableInfo['columns_index']))
             continue;
-        if( $value === null || (in_array($tableInfo['columns_types'][$field], ["FK", 'time', 'datetime', 'time']) && !$value) ){
+        if( $value === null || (in_array($tableInfo['columns_types'][$field], ["FK", 'time', 'datetime', 'time']) && $value==='') ){
             if($tableInfo['columns_dict'][$field]['Null']==='YES')
                 $sqlFields .= "\n, {$field}=NULL";
             continue;
