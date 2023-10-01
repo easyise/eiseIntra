@@ -221,8 +221,12 @@ init: function(options){
 
     // pick up top level menu
     if($('.ei-top-level-menu-container')[0]){
+
         if(typeof sessionStorage[conf.tlMenuKey] == 'undefined'){
-            $.ajax('ajax_details.php?'+conf.dataReadKey+'=getTopLevelMenu')
+            $.ajax({'url': 'ajax_details.php?'+conf.dataReadKey+'=getTopLevelMenu',
+                'cache': false,
+                'dataType': "html"
+            })
                 .done(function(data){
 
                     $('.ei-top-level-menu-container').html(data);
@@ -230,6 +234,9 @@ init: function(options){
                     sessionStorage[conf.tlMenuKey] = data;
                     $this.eiseIntra('adjustTopLevelMenu');
 
+                })
+                .fail(function( jqXHR, textStatus ) {
+                    console.log( "Top-level menu request failed: " + textStatus );
                 });
         } else {
             $('.ei-top-level-menu-container').html(sessionStorage[conf.tlMenuKey]);
