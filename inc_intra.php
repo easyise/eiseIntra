@@ -2566,9 +2566,9 @@ function loadJS(){
             $arrJS[] = $js;
     }
 
-    foreach($arrJS as &$js){
+    foreach($arrJS as $ix=>$js){
         if(dirname($js)==='.')
-            $js = $relPath.$js;
+            $arrJS[$ix] = $relPath.$js;
     }
 
     krsort($arrJS);
@@ -2579,7 +2579,6 @@ function loadJS(){
     foreach ($arrJS as $jsHref){
        echo "<script type=\"text/javascript\" src=\"{$jsHref}?{$cachePreventor}\"></script>\r\n";
     }
-
 
 }
 
