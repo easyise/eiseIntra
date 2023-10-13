@@ -222,6 +222,16 @@ public function getData($pk = null){
 }
 
 /**
+ * Calls ```$this->getData()``` so refreshes ```$this->item``` property.
+ * 
+ * @category Data handling
+ */
+public function refresh(){
+	$this->getData();
+}
+
+
+/**
  * Returns form HTML. By default it contains DataAction and Primary Keys inputs.
  * 
  *
