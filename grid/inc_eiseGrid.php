@@ -856,7 +856,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                     $strCell .= "<input type=\"hidden\" name=\"{$_textfield}[]\" value=\"".@htmlspecialchars($_text)."\">";
                     break;
                 case "textarea":
-                    $strCell .= "<div{$classAttr}>".$aopen.str_replace("\r\n", "<br>", htmlspecialchars($_val)).$aclose."</div>";
+                    $strCell .= "<div class=\"eg-editor {$classStr}\">".$aopen.str_replace("\r\n", "<br>", htmlspecialchars($_val)).$aclose."</div>";
                     break;
                 case "html":
                     $strCell .= "<div{$classAttr}>".$aopen.$_val.$aclose."</div>";
