@@ -1,6 +1,6 @@
 <?php
 /**
- * This class is a shell for single table entry.
+ * This class is a shell for a single table record.
  * It has few basic properties that define title, table(s), fields, etc.
  */
 class eiseItem {
@@ -10,7 +10,7 @@ class eiseItem {
  * 
  * - 'name' - key entity identificator, works as the base for table name, form script name, etc, e.g. 'item'. Mandatory.
  * - 'title' - entity name in English, e.g. 'the Item'
- * - 'titleLocal' - entity name in local language, e.g. 'Штуковина'
+ * - 'titleLocal' - entity name in local language, e.g. 'Штуковина' (A Thing) in Russian
  * - 'table' - table name. If not set, it is calculated from entity name: e.g. 'tbl_item'
  * - 'prefix' - table prefix, e.g. 'itm'. If not set - it is calculated from table using getTableInfo() function
  * - 'form' - PHP script name for form. E.g. 'item_form.php'. Not mandatory. If not set, it is calculated from 'name'.
@@ -32,17 +32,20 @@ public $conf = array(
 	);
 
 /**
- * Basic array with item data. To be filled inside [eiseItem::getData()](#eiseitem-getdata).
+ * The array with item data. To be filled inside [eiseItem::getData()](#eiseitem-getdata). 
  * 
+ * Usually and by default this array consists of single table record data obtainted with `mysqli::fetch_assoc()` function.
  * 
- * @category Initialization
+ * Example: `$title = $objThing->item['thnTitle'];`
+ * 
+ * @category Item Data
  */
 public $item = array();
 
 /**
- * Historical item data obtained on initialization, before any changes made to the object. To be filled inside [eiseItem::getData()](#eiseitem-getdata).
+ * Historical item data obtained on initialization, before any changes made to the object. To be filled inside [eiseItem::getData()](#eiseitem-getdata). It is a copy of `$this->item` array till there's no changes made with the object.
  * 
- * @category Initialization
+ * @category Item Data
  */
 public $item_before = array();
 
@@ -128,7 +131,7 @@ public function getIDFromQueryString(){
 /**
  * This function returns SQL search condition basing on primary keys. 
  * 
- * @category Initialization
+ * @category Item Data
  */
 public function getSQLWhere($pkValue = null){
 
@@ -160,7 +163,7 @@ public function getSQLWhere($pkValue = null){
 /**
  * This function returns URI for a form basing on primary keys. 
  * 
- * @category Initialization
+ * @category Item Data
  */
 public function getURI( $pkValue = null ){
 
@@ -224,7 +227,7 @@ public function getData($pk = null){
 /**
  * Calls ```$this->getData()``` so refreshes ```$this->item``` property.
  * 
- * @category Data handling
+ * @category Item Data
  */
 public function refresh(){
 	$this->getData();
@@ -256,7 +259,9 @@ public function form( $fields = null, $conf = array() ){
 }
 
 /**
- * Returns hidden PK fields HTML
+ * Returns HTML for hidden fields that correspond to PK
+ * 
+ * @category Forms
  */
 public function getPKFields(){
 	$fields = '';
@@ -267,7 +272,9 @@ public function getPKFields(){
 }
 
 /**
- * Returns fields HTML
+ * Returns HTML with fields to be displayed on the form
+ * 
+ * @category Forms
  */
 public function getFields($aFields = null){
 	$aToGet = ($aFields ? $aFields : ($this->conf['flagFormShowAllFields'] ? $this->table['columns_index'] : array()));
@@ -304,6 +311,8 @@ public function getFields($aFields = null){
 
 /**
  * Returns HTML for buttons (submit, delete)
+ * 
+ * @category Forms
  */
 public function getButtons(){
 
@@ -313,7 +322,9 @@ public function getButtons(){
 }
 
 /**
- * To be triggered on DataAction=insert or REST POST/PUT query
+ * To be triggered on DataAction=insert or REST POST/PUT query. Current function does nothing with the data, it just set some headers for web user to be returned to item form. Normally it should be overridden.
+ * 
+ * @category Data modification
  */
 public function insert($newData){
 
@@ -325,7 +336,9 @@ public function insert($newData){
 }
 
 /**
- * To be triggered on DataAction=update or REST POST/PUT query
+ * To be triggered on DataAction=update or REST POST/PUT query. Current function does nothing with the data, it just set some headers for web user to be returned to item form. Normally it should be overridden.
+ * 
+ * @category Data modification
  */
 public function update($newData){
 
@@ -336,7 +349,9 @@ public function update($newData){
 }
 
 /**
- * To be triggered by default on DataAction=delete or REST DELETE query
+ * To be triggered by default on DataAction=delete or REST DELETE query. Current function DELETEs the record and set some headers for web user to be returned to item list.
+ * 
+ * @category Data handling
  */
 public function delete(){
 
@@ -350,7 +365,9 @@ public function delete(){
 }
 
 /**
- * This function prevents recursive hooks when object instances are created within existing hook
+ * This function prevents recursive hooks when object instances are created within existing hook (e.g. when you create the object inside the object with some DataAction like 'insert' or 'update'). Function should be called right after hook function starts.
+ * 
+ * @category Data handling
  */
 public function preventRecursiveHooks(&$nd = array()){
 
@@ -361,7 +378,9 @@ public function preventRecursiveHooks(&$nd = array()){
 }
 
 /**
- * This function transforms data from the input array into SQL ans saves it. Also it calculates delta and returns it.
+ * This function transforms data from the input array into UPDATE SQL and runs it. SQL for data fields is obtained from `eiseItem::getSQLFields()`. Also it calculates delta and returns it.
+ * 
+ * @category Data handling
  */
 public function updateTable($nd, $flagDontConvertToSQL = false){
 
@@ -389,11 +408,18 @@ public function updateTable($nd, $flagDontConvertToSQL = false){
 	$this->oSQL->q($sql);
 
 	$this->item = array_merge($this->item, $nd_sql);
-	$this->getDelta($this->item_before, $this->item);
+
+	return $this->getDelta($this->item_before, $this->item);
 
 	//die('<pre>ND:'.var_export($nd_sql, true)."\nDelta:".var_export($this->delta, true));
 }
 
+
+/**
+ * This function calculates difference between two associative arrays using `array_diff_assoc()`. All numeric data is converted to `double` data type.
+ * 
+ * @category Data handling
+ */
 public function getDelta($old, $new){
 	foreach($old as $key=>$value){
 		$old[$key] = (is_numeric($value) ? (double)$value : $value);
@@ -438,6 +464,18 @@ public function convertBooleanData($nd, $aBooleanFields = null){
 //////////////////////////////////
 
 /**
+ * This function attaches a set of files uploaded by end user via web interface. NOTE: If you want to use it with REST API, you should overrride global `$_FILES` array to behave closely to original.
+ * 
+ * Function `attachFile()` saves the file to a disk and adds a record to 'stbl_file'. Uploaded files will be saved in the directory specified in 'stpFilesPath' settings variable, combined with 'YYYY/mm' and file GUID. Example: `/mnt/wwwfiles/somesystem/2023/10/18/0000938b-8fe5-11ec-a765-000d3ad81bf0`. If 'stpFilesPath' set to '/dev/null' file will not be actually saved but record will be created.
+ * 
+ * Each file input on the web form should be named as "attachment[]": `<input name="attachment[]">`. This name can not be overridden.
+ * 
+ * If you need more control on file attachemnt process you can redefine class functions `eiseItem::beforeAttachFile()` and `eiseItem::afterAttachFile()`.
+ * 
+ * After completion this function returns the list of files (list of records from stbl_file with linked to current entity item).
+ * 
+ * @param array $nd - new data, it might be a copy of $_POST array.
+ * 
  * @category Files
  */
 public function attachFile($nd){
@@ -522,6 +560,15 @@ public function attachFile($nd){
 
 }
 
+/**
+ * Function `deleteFile()` detaches file from current entity instance: it removes stbl_file record and unlinks the file on a disk.
+ * 
+ * For more control on detachment process you can redefine `eiseItem::beforeDeleteFile()` function.
+ * 
+ * @param array $q - new data, it might be a copy of $_POST array.
+ * 
+ * @category Files
+ */
 function deleteFile($q){
 
 	$intra = $this->intra;
@@ -558,24 +605,31 @@ function deleteFile($q){
 
 /**
  * ```beforeAttachFile()``` is allowed to trow exceptions in case when uploaded file has wrong type, etc. So wrong file can be excluded from upload routine.
+ * 
  *  @category Files
  */
 function beforeAttachFile($filePath, $fileName, $fileMIME, $fileGUID){}
 
 /**
  * ```afterAttachFile()``` runs when upload routine in completed for given file: file is copied and database record created. The best for post-processing.
+ * 
  * @category Files
  */
 function afterAttachFile($filePath, $fileName, $fileMIME, $fileGUID){}
 
 /**
  * This function can be used both to prevent file deletion (with an exception) and post-delete file hanling.
+ * 
  * @category Files
  */
 function beforeDeleteFile($filGUID){}
 
 /**
- * This function obtains file list for current entity item
+ * This function obtains file list for current entity item - just an array of records from stbl_file.
+ * 
+ * @param array $opts - when key 'selectedGUIDs' is set it returns only files with GUIDs listed in this item (array of GUIDs)
+ * 
+ * @return string - JSON with file list.
  *
  * @category Files
  */
@@ -606,7 +660,7 @@ public function getFiles($opts = array()){
 }
 
 /**
- * @category Files
+ * @ignore
  */
 public static function checkFilePath($filesPath){
 
@@ -626,6 +680,13 @@ public static function checkFilePath($filesPath){
     return $filesPath;
 }
 
+/**
+ * This function obtains file path from stbl_file for given file GUID and then it echoes file contents with [eiseIntra::file()](#eiseintra-file) function.
+ * 
+ * @param array $q - associative array with query data. File GUID is stored under 'filGUID' key.
+ * 
+ * @category Files
+ */
 public function getFile($q, $filePathVar = 'stpFilesPath'){
 
     $intra = $this->intra;
@@ -652,7 +713,15 @@ public function getFile($q, $filePathVar = 'stpFilesPath'){
     $intra->file($rwFile["filName"], $rwFile["filContentType"], $fullFilePath);
 
 }
-
+/**
+ * This function returns HTML for file upload/file list dialog.
+ * 
+ * @return string - HTML, normally hidden, to be shown with JS.
+ * 
+ * 
+ * @category Files
+ * @category Forms
+ */
 function formFiles(){
 
     $strRes = "<div id=\"ei_files\" class=\"eif-file-dialog\" title=\"".$this->intra->translate('Files')."\">\r\n";
@@ -695,7 +764,9 @@ function formFiles(){
     return $strRes;
 
 }
-
+/**
+ * @ignore
+ */
 function formFileAttach(){
     $entID = ($this->conf['entID'] ? $this->conf['entID'] : $this->conf['prefix']);
     $entItemID = $this->id;
@@ -725,6 +796,18 @@ function formFileAttach(){
     return $strDiv;
 }
 
+//////////////////////////
+// Message routines
+//////////////////////////
+
+/**
+ * This function returns HTML for message send/message list form. Noramlly hidden on the form, to be shown with JS.
+ * 
+ * @return string - HTML.
+ * 
+ * @category Messages
+ * @category Forms
+ */
 function formMessages(){
 
     $oldFlagWrite = $this->intra->arrUsrData['FlagWrite'];
@@ -780,6 +863,13 @@ function formMessages(){
 
 }
 
+/**
+ * This function obtains message list for current entity item - just an array of records from stbl_message.
+ * 
+ * @return string - JSON with message list.
+ *
+ * @category Messsages
+ */
 public function getMessages(){
 
     $oSQL = $this->oSQL;
@@ -804,6 +894,13 @@ public function getMessages(){
 
 }
 
+/**
+ * This function does not actually send a message, it just adds a record to stbl_message (message queue). Then this table is being scanned with [eiseItem::sendMessages()](#eiseitem-sendmessages) and any unsent messages will be physically sent and marked as 'sent' afterwards.
+ * 
+ * @param array $nd - message data, it can be a copy of $_POST array.
+ * 
+ * @category Messages
+ */
 public function sendMessage($nd){
 
 	$oSQL = $this->oSQL;
@@ -860,6 +957,14 @@ public function sendMessage($nd){
 
 }
 
+/**
+ * This function scans stbl_message and sends any unsent message. It uses eiseMail library for send routines.
+ * 
+ * @param array $conf - an array with various send options:
+ *  - 'authenticate' ['email', 'onbehalf'] - when 'email', it uses sender's email to authenticate on SMTP server. When 'onbehalf' - it uses `$conf['login']` and `$conf['password']` for SMTP authentication. In other cases it uses 'usrID' and 'msgPassword' for authentication.
+ * 
+ * 
+ */
 static function sendMessages($conf){
     
     GLOBAL $intra;
@@ -1015,6 +1120,15 @@ static function sendMessages($conf){
 
 }
 
+/**
+ * This static function returns human-readable representation of file size, e.g. 1048576 -> 1MB
+ * 
+ * @param integer $size
+ * 
+ * @return string
+ * 
+ * @category Files
+ */
 public static function convert_size_human($size){
 	
 	if(!$size) return (false);
