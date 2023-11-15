@@ -18,7 +18,7 @@ $gridROL = new eiseGrid($oSQL
                 , 'strTable' => 'stbl_role'
                 , 'strPrefix' => 'rol'
                 , 'flagStandAlone' => true
-                , 'controlBarButtons' => 'add|delete|save'
+                , 'controlBarButtons' => 'add|delete|excel|save'
                 , 'extraInputs' => Array("DataAction"=>"update", 'dbName'=>$dbName)
                 )
         );
