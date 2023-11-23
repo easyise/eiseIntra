@@ -146,6 +146,27 @@ public function update($nd){
 
 }
 
+public function updateTable($nd, $flagDontConvertToSQL = false){
+
+    foreach ($this->conf['ATR'] as $atrID => $props) {
+        if(in_array($props['atrType'], ['ajax_dropdown', 'combobox', 'radio'])){
+            if( in_array($atrID, array_keys($nd) ) )
+                foreach($this->table['columns'] as $field=>$field_props){
+                    if($atrID==$field){
+                        $this->table['columns'][$field]['DataType'] = 'FK';
+                        $this->table['columns_types'][$field] = 'FK';
+                    }
+                }
+        }
+        
+    }
+
+    parent::updateTable($nd, $flagDontConvertToSQL);
+
+}
+
+
+
 public function updateFullEdit($nd){
 
     $this->oSQL->q('START TRANSACTION');
@@ -1694,7 +1715,9 @@ function getAttributeFields($fields, $item = null, $conf = array()){
                 }
                 list($options['source_prefix'], $options['extra']) = self::getPrefixExtra($atr["atrProgrammerReserved"]);
                     
-                $options['defaultText'] = '-';
+                $options['defaultText'] = ($this->conf['ATR'][$field]['atrTextIfNull'] 
+                    ? $this->conf['ATR'][$field]['atrTextIfNull']
+                    : '-');
                 
         }
         if($atr['atrHref'])
