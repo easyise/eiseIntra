@@ -2297,6 +2297,7 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
                     .($confOptions['optsData'][$key] ? ' data-metadata="'.htmlspecialchars($confOptions['optsData'][$key]).'"' : '')
                     .((string)$key==(string)$strValue
                     || is_integer($key) && (string)$value==(string)$strValue 
+                    || $key===$value
                         ? " SELECTED " 
                         : "").
                         (in_array($key, $confOptions['deletedOptions']) ? ' class="deleted"' : '').
