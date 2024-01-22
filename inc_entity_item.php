@@ -2200,7 +2200,7 @@ function getActionData($aclGUID){
 	// linked attributes
 	$arrAAT = $this->conf['ACT'][$rwACT["actID"]]['aatFlagToTrack'];
 
-    if(count($arrAAT)>0){
+    if(@count($arrAAT)>0){
         $sqlLOG = "SELECT * FROM {$this->conf["entTable"]}_log WHERE l{$this->conf['entPrefix']}GUID='{$rwACT["aclGUID"]}'";
         $rsLOG = $oSQL->do_query($sqlLOG);
             $rwLOG = $oSQL->fetch_array($rsLOG);
