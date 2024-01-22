@@ -923,44 +923,166 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
     case "EntityReport":
         $entID = $_GET["entID"];
         $rwEnt = $oSQL->fetch_array($oSQL->do_query("SELECT * FROM stbl_entity WHERE entID='$entID'"));
+
+        include_once eiseIntraAbsolutePath.'inc_actionmatrix.php';
+
+        $mtx = new eiseActionMatrix($entID);
         
-        $strLocal = "Local";
+        $strLocal = $intra->local = "Local";
         
-        $strHTML = "";
+        $strHTML = '<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <title>Admin</title>
+</head>';
+
+        $strHTML .= "<style>
+        body { font-family: Arial, sans-serif; font-size: 11px;}
+        .status {font-size: 1.2em;}
+        .action {font-size: 1.11em;}
+        table.mtx {
+            table-layout: fixed;
+            font-family: \"Arial Narrow\";
+            font-size: 10px;
+            width: 550px;
+            border: 1px solid #666;
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+        table.mtx caption {
+            text-align: left;
+            padding-left: 10px;
+            font-size: 1.2em;
+            background-color: #FCFCFC;
+        }
+        table.mtx td, table.mtx th {
+            border: 1px solid #666;
+        }
+        table.mtx th {
+            background-color: #99b4d1;    
+        }
+        .subcaption {
+            font-weight: bold;
+            font-size: 1.25em;
+            line-height: 2em;
+        }
+        .role {
+            width: 100%;
+        }
+        .profit {
+            width: 100px;
+        }
+        .cost {
+            width: 100px;
+        }
+        .amount {
+            width: 60px;
+            text-align: right;
+        }
+        </style>";
+
+        $strHTML .= '<body>';
         
-        $strHTML .= "<H1>Сущность &quot;{$rwEnt["entTitle$strLocal"]}&quot;</H1>\r\n\r\n";
+        // $strHTML .= "<H1>Сущность &quot;{$rwEnt["entTitle$strLocal"]}&quot;</H1>\r\n\r\n";
         
         /* statuses */ 
-        $strHTML .= "<h2>Состояния</h2>\r\n<p>Доступны следующие состояния:";
+        $strHTML .= "<h2>Состояния</h2>\r\n<p>Возможны следующие состояния:</p>";
         $sqlSta = "SELECT * FROM stbl_status WHERE staEntityID='{$entID}' ORDER BY staID";
         $rsSta = $oSQL->do_query($sqlSta);
-        $strHTML .= "<ul>\r\n";
+ 
         while ($rwSta = $oSQL->fetch_array($rsSta)){
-            $strHTML .= "<li><b>{$rwSta["staID"]}: {$rwSta["staTitle$strLocal"]}</b><br><br></li>\r\n";
-            $strHTML .= "<blockquote><b>Доступные для редактирования атрибуты:</b><br><pre>\r\n";
+
+            $strHTML .= "<p class='status'><b>{$rwSta["staTitle$strLocal"]}</b> (код: {$rwSta["staID"]})</p><br><br>\r\n";
+            
             $sqlSat = "SELECT * FROM stbl_status_attribute 
                INNER JOIN stbl_attribute ON satAttributeID=atrID AND satEntityID=atrEntityID
                WHERE satStatusID='{$rwSta["staID"]}' AND satEntityID='{$entID}' AND satFlagEditable=1
                ORDER BY atrOrder";
             $rsSat = $oSQL->do_query($sqlSat);
-            while ($rwSat = $oSQL->fetch_array($rsSat)){
-               $strHTML .= "{$rwSat["atrTitle$strLocal"]}\t{$rwSat['atrID']}\r\n";
+            if($oSQL->n($rsSat) > 0){
+                $strHTML .= "<blockquote><div class=\"subcaption\">Доступные для редактирования атрибуты:</div><ul>\r\n";
+                while ($rwSat = $oSQL->fetch_array($rsSat)){
+                   $strHTML .= "<li>{$rwSat["atrTitle$strLocal"]}\r\n";
+                }
+                $strHTML .= "</ul></blockquote>\r\n";    
             }
-            $strHTML .= "</pre></blockquote>\r\n";    
             
-            $strHTML .= "<blockquote><b>Доступные действия:</b><ol>\r\n";
+            $sqlACT_to = "SELECT *, 
+                (SELECT GROUP_CONCAT(DISTINCT staTitleLocal SEPARATOR ', ') 
+                    FROM stbl_action_status 
+                    INNER JOIN stbl_status ON staEntityID='$entID' AND staID=atsOldStatusID AND atsActionID=actID
+                    ORDER BY staID DESC) as staTitles_old,
+                (SELECT MAX(atsOldStatusID) as maxOldStatusID FROM stbl_action_status WHERE atsActionID=actID) as actOldStatusID
+                FROM stbl_action 
+                WHERE actEntityID='$entID' AND actNewStatusID={$rwSta['staID']}
+                AND actFlagDeleted=0
+                -- HAVING actOldStatusID IS NOT NULL
+                ORDER BY actOldStatusID";
+            // echo '<pre>'.$sqlACT_to;
+            $rsACT_to = $oSQL->q($sqlACT_to);
+            if($oSQL->n($rsACT_to)){
+                $strHTML .= "<blockquote><div class=\"subcaption\">Действия, переводящие в данный статус:</div><ol>\r\n";
+                while ($rwACT_to = $oSQL->f($rsACT_to)) {
+                    $strOrigins = ($rwACT_to["staTitles_old"] ? " (из: {$rwACT_to["staTitles_old"]})" : '');
+                    $strHTML .= "<li>{$rwACT_to["actTitle$strLocal"]}{$strOrigins}</li>";
+                }
+                $strHTML .= "</ol></blockquote>\r\n";
+            }
+
+
+            $strHTML .= "<blockquote><div class=\"subcaption\">Доступные действия:</div><ol>\r\n";
+
             $sqlAct = "SELECT * FROM stbl_action_status
                 INNER JOIN stbl_action ON atsActionID=actID
+                LEFT OUTER JOIN stbl_status ON staID=actNewStatusID AND staEntityID='$entID'
                WHERE atsOldStatusID='{$rwSta["staID"]}' AND actEntityID='{$entID}'
+                AND actFlagDeleted=0 AND actFlagSystem=0
                ORDER BY actPriority";
             $rsAct = $oSQL->do_query($sqlAct);
             while ($rwAct = $oSQL->fetch_array($rsAct)){
-               $strHTML .= "<li><b>{$rwAct["actTitle$strLocal"]}</b></li><br><br>Обязательные атрибуты:<br><i>\r\n";
+
+                $targetStatus = ($rwAct['staID'] ? $rwAct['staTitleLocal'] : '(тот же статус)');
+
+                $strHTML .= "<li class='action'><b>{$rwAct["actTitle$strLocal"]}</b> (код: {$rwAct['actID']}) &gt; {$targetStatus}</li>";
+
+                $aMTX = (array)$mtx->mtxByAction[$rwAct['actID']];
+
+                if(count($aMTX)){
+
+                    $strHTML .= "<table class='mtx'>";
+                    $strHTML .= "<caption>Права на выполнение</caption>";
+                    $strHTML .= "<thead><tr>";
+                    $strHTML .= '<th class="role">Роль</th>';
+                    $strHTML .= '<th class="profit">ЦФО</th>';
+                    $strHTML .= '<th class="cost">Типы затрат</th>';
+                    $strHTML .= '<th class="amount">Сумма, руб.</th>';
+                    $strHTML .= "</tr></thead><tbody>";
+
+                    foreach ($aMTX as $rwMTX) {
+                        $rwMTX['mtxRoleID_text'] = $oSQL->d("SELECT rolTitleLocal FROM stbl_role WHERE rolID='{$rwMTX['mtxRoleID']}'");
+                        $rwMTX['mtxProfitID_text'] = $oSQL->d("SELECT pccTitle FROM tbl_profit WHERE pccID='{$rwMTX['mtxProfitID']}'");
+                        $rwMTX['mtxCostID_text'] = $oSQL->d("SELECT cstTitleLocal FROM tbl_cost WHERE cstID='{$rwMTX['mtxCostID']}'");
+                        // echo '<pre>'.var_export($rwMTX, true);
+                        $strHTML .= '<tr>';
+                        $strHTML .= '<td class="role">'.$rwMTX['mtxRoleID_text'].' ('.$rwMTX['mtxRoleID'].')</td>';
+                        $strHTML .= '<td class="data profit">'.($rwMTX['mtxProfitID'] ? $rwMTX['mtxProfitID_text'] : '- любой -').'</td>';
+                        $strHTML .= '<td class="data cost">'.($rwMTX['mtxCostID'] ? $rwMTX['mtxCostID_text'] : '- любые -').'</td>';
+                        $strHTML .= '<td class="data amount">'.($rwMTX['mtxAmountLocal'] ? number_format($rwMTX['mtxAmountLocal'], 2, '.', ',') : '&nbsp;').'</td>';
+                        // $strHTML .= '<td class="data amount">'.($rwMTX['mtxAmount'] ? number_format($rwMTX['mtxAmount'], 2, '.', ',') : '&nbsp;').'</td>';
+                        $strHTML .= '</tr>';
+                    }    
+
+                    $strHTML .= '</tbody></table>';
+                }
+                
+
                $sqlAAT = "SELECT *
                 FROM stbl_action_attribute INNER JOIN stbl_attribute ON atrID=aatAttributeID 
                 WHERE atrEntityID='{$entID}' AND aatActionID='{$rwAct["actID"]}' AND aatFlagMandatory=1 
                 ORDER BY atrOrder";
                 $rsAAT = $oSQL->do_query($sqlAAT);
+                $strHTML .= ($oSQL->n($rsAAT) ? "<br><br>Обязательные атрибуты:<br><i>\r\n" : '');
                 while ($rwAAT = $oSQL->fetch_array($rsAAT)){
                     $strHTML .= "- {$rwAAT["atrTitle$strLocal"]}".($rwAAT["aatFlagToPush"] ? ", запись" : "").
                         ($rwAAT["aatFlagTimestamp"] ? ", <tt>{$rwAAT["aatFlagTimestamp"]}</tt>" : "")."<br>\r\n";
@@ -968,9 +1090,8 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
                 $strHTML .= "</i><br><br>";
             }
             $strHTML .= "</ol></blockquote>\r\n";   
+
         }
-        $strHTML .= "</ul>\r\n";
-        $strHTML .= "</p>\r\n";
         
         
         break;
