@@ -131,5 +131,8 @@ echo $intra->field('', null, $intra->showButton('btnsubmit'
 </fieldset>
 </form>
 </div>
+
+<?php  echo $extraBottomHTML; ?>
+
 </body>
 </html>
