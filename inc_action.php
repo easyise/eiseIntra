@@ -439,7 +439,7 @@ public function finish(){
             WHERE aclGUID='{$this->arrAction['aclGUID']}'";
         
         $arrSAT = $this->conf['STA'][$this->arrAction['aclNewStatusID']]['satFlagTrackOnArrival'];
-        if (count($arrSAT)>0){
+        if (@count($arrSAT)>0){
             
         }
         

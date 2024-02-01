@@ -288,7 +288,7 @@ function get_html($allowEdit=true){
     }
     
     $htmlTabs = '';
-    if(count($this->Tabs3D)>0){
+    if(@count($this->Tabs3D)>0){
         $htmlTabs .= "<div id=\"{$this->name}-tabs3d\">\r\n";
         $htmlTabs .= "<ul>\r\n";
         foreach($this->Tabs3D as $ix=>$tab){
@@ -695,7 +695,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     $cell = $col;
     
     $arrSuffix = array();
-    if (count($this->Tabs3D)>0 && ($ixRow===null || is_array($val))) {
+    if (@count($this->Tabs3D)>0 && ($ixRow===null || is_array($val))) {
         foreach($this->Tabs3D as $ix=>$tab){
             $arrSuffix[] = $tab['ID'];
         }

@@ -887,7 +887,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     
     $iStartAddCol = 0;
     
-    for ($ii=$iStartAddCol;$ii<count($arrAdditionalCols);$ii++){
+    for ($ii=$iStartAddCol;$ii<@count($arrAdditionalCols);$ii++){
         if($arrAdditionalCols[$iStartAddCol]['columnAfter']!='')
             break;
         $lst->Columns[] = $arrAdditionalCols[$iStartAddCol];
@@ -968,7 +968,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     }
 
     // check column-after
-    for ($ii=$iStartAddCol;$ii<count($arrAdditionalCols);$ii++){
+    for ($ii=$iStartAddCol;$ii<@count($arrAdditionalCols);$ii++){
         if ($arrAdditionalCols[$ii]['columnAfter']==$rwAtr['atrID']){
             $lst->Columns[] = $arrAdditionalCols[$ii];
             

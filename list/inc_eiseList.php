@@ -130,7 +130,7 @@ function __construct($oSQL, $strName, $arrConfig=Array()){
 }
 
 public function hasColumn($fieldName){
-    if(!count($this->Columns))
+    if(!@count($this->Columns))
         return false;
     foreach($this->Columns as $ix=>$col){
         if($col['field']==$fieldName)
@@ -731,7 +731,7 @@ private function showTableHeader(){
 
     $htmlTabs = '';
     $this->breakDownByTabs();
-    if (count($this->Tabs) > 0){
+    if (@count($this->Tabs) > 0){
         $htmlTabs .= "<div id=\"{$this->name}_tabs\" class=\"el-tabs ui-tabs ui-widget ui-widget-content ui-corner-all\">\n";
         $htmlTabs .= "<ul class=\"ui-tabs-nav ui-helper-reset ui-helper-clearfix ui-widget-header ui-corner-all\">\n";
         $strPseudoTabs = '';
@@ -1158,7 +1158,7 @@ public function getCookie(){
  * @return array of session data for given list. If there're nothing in session, it returns null.
  */
 public function getSession(){
-    return ( count($this->arrSession = $_SESSION[$this->conf["cookieName"]] )>0
+    return ( @count($this->arrSession = $_SESSION[$this->conf["cookieName"]] )>0
         ? $this->arrSession
         : null);
 }
