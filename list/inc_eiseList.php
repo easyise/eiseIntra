@@ -1147,7 +1147,7 @@ public function getFilterParameterName( $field ){
  * @return array of cookie data for given list. If there're no cookie set, it returns null.
  */
 public function getCookie(){
-    return (count($this->arrCookie = unserialize($_COOKIE[$this->conf["cookieName"]]) )>0
+    return (@count($this->arrCookie = unserialize($_COOKIE[$this->conf["cookieName"]]) )>0
         ? $this->arrCookie
         : null 
         );
