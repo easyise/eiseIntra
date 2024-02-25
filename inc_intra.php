@@ -509,7 +509,7 @@ function Authenticate($login, $password, $method="LDAP", $options=array()){
  * @category Authentication
  */
 function session_initialize(){
-   session_set_cookie_params(0, $this->conf['cookiePath']);
+   @session_set_cookie_params(0, $this->conf['cookiePath']);
    session_start();
    $this->usrID = $_SESSION["usrID"];
 } 
@@ -1893,7 +1893,7 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
                             $optsData[$rwCMB["optValue"]]=$rwCMB["optData"];
                     }
                 }
-                if(count($optsData))
+                if(@count($optsData))
                     $conf['optsData'] = $optsData;
                 $html .= $this->showCombo($name, $value, $opts, $conf);
                 break;
@@ -3097,6 +3097,36 @@ static function debug($to_echo){
 
     echo '</pre>';
  
+}
+
+/**
+ * @ignore
+ */
+function checkMessageQueueExists(){
+
+    $oSQL = $this->oSQL;
+
+    $rs = $oSQL->q("SHOW TABLES LIKE 'stbl_message_queue'");
+    if($oSQL->n($rs)==0){
+
+        $rwCreate = $oSQL->f("SHOW CREATE TABLE stbl_message");
+        $sqlCreate = $rwCreate['Create Table'];
+
+        $sqlCreate = preg_replace('/stbl_message/', 'stbl_message_queue', $sqlCreate);
+        $sqlCreate = preg_replace('/,[\s]+KEY/', "\n -- , KEY", $sqlCreate);
+
+        try {
+            $oSQL->q("DROP TABLE IF EXISTS stbl_message_queue");
+            $oSQL->q($sqlCreate);
+        } catch (Exception $e) {
+
+            $dbname = $oSQL->d('SELECT DATABASE()');
+            $error = $e->getMessage();
+            throw new Exception("Unable to create message queue. Please check CREATE TABLE permissions of user '{$oSQL->dbuser}' on '{$dbname}'. Error: {$error}");
+            
+        }
+    }
+
 }
 
 

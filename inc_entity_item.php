@@ -1593,13 +1593,20 @@ static function updateMessages($newData){
 
     $da = $newData["DataAction"];
 
+    try {
+        $intra->checkMessageQueueExists();    
+    } catch (Exception $e) {
+        $intra->redirect('ERROR: '.$e->getMessage(), $_SERVER["PHP_SELF"]."?{$newData['entID']}ID=".urlencode($newData["entItemID"]));
+    }
+    
+
     switch($da){
         case 'messageSend':
-            $fields = $oSQL->ff('SELECT * FROM stbl_message WHERE 1=0');
+            $fields = $oSQL->ff('SELECT * FROM stbl_message_queue WHERE 1=0');
             if($fields['msgPassword']){
                 list($login, $password) = $intra->decodeAuthstring($_SESSION['authstring']);
             }
-            $sqlMsg = "INSERT INTO stbl_message SET
+            $sqlMsg = "INSERT INTO stbl_message_queue SET
                 msgEntityID = ".($newData['entID']!="" ? $oSQL->e($newData['entID']) : "NULL")."
                 , msgEntityItemID = ".($newData['entItemID']!="" ? $oSQL->e($newData['entItemID']) : "NULL")."
                 , msgFromUserID = '$intra->usrID'
@@ -1624,133 +1631,6 @@ static function updateMessages($newData){
         case 'messageReplyAll':
             die();
     }
-
-}
-
-static function sendMessages($conf){
-    
-    GLOBAL $intra;
-
-    $oSQL = $intra->oSQL;
-
-    $oSQL->q("UPDATE stbl_message SET msgSendDate=NOW()
-            , msgStatus='Sending' 
-            WHERE msgSendDate IS NULL");
-
-    // scan table for unsent messages
-    $sqlMsg = "SELECT * 
-        FROM stbl_message 
-            LEFT OUTER JOIN stbl_entity ON msgEntityID=entID
-        WHERE msgStatus='Sending' AND msgInsertDate>DATE_ADD(NOW(), INTERVAL -1 DAY) ORDER BY msgFromUserID, msgInsertDate DESC";
-    $rsMsg = $oSQL->q($sqlMsg);
-    $fieldsMsg = $oSQL->ff($rsMsg);
-
-    include_once('../common/eiseMail/inc_eisemail.php');
-
-    $username = '';
-    $arrMessages = array();
-    $senders = [];
-
-    while($rwMsg = $oSQL->f($rsMsg)){
-
-        if($username != $rwMsg['msgFromUserID']){
-
-            $rwUsr_From = $intra->getUserData_All($rwMsg['msgFromUserID'], 'all');
-            $arrAuth = array();
-            switch($conf['authenticate']){
-                case 'email':
-                    $arrAuth['login'] = $rwUsr_From['usrEmail'];
-                    break;
-                case 'onbehalf':
-                    $arrAuth['login'] = $conf['login'];
-                    $rwMsg['msgPassword'] = $conf['password'];
-                    break;
-                default:
-                    $arrAuth['login'] = $rwUsr_From['usrID'] ;
-                    break;
-                
-            }
-            $username = $rwMsg['msgFromUserID'];
-            $senders[$rwMsg['msgFromUserID']]  = new eiseMail(array_merge($conf, $arrAuth));
-
-        }
-
-        $rwUsr_To = $intra->getUserData_All($rwMsg['msgToUserID'], 'all');
-        $rwUsr_CC = $intra->getUserData_All($rwMsg['msgCCUserID'], 'all');
-
-        $rwMsg['system'] = $conf['system'];
-
-        if($rwMsg['msgEntityItemID']!='' && $rwMsg['msgEntityID']!=''){
-
-            $rwMsg[self::getItemIDField($rwMsg)] = $rwMsg['msgEntityItemID'];
-
-            $rwMsg['entItemFormHref'] = eiseIntra::getFullHREF(self::getFormURL($rwMsg, $rwMsg));    
-
-        }
-
-        // if( $conf['login']){
-        //     $dd = 'acme.com';
-        //     $a1 = imap_rfc822_parse_adrlist($conf['login'], $dd);
-        //     $a2 = imap_rfc822_parse_adrlist($rwUsr_From['usrID'], $dd);
-        //     $o1 = $a1[0]; $o2 = $a2[0];
-        //     if(strtolower($o1->mailbox)!=strtolower($o2->mailbox))
-        //         continue;
-        // } 
-
-        $msg = array('From'=> ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : '')
-            , 'To' => ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\"  <".$rwUsr_To['usrEmail'].">" : '')
-            , 'Text' => $rwMsg['msgText']
-            );
-        if ($rwMsg['msgCCUserID'])
-            $msg['Cc'] = "\"".$rwUsr_CC['usrName']."\"  <".$rwUsr_CC['usrEmail'].">";
-
-        $msg = array_merge($msg, $rwMsg);
-
-        if($conf['authenticate'] && $rwMsg['msgPassword'])
-            $senders[$rwMsg['msgFromUserID']]->conf['password'] = $intra->decrypt($rwMsg['msgPassword']);
-
-        $senders[$rwMsg['msgFromUserID']]->addMessage($msg);
-
-    }
-
-    foreach($senders as $user=>$sender){
-
-        if($conf['authenticate'] && !$sender->conf['password']){
-            foreach($sender->arrMessages as &$msg){
-                $msg['error'] = 'No password';
-                $arrMessages[] = $msg;    
-            }
-            continue;
-        }
-
-        try {
-            $sentMessages = $sender->send();
-            $arrMessages = array_merge($arrMessages, $sentMessages);
-        } catch (eiseMailException $e){
-            $strError = $e->getMessage();
-            $arrMessages = array_merge($arrMessages, $e->getMessages());
-        }
-    }
-
-    foreach((array)$arrMessages as $msg){
-        $sqlMarkSent = "UPDATE stbl_message SET msgSendDate=".($msg['error'] 
-                ? 'NULL' 
-                : ($msg['send_time'] 
-                    ? "'".date('Y-m-d H:i:s', $msg['send_time'])."'" 
-                    : 'NOW()' )
-                )."
-            , msgStatus=".($msg['error'] ? $oSQL->e($msg['error']) : $oSQL->e('Sent'))."
-            , msgPassword=NULL
-            , msgEditDate=NOW()
-            , msgEditBy='{$msg['msgFromUserID']}'
-            WHERE msgID=".$oSQL->e($msg['msgID']);
-        $oSQL->q($sqlMarkSent);
-
-    }
-
-
-    if($strError)
-        throw new Exception($strError);
 
 }
 
