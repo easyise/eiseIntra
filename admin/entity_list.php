@@ -32,7 +32,7 @@ if($_POST['DataAction']=='insert'){
 
     $oSQL->q("START TRANSACTION");
 
-    $entID = $oSQL->d("SELECT COUNT(*) FROM stbl_entity")+1;
+    $entID = $oSQL->d("SELECT MAX(entID) FROM stbl_entity")+1;
 
     # 2. create entity record
     $sqlEnt = "INSERT INTO stbl_entity SET
