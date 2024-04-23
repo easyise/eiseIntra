@@ -999,6 +999,7 @@ static function sendMessages($conf){
     	        $arrAuth['login'] = $rwUsr_From['usrEmail'];
     	        break;
     	    case 'onbehalf':
+    	    case 'serviceaccount':
     	        $arrAuth['login'] = $conf['login'];
     	        $arrAuth['password'] = $intra->decrypt($conf['password']);
     	        break;
@@ -1026,19 +1027,21 @@ static function sendMessages($conf){
 
 
     	// 5. Dealing with Names
-    	$msg = array('From'=> ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : '')
-            , 'To' => ($rwMsg['msgToUserEmail']
+    	$msg = [];
+    	$msg['From'] = ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : $rwUsr_From['usrEmail']);
+    	$msg['To'] = ($rwMsg['msgToUserEmail']
             	? ($rwMsg['msgToUserName'] ? "\"".$rwMsg['msgToUserName']."\"  <".$rwMsg['msgToUserEmail'].">" : $rwMsg['msgToUserEmail'])
             	: ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\"  <".$rwUsr_To['usrEmail'].">" : '')
-            )
-            , 'Text' => $rwMsg['msgText']
             );
+
+        $msg['Text'] = $rwMsg['msgText'];
+
         if ($rwMsg['msgCCUserID'])
             $msg['Cc'] = "\"".$rwUsr_CC['usrName']."\"  <".$rwUsr_CC['usrEmail'].">";
 
         $msg = array_merge($msg, $rwMsg);
 
-        if($conf['authenticate']!='onbehalf'){
+        if(!in_array($conf['authenticate'], ['onbehalf', 'serviceaccount'])) {
 	        if($conf['authenticate'] && $rwMsg['msgPassword'])
 	            $sender->conf['password'] = $intra->decrypt($rwMsg['msgPassword']);
     	}
@@ -1065,7 +1068,7 @@ static function sendMessages($conf){
          
         } catch (eiseMailException $e){
 
-        	$err = ($msg['error'] ? $msg['error'] : 'NOT SENT: '.$e->getMessage());
+        	$err = ($msg['error'] ? $msg['error'] : "MESSAGE {$msg['msgID']} NOT SENT: ".$e->getMessage());
             $strError .= "\n{$err}";
             $msgStatus = $err;
             $msgSendDate=NULL;
@@ -1074,9 +1077,9 @@ static function sendMessages($conf){
 
         try {
         	$oSQL->q("INSERT INTO stbl_message SELECT * FROM stbl_message_queue WHERE stbl_message_queue.msgID={$msg['msgID']}");
-        	$oSQL->q("UPDATE stbl_message SET msgSendDate=".($msgSendDate===NULL ? 'NULL' : "'{$msgSendDate}'
+        	$oSQL->q("UPDATE stbl_message SET msgSendDate=".($msgSendDate===NULL ? 'NULL' : "'{$msgSendDate}'")."
         			, msgStatus=".$oSQL->e($msgStatus)."
-        			WHERE msgID={$msg['msgID']}"));
+        			WHERE msgID={$msg['msgID']}");
         } catch (Exception $e) {
         	$strError .= "Database error: ".$e->getMessage();
         }
@@ -1084,10 +1087,11 @@ static function sendMessages($conf){
        	$oSQL->q("DELETE FROM stbl_message_queue WHERE msgID={$msg['msgID']}");
 
     	$rsMsg = $oSQL->q($sqlMsg);
+    	
     }
 
     if($strError)
-        throw new Exception($strError);
+        throw new Exception("QUEUE SEND ERROR: ".$strError);
 
 }
 
