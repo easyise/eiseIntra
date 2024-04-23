@@ -50,6 +50,8 @@ public function __construct($id = null,  $conf = array() ){
 
     $this->conf['title'] = ($conf['title'] ? $conf['title'] : $this->conf['entTitle']);
     $this->conf['titleLocal'] = ($conf['titleLocal'] ? $conf['titleLocal'] : $this->conf['entTitle'.$this->intra->local]);
+    $this->conf['titleMul'] = ($this->conf['entTitleMul'] ? $this->conf['entTitleMul'] : $conf['title']);
+    $this->conf['titleLocalMul'] = ($this->conf['entTitleLocalMul'] ? $this->conf['entTitleLocalMul'] : $conf['titleLocal']);
     $this->conf['name'] = ($conf['name'] ? $conf['name'] : (preg_replace('/^(tbl_|vw_)/', '', $this->conf['entTable'])));
     $this->conf['prefix'] = ($conf['prefix'] ? $conf['prefix'] : ($this->conf['entPrefix']
         ? $this->conf['entPrefix']
@@ -743,7 +745,7 @@ public function RLAByMatrix(){
                     if($conditionWorked[$atrID])
                         $tierConditionWorked[$atrID] = 1;
                 }
-                if(array_sum($conditionWorked)/count($conditionWorked)===1){
+                if(count($conditionWorked)>0 && array_sum($conditionWorked)/count($conditionWorked)===1){
                     $rla[] = $mtx['mtxRoleID'];
                     $nTier = count($aAtrMTX) - array_sum($tierConditionWorked);
                     $rla_tiers[$mtx['mtxRoleID']] = isset($rla_tiers[$mtx['mtxRoleID']])
@@ -786,7 +788,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     unset($conf4list['ACT']);
 
     $conf4list = array_merge($conf4list,
-        Array('title'=>$this->conf["title{$strLocal}"].(
+        Array('title'=>$this->conf["title{$strLocal}Mul"].(
                 $this->staID!==null
                 ? ': '.($this->conf['STA'][$this->staID]["staTitle{$strLocal}Mul"] ? $this->conf['STA'][$this->staID]["staTitle{$strLocal}Mul"] : $this->conf['STA'][$this->staID]["staTitle{$strLocal}"])
                 : '')
