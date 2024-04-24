@@ -1030,14 +1030,14 @@ static function sendMessages($conf){
     	$msg = [];
     	$msg['From'] = ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : $rwUsr_From['usrEmail']);
     	$msg['To'] = ($rwMsg['msgToUserEmail']
-            	? ($rwMsg['msgToUserName'] ? "\"".$rwMsg['msgToUserName']."\"  <".$rwMsg['msgToUserEmail'].">" : $rwMsg['msgToUserEmail'])
-            	: ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\"  <".$rwUsr_To['usrEmail'].">" : '')
+            	? ($rwMsg['msgToUserName'] ? "\"".$rwMsg['msgToUserName']."\" <".$rwMsg['msgToUserEmail'].">" : $rwMsg['msgToUserEmail'])
+            	: ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\" <".$rwUsr_To['usrEmail'].">" : '')
             );
 
         $msg['Text'] = $rwMsg['msgText'];
 
         if ($rwMsg['msgCCUserID'])
-            $msg['Cc'] = "\"".$rwUsr_CC['usrName']."\"  <".$rwUsr_CC['usrEmail'].">";
+            $msg['Cc'] = "\"".$rwUsr_CC['usrName']."\" <".$rwUsr_CC['usrEmail'].">";
 
         $msg = array_merge($msg, $rwMsg);
 
