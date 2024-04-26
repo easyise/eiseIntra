@@ -14,6 +14,9 @@ $intra->loadCSS();
 echo "\t".$strHead."\r\n";
 ?>
 
+<link rel="icon" href="./favicon.ico" type="image/x-icon" />
+<link rel="shortcut icon" href="./favicon.ico" type="image/x-icon" />
+
 </head>
 <body data-conf="<?php  echo htmlspecialchars(json_encode($intra->conf)) ; ?>" data-message="<?php echo htmlspecialchars( $intra->getUserMessage() ) ?>" class="<?php echo eiseIntra::getSlug(); ?>"><input 
 	type="hidden" id="eiseIntraConf" value="<?php  echo htmlspecialchars(json_encode($intra->conf)) ; ?>">

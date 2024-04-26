@@ -14,6 +14,10 @@ $intra->loadJS();
 $paneClass = "ei-pane{$intra->conf['frame']}".($flagNoHeader ? ' no-header' : '');
 $conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)$intra->arrUsrData['FlagWrite'] ]  );
  ?>
+
+<link rel="icon" href="./favicon.ico" type="image/x-icon" />
+<link rel="shortcut icon" href="./favicon.ico" type="image/x-icon" />
+
 </head>
 <body data-conf="<?php  echo htmlspecialchars(json_encode( $conf_to_set )) ; ?>" data-message="<?php  echo htmlspecialchars($intra->getUserMessage()) ; ?>" class="<?php echo eiseIntra::getSlug().($pageClass ? ' '.$pageClass : ''); ?>">  
 
