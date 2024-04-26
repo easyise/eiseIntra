@@ -1100,17 +1100,18 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
         
         $strHTML ="<h3>Table &quot;{$arrTable["table"]}&quot;</h3>
         <style>td, th {border: 1px solid black; font-size: 10pt;vertical-align: top;} table {border-collapse: collapse;}</style>
-        <table>
-        <thead>
-        <tr>
-        <th>##</th>
-        <th>Field</th>
-        <th>Type/length</th>
-        <th>Designation</th>
-        <th>Description</th>
-        </tr>
-        </thead>
-        <tbody>";
+<table>
+<thead>
+<tr>
+    <th>##</th>
+    <th>Field</th>
+    <th>Type/length</th>
+    <th>Description</th>
+</tr>
+</thead>
+<tbody>
+
+        ";
         
         $iCounter = 0;
         /*
@@ -1119,13 +1120,11 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
         echo "</pre>";
         */
         foreach($arrTable["columns"] as $col){
-            $strHTML .= "<tr>
-            <td>".($iCounter+1).".</td>
-            <td>".$col["Field"]."</td>
-            <td>".$col["Type"]."</td>
-            <td>".$col["DataType"]."</td>
-            <td>".$col["Comment"]."&nbsp;</td>
-            </tr>";
+            $strHTML .= "  <tr>
+    <td>".($iCounter+1).".</td>
+    <td>".$col["Field"]."</td><td>".$col["Type"]."</td>
+    <td class=\"description\">".$col["Comment"]."&nbsp;</td>
+  </tr>\n";
             $iCounter++;
         }
         
