@@ -194,8 +194,13 @@ if($oSQL->d("SHOW TABLES LIKE 'stbl_action_status'")):
 <?php 
 
 
-$sqlAct = "SELECT DISTINCT actID, actTitle, actTitleLocal, actFlagDeleted FROM stbl_action_status INNER JOIN stbl_action ON actID=atsActionID
-    WHERE atsNewStatusID='{$rwSta["staID"]}' AND actEntityID='{$entID}'
+$sqlAct = "SELECT DISTINCT actID, actTitle{$intra->local}, actFlagDeleted,
+    GROUP_CONCAT(staTitle{$intra->local} ORDER BY staID) as staTitles 
+    FROM stbl_action
+    INNER JOIN stbl_action_status  ON actID=atsActionID
+    INNER JOIN stbl_status ON staEntityID=actEntityID AND atsOldStatusID=staID
+    WHERE actNewStatusID='{$rwSta["staID"]}' AND actEntityID='{$entID}'
+    GROUP BY actID
     ORDER BY actFlagDeleted";
 $rsAct = $oSQL->do_query($sqlAct);
 if ($oSQL->n($rsAct)==0){echo " - ".$intra->translate('Nothing found')." - ";}
@@ -207,7 +212,9 @@ while ($rwAct=$oSQL->fetch_array($rsAct)) {
   echo $rwAct["actID"] ; 
   ?>&dbName=<?php 
   echo $dbName ; 
-  ?>"><?php  echo $rwAct["actTitle{$intra->local}"].($rwAct['actFlagDeleted'] ? " (deleted)" : "") ; ?></a></li>
+  ?>"><?php  
+  $strike = ($rwAct['actFlagDeleted'] ? ['<strike>', '</strike>'] : ['', '']);
+  echo $strike[0].'<b>'.$rwAct["actTitle{$intra->local}"]."</b> ({$rwAct['staTitles']})".$strike[1] ; ?></a></li>
 <?php
 }
  ?>

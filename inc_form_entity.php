@@ -68,6 +68,86 @@ $gridSTA->Columns[] = Array(
 );
 
 
+$arrStatus = [];
+$arrStatusFull = [];
+if($oSQL->d("SHOW TABLES LIKE 'stbl_status'")){
+    $sqlSta = "SELECT * FROM stbl_status WHERE staEntityID='".$entID."' ORDER BY staID";
+    $rsSta = $oSQL->do_query($sqlSta);
+    while($rwSta = $oSQL->fetch_array($rsSta)){
+        $arrStatus[$rwSta['staID']] = $rwSta['staTitle'.$intra->local];
+        $arrStatusFull[] = $rwSta;
+    }
+}
+
+
+$arrActions_dropdown = [];
+if($oSQL->d("SHOW TABLES LIKE 'stbl_action'")){
+    $sqlSta = "SELECT * FROM stbl_action WHERE actEntityID='".$entID."' ORDER BY actTitle{$intra->local}";
+    $rsAct = $oSQL->do_query($sqlSta);
+    while($rwAct = $oSQL->fetch_array($rsAct)){
+        $arrActions_dropdown[$rwAct['actID']] = $rwAct['actTitle'.$intra->local];
+    }
+}
+
+$gridCHK = new eiseGrid($oSQL
+        ,'chk'
+        , Array(
+                'arrPermissions' => Array('FlagWrite'=>$flagEiseIntra)
+                , 'strTable' => 'stbl_checklist'
+                , 'strPrefix' => 'chk'
+                , 'flagStandAlone' => true
+                , 'showControlBar' => true
+                , 'controlBarButtons' => 'add|moveup|movedown|delete'
+                )
+        );
+$gridCHK->Columns[]  = Array(
+            'type' => 'row_id'
+            , 'field' => 'chkID'
+        );
+$gridCHK->Columns[] = Array(
+        'title' => '##'
+        , 'field' => "chkOrder"
+        , 'width' => '40px'
+        , 'type' => "order"
+);
+$gridCHK->Columns[] = Array(
+        'title' => ""
+        , 'field' => "chkEntityID"
+        , 'default' => $entID
+        , 'type' => "text"
+);
+$gridCHK->Columns[] = Array(
+        'title' => __("Checkpoint Title")
+        , 'field' => "chkTitle{$strLocal}"
+        , 'href' => 'checkmark_form.php?chkID=[chkID]'
+        , 'width' => "100%"
+        , 'mandatory' => true
+        , 'type' => "text"
+);
+$gridCHK->Columns[] = Array(
+        'title' => __("Action")
+        , 'field' => "chkSetActionID"
+        , 'width' => "100px"
+        , 'mandatory' => true
+        , 'type' => "combobox"
+        , 'source' => $arrActions_dropdown
+);
+
+$gridCHK->Columns[] = Array(
+        'title' => __("Status")
+        , 'field' => "chkTargetStatusID"
+        , 'width' => "100px"
+        , 'mandatory' => true
+        , 'type' => "combobox"
+        , 'source' => $arrStatus
+);
+$gridCHK->Columns[] = Array(
+        'title' => "X"
+        , 'field' => "staFlagDeleted"
+        , 'type' => "checkbox"
+        , 'disabled' => true
+);
+
 
 $gridATR = new eiseGrid($oSQL
         ,'atr'
@@ -305,7 +385,7 @@ $grdMX->Columns[] = Array(
 
 $grdMX->Columns[] = Array(
    'title' => $intra->translate("New Status")
-   , 'field' => 'actNewStatusIDs'
+   , 'field' => 'actNewStatusID'
    , 'type' => "text"
    , 'filterable' => true
    , 'disabled' => true
@@ -452,6 +532,7 @@ switch ($DataAction){
             }
         }
 
+        $gridCHK->Update($_POST);
         $gridATR->Update($_POST);
 
         $sqlFixSAT = "DELETE FROM stbl_status_attribute WHERE satAttributeID IN (SELECT * FROM (SELECT DISTINCT satAttributeID FROM stbl_status_attribute 
@@ -611,10 +692,10 @@ include eiseIntraAbsolutePath."inc_top.php";
     vertical-align: top;
 }
 #flds-sta {
-    width: 29%;
+    width: 500px;
 }
 #flds-atr {
-    width: 69%;
+    width: calc(100% - 530px);
 }
 
 #atr .eg-controlbar {
@@ -686,6 +767,22 @@ if($oSQL->d("SHOW TABLES LIKE 'stbl_status'")){
     }
     $gridSTA->Execute();
 }
+?>
+
+<?php
+if($oSQL->d("SHOW TABLES LIKE 'stbl_checklist'")){
+
+    echo '<hr>';
+
+    $sqlSta = "SELECT * FROM stbl_checklist WHERE chkEntityID='".$entID."' ORDER BY chkID";
+    $rsSta = $oSQL->do_query($sqlSta);
+    while($rwSta = $oSQL->fetch_array($rsSta)){
+       $rwSta['chkID_id'] = $rwSta['chkID']."##".$entID;
+       $gridCHK->Rows[] = $rwSta;
+    }
+    $gridCHK->Execute();
+}
+
 
  ?>
 </fieldset>
@@ -717,6 +814,7 @@ $sqlAct = "SELECT actID
     , actTitlePast{$strLocal} as actTitlePast
     , actFlagComment
     , actFlagDeleted
+    , (SELECT staTitle{$intra->local} FROM stbl_status WHERE staEntityID='$entID' AND staID=actNewStatusID) as actNewStatusIDs
     ".$roleFields."
 ".(
 $flagActionStatus
@@ -724,17 +822,16 @@ $flagActionStatus
   , actPriority
   , actFlagHasEstimates
   , (SELECT GROUP_CONCAT(DISTINCT staTitle{$intra->local} ORDER BY staID SEPARATOR ', ') FROM stbl_action_status INNER JOIN stbl_status ON staEntityID='$entID' AND staID=atsOldStatusID WHERE atsActionID=actID) as actOldStatusIDs
-  , (SELECT GROUP_CONCAT(DISTINCT staTitle{$intra->local} ORDER BY staID SEPARATOR ', ') FROM stbl_action_status INNER JOIN stbl_status ON staEntityID='$entID' AND staID=atsNewStatusID WHERE atsActionID=actID) as actNewStatusIDs
   , (SELECT MIN(staID) FROM stbl_action_status INNER JOIN stbl_status ON staEntityID='$entID' AND staID=atsOldStatusID WHERE atsActionID=actID) as minStaID
   "
 : "
   , (SELECT staTitle FROM stbl_status WHERE staEntityID='$entID' AND staID=actOldStatusID) as actOldStatusIDs
-  , (SELECT staTitle FROM stbl_status WHERE staEntityID='$entID' AND staID=actNewStatusID) as actNewStatusIDs
   , actOldStatusID as minStaID
   "
   )."
  FROM stbl_action ".$roleJoins." 
  WHERE actEntityID='$entID' ORDER BY actFlagDeleted, minStaID".($flagEiseIntra ? ', actPriority' : '');
+
 $rsAct = $oSQL->do_query($sqlAct);
 while ($rwAct = $oSQL->fetch_array($rsAct)){
     $rwAct['actID_'] = $rwAct['actID'];

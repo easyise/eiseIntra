@@ -131,6 +131,42 @@ function menu($target = null){
     
 }
 
+function getStatuses_dropdown($entID){
+
+    GLOBAL $oSQL, $intra;
+
+    $arrStatus = [];
+    $arrStatusFull = [];
+    if($oSQL->d("SHOW TABLES LIKE 'stbl_status'")){
+        $sqlSta = "SELECT * FROM stbl_status WHERE staEntityID='".$entID."' ORDER BY staID";
+        $rsSta = $oSQL->do_query($sqlSta);
+        while($rwSta = $oSQL->fetch_array($rsSta)){
+            $arrStatus[$rwSta['staID']] = $rwSta['staTitle'.$intra->local];
+            $arrStatusFull[] = $rwSta;
+        }
+    }
+
+    return [$arrStatus, $arrStatusFull];
+
+}
+
+function getActions_dropdown($entID){
+
+    GLOBAL $oSQL, $intra;
+
+    $arrActions_dropdown = [];
+    if($oSQL->d("SHOW TABLES LIKE 'stbl_action'")){
+        $sqlSta = "SELECT * FROM stbl_action WHERE actEntityID='".$entID."' ORDER BY actTitle{$intra->local}";
+        $rsAct = $oSQL->do_query($sqlSta);
+        while($rwAct = $oSQL->fetch_array($rsAct)){
+            $arrActions_dropdown[$rwAct['actID']] = $rwAct['actTitle'.$intra->local];
+        }
+    }
+
+    return $arrActions_dropdown;
+    
+}
+
 function getDBName(){
 
     if($_POST['dbName']){

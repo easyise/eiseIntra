@@ -289,8 +289,8 @@ switch($DataAction){
             , actPriority = ".(int)($_POST['actPriority'])."
             , actTitlePast = ".$oSQL->escape_string($_POST['actTitlePast'])."
             , actTitlePastLocal = ".$oSQL->escape_string($_POST['actTitlePastLocal'])."
-            , actOldStatusID = ".($_POST['atsOldStatusID'][1] ? $oSQL->escape_string($_POST['atsOldStatusID'][1]) : 'NULL')."
-            , actNewStatusID = ".($_POST['actNewStatusID'] ? $oSQL->escape_string($_POST['actNewStatusID']) : 'NULL')."
+            , actOldStatusID = ".(isset($_POST['atsOldStatusID'][1]) ? (int)$_POST['atsOldStatusID'][1] : 'NULL')."
+            , actNewStatusID = ".($_POST['actNewStatusID']!=='' ? (int)($_POST['actNewStatusID']) : 'NULL')."
             , actDescription = ".$oSQL->escape_string($_POST['actDescription'])."
             , actDescriptionLocal = ".$oSQL->escape_string($_POST['actDescriptionLocal'])."
             , actFlagDeleted = '".(integer)$_POST['actFlagDeleted']."'
