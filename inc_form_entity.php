@@ -1,6 +1,6 @@
 <?php 
 // test
-$intra->requireComponent('jquery-ui', 'grid');
+$intra->requireComponent('jquery-ui', 'grid', 'batch');
 
 $DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
 
@@ -671,6 +671,10 @@ if ($easyAdmin){
 	   , "action" => "codegen_form.php?entID=$entID&dbName=$dbName&tblName=".$rwEnt["entTable"]."&toGen=EntityReport"
 	   , "class"=> "ss_page_white_word"
 	);
+    $arrActions[]= Array ("title" => __("Save Entity")
+       , 'action' => "javascript:dumpSelectedTables('{$dbName}', 'entity', '{$entID}')"
+       , "class"=> "ss_database_refresh"
+    );
 $arrActions[]= Array ("title" => "Action Matrix"
          , "action" => "actionmatrix_form.php?entID=$entID&dbName=$dbName"
          , "class"=> "ss_chart_organisation "

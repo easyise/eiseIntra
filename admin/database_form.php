@@ -412,37 +412,6 @@ function CreateNewTable(){
  }
 }
 
-function dumpSelectedTables(dbName, what){
-
-    if (typeof(what)=='undefined')
-        what = 'tables';
-
-    var strTablesToDump = '';
-    if (what=='tables'){
-        $("input[name='chk_chk[]']").each(function(){
-            if (this.checked){
-                strTablesToDump += (strTablesToDump!='' ? '|' : '')+$(this).parent().find('input[name="Name[]"]').val();
-            }
-        });
-
-        if (strTablesToDump==''){
-            alert('Nothing\'s selected');
-            return;
-        }
-    }
-
-    var strURL = "database_act.php?DataAction=dump&what="+what+"&dbName="+dbName+
-        (what=='tables' ? "&strTables="+encodeURIComponent(strTablesToDump) : '')+
-        ($('#flagNoData')[0].checked ? '&flagNoData=1' : '')+
-        ($('#flagDonwloadAsDBSV')[0].checked ? '&flagDonwloadAsDBSV=1' : '');
-    if($('#flagDonwloadAsDBSV')[0].checked){
-        location.href=strURL;
-    } else {
-        $('body').eiseIntraBatch({url: strURL, title: 'Dump', timeoutTillAutoClose: null, flagAutoReload: false})
-    }
-    
-
-}
 
 var applyIntra = function(){
     var initiator = this,

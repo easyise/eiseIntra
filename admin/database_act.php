@@ -8,6 +8,26 @@ $DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAc
 $dbName = $_GET["dbName"];
 $oSQL->select_db($dbName);
 
+
+function collectPKs($table, $where){
+    GLOBAL $oSQL, $intra;
+
+    $ti = $intra->getTableInfo($oSQL->dbname, $table);
+
+    $pks = [];
+
+    $sql = "SELECT ".implode(', ', $ti['PK'])." FROM {$table} WHERE {$where}";
+
+    $rs = $oSQL->q($sql);
+    while ($rw = $oSQL->f($rs)) {
+        // $pks[] = (count($ti['PK'])==1 ? $rw[$ti['PK'][0]] : $rw);
+        $pks[] = $rw[$ti['PK'][0]];
+    }
+
+    return $pks;
+
+}
+
 switch($DataAction) {
 
 case 'deexcelize_getCreate':
@@ -78,31 +98,96 @@ case 'dump':
     header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
     header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
     
-    $arrOptions= Array();
-
-    switch ($_GET['what']) {
-        case 'security':
-            $arrTablesToDump = eiseAdmin::$arrMenuTables;
-            break;
-        case 'entities':
-            $arrTablesToDump = eiseAdmin::$arrEntityTables;
-            break;
-        case 'tables':
-        case 'rows':
-            $arrTablesToDump = explode('|', $_GET['strTables']);
-            if($_GET['what']=='rows'){
-                $arrOptions['rows'] = explode('|', $_GET['rows']);
-                $arrOptions['sql_type'] = 'UPDATE';
-                $arrOptions['DropCreate'] = False;
-            }
-            break;
-        default:
-            break;
-    }
     
-    if($_GET['flagNoData']) $arrOptions['flagNoData'] = true;
+    
+    
 
-    $strTables = $intra->dumpTables($arrTablesToDump, $arrOptions);
+    if($_GET['what']=='entity'){
+
+        $entID = $_GET['entID'];
+
+        $actIDs = collectPKs('stbl_action', "actEntityID='{$entID}'");
+
+        $strTables = '';
+
+        foreach(eiseAdmin::$arrEntityTables as $table){
+
+            try {
+                $ti = $intra->getTableInfo($oSQL->dbname, $table);    
+            } catch (Exception $e) {
+                $strTables .= "\n\n/***** Table {$table} not found *****/\n\n";
+                continue;
+            }
+
+            $ids = [];
+
+            if($table=='stbl_entity'){
+
+                $where = "entID='{$entID}'";
+
+            } else {
+                if (in_array($ti['prefix'].'EntityID', array_keys($ti['columns']))) {
+                    $where = "{$ti['prefix']}EntityID='{$entID}'";
+                } else {
+                    if (preg_match('/^stbl_status/', $table)) {
+                        // code...
+                    } elseif (preg_match('/^stbl_action/', $table)) {
+                        $where = "{$ti['prefix']}ActionID IN (".implode(', ', $actIDs).")";
+                    }
+                }
+            }
+
+            $strTables .= ($strTables ? "\n\n\n" : '')."/* Dump for table {$table}  */\n\n";
+
+            $strTables .= "DELETE FROM {$table} WHERE {$where};\n\n";
+
+            $ids = collectPKs($table, $where);
+            if(!$ids) {
+                $strTables .= "\n\n/* WARNING: table {$table} is empty */\n\n";
+            } else {
+                $strTables .= $intra->dumpTables([$table], ['rows'=>$ids,
+                            'sql_type'=>'INSERT',
+                            'DropCreate'=>False ]
+                        );    
+            }
+
+        }
+
+        
+
+
+
+    } else {
+
+        $arrOptions= Array();
+
+        switch ($_GET['what']) {
+            case 'security':
+                $arrTablesToDump = eiseAdmin::$arrMenuTables;
+                break;
+            case 'entity':
+            case 'entities':
+                $arrTablesToDump = eiseAdmin::$arrEntityTables;
+                break;
+            case 'tables':
+            case 'rows':
+                $arrTablesToDump = explode('|', $_GET['strTables']);
+                if($_GET['what']=='rows'){
+                    $arrOptions['rows'] = explode('|', $_GET['rows']);
+                    $arrOptions['sql_type'] = 'UPDATE';
+                    $arrOptions['DropCreate'] = False;
+                }
+                break;
+            default:
+                break;
+        }
+
+        if($_GET['flagNoData']) $arrOptions['flagNoData'] = true;
+        $strTables = $intra->dumpTables($arrTablesToDump, $arrOptions);
+
+    }
+
+    
 
     if ($_GET['flagDonwloadAsDBSV']){
         $sqlDBSV = "SHOW TABLES FROM `$dbName` LIKE 'stbl_version'";
