@@ -671,8 +671,8 @@ public static function checkFilePath($filesPath){
     if(!$filesPath)
         throw new Exception('File path not set');
 
-    if($filesPath[strlen($arrSetup['stpFilesPath'])-1]!=DIRECTORY_SEPARATOR)
-        $filesPath=$filesPath.DIRECTORY_SEPARATOR;
+
+    $filesPath = rtrim($filesPath, '\\\/').DIRECTORY_SEPARATOR;
 
     if(!is_dir($filesPath))
         throw new Exception('File path '.$filesPath.' is not a directory');
