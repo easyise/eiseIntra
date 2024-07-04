@@ -818,7 +818,7 @@ $sqlAct = "SELECT actID
     , actTitlePast{$strLocal} as actTitlePast
     , actFlagComment
     , actFlagDeleted
-    , (SELECT staTitle{$intra->local} FROM stbl_status WHERE staEntityID='$entID' AND staID=actNewStatusID) as actNewStatusIDs
+    , (SELECT staTitle{$intra->local} FROM stbl_status WHERE staEntityID='$entID' AND staID=actNewStatusID) as actNewStatusID
     ".$roleFields."
 ".(
 $flagActionStatus
