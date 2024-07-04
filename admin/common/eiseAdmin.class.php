@@ -13,6 +13,7 @@ public static $arrEntityTables = Array(
                     , "stbl_action_status"
                     , "stbl_action_attribute"
                     , "stbl_attribute"
+                    , 'stbl_checklist'
                     , "stbl_entity"
                     , "stbl_role_action"
                     , "stbl_status"
@@ -160,6 +161,22 @@ function getActions_dropdown($entID){
         $rsAct = $oSQL->do_query($sqlSta);
         while($rwAct = $oSQL->fetch_array($rsAct)){
             $arrActions_dropdown[$rwAct['actID']] = $rwAct['actTitle'.$intra->local];
+        }
+    }
+
+    return $arrActions_dropdown;
+    
+}
+function getAttributes_dropdown($entID){
+
+    GLOBAL $oSQL, $intra;
+
+    $arrActions_dropdown = [];
+    if($oSQL->d("SHOW TABLES LIKE 'stbl_attribute'")){
+        $sql = "SELECT * FROM stbl_attribute WHERE atrEntityID='".$entID."' ORDER BY atrOrder";
+        $rs = $oSQL->do_query($sql);
+        while($rw = $oSQL->fetch_array($rs)){
+            $arrActions_dropdown[$rw['atrID']] = $rw['atrTitle'.$intra->local]." ({$rw['atrID']})";
         }
     }
 
@@ -351,7 +368,16 @@ function dumpTable ($tableName, $tableOptions){
         $schema_insert .= $crlf;
     }
 
-    $sqlTable = "SELECT * FROM `{$tableName}`".($tableOptions['rows'] ? " WHERE {$tableInfo['PK'][0]} IN ('".implode("', '", $tableOptions['rows'])."')" : '');
+    $where = '';
+    if ($tableOptions['rows'] ){
+        if(@count($tableInfo['PK']) == 1){
+            $where = "WHERE {$tableInfo['PK'][0]} IN ('".implode("', '", $tableOptions['rows'])."')";
+        } else {
+            $where = "WHERE (".implode(', ', $tableInfo['PK']).") IN ((".implode('), (', $tableOptions['rows'])."))";
+        }
+    }
+
+    $sqlTable = "SELECT * FROM `{$tableName}` {$where}";
     $result = $oSQL->q($sqlTable);
     while ($row = $oSQL->f($result)) {
         $current_row++;

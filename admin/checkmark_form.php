@@ -122,15 +122,17 @@ include eiseIntraAbsolutePath.'inc_top.php';
 
 list($arrStatuses_dropdown, $_) = $intra->getStatuses_dropdown($entID);
 $arrActions_dropdown = $intra->getActions_dropdown($entID);
+$arrAttributes_dropdown = $intra->getAttributes_dropdown($entID);
 
 $chk->gridMTX->Rows = $chk->mtx;
 
 $fields = $intra->field(__('Title'), 'chkTitleLocal', $chk->item["chkTitleLocal"])
     .$intra->field(__('Title (Eng.)'), 'chkTitle', $chk->item["chkTitle"])
-    .$intra->field(__('Target Status'), 'chkTargetStatusID', $chk->item["chkTargetStatusID"], array('type'=>'select', 'source'=>$arrStatuses_dropdown))
-    .$intra->field(__('Status Clears checkmark'), 'chkClearStatusID', $chk->item["chkClearStatusID"], array('type'=>'select', 'source'=>$arrStatuses_dropdown))
-    .$intra->field(__('Action Sets checkmark'), 'chkSetActionID', $chk->item["chkSetActionID"], array('type'=>'select', 'source'=>$arrActions_dropdown))
-    .$intra->field(__('Action Clears checkmark'), 'chkClearActionID', $chk->item["chkClearActionID"], array('type'=>'select', 'source'=>$arrActions_dropdown))   
+    .$intra->field(__('Target Status'), 'chkTargetStatusID', $chk->item["chkTargetStatusID"], array('type'=>'select', 'source'=>$arrStatuses_dropdown, 'defaultText'=>'-', 'required'=>True))
+    .$intra->field(__('Status Clears checkmark'), 'chkClearStatusID', $chk->item["chkClearStatusID"], array('type'=>'select', 'source'=>$arrStatuses_dropdown, 'defaultText'=>'-'))
+    .$intra->field(__('Action Sets checkmark'), 'chkSetActionID', $chk->item["chkSetActionID"], array('type'=>'select', 'source'=>$arrActions_dropdown,  'defaultText'=>'-', 'mandatory'=>True))
+    .$intra->field(__('Action Clears checkmark'), 'chkClearActionID', $chk->item["chkClearActionID"], array('type'=>'select', 'source'=>$arrActions_dropdown, 'defaultText'=>'-'))   
+    .$intra->field(__('Checkmark attribute'), 'chkAttributeID', $chk->item["chkAttributeID"], array('type'=>'select', 'source'=>$arrAttributes_dropdown, 'defaultText'=>'-', 'required'=>True))   
     .$intra->field(__('Checkmark matrix'), null, $chk->gridMTX->get_html())
     .$intra->field(__('Deleted?'), 'chkFlagDeleted', $chk->item["chkFlagDeleted"], array('type'=>'boolean'))
 ;
@@ -144,6 +146,10 @@ echo $chk->form($fields);
 ?>
 <script type="text/javascript">
 $(document).ready(function(){
+
+    var $frm = $('.eiseIntraForm')
+       .eiseIntraForm();
+
     $('.eiseGrid').eiseGrid();
 })
 

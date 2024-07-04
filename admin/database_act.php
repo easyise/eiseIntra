@@ -20,8 +20,8 @@ function collectPKs($table, $where){
 
     $rs = $oSQL->q($sql);
     while ($rw = $oSQL->f($rs)) {
-        // $pks[] = (count($ti['PK'])==1 ? $rw[$ti['PK'][0]] : $rw);
-        $pks[] = $rw[$ti['PK'][0]];
+        $pks[] = (count($ti['PK'])==1 ? $rw[$ti['PK'][0]] : "'".implode("','", $rw)."'");
+        // $pks[] = $rw[$ti['PK'][0]];
     }
 
     return $pks;
@@ -139,16 +139,17 @@ case 'dump':
 
             $strTables .= ($strTables ? "\n\n\n" : '')."/* Dump for table {$table}  */\n\n";
 
-            $strTables .= "DELETE FROM {$table} WHERE {$where};\n\n";
-
             $ids = collectPKs($table, $where);
             if(!$ids) {
                 $strTables .= "\n\n/* WARNING: table {$table} is empty */\n\n";
             } else {
+
+                $strTables .= "DELETE FROM {$table} WHERE {$where};\n\n";
                 $strTables .= $intra->dumpTables([$table], ['rows'=>$ids,
                             'sql_type'=>'INSERT',
                             'DropCreate'=>False ]
-                        );    
+                        );
+                         
             }
 
         }
