@@ -345,7 +345,7 @@ public function parse_mysql_dump($url){
     foreach($file_content as $sql_line){
         if (!preg_match("/^\#/", $sql_line) )
 		    $query .= $sql_line;
-		if (preg_match("/^CREATE FUNCTION/i", $sql_line) )
+		if (preg_match("/^CREATE (FUNCTION|TRIGGER)/i", $sql_line) )
 		    $delimiter = ";;";
         if(preg_match("/$delimiter\s*$/", $sql_line)){
 		    //echo "begin:".$query.":end\r\n";
