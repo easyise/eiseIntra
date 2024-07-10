@@ -20,6 +20,13 @@
   font-weight: normal;
   font-style: normal; }
 
+@font-face {
+  font-family: "TTNormsProMedium";
+  src: url("../../../../font/TTNormsPro-Medium.eot");
+  src: url("../../../../font/TTNormsPro-Medium.eot?#iefix") format("embedded-opentype"), url("../../../../font/TTNormsPro-Medium.woff") format("woff");
+  font-weight: normal;
+  font-style: normal; }
+
 /* cyrillic */
 @font-face {
   font-family: 'Open Sans';
@@ -37,21 +44,27 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2212, U+2215;
 }
 
+/** Colors **/
+@color-deep-sea: #152630; /* - Deep Sea */
+@color-ocean-silence: #2A5D73; /* - Ocean Silence */
+@color-orange-sun: #D16D34; /* - Orange Sun */
+@color-warm-fog: #F1E1D2; /* - Warm Fog */
+
 /** Variables */
 @ei-body-font-size: 13px;
 @ei-body-font: @ei-body-font-size "Open Sans",Calibri,sans-serif;
 @ei-body-color: #000;
 
-@ei-header-background: #3bacee;
+@ei-header-background: @color-ocean-silence;
 @ei-login-info-color: #fff;
 @ei-login-info-background: transparent;
 @ei-login-info-padding: 5px;
 
-@ei-app-title-color: #06183d;
+@ei-app-title-color: @color-warm-fog;
+@ei-app-title-shadow: @color-deep-sea;
 @ei-app-title-shadow-offset: 2px;
-@ei-app-title-shadow-blur: 0;
-@ei-app-title-shadow: #fff;
-@ei-app-title-font: "GTPressuraMono",Calibri,sans-serif;
+@ei-app-title-shadow-blur: 2px;
+@ei-app-title-font: "TTNormsProMedium",Calibri,sans-serif;
 @ei-app-title-line-height: 36px;
 
 @ei-header-language-color: #ccc;
@@ -63,25 +76,34 @@
 
 @ei-header-height: 42px;
 @ei-header-border-bottom-height: 4px;
-@ei-header-border-bottom-color: #ff6d10;
+@ei-header-border-bottom-color: @color-orange-sun;
+
+@ei-sidebar-toggle-color: @color-warm-fog;
+@ei-sidebar-toggle-left: 0;
+@ei-sidebar-toggle-top: 5px;
+
 @ei-menu-width: 250px;
 @ei-menu-font-family: inherit;
 
-@ei-menu-active-bg: #3BACEE; /*#06183d;*/
-@ei-menu-active-hilite: #ff6d10;
+@ei-menu-active-bg: @color-ocean-silence; /*#06183d;*/
+@ei-menu-active-hilite: #D16D34;
 @ei-menu-active-color: #fff;
 @ei-menu-active-text-shadow: none;
 @ei-menu-active-text-transform: uppercase;
-@ei-menu-submenu-hover-color: #3BACEE;
-@ei-menu-sidebar-header-background: #06183D;
-@ei-menu-sidebar-header-font: 100 16px "GTPressuraMono",Calibri,sans-serif;
-@ei-menu-sidebar-header-font-color: rgb(255, 109, 16);
+@ei-menu-submenu-hover-color: @color-orange-sun;
+@ei-menu-sidebar-header-background: @color-deep-sea;
+@ei-menu-sidebar-header-font: 700 16px "TTNormsProMedium",sans-serif;
+@ei-menu-sidebar-header-letter-spacing: 0.10em;
+@ei-menu-sidebar-header-font-color: @color-orange-sun;
 
 @ei-login-info-height: 0px;
-@ei-logo: url("/common/images/yusen-logo-white.png");
-@ei-logo-w: 416px;
-@ei-logo-h: 167px;
+@ei-logo: url("/common/images/taglex-logo-warm-fog.png");
+@ei-logo-w: 550px;
+@ei-logo-h: 166px;
 @ei-logo-ratio: @ei-logo-w / @ei-logo-h;
+
+@ei-logo-bg-color: @color-deep-sea;
+@ei-logo-bg-opacity: 0.80;
 
 @ei-action-menu-text: #333;
 @ei-action-menu-text-inactive: #999;
@@ -99,7 +121,7 @@
 @eif-fieldset-border-width: 1px;
 @eif-fieldset-border-style: solid;
 @eif-fieldset-border-radius: 8px;
-@eif-fieldset-border-color: #ff6d10;
+@eif-fieldset-border-color: #D16D34;
 
 @eif-fieldset-legend-height: 1.4em;
 @eif-fieldset-legend-line-height: 1.4em;
@@ -117,18 +139,23 @@
 
 
 
-@import (inline) "jquery-ui.min.css";
+@import (less) "jquery-ui.css";
 @import (less) "../../intra.less";
 
 @import (less) "../../../lib/sprites/sprite.css";
-@import (less) "../../../lib/sidebar-menu/sidebar-menu.css";
+@import (less) "sidebar-menu.less";
 @import (less) "../../../lib/font-awesome/less/font-awesome.less";
 
 @import (inline) "grid.css";
 @import (inline) "list.css";
 
+.ei-sidebar-menu .ei-sidebar-menu-content .sidebar-menu .sidebar-header {
+    padding: 10px 25px 5px 15px;
+    /* border-bottom: 2px solid @color-orange-sun; */
+}
+
 .ei-sidebar-menu .ei-logo-container {
-    border-bottom: 12px solid #06183d;
+    border-bottom: 4px solid @color-orange-sun;
 }
 
 .ei-sidebar-menu-content li::first-letter {
@@ -430,7 +457,7 @@ option.deleted {
 
     & fieldset {
         margin:10px 5px 5px;
-        border: 2px solid #FF6D10;
+        border: 2px solid #D16D34;
         background: #FFF;
         padding: 10px;
     }
@@ -439,7 +466,7 @@ option.deleted {
         font-weight:700;
         color:#000;
         background-color: #FFF;
-        border: 2px solid #FF6D10;
+        border: 2px solid #D16D34;
         line-height: normal;
         height: auto;
         padding: 3px 5px;
@@ -453,7 +480,7 @@ option.deleted {
         font:12px FontAwesome;
         /* content:'\26AB'; */
         content: "\f111";
-        color:#FF6D10;
+        color:#D16D34;
         margin-right:8px;
         margin-left: 1px;
     }

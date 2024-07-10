@@ -91,7 +91,7 @@ td     {  	vertical-align: top; padding: 0;}
             text-decoration: none;
             color: inherit;
             display: inline-block;
-            text-shadow: 1px 1px 0 @ei-app-title-shadow;
+            text-shadow: @ei-app-title-shadow-offset @ei-app-title-shadow-offset @ei-app-title-shadow-blur @ei-app-title-shadow;
             padding: 0 10px;
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -275,17 +275,19 @@ td     {  	vertical-align: top; padding: 0;}
             left: 0; top: 0; right: 0;
             height: @ei-header-height;
             z-index: 104;
-            background-color: rgb(34,34,34);
-            background-color: rgba(34,34,34, 0.75);
+            background-color: @ei-logo-bg-color;
+            opacity: @ei-logo-bg-opacity;
         }
 
         & .sidebar-toggle {
-            color: #fff;
+            color: @ei-sidebar-toggle-color;
             display: inline-block;
             font-size: 1.5em;
             line-height: 0.6em;
             padding-left: 3px;
             padding-top: 3px;
+            left: @ei-sidebar-toggle-left;
+            top: @ei-sidebar-toggle-top;
             position: absolute;
             text-shadow: 1px 1px #000;
             z-index: 105;
@@ -327,8 +329,17 @@ td     {  	vertical-align: top; padding: 0;}
                 background-color: @ei-menu-sidebar-header-background;
                 font: @ei-menu-sidebar-header-font;
                 color: @ei-menu-sidebar-header-font-color;
-                letter-spacing: 0.25em;
+                letter-spacing: @ei-menu-sidebar-header-letter-spacing;
 
+                & .sidebar-header-icon {
+                    font-size: 14px;
+                    padding-right: 5px;
+                    margin-left: -10px;
+                    &:before {
+                        vertical-align: top;
+                        line-height: 13px;
+                    }
+                }
             }
 
             & > li:hover > a,

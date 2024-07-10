@@ -42,14 +42,11 @@
 @ei-body-font: @ei-body-font-size "Open Sans",Calibri,sans-serif;
 @ei-body-color: #000;
 
-@ei-header-background: #3bacee;
+@ei-header-background: @color-ocean-silence;
 @ei-login-info-color: #fff;
-@ei-login-info-background: transparent;
-@ei-login-info-padding: 5px;
+@ei-login-info-background: #D16D34;
 
 @ei-app-title-color: #06183d;
-@ei-app-title-shadow-offset: 2px;
-@ei-app-title-shadow-blur: 0;
 @ei-app-title-shadow: #fff;
 @ei-app-title-font: "GTPressuraMono",Calibri,sans-serif;
 @ei-app-title-line-height: 36px;
@@ -61,26 +58,25 @@
 @ei-flag-ru: url("images/ru.png");
 @ei-flag-cn: url("images/cn.png");
 
-@ei-header-height: 42px;
-@ei-header-border-bottom-height: 4px;
-@ei-header-border-bottom-color: #ff6d10;
+@ei-header-height: 50px;
 @ei-menu-width: 250px;
 @ei-menu-font-family: inherit;
 
 @ei-menu-active-bg: #3BACEE; /*#06183d;*/
-@ei-menu-active-hilite: #ff6d10;
+@ei-menu-active-hilite: #D16D34;
 @ei-menu-active-color: #fff;
 @ei-menu-active-text-shadow: none;
 @ei-menu-active-text-transform: uppercase;
-@ei-menu-submenu-hover-color: #3BACEE;
+@ei-menu-submenu-hover-color: @color-orange-sun;
 @ei-menu-sidebar-header-background: #06183D;
-@ei-menu-sidebar-header-font: 100 16px "GTPressuraMono",Calibri,sans-serif;
-@ei-menu-sidebar-header-font-color: rgb(255, 109, 16);
+/* @ei-menu-sidebar-header-font: 100 16px "GTPressuraMono",Calibri,sans-serif; */
+@ei-menu-sidebar-header-font: 100 16px "din-condensed-variable",sans-serif;
+@ei-menu-sidebar-header-font-color: @color-orange-sun;
 
-@ei-login-info-height: 0px;
-@ei-logo: url("/common/images/yusen-logo-white.png");
+@ei-login-info-height: 12px;
+@ei-logo: url("/common/images/taglex-logo-warm-fog.png");
 @ei-logo-w: 416px;
-@ei-logo-h: 167px;
+@ei-logo-h: 94px;
 @ei-logo-ratio: @ei-logo-w / @ei-logo-h;
 
 @ei-action-menu-text: #333;
@@ -99,7 +95,7 @@
 @eif-fieldset-border-width: 1px;
 @eif-fieldset-border-style: solid;
 @eif-fieldset-border-radius: 8px;
-@eif-fieldset-border-color: #ff6d10;
+@eif-fieldset-border-color: #D16D34;
 
 @eif-fieldset-legend-height: 1.4em;
 @eif-fieldset-legend-line-height: 1.4em;
@@ -123,6 +119,7 @@
 @import (less) "../../../lib/sprites/sprite.css";
 @import (less) "../../../lib/sidebar-menu/sidebar-menu.css";
 @import (less) "../../../lib/font-awesome/less/font-awesome.less";
+@import (less) "../../../lib/bootstrap/less/bootstrap.less";
 
 @import (inline) "grid.css";
 @import (inline) "list.css";
@@ -182,6 +179,22 @@
    margin-left : 20px;
 }
 
+
+.eiseIntraForm  label{
+    font-weight: bold;
+    font-size: 10px;
+    margin-top: 1px;
+    line-height: 18px;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.eiseIntraForm  .eiseIntraValue{
+    font-size: 12px;
+    line-height: 20px;
+}
 
 .eiseIntraForm  .eiseIntraValue > input
 , .eiseIntraForm  input.eiseIntraValue{
@@ -290,13 +303,13 @@ div.eiseIntraField {
 }
 
 input.eiseIntra_date, input.eiseIntra_datetime {
-    background: #fff url("../../../lib/sprites/sprites.png") no-repeat right -2899px;
+    background: #fff url("/common/images/sprites/sprites.png") no-repeat right -2899px;
     padding-right: 5px;
     padding-right: 20px;
 }
 
 .eiseIntra_ajax_dropdown {
-    background-image: url("../../../lib/sprites/sprites.png");
+    background-image: url("/common/images/sprites/sprites.png");
     background-position: right -17947px;
     background-repeat: no-repeat;
     padding-right: 20px;
@@ -416,50 +429,6 @@ option.deleted {
     text-align:center;
 }
 
-.form-login h1 {
-    color: #06183D;
-    font-family: GTPressuraMono, Calibri, sans-serif;
-}
-
-
-
-/*************************************************/
-/* Yusen-style fieldset
-/*************************************************/
-.yusen-style    {
-
-    & fieldset {
-        margin:10px 5px 5px;
-        border: 2px solid #FF6D10;
-        background: #FFF;
-        padding: 10px;
-    }
-
-    & legend {
-        font-weight:700;
-        color:#000;
-        background-color: #FFF;
-        border: 2px solid #FF6D10;
-        line-height: normal;
-        height: auto;
-        padding: 3px 5px;
-        text-indent: -12px;
-        text-transform: uppercase;
-        font: 14px "GTPressuraMono", Calibri, sans-serif;
-        text-transform:uppercase;
-    }
-
-    & legend:before{
-        font:12px FontAwesome;
-        /* content:'\26AB'; */
-        content: "\f111";
-        color:#FF6D10;
-        margin-right:8px;
-        margin-left: 1px;
-    }
-}
-
-
 /*************************************************/
 /* Backward compatibility                        */
 .field_title {
@@ -510,7 +479,5 @@ option.deleted {
     min-width: 64px;
     min-height: 64px;
 }
-
-
 
  
