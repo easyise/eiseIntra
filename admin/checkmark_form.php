@@ -29,7 +29,6 @@ function getData($pk = null){
 
     // put your extra code here
     $this->item['ent'] = $oSQL->f("SELECT * FROM stbl_entity WHERE entID='{$this->item['chkEntityID']}'");
-
     $this->mtx = json_decode($this->item['chkMatrix'], true);
 
     return $this->item;
@@ -53,8 +52,8 @@ function initGrid(){
     while ($atr = $oSQL->f($rsATR)) {
         $arrAttr[$atr['atrID']] = $atr;
         if($atr['atrMatrix']){
-            $mtxFields[] = preg_replace('/^'.preg_quote($chk->item['ent']['entPrefix'], '/').'/', 'mtx', $atr['atrID']);
-            $mtxDataFields[] = preg_replace('/^'.preg_quote($chk->item['ent']['entPrefix'], '/').'/', 'mtx', $atr['atrID']);
+            $mtxFields[] = preg_replace('/^'.preg_quote($this->item['ent']['entPrefix'], '/').'/', 'mtx', $atr['atrID']);
+            $mtxDataFields[] = preg_replace('/^'.preg_quote($this->item['ent']['entPrefix'], '/').'/', 'mtx', $atr['atrID']);
             $mtxDataAttrs[] = $atr['atrID'];
         }
     }

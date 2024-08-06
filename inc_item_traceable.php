@@ -97,7 +97,7 @@ public function __construct($id = null,  $conf = array() ){
 
     $this->conf['attr_types'] = @array_merge($this->table['columns_types'], $this->conf['attr_types']);
 
-    $a_reads = array_diff(['getActionLog', 'getActionDetails', 'getFiles', 'getFile', 'getMessages','sendMessage']
+    $a_reads = array_diff(['getActionLog', 'getChecklist', 'getActionDetails', 'getFiles', 'getFile', 'getMessages','sendMessage']
         , (array)$conf['aExcludeReads']);
     $a_actions = array_diff(['insert', 'update', 'updateMultiple', 'delete', 'attachFile', 'deleteFile'], (array)$conf['aExcludeActions']);
 
@@ -423,8 +423,8 @@ private function init(){
         ($this->intra->conf['systemID'] ? $this->intra->conf['systemID'].':' : '')
         .$this->entID;
 
-    if($_SESSION[$sessKey] && !$this->conf['flagDontCacheConfig']){
-    // if(false){
+    // if($_SESSION[$sessKey] && !$this->conf['flagDontCacheConfig']){
+    if(false){
         $this->conf = array_merge($this->conf, $_SESSION[$sessKey]);
         return $this->conf;
     }
@@ -607,7 +607,7 @@ private function init(){
     $sqlSat = "SELECT stbl_status.*,stbl_status_attribute.*  
         FROM stbl_status_attribute 
                 RIGHT OUTER JOIN stbl_status ON staID=satStatusID AND satEntityID=staEntityID AND staFlagDeleted=0
-                LEFT OUTER JOIN stbl_attribute ON atrID=satAttributeID
+                LEFT OUTER JOIN stbl_attribute ON atrID=satAttributeID AND atrEntityID=satEntityID
         WHERE staEntityID=".$oSQL->e($this->entID)."
             AND IFNULL(atrFlagDeleted,0)=0
         ORDER BY staID, atrOrder";
@@ -694,9 +694,28 @@ private function init(){
         }    
     }
 
+    $aAtrMTX = array();
+    foreach ($this->conf['ATR'] as $atrID => $atr) {
+        if($atr['atrMatrix'])
+            $aAtrMTX[$atrID] = preg_replace('/[^\<\>\=]/', '', $atr['atrMatrix']);
+    }
+    $this->conf['AtrMTX'] = $aAtrMTX;
+
+
     foreach ($this->conf['STA'] as &$sta) {
         if($sta['ACT'])
             usort($sta['ACT'], array($this, '_sort_STA_ACT'));
+    }
+
+    if($oSQL->d("SHOW TABLES LIKE 'stbl_checklist'")) {
+
+        $sqlCHK = "SELECT * FROM stbl_checklist WHERE chkEntityID=".$oSQL->e($this->entID)." ORDER BY chkTargetStatusID, chkID";
+        $rsCHK = $oSQL->do_query($sqlCHK);
+        while($rwCHK = $oSQL->fetch_array($rsCHK)){
+           $this->conf['CHK'][] = $rwCHK;
+           $this->conf['STA'][$rwCHK['chkTargetStatusID']]['chk'][] = $rwCHK;
+        }
+
     }
 
 
@@ -716,14 +735,10 @@ public function RLAByMatrix(){
     if(!$this->conf['entMatrix'])
         return;
 
-    $aAtrMTX = array();
-    foreach ($this->conf['ATR'] as $atrID => $atr) {
-        if($atr['atrMatrix'])
-            $aAtrMTX[$atrID] = preg_replace('/[^\<\>\=]/', '', $atr['atrMatrix']);
-    }
+    $aAtrMTX = $this->conf['AtrMTX'];
 
-    foreach ($this->conf['STA'] as $staID => &$rwSTA) {
-        foreach ((array)$rwSTA['ACT'] as $actID => &$act) {
+    foreach ($this->conf['STA'] as $staID => $rwSTA) {
+        foreach ((array)$rwSTA['ACT'] as $actID => $act) {
             if(!$act['MTX'])
                 continue;
             $rla = array();
@@ -753,13 +768,13 @@ public function RLAByMatrix(){
                         : $nTier;
                 }
             } 
-            $act['RLA'] = array_values(array_unique($rla)); 
-            $act['RLA_tiers'] = $rla_tiers; 
-            asort($act['RLA_tiers']);
+            $this->conf['STA'][$staID]['ACT'][$actID]['RLA'] = array_values(array_unique($rla)); 
+            $this->conf['STA'][$staID]['ACT'][$actID]['RLA_tiers'] = $rla_tiers; 
+            asort($this->conf['STA'][$staID]['ACT'][$actID]['RLA_tiers']);
         }
     }
     // echo 'rla by action';
-    // die( '<pre>'.var_export($this->conf['ACT'][310]['RLA_tiers'], true).'</pre>' );
+    // die( '<pre>'.var_export($this->conf['ACT'][42199], true).'</pre>' );
 }
 
 public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array()){
@@ -1198,7 +1213,11 @@ function getAllData($toRetrieve = null){
                 $this->item["ACL_Cancelled"][$rwACL["aclGUID"]] = $this->getActionData($rwACL["aclGUID"], $rwACL);
         } 
 
-    }    
+    }
+
+    // collect checklist
+    $this->collectChecklist();
+
     
     // collect status log and nested actions
     if(in_array('STL', $toRetrieve)){
@@ -1475,6 +1494,43 @@ public function onStatusArrival($staID){}
 public function onStatusDeparture($staID){}
 
 
+public function processCheckmarks($arrAction){
+
+    if(!$this->item['CHK'])
+        return true;
+
+    $required = [];
+    $checkmarks_required = 0;
+    $checkmarks_completed = 0;
+    foreach ($this->item['CHK'] as $rwCHK) {
+        if($rwCHK['chkTargetStatusID']==$arrAction["aclNewStatusID"]){
+            $checkmarks_required += 1;
+            if($rwCHK['checked']){
+                $checkmarks_completed += 1;
+            } else {
+                if($rwCHK['chkSetActionID']==$arrAction['actID']){
+
+                    $value = ($this->table['columns'][$rwCHK['chkAttributeID']]['DataType']=='boolean'
+                        ? 1
+                        : $arrAction['aclGUID']);
+
+                    $sqlCHK = "UPDATE {$this->conf['table']} SET {$rwCHK['chkAttributeID']}=".$this->oSQL->e($value)."
+                        WHERE {$this->conf['PK']}='{$this->id}'";
+                    $this->oSQL->q($sqlCHK);
+                    $checkmarks_completed += 1;
+
+                }
+            }
+
+        }
+        
+    }
+
+    // die('<pre>'.var_export($this->table, true));
+    return $checkmarks_required && ($checkmarks_required == $checkmarks_completed);
+
+}
+
 public function form($fields = '',  $arrConfig=Array()){
 
     $defaultConf = array('flagAddJavaScript'=>True);
@@ -1585,6 +1641,34 @@ public function getActionLogSkeleton($conf=[]){
 
 }
 
+public function getChecklistSkeleton($conf=[]){
+
+    $defaultConf = ['class'=>'',
+            'id'=>'eiseIntraChecklist'];
+
+    $conf = array_merge($defaultConf, $conf);
+
+    return '<div id="'.$conf['id'].'" class="eif-checklist'.($conf['class'] ? " {$conf['class']}" : '').'" title="'.__('Checklist').'">'."\n"
+            ."<table>\r\n"."<tbody>"
+            ."<tr class=\"eif_template eif_evenodd\">\r\n"
+            ."<td class=\"eif-checkmark\" rowspan=\"2\"><i> </i></td>\r\n"
+            ."<td class=\"eif-title\"></td>"
+            ."<td class=\"eif-aclATA\" style=\"text-align:right;\" rowspan=\"2\"></td>"
+            ."</tr>"
+            ."<tr class=\"eif_template eif_evenodd description\">\r\n"
+            ."<td class=\"eif-description\"></td>"
+            ."</tr>"
+            ."<tr class=\"eif_notfound\" style=\"display: none;\">"
+            ."<td colspan='3'>".__("No Events Found")."</td>"
+            ."</tr>"
+            ."<tr class=\"eif_spinner\">"
+            ."<td colspan='3'></td>"
+            ."</tr>"
+            ."</tbody></table>\r\n"
+            ."</div>\r\n";
+
+}
+
 public function getActionLog($q){
 
     if(!$this->item['ACL'])
@@ -1663,6 +1747,97 @@ public function getActionLog($q){
 
     return $aRet;
 }
+
+public function collectChecklist(){
+
+    if(!$this->conf['CHK'])
+        return null;
+
+    $matching = [];
+    $unnecesary = [];
+    
+    foreach ($this->conf['CHK'] as $rwCHK) {
+        $matchScore = 0;
+        foreach((array)json_decode($rwCHK['chkMatrix'], true) as $mtx){
+            $conditionWorked = [];
+            $tierConditionWorked = [];
+            foreach ($this->conf['AtrMTX'] as $atrID => $condition) {
+                $valueMTX = $mtx[preg_replace('/^'.preg_quote($this->conf['entPrefix'], '/').'/', 'mtx', $atrID)];
+                $valueItem = $this->item[$atrID];
+                $condition = ($condition=='=' ? '==' : $condition);
+                $toEval = "\$conditionWorked[\$atrID] = (int)(\$valueItem {$condition} \$valueMTX);";
+                $tierConditionWorked[$atrID] = 0;
+                // echo '<pre>'.$atrID.' '.var_export($valueMTX, true);
+                if($valueMTX===null || $valueMTX==='' || $valueMTX==='%'){
+                    $conditionWorked[$atrID] = 1;
+                    continue;
+                }
+                eval($toEval);
+                if($conditionWorked[$atrID])
+                    $tierConditionWorked[$atrID] = 1;        
+            }
+            // if no match, skip this position
+            if(min($conditionWorked)==0)
+                continue;
+
+            // if match with 'Disable', drop all rules, this checkpoint is not applicable
+            if($mtx['mtxRule']==2 && array_sum($tierConditionWorked)>0){
+                $matchScore = 0;
+                break;
+            }
+
+            $matchScore += 1;
+            // echo '<pre>'.var_export($conditionWorked, true);    
+            // echo '<pre>'.var_export($tierConditionWorked, true);    
+        }
+
+        if($matchScore){
+
+            $rwCHK['checked'] = (bool)$this->item[$rwCHK['chkAttributeID']];
+            $matching[] = $rwCHK;
+
+        } else {
+
+            $unnecesary[] = $rwCHK['chkSetActionID'];
+
+        }
+        
+        
+    }
+
+    $this->item['CHK'] = $matching;
+    $this->item['CHK_ACT_unnecesary'] = $unnecesary;
+
+    return $matching;
+
+}
+
+public function getChecklist(){
+
+    $aRet = [];
+
+    // die('<pre>'.var_export($this->conf['CHK'], true));
+
+    foreach ($this->item['CHK'] as $rwCHK) {
+        if(!$rwCHK['checked']){
+            $descr = __('Action required: %s', $this->conf['ACT'][$rwCHK['chkSetActionID']]["actTitle{$this->intra->local}"]);
+        } else {
+            $descr = '';
+        }
+        $chk = array(
+                'rowClass' => array('v'=>($rwCHK['checked'] ? 'checked' : '')),
+                'title' => $rwCHK["chkTitle{$this->intra->local}"],
+                'description' => $descr,
+                'aclATA' => '',
+
+        );
+        $aRet[] = $chk;
+    }
+
+    return $aRet;
+
+}
+
 
 public function getFields($aFields = null){
 
@@ -1755,11 +1930,10 @@ public function arrActionButtons(){
 
         usort($arrActions_, function ($act1, $act2) { return -1 * @(int)(($act1['actPriority'] - $act2['actPriority'])/abs($act1['actPriority'] - $act2['actPriority'])); } );
 
-        // die('<pre>'.count($arrActions)."\n".var_export($arrActions, true));
-
         foreach($arrActions_ as $rwAct){
 
-            if($rwAct['actFlagSystem'])
+            if($rwAct['actFlagSystem'] 
+                || in_array($rwAct['actID'], (array)$this->item['CHK_ACT_unnecesary']))
                 continue;
 
             if ($this->id) {
@@ -2319,6 +2493,27 @@ public function get_whos_next($q){
 
 }
 
+public function getNextBiggerStatus($staID){
+
+    $sta = $this->conf['STA'][$staID];
+
+    $nextBiggerStatus = max(array_keys($this->conf['STA']));
+    foreach ((array)$sta['ACT'] as $act){
+        // echo '<pre>'.var_export($act['RLA'], true);
+        if($act['actNewStatusID'][0]===null 
+            || $act['actNewStatusID'][0]==$staID 
+            || count($act['RLA'])==0
+            || $act['actFlagSystem'])
+            continue;
+        if($act['actNewStatusID'][0]>$staID && $act['actNewStatusID'][0] < $nextBiggerStatus){
+            $nextBiggerStatus = $act['actNewStatusID'][0];   
+        }
+    }
+
+    return $nextBiggerStatus;
+
+}
+
 public function getWhosNextStatus($staID, $counter){
     
     $html = '';
@@ -2327,17 +2522,20 @@ public function getWhosNextStatus($staID, $counter){
     $html .= '<div class="whos-next-status tier-'.$counter.'">';
     $html .= '<div class="status-title"><span class="counter">'.$counter.'</span><span class="title">'.$sta['staTitle'.$this->intra->local].'</span></div>';
 
+    
+    $nextBiggerStatus = $this->getNextBiggerStatus($staID);
+    
     $defaultActID = null;
-    $nextBiggerStatus = max(array_keys($this->conf['STA']));
+    $actNext = [];
     foreach ((array)$sta['ACT'] as $act){
-        if($act['actNewStatusID'][0]===null || $act['actNewStatusID'][0]==$staID)
+        if(count($act['RLA'])==0)
             continue;
-        if($act['actNewStatusID'][0]>$staID && $act['actNewStatusID'][0] < $nextBiggerStatus){
-            $nextBiggerStatus = $act['actNewStatusID'][0];
-            $defaultActID = $act['actID'];
+        if($act['actNewStatusID'][0]==$nextBiggerStatus){
+            $defaultActID = ($defaultActID === null ? $act['actID'] : $defaultActID);
+            $actNext[] = $act;
         }
     }
-
+    
     $html .= '<div class="status-description">'.$sta['staDescription'.$this->intra->local].'</div>';
 
     $html .= '<ul class="actions">';
@@ -2345,86 +2543,98 @@ public function getWhosNextStatus($staID, $counter){
     foreach ((array)$sta['ACT'] as $act) {
         if($act['actNewStatusID'][0]==$staID)
             continue;
-        if($act['actFlagSystem'])
+        // if($act['actFlagSystem'])
+        //     continue;
+        if(in_array($act['actID'], (array)$this->item['CHK_ACT_unnecesary']))
             continue;
-        if(!count($act['RLA']))
+        if(count($act['RLA'])==0 && !$act['actFlagSystem'])
             continue;
         $classes = ($defaultActID==$actID ? ' default' : '');
         $iconClass = (preg_match('/^fa\-/', trim($act['actButtonClass'])) ? 'fa ' : (preg_match('/^ss\_/', trim($act['actButtonClass'])) ? 'ss_sprite ' : '')).$act['actButtonClass'];
-        $html .= '<li class="'.$classes.'"><i class="'.$iconClass.'"> </i>'.$act["actTitle{$this->intra->local}"];
-        $html .= '<ul class="users-roles">';
-        $aUsers = array();
-        $this->_aUser_Role_Tier = array();
-        $aRoles = array();
-        $aVirtualRoles = array();
-        $aVirtualRoleMembers = array();
-        // $html .= '<pre>'.var_export($act['RLA'], true).'</pre>';
-        foreach ($act['RLA'] as $rolID) {
-            $aRoles[] = $rolID;
-            if($rolID==$this->conf['RoleDefault']){
-                $html .= '<li class="users"><span class="user-info default">'.$this->intra->translate('Any user').'</span>';
-                $aRoles = array( $rolID );
-                continue;
-            }
-            elseif ($this->conf['Roles'][$rolID]['rolFlagVirtual']){
-                $aVMMembers = $this->getVirtualRoleMembers($rolID);
-                foreach ($aVMMembers as $usrID => $originRole) {
-                    $aUsers[] = strtoupper($usrID); 
-                    $aVirtualRoles[$rolID][] = $originRole;
-                    $aVirtualRoleMembers[$rolID][] = $usrID;
-                    $this->_aUser_Role_Tier[$usrID][$rolID] = $act['RLA_tiers'][$rolID] > $this->_aUser_Role_Tier[$usrID][$rolID] 
-                        ? $act['RLA_tiers'][$rolID]
-                        : $this->_aUser_Role_Tier[$usrID][$rolID] ;
-                }
-            } else {
-                $_users = (array)$this->intra->getRoleUsers($rolID);
-                foreach ($_users as $usrID) {
-                    $this->_aUser_Role_Tier[$usrID][$rolID] = $act['RLA_tiers'][$rolID] > $this->_aUser_Role_Tier[$usrID][$rolID] 
-                        ? $act['RLA_tiers'][$rolID]
-                        : $this->_aUser_Role_Tier[$usrID][$rolID] ;
-                }
-                $aUsers = array_merge( $aUsers,  $_users);
-            }
+        $html .= '<li class="ei-whosnext-action '.$classes.'"><i class="'.$iconClass.'"> </i>'.$act["actTitle{$this->intra->local}"];
+        if($act["actDescription{$this->intra->local}"]){
+            $html .= '<small>'.$act["actDescription{$this->intra->local}"].'</small>';
         }
+        if( !$act['actFlagSystem'] ){
 
-        if($aRoles[0]!=$this->conf['RoleDefault']){
-
-            $aUsers = array_values(array_unique($aUsers));
-            usort($aUsers, array($this, '_sort_User_Role_Tier'));
-            $html .= '<li class="users">';
-            $htmlUserList = '';
-            foreach ($aUsers as $ix=>$usrID) {
-                $class = '';
-                if($counter==1){
-                    $aDRoles = $this->checkDisabledRoleMembership($usrID, $act);
-                    foreach($aDRoles as $rolID_)
-                        $class .= ' disabled-'.strtolower(preg_replace('/^\_*/', '', $rolID_));
-                      
+            $html .= '<ul class="users-roles">';
+            $aUsers = array();
+            $this->_aUser_Role_Tier = array();
+            $aRoles = array();
+            $aVirtualRoles = array();
+            $aVirtualRoleMembers = array();
+            // $html .= '<pre>'.var_export($act['RLA'], true).'</pre>';
+            foreach ($act['RLA'] as $rolID) {
+                $aRoles[] = $rolID;
+                if($rolID==$this->conf['RoleDefault']){
+                    $html .= '<li class="users"><span class="user-info default">'.$this->intra->translate('Any user').'</span>';
+                    $aRoles = array( $rolID );
+                    continue;
                 }
-                $class = 'user-info'.($class ? ' disabled' : '').$class;
-                $htmlUserList .= '<span class="'.$class.'">'.$this->intra->getUserData($usrID).($ix==count($aUsers)-1 ? '' : ', ').'</span>';
-            }
-            $html .= $htmlUserList;
-            $html .= '<li class="roles">';
-            $htmlRoleList = '';
-            foreach ((array)$act['RLA_tiers'] as $rolID => $tier) {
-                if(!$this->conf['Roles'][$rolID]['rolFlagVirtual']) {
-                    $htmlRoleList .= ($htmlRoleList ? ', </span>' : '').'<span class="role-info">'.$this->conf['Roles'][$rolID]['rolTitle'.$this->intra->local];
+                elseif ($this->conf['Roles'][$rolID]['rolFlagVirtual']){
+                    $aVMMembers = $this->getVirtualRoleMembers($rolID);
+                    foreach ($aVMMembers as $usrID => $originRole) {
+                        $aUsers[] = strtoupper($usrID); 
+                        $aVirtualRoles[$rolID][] = $originRole;
+                        $aVirtualRoleMembers[$rolID][] = $usrID;
+                        $this->_aUser_Role_Tier[$usrID][$rolID] = $act['RLA_tiers'][$rolID] > $this->_aUser_Role_Tier[$usrID][$rolID] 
+                            ? $act['RLA_tiers'][$rolID]
+                            : $this->_aUser_Role_Tier[$usrID][$rolID] ;
+                    }
                 } else {
-                    $rolIDs_original = array_unique((array)$aVirtualRoles[$rolID]);
-                    foreach ($rolIDs_original as $rolID_original) {
-                        $htmlRoleList .= ($htmlRoleList ? ', </span>' : '').'<span class="role-info">'
-                            .($rolID_original 
-                                ? $this->conf['Roles'][$rolID_original]['rolTitle'.$this->intra->local].' ('.$this->conf['Roles'][$rolID]['rolTitle'.$this->intra->local].')'
-                                : $this->conf['Roles'][$rolID]['rolTitle'.$this->intra->local]
-                                );
+                    $_users = (array)$this->intra->getRoleUsers($rolID);
+                    foreach ($_users as $usrID) {
+                        $this->_aUser_Role_Tier[$usrID][$rolID] = $act['RLA_tiers'][$rolID] > $this->_aUser_Role_Tier[$usrID][$rolID] 
+                            ? $act['RLA_tiers'][$rolID]
+                            : $this->_aUser_Role_Tier[$usrID][$rolID] ;
+                    }
+                    $aUsers = array_merge( $aUsers,  $_users);
+                }
+            }
+
+            if($aRoles[0]!=$this->conf['RoleDefault']){
+
+                $aUsers = array_values(array_unique($aUsers));
+                usort($aUsers, array($this, '_sort_User_Role_Tier'));
+                $html .= '<li class="users">';
+                $htmlUserList = '';
+                foreach ($aUsers as $ix=>$usrID) {
+                    $class = '';
+                    if($counter==1){
+                        $aDRoles = $this->checkDisabledRoleMembership($usrID, $act);
+                        foreach($aDRoles as $rolID_)
+                            $class .= ' disabled-'.strtolower(preg_replace('/^\_*/', '', $rolID_));
+                          
+                    }
+                    $class = 'user-info'.($class ? ' disabled' : '').$class;
+                    $htmlUserList .= '<span class="'.$class.'">'.$this->intra->getUserData($usrID).($ix==count($aUsers)-1 ? '' : ', ').'</span>';
+                }
+                $html .= $htmlUserList;
+                $html .= '<li class="roles">';
+                $htmlRoleList = '';
+                foreach ((array)$act['RLA_tiers'] as $rolID => $tier) {
+                    if(!$this->conf['Roles'][$rolID]['rolFlagVirtual']) {
+                        $htmlRoleList .= ($htmlRoleList ? ', </span>' : '').'<span class="role-info">'.$this->conf['Roles'][$rolID]['rolTitle'.$this->intra->local];
+                    } else {
+                        $rolIDs_original = array_unique((array)$aVirtualRoles[$rolID]);
+                        foreach ($rolIDs_original as $rolID_original) {
+                            $htmlRoleList .= ($htmlRoleList ? ', </span>' : '').'<span class="role-info">'
+                                .($rolID_original 
+                                    ? $this->conf['Roles'][$rolID_original]['rolTitle'.$this->intra->local].' ('.$this->conf['Roles'][$rolID]['rolTitle'.$this->intra->local].')'
+                                    : $this->conf['Roles'][$rolID]['rolTitle'.$this->intra->local]
+                                    );
+                        }
                     }
                 }
-            }
-            $html .= $htmlRoleList.($htmlRoleList ? '</span>' : '');
+                $html .= $htmlRoleList.($htmlRoleList ? '</span>' : '');
 
+            }
+            $html .= '</ul>';
+
+        } else {
+            $html .= '<ul class="users-roles"><li class="system">'.__("System action").'</li></ul>';
         }
-        $html .= '</ul>';
+        
         if($defaultActID && $defaultActID==$act['actID']){
             $htmlNext = $this->getWhosNextStatus($nextBiggerStatus, $counter+1);
         }

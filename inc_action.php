@@ -396,6 +396,7 @@ public function finish(){
 
     // if status is changed or action requires status stay interruption, we insert status log entry and update master table
     if (($this->arrAction["aclOldStatusID"]!==$this->arrAction["aclNewStatusID"]
+          && $this->item->processCheckmarks($this->arrAction)
           && (string)$this->arrAction["aclNewStatusID"]!=''
         )
         || $this->conf["actFlagInterruptStatusStay"]){

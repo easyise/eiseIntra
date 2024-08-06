@@ -101,6 +101,8 @@ public function __construct($ent){
 		'type' => 'combobox',
 		'source' => 'svw_role',
 		'defaultText' => __('--please set')
+		, 'sortable' => true
+		, 'filterable' => true
 		);
 
 	foreach ($this->mtxDataAttrs as $ix=>$field) {
@@ -113,6 +115,8 @@ public function __construct($ent){
 			$col['source_prefix'] = $atr["atrProgrammerReserved"];
 			$col['defaultText'] = '%';
 		}
+		$col['sortable'] = true;
+		$col['filterable'] = true;
 		$gridMTX->Columns[] = $col;
 	}
 
