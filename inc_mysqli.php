@@ -502,6 +502,9 @@ class eiseSQL extends mysqli{
         $arrPK = Array();
 
         $rwTableStatus=$oSQL->f($oSQL->q("SHOW TABLE STATUS FROM $dbName LIKE '".$tblName."'"));
+        if(!$rwTableStatus)
+            return [];
+        
         if($rwTableStatus['Comment']=='VIEW' && $rwTableStatus['Engine']==null){
             $tableType = 'view';
         } else {
