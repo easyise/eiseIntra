@@ -758,7 +758,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
 public function arrPHP2SQL($arrSrc, $types = array()){
     $aInt = array();
     $arrRet = array();
-    foreach($arrSrc as $key=>$value){
+    foreach((array)$arrSrc as $key=>$value){
         $flagIsText = false;
         if(is_array($value)){
             $arrRet[$key] = $this->arrPHP2SQL($value, $types);
