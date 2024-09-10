@@ -655,7 +655,13 @@ public function getFiles($opts = array()){
 
     $rs = $this->oSQL->do_query($sqlFile);
 
-    return $this->intra->result2JSON($rs, array_merge(array('arrHref'=>array('filName'=>$this->conf['form'].'?'.$this->intra->conf['dataReadKey'].'=getFile&filGUID=[filGUID]')), $opts) );
+    $href = $this->conf['form'].'?'
+    	.$this->intra->conf['dataReadKey'].'=getFile'
+    	."&{$this->conf['prefix']}ID={$this->id}"
+    	.'&filGUID=[filGUID]'
+    	;
+
+    return $this->intra->result2JSON($rs, array_merge(array('arrHref'=>array('filName'=>$href)), $opts) );
         
 }
 
