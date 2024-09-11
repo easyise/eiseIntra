@@ -11,7 +11,7 @@ $(document).ready(function(){
 	
 })
 
-function dumpSelectedTables(dbName, what, entID){
+function dumpSelectedTables(dbName, what, entID, extra){
 
     if (typeof(what)=='undefined')
         what = 'tables';
@@ -35,6 +35,7 @@ function dumpSelectedTables(dbName, what, entID){
 
     var strURL = "database_act.php?DataAction=dump&what="+what+"&dbName="+dbName
         +(what=='tables' ? "&strTables="+encodeURIComponent(strTablesToDump) : '')
+        +(what=='entity' && extra ? "&extra="+encodeURIComponent(extra) : '')
         +(flagNoData ? '&flagNoData=1' : '')
         +(flagDonwloadAsDBSV ? '&flagDonwloadAsDBSV=1' : '')
         +(entID!==null ? '&entID='+encodeURIComponent(entID) : '')

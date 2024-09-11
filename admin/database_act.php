@@ -112,9 +112,8 @@ case 'dump':
 
         foreach(eiseAdmin::$arrEntityTables as $table){
 
-            try {
-                $ti = $intra->getTableInfo($oSQL->dbname, $table);    
-            } catch (Exception $e) {
+            $ti = $intra->getTableInfo($oSQL->dbname, $table);    
+            if(!$ti){
                 $strTables .= "\n\n/***** Table {$table} not found *****/\n\n";
                 continue;
             }
@@ -147,6 +146,8 @@ case 'dump':
                 $strTables .= "DELETE FROM {$table} WHERE {$where};\n\n";
                 $strTables .= $intra->dumpTables([$table], ['rows'=>$ids,
                             'sql_type'=>'INSERT',
+                            'sql_columns'=>True,
+                            'columns' => ($_GET['extra']=='withActualFields' ? eiseAdmin::$arrEntitiesFields[$table] : null),
                             'DropCreate'=>False ]
                         );
                          

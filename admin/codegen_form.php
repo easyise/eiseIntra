@@ -128,6 +128,49 @@ try{
 }
     
 switch ($_GET["toGen"]){
+
+    case "entities_fields":
+
+        $version = (int)$oSQL->d("SELECT MAX(fvrNumber) FROM `{$_GET['dbName']}`.stbl_framework_version");
+
+        $intra->batchStart();
+
+        // $intra->batchEcho("<?php");
+        $intra->batchEcho("/**");
+        $intra->batchEcho(" * Below are the fields of entities tables as per eiseIntra framework version {$version}");
+        $intra->batchEcho(" */");
+
+        $intra->batchEcho('public static $arrEntitiesFields = [');
+
+        $arrTablesToDump = eiseAdmin::$arrEntityTables;
+
+        foreach ($arrTablesToDump as $table) {
+
+            $ti = $intra->getTableInfo($_GET['dbName'], $table);
+
+            if(!$ti)
+                continue;
+
+            $intra->batchEcho(CODE_INDENT."'{$table}' => [");
+            foreach ($ti['columns'] as $col=> $coldata) {
+                $intra->batchEcho(CODE_INDENT.CODE_INDENT.CODE_INDENT."'{$col}',");
+            }
+            $intra->batchEcho(CODE_INDENT.CODE_INDENT."],");
+        }
+
+        $intra->batchEcho("];");
+
+
+
+        
+
+
+
+
+        die();
+
+
+
     case "newtable":
        $strPrefix = preg_replace("/^tbl_/", "", $tblName);
        $arrCstName = explode("_", $strPrefix);

@@ -144,7 +144,11 @@ if (isset($eiseIntraVersion) && $eiseIntraVersion < 900){
 $arrActions[]= Array ("title" => "Dump Entities"
 	   , "action" => "javascript:dumpSelectedTables('{$dbName}', 'entities')"
 	   , "class" => "ss_cog_go  "
-	);   
+	); 
+$arrActions[]= Array ("title" => "Dump Entity Fields"
+       , "action" => "#entities_fields"
+       , "class" => "ss_table_go  "
+    );   
 $arrActions[]= Array ("title" => "Dump Menu"
 	   , "action" => "javascript:dumpSelectedTables('{$dbName}', 'security')"
 	   , "class" => "ss_cog_go  "
@@ -315,6 +319,14 @@ $(document).ready(function(){
     }
 
     $('#frm-create-database').submit(fnSubmit)
+
+    $('a[href="#entities_fields"]').click(function(){
+
+        $('body').eiseIntraBatch({url: 'codegen_form.php'+location.search+'&toGen=entities_fields', title: 'Dump', timeoutTillAutoClose: null, flagAutoReload: false})
+        return false;
+
+
+    })
 
     $('a[href="#deexcelize"]').click(function(){
 

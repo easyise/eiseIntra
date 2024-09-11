@@ -675,6 +675,10 @@ if ($easyAdmin){
        , 'action' => "javascript:dumpSelectedTables('{$dbName}', 'entity', '{$entID}')"
        , "class"=> "ss_database_refresh"
     );
+    $arrActions[]= Array ("title" => __("Save Entity w/fields")
+       , 'action' => "javascript:dumpSelectedTables('{$dbName}', 'entity', '{$entID}', 'withActualFields')"
+       , "class"=> "ss_database_refresh"
+    );
 $arrActions[]= Array ("title" => "Action Matrix"
          , "action" => "actionmatrix_form.php?entID=$entID&dbName=$dbName"
          , "class"=> "ss_chart_organisation "

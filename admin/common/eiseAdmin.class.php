@@ -22,6 +22,174 @@ public static $arrEntityTables = Array(
                     , "stbl_uom"
                 );
 
+/**
+ * Below are the fields of entities tables as per eiseIntra framework version 115
+ */
+public static $arrEntitiesFields = [
+    'stbl_action' => [
+            'actID',
+            'actEntityID',
+            'actOldStatusID',
+            'actNewStatusID',
+            'actTrackPrecision',
+            'actTitle',
+            'actTitleLocal',
+            'actTitlePast',
+            'actTitlePastLocal',
+            'actButtonClass',
+            'actDescription',
+            'actDescriptionLocal',
+            'actFlagDeleted',
+            'actPriority',
+            'actFlagComment',
+            'actFlagSystem',
+            'actShowConditions',
+            'actFlagHasEstimates',
+            'actFlagDepartureEqArrival',
+            'actFlagAutocomplete',
+            'actFlagNot4Editor',
+            'actFlagNot4Creator',
+            'actFlagMultiple',
+            'actDepartureDescr',
+            'actArrivalDescr',
+            'actFlagInterruptStatusStay',
+            'actInsertBy',
+            'actInsertDate',
+            'actEditBy',
+            'actEditDate',
+        ],
+    'stbl_action_status' => [
+            'atsID',
+            'atsActionID',
+            'atsOrder',
+            'atsOldStatusID',
+            'atsNewStatusID',
+            'atsInsertBy',
+            'atsInsertDate',
+            'atsEditBy',
+            'atsEditDate',
+        ],
+    'stbl_action_attribute' => [
+            'aatID',
+            'aatActionID',
+            'aatAttributeID',
+            'aatFlagToTrack',
+            'aatFlagMandatory',
+            'aatFlagToChange',
+            'aatFlagToAdd',
+            'aatFlagToPush',
+            'aatFlagEmptyOnInsert',
+            'aatFlagUserStamp',
+            'aatFlagTimestamp',
+            'aatInsertBy',
+            'aatInsertDate',
+            'aatEditBy',
+            'aatEditDate',
+            'aatTemp',
+        ],
+    'stbl_attribute' => [
+            'atrID',
+            'atrEntityID',
+            'atrTitle',
+            'atrTitleLocal',
+            'atrShortTitle',
+            'atrShortTitleLocal',
+            'atrFlagNoField',
+            'atrType',
+            'atrUOMTypeID',
+            'atrOrder',
+            'atrClasses',
+            'atrDefault',
+            'atrTextIfNull',
+            'atrProgrammerReserved',
+            'atrCheckMask',
+            'atrDataSource',
+            'atrHref',
+            'atrFlagHideOnLists',
+            'atrMatrix',
+            'atrFlagDeleted',
+            'atrInsertBy',
+            'atrInsertDate',
+            'atrEditBy',
+            'atrEditDate',
+        ],
+    'stbl_entity' => [
+            'entID',
+            'entTitle',
+            'entTitleMul',
+            'entTitleLocal',
+            'entMatrix',
+            'entTitleLocalMul',
+            'entTitleLocalGen',
+            'entTitleLocalDat',
+            'entTitleLocalAcc',
+            'entTitleLocalIns',
+            'entTitleLocalAbl',
+            'entTable',
+            'entPrefix',
+            'entManagementRoles',
+        ],
+    'stbl_role_action' => [
+            'rlaID',
+            'rlaRoleID',
+            'rlaActionID',
+        ],
+    'stbl_status' => [
+            'staID',
+            'staEntityID',
+            'staTrackPrecision',
+            'staTitle',
+            'staTitleMul',
+            'staTitleMulLocal',
+            'staTitleLocal',
+            'staFlagCanUpdate',
+            'staFlagCanDelete',
+            'staMenuItemClass',
+            'staDescription',
+            'staDescriptionLocal',
+            'staFlagDeleted',
+            'staInsertBy',
+            'staInsertDate',
+            'staEditBy',
+            'staEditDate',
+        ],
+    'stbl_status_attribute' => [
+            'satID',
+            'satStatusID',
+            'satEntityID',
+            'satAttributeID',
+            'satFlagEditable',
+            'satFlagShowInForm',
+            'satFlagShowInList',
+            'satFlagTrackOnArrival',
+            'satInsertBy',
+            'satInsertDate',
+            'satEditBy',
+            'satEditDate',
+            'satTemp',
+        ],
+    'stbl_framework_version' => [
+            'fvrNumber',
+            'fvrDesc',
+            'fvrDate',
+        ],
+    'stbl_uom' => [
+            'uomID',
+            'uomType',
+            'uomTitleLocal',
+            'uomTitle',
+            'uomRateToDefault',
+            'uomOrder',
+            'uomFlagDefault',
+            'uomFlagDeleted',
+            'uomCode1C',
+            'uomInsertBy',
+            'uomInsertDate',
+            'uomEditBy',
+            'uomEditDate',
+        ],
+];
+
 function __construct($options){
     parent::__construct(null, $options);
 }
@@ -53,6 +221,8 @@ function menu($target = null){
     $rsTab = $oSQL->do_query($sqlTab);
     
     $arrFlags = Array();
+
+    $arrTbl = [];
 
     while ($rwTab = $oSQL->fa($rsTab)) {
 
@@ -247,10 +417,11 @@ function dumpTable ($tableName, $tableOptions){
 
     $oSQL = $this->oSQL;
 
-    try {
-        $tableInfo = $oSQL->getTableInfo($tableName);
-    } catch (Exception $e) {
-        return "\n/* Warning: table '{$tableName}' could not be dumped because of error: ".$e->getMessage()." */\n";
+    
+    $tableInfo = $oSQL->getTableInfo($tableName);
+
+    if(!$tableInfo) {
+        return "\n/* Warning: table '{$tableName}' could not be dumped because it doesn't seem to exist */\n";
     }
     
 
@@ -313,10 +484,15 @@ function dumpTable ($tableName, $tableOptions){
     $arrFields = array();$strFields = '';
     $sqlFields = "SHOW FIELDS FROM `{$tableName}`";
     $rsFields = $oSQL->q($sqlFields);
-    while($rwFields = $oSQL->f($rsFields)){
-        $arrFields[$rwFields['Field']]=$rwFields;
-        $strFields .= ($strFields=='' ? '' : ', ')."`{$rwFields['Field']}`";
+    while($rwField = $oSQL->f($rsFields)){
+
+        if( !$tableOptions['columns'] || ($tableOptions['columns'] && in_array($rwField['Field'], $tableOptions['columns'])) ) {
+            $arrFields[$rwField['Field']] = $rwField;
+            $strFields .= ($strFields=='' ? '' : ', ')."`{$rwField['Field']}`";  
+        }
+        
     }
+
 
     if (!$tableOptions['DropCreate'] 
         && $tableOptions['sql_type'] == 'UPDATE') {
@@ -349,7 +525,7 @@ function dumpTable ($tableName, $tableOptions){
         // scheme for inserting fields
         if ($tableOptions['sql_columns']) {
             $schema_insert = $sql_command . $insert_delayed ." INTO `{$tableName}`"
-                           . ' (`' . $strFields . '`) VALUES';
+                           . ' (' . $strFields . ') VALUES';
         } else {
             $schema_insert = $sql_command . $insert_delayed ." INTO `{$tableName}`"
                            . ' VALUES';
@@ -383,6 +559,9 @@ function dumpTable ($tableName, $tableOptions){
         $current_row++;
         $values = [];
         foreach ($row as $j=>$value) {
+
+            if(!in_array($j, array_keys($arrFields)))
+                continue;
 
             $rwCol = $arrFields[$j];
 
