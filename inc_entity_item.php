@@ -1462,7 +1462,7 @@ switch ($da) {
                     '".$fileGUID."'
                     , '{$entID}'
                     , '{$_POST['entItemID_Attach']}'
-                    , '{$f["name"]}'
+                    , {$oSQL->e($f["name"])}
                     , '$filename'
                     , '{$f["size"]}'
                     , '{$f["type"]}'
