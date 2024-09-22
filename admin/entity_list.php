@@ -67,7 +67,7 @@ if($_POST['DataAction']=='insert'){
             , staTitle = ".$oSQL->e($staTitles[$i])."
             , staTitleMul = ".$oSQL->e($staTitles[$i])."
             , staTitleLocal = ".$oSQL->e($staTitles[$i])."
-            , staTitleLocalMul = ".$oSQL->e($staTitles[$i])."
+            , staTitleMulLocal = ".$oSQL->e($staTitles[$i])."
             , staFlagCanUpdate = 1
             , staFlagCanDelete = {$staFlagCanDelete[$i]}
             , staInsertBy = 'admin', staInsertDate = NOW(), staEditBy = 'admin', staEditDate = NOW()";
