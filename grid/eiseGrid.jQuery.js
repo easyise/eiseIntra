@@ -1143,7 +1143,7 @@ eiseGrid.prototype.selectRow = function(oTbody, event){
             if (event.shiftKey){
 
                 var ixStart, ixEnd;
-                if (grid.lastClickedRowIx){
+                if (grid.lastClickedRowIx !== null && grid.lastClickedRowIx !== undefined) {
                     if(grid.lastClickedRowIx < ix){
                         ixStart = grid.lastClickedRowIx;
                         ixEnd = ix;
@@ -1161,7 +1161,7 @@ eiseGrid.prototype.selectRow = function(oTbody, event){
                 if(!grid.activeRow[strIx])
                     grid.activeRow[strIx] = oTbody;
                 else 
-                    grid.activeRow[strIx] = null;
+                    delete grid.activeRow[strIx];
             } else {
                 grid.activeRow = {};
                 grid.activeRow[strIx] = oTbody;
