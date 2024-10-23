@@ -100,7 +100,7 @@ case 'dump':
     
     
     
-    
+    $dontDump = ['stbl_framework_version', 'stbl_uom'];
 
     if($_GET['what']=='entity'){
 
@@ -118,6 +118,11 @@ case 'dump':
                 continue;
             }
 
+
+            if(in_array($table, $dontDump)){
+                continue;
+            }
+
             $ids = [];
 
             if($table=='stbl_entity'){
@@ -130,7 +135,8 @@ case 'dump':
                 } else {
                     if (preg_match('/^stbl_status/', $table)) {
                         // code...
-                    } elseif (preg_match('/^stbl_action/', $table)) {
+                    } elseif (preg_match('/^stbl_action/', $table)
+                        || preg_match('/^stbl_role_action/', $table)) {
                         $where = "{$ti['prefix']}ActionID IN (".implode(', ', $actIDs).")";
                     }
                 }
