@@ -38,10 +38,10 @@ $gridSTR->Columns[] = Array(
 
 switch($DataAction){
     case "update":
-        //echo "<pre>";
-        //$oSQL->startProfiling();
-        $gridSTR->Update();
-        //$oSQL->showProfileInfo();
+        // echo "<pre>";
+        // $oSQL->startProfiling();
+        $gridSTR->Update($_POST, ['flagOnlyUpdated'=>false]);
+        // $oSQL->showProfileInfo();
         SetCookie("UserMessage", "Data is updated");
         header("Location: ".$_SERVER["PHP_SELF"]."?dbName={$dbName}");
         break;
