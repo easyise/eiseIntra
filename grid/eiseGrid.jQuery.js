@@ -1323,7 +1323,8 @@ eiseGrid.prototype.recalcTotals = function(field, flagReturn){
     var nTotals = 0.0;
     var nCount = 0;
     var nValue = 0.0;
-    oGrid.tableContainer.find('td.'+this.id+'-'+field+' input').each(function(){
+    oGrid.tableContainer.find('tbody:not(.eg-filtered) td.'+this.id+'-'+field+' input').each(function(){
+
         var strVal = $(this).val()
             .replace(new RegExp("\\"+oGrid.conf.decimalSeparator, "g"), '.')
             .replace(new RegExp("\\"+oGrid.conf.thousandsSeparator, "g"), '');
@@ -2427,19 +2428,7 @@ eiseGrid.prototype.applyFilter = function($dlg, $button){
         
     });
 
-    grid.tbodies.each(function(){ $(this).removeClass('eg-filtered'); });
-
-    $.each(grid.conf.fields, function(key, field){
-        grid.tbodies.each(function(){
-            if(field.filterValue!==''){
-                var text = grid.text($(this), key);
-                if(text.search(new RegExp(field.filterValue, 'i'))<0 && field.filterValue!==text){
-                    $(this).addClass('eg-filtered');
-                    rowsAffected += 1;
-                }
-            }
-        })
-    })
+    rowsAffected = grid.applyFilters();
 
     if($button && $button[0])
         if( rowsAffected )
@@ -2450,6 +2439,37 @@ eiseGrid.prototype.applyFilter = function($dlg, $button){
     $dlg.dialog('close').remove();
 
 }
+
+eiseGrid.prototype.applyFilters = function(){
+
+    var grid = this
+        , rowsAffected = 0
+        , escapeRegex = function(str_) {
+            return str_.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&');
+        };
+
+    grid.tbodies.each(function(){ $(this).removeClass('eg-filtered'); });
+
+    $.each(grid.conf.fields, function(key, field){
+        grid.tbodies.each(function(){
+            if(field.filterValue!==''){
+                var text = grid.text($(this), key)
+                    , value = grid.value($(this), key);
+                var condition = (field.type=='combobox' || field.type=='select' 
+                    ? value!==field.filterValue
+                    : text.search(new RegExp(field.filterValue, 'i'))<0 && field.filterValue!==text);
+                if(condition){
+                    $(this).addClass('eg-filtered');
+                    rowsAffected += 1;
+                }
+            }
+        })
+    })
+
+    grid.recalcAllTotals();
+
+    return rowsAffected;
+};
 
 var methods = {
 init: function( conf ) {
