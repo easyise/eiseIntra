@@ -1185,7 +1185,13 @@ value: function(strFieldName, val, decimalPlaces){
                     strValue = isNaN(strValue) 
                         ? '' 
                         : number_format(strValue, 
-                            decimalPlaces!=undefined ? decimalPlaces : conf.decimalPlaces
+                            (decimalPlaces!=undefined 
+                                ? decimalPlaces 
+                                : ($inp[0].dataset['decimals'] 
+                                    ? parseInt($inp[0].dataset['decimals'])
+                                    : conf.decimalPlaces 
+                                )
+                            )
                             , conf.decimalSeparator, conf.thousandsSeparator
                         )
                 }

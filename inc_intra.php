@@ -1825,8 +1825,9 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
                 break;
 
             case "money":
+            case "real":
                 $html .= $this->showTextBox($name
-                    , $this->decSQL2PHP($value, 2) 
+                    , $this->decSQL2PHP($value, $conf['decimalPlaces']!==null ? (int)$conf['decimalPlaces'] : 2) 
                     , $conf); 
                 break;
 
@@ -2087,6 +2088,7 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
         $strRet = "<input type=\"{$strType}\" name=\"{$strName}\" id=\"{$id}\" class=\"{$strClassInput}\" data-type=\"{$arrConfig['type']}\"".
             ($strAttrib ? " ".$strAttrib : "").
             ($arrConfig["required"] ? " required=\"required\"" : "").
+            ($arrConfig["decimalPlaces"]!==null ? " data-decimals=\"{$arrConfig["decimalPlaces"]}\"" : "").
             ($arrConfig["autocomplete"]===false ? " autocomplete=\"off\"" : "").
             ($arrConfig["placeholder"] 
                 ? ' placeholder="'.htmlspecialchars($arrConfig["placeholder"]).'"'
