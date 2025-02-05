@@ -1350,8 +1350,9 @@ change: function(strInputIDs, callback){
 
         var strSelector = ""; $.each(fields, function (ix, val){ strSelector+=(ix==0 ? "" : ", ")+"#"+val});
 
-        $form.find(strSelector).bind('change', function(){
+        $form.find(strSelector).bind('change', function(e){
             callback($(this));
+            e.stopPropagation();
         })
     })
 },
