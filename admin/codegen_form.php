@@ -251,12 +251,7 @@ switch ($_GET["toGen"]){
         $strCode .= "<?php\r\n".
                 "include(\"common/auth.php\");\r\n".
                 "//\$_DEBUG=true;\r\n".
-                "\$arrJS[] = commonStuffRelativePath.'eiseList/eiseList.jQuery.js';\r\n".
-                "\$arrCSS[] = commonStuffRelativePath.'eiseList/themes/default/screen.css';\r\n".
-                "include_once(commonStuffAbsolutePath.'eiseList/inc_eiseList.php');\r\n\r\n";
-                
-        $strCode .= "\$arrJS[] = jQueryUIPath.'/jquery-ui.min.js';\r\n".
-                "\$arrCSS[] = jQueryUIPath.'/jquery-ui.min.css';\r\n\r\n";
+                "\$intra->requireComponent('list');\r\n\r\n";
                 
         $strCode .= "\$listName = \$listName ? \$listName : \"".$arrTable['prefix']."\";\r\n".
                 "\$lst = new eiseList(\$oSQL, \$listName\r\n".
@@ -291,7 +286,7 @@ switch ($_GET["toGen"]){
               $field = $field."_";
            }
            
-           $strCode .= "\$lst->Columns[] = array('title' => \$intra->translate(\"".($col["Comment"]!="" ? $col["Comment"] : $col["Field"])."\")\r\n";
+           $strCode .= "\$lst->Columns[] = array('title' => __(\"".($col["Comment"]!="" ? $col["Comment"] : $col["Field"])."\")\r\n";
            
            if ($col["DataType"]=="FK"){
                if ( $col["ref_table"]!=""){
@@ -363,9 +358,9 @@ switch ($_GET["toGen"]){
         $strCode .= "    );\r\n";
         $strCode .= "}\r\n\r\n";
         
-        $strCode .= "include eiseIntraAbsolutePath.'inc-frame_top.php';\r\n\r\n";
+        $strCode .= "include eiseIntraAbsolutePath.'inc_top.php';\r\n\r\n";
         $strCode .= "\$lst->show();\r\n\r\n";
-        $strCode .= "include eiseIntraAbsolutePath.'inc-frame_bottom.php';\r\n";
+        $strCode .= "include eiseIntraAbsolutePath.'inc_bottom.php';\r\n";
         $strCode .= "?>";
         
         
