@@ -493,8 +493,8 @@ public function attachFile($nd){
 
     $guids = array();
     if($error==''){
-
-        foreach($_FILES['attachment']['error'] as $ix => $err){
+		
+        foreach((array)$_FILES['attachment']['error'] as $ix => $err){
             if($err!=0) 
                 continue;
 
