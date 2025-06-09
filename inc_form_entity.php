@@ -621,9 +621,9 @@ switch ($DataAction){
                  $sql[] = "UPDATE stbl_action SET 
                       actTitle{$strLocal}=".$oSQL->escape_string($_POST["actTitle"][$i]).",
                       actTitlePast{$strLocal}=".$oSQL->escape_string($_POST["actTitlePast"][$i]).",
-                      actFlagDeleted=".($_POST["actFlagDeleted"][$i]).",
+                      actFlagDeleted=".(int)($_POST["actFlagDeleted"][$i]).",
                       actPriority=".($_POST["actPriority"][$i]=="" ? "0" : $_POST["actPriority"][$i]).",
-                      actFlagComment=".($_POST["actFlagComment"][$i]).",
+                      actFlagComment=".(int)($_POST["actFlagComment"][$i]).",
                       actEditBy='$intra->usrID', actEditDate=NOW()
                      WHERE actID='".$_POST["actID"][$i]."'";
                  $sql[] = "SET @actID='".$_POST["actID"][$i]."'";

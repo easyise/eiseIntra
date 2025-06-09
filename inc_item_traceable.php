@@ -75,7 +75,7 @@ public function __construct($id = null,  $conf = array() ){
                 $this->intra->arrUsrData['roles'][] = $rwRole['rolTitle'.$this->intra->local];
                 $this->intra->arrUsrData['roleIDs'][] = $rwRole['rolID'];
             } else {
-                $ix = array_search( $rwRole['rolID'], $this->intra->arrUsrData['roleIDs'] );
+                $ix = array_search( $rwRole['rolID'], (array)$this->intra->arrUsrData['roleIDs'] );
                 if($ix!==false){
                     unset($this->intra->arrUsrData['roles'][$ix]);
                     unset($this->intra->arrUsrData['roleIDs'][$ix]);
@@ -95,7 +95,7 @@ public function __construct($id = null,  $conf = array() ){
 
     ;
 
-    $this->conf['attr_types'] = @array_merge($this->table['columns_types'], $this->conf['attr_types']);
+    $this->conf['attr_types'] = array_merge($this->table['columns_types'], (array)$this->conf['attr_types']);
 
     $a_reads = array_diff(['getActionLog', 'getChecklist', 'getActionDetails', 'getFiles', 'getFile', 'getMessages','sendMessage']
         , (array)$conf['aExcludeReads']);
@@ -904,11 +904,13 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     
     $iStartAddCol = 0;
     
-    for ($ii=$iStartAddCol;$ii<@count($arrAdditionalCols);$ii++){
-        if($arrAdditionalCols[$iStartAddCol]['columnAfter']!='')
-            break;
-        $lst->Columns[] = $arrAdditionalCols[$iStartAddCol];
-        $iStartAddCol=$ii;
+    if(is_array($arrAdditionalCols)){
+            for ($ii=$iStartAddCol; $ii<count($arrAdditionalCols); $ii++) {
+                    if($arrAdditionalCols[$iStartAddCol]['columnAfter']!='')
+                break;
+            $lst->Columns[] = $arrAdditionalCols[$iStartAddCol];
+            $iStartAddCol=$ii;
+        }
     }
 
     foreach($this->conf['ATR'] as $atrID=>$rwAtr){
@@ -985,16 +987,17 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     }
 
     // check column-after
-    for ($ii=$iStartAddCol;$ii<@count($arrAdditionalCols);$ii++){
-        if ($arrAdditionalCols[$ii]['columnAfter']==$rwAtr['atrID']){
-            $lst->Columns[] = $arrAdditionalCols[$ii];
-            
-            while(isset($arrAdditionalCols[$ii+1]) && $arrAdditionalCols[$ii+1]['columnAfter']==""){
-                $ii++;
+    if(is_array($arrAdditionalCols)){
+        for ($ii=$iStartAddCol; $ii<count($arrAdditionalCols); $ii++) {
+            if ($arrAdditionalCols[$ii]['columnAfter']==$rwAtr['atrID']){
                 $lst->Columns[] = $arrAdditionalCols[$ii];
+                
+                while(isset($arrAdditionalCols[$ii+1]) && $arrAdditionalCols[$ii+1]['columnAfter']==""){
+                    $ii++;
+                    $lst->Columns[] = $arrAdditionalCols[$ii];
+                }
             }
         }
-        
     }
   
     
@@ -1928,7 +1931,12 @@ public function arrActionButtons(){
 
         $arrActions_ = (array)$this->conf['STA'][$this->staID]['ACT'];
 
-        usort($arrActions_, function ($act1, $act2) { return -1 * @(int)(($act1['actPriority'] - $act2['actPriority'])/abs($act1['actPriority'] - $act2['actPriority'])); } );
+        usort($arrActions_, function ($act1, $act2) {
+            if ($act1['actPriority'] == $act2['actPriority']) {
+                return 0;
+            }
+            return ($act1['actPriority'] > $act2['actPriority']) ? -1 : 1;
+        });
 
         foreach($arrActions_ as $rwAct){
 
@@ -1956,7 +1964,9 @@ public function arrActionButtons(){
                 $aUserTiers = array();
                 $suitableRoles = array_values(array_intersect($rwAct['RLA'], $this->intra->arrUsrData['roleIDs']));
                 foreach ($suitableRoles as $rol) { $aUserTiers[$rol] = $rwAct['RLA_tiers'][$rol]; }    
-                $escalated = (int)(@min($rwAct['RLA_tiers']) < @min($aUserTiers));
+                if (!empty($rwAct['RLA_tiers']) && !empty($aUserTiers)) {
+                    $escalated = (int)(min($rwAct['RLA_tiers']) < min($aUserTiers));
+                }
             }
 
             $arrActions[] = Array ("title" => $title #.(int)$escalated.'<pre>'.var_export($rwAct['RLA_tiers'], true)."\n".var_export($this->intra->arrUsrData['roleIDs'], true)."\n".var_export($aUserTiers, true).'</pre>'
@@ -2098,7 +2108,7 @@ function showStatusLog($conf = array()){
                 ? strtotime($rwSTL['stlATD'])
                 : floor(strtotime($rwSTL['stlATD'].'+1 day') / (60 * 60 * 24)) * (60 * 60 * 24)
                 )
-            : mktime()
+            : time()
             );
         $stlATA = strtotime($rwSTL["stlATA"]);
         $html .= $this->showActionInfo($rwSTL['stlArrivalActionID'], $conf);
