@@ -589,7 +589,7 @@ function finishAction(){
     }
     
     // update master table by attrbutes
-    if (count($this->arrAction["aatFlagToTrack"])>0){
+    if (!empty($this->arrAction["aatFlagToTrack"])){
         $sqlUpdMaster = "UPDATE {$this->conf["entTable"]} SET 
             {$this->conf['entPrefix']}EditBy='{$this->intra->usrID}', {$this->conf['entPrefix']}EditDate=NOW()";
         
@@ -644,7 +644,7 @@ function finishAction(){
             WHERE aclGUID='{$this->arrAction["aclGUID"]}'";
         
         $arrSAT = $this->conf['STA'][$this->arrAction['aclNewStatusID']]['satFlagTrackOnArrival'];
-        if (count($arrSAT)>0){
+        if (!empty($arrSAT)){
             $sqlSAT = "INSERT INTO {$this->conf["entTable"]}_log (
                 l{$this->conf['entPrefix']}GUID
                 , l{$this->conf['entPrefix']}EditBy , l{$this->conf['entPrefix']}EditDate, l{$this->conf['entPrefix']}InsertBy, l{$this->conf['entPrefix']}InsertDate
@@ -2080,7 +2080,7 @@ function getActionData($aclGUID){
 	// linked attributes
 	$arrAAT = $this->conf['ACT'][$rwACT["actID"]]['aatFlagToTrack'];
 
-    if(@count($arrAAT)>0){
+    if(!empty($arrAAT)) {
         $sqlLOG = "SELECT * FROM {$this->conf["entTable"]}_log WHERE l{$this->conf['entPrefix']}GUID='{$rwACT["aclGUID"]}'";
         $rsLOG = $oSQL->do_query($sqlLOG);
             $rwLOG = $oSQL->fetch_array($rsLOG);

@@ -10,6 +10,8 @@
  */
 class eiseSQL extends mysqli{
 
+    public $flagProfiling = false;
+
 /**
  *  This array maps intra data types into MySQL data types
  */

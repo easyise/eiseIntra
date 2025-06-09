@@ -1,5 +1,5 @@
 <?php
-$DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
+$DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : (isset($_GET["DataAction"]) ? $_GET["DataAction"] : '');
 
 if(!isset($intra))
     $intra = new eiseIntra($oSQL, Array('version'=>$version));
@@ -67,10 +67,11 @@ $intra->loadJS();
 <body class="form-login" data-conf="<?php  echo htmlspecialchars(json_encode($intra->conf)) ; ?>">
 
 <?php
-$arrUsr = explode("[\\]", $AUTH_USER);
-$usrID = strtoupper($arrUsr[count($arrUsr)-1]);
-
-if ($strMode == "LDAP"){
+if(isset($AUTH_USER)){
+    $arrUsr = explode("[\\]", $AUTH_USER);
+    $usrID = strtoupper($arrUsr[count($arrUsr)-1]);
+}
+if (isset($strMode) && $strMode == "LDAP"){
 	$ldap_conn = ldap_connect($ldap_server);
 	$binding = @ldap_bind($ldap_conn, $ldap_anonymous_login, $ldap_anonymous_pass);
 }

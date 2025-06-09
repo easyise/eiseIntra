@@ -130,7 +130,7 @@ function __construct($oSQL, $strName, $arrConfig=Array()){
 }
 
 public function hasColumn($fieldName){
-    if(!@count($this->Columns))
+    if(empty($this->Columns))
         return false;
     foreach($this->Columns as $ix=>$col){
         if($col['field']==$fieldName)
@@ -675,7 +675,7 @@ private function showTableHeader(){
                         $col['source_raw'] = $arrCombo;
                         $strTDFilter .= "<select id='cb_".$col["filter"]."' name='".$this->name."_".$col["filter"]."' class='el-filter'>\r\n";
                         $strTDFilter .= "<option value=''>\r\n";
-                        while (list($value, $text) = each($arrCombo)){
+                        foreach ($arrCombo as $value => $text) {
                             $strTDFilter .= "<option value='$value'".((string)$col["filterValue"]==(string)$value ? " selected" : "").">$text\r\n";
                         }
                         $strTDFilter .= "</select>\r\n";
@@ -731,7 +731,7 @@ private function showTableHeader(){
 
     $htmlTabs = '';
     $this->breakDownByTabs();
-    if (@count($this->Tabs) > 0){
+    if (!empty($this->Tabs)) {
         $htmlTabs .= "<div id=\"{$this->name}_tabs\" class=\"el-tabs ui-tabs ui-widget ui-widget-content ui-corner-all\">\n";
         $htmlTabs .= "<ul class=\"ui-tabs-nav ui-helper-reset ui-helper-clearfix ui-widget-header ui-corner-all\">\n";
         $strPseudoTabs = '';
@@ -1147,10 +1147,12 @@ public function getFilterParameterName( $field ){
  * @return array of cookie data for given list. If there're no cookie set, it returns null.
  */
 public function getCookie(){
-    return (@count($this->arrCookie = unserialize($_COOKIE[$this->conf["cookieName"]]) )>0
-        ? $this->arrCookie
-        : null 
-        );
+    $this->arrCookie = unserialize($_COOKIE[$this->conf["cookieName"]]);
+    if (is_array($this->arrCookie) && count($this->arrCookie) > 0) {
+        return $this->arrCookie;
+    } else {
+        return null;
+    }
 }
 
 /**
@@ -1158,9 +1160,16 @@ public function getCookie(){
  * @return array of session data for given list. If there're nothing in session, it returns null.
  */
 public function getSession(){
-    return ( @count($this->arrSession = $_SESSION[$this->conf["cookieName"]] )>0
-        ? $this->arrSession
-        : null);
+    if (!isset($_SESSION[$this->conf["cookieName"]])) {
+        return null;
+    }
+
+    $this->arrSession = $_SESSION[$this->conf["cookieName"]];
+    if (is_array($this->arrSession) && count($this->arrSession) > 0) {
+        return $this->arrSession;
+    } else {
+        return null;
+    }
 }
 
 /**
@@ -1527,7 +1536,7 @@ private function cacheSQL(){
 private function getCachedColumns(){
     
     $cols = $_SESSION[$this->name."_columns"];
-    if(count($cols)){
+    if(count((array)$cols)){
         $this->Columns = $cols;
     }
     

@@ -288,7 +288,7 @@ function get_html($allowEdit=true){
     }
     
     $htmlTabs = '';
-    if(@count($this->Tabs3D)>0){
+    if(!empty($this->Tabs3D)){
         $htmlTabs .= "<div id=\"{$this->name}-tabs3d\">\r\n";
         $htmlTabs .= "<ul>\r\n";
         foreach($this->Tabs3D as $ix=>$tab){
@@ -436,29 +436,25 @@ function get_html($allowEdit=true){
                 if($fld['type']=='ajax_dropdown')
                     break;
 
+                $flagIsSQL = false;
+                $ds = null;
                 if(is_array($fld['source'])){
                     $ds = $fld['source'];
-                } else {
-                    $ds = @json_decode($fld['source'], true);
-                    if(!$ds){
-                        
-                        try {
-                            @eval('$ds = '.$fld['source'].';');
-                        } catch (ParseError $e) {}
-                        
-                        if(!$ds){
-                            if(!preg_match('/^select\s+/i', $fld['source'])){
-                                $aDS = explode('|', $fld['source']);
-                                $ds = $aDS[0];
-                                $fld['source_prefix'] = ($fld['source_prefix'] 
-                                    ? $fld['source_prefix']
-                                    : $aDS[1]);            
-                            } else {
-                                $ds = $fld['source'];
-                                $flagIsSQL = true;
-                            }
-                            
-                        }
+                } elseif (is_string($fld['source'])) {
+                    $decoded_json = json_decode($fld['source'], true);
+
+                    if (is_array($decoded_json)) {
+                        $ds = $decoded_json;
+                    } else {
+                        if (preg_match('/^select\s+/i', $fld['source'])) {
+                            $ds = $fld['source'];
+                            $flagIsSQL = true;
+                        } else {
+                            $parts = explode('|', $fld['source'], 2);
+                            $ds = $parts[0];
+                        if (!isset($fld['source_prefix'])) {
+                            $fld['source_prefix'] = isset($parts[1]) ? $parts[1] : null;
+                        }                        }
                     }
                 }
 
@@ -695,7 +691,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     $cell = $col;
     
     $arrSuffix = array();
-    if (@count($this->Tabs3D)>0 && ($ixRow===null || is_array($val))) {
+    if (!empty($this->Tabs3D) && ($ixRow===null || is_array($val))) {
         foreach($this->Tabs3D as $ix=>$tab){
             $arrSuffix[] = $tab['ID'];
         }
@@ -1172,7 +1168,7 @@ function json( $newData = null, $conf = array() ){
 
     $aRet = array();
 
-    for($i=1;$i<count($newData[$pkColName]);$i++){
+    for($i=1;$i<count((array)$newData[$pkColName]);$i++){
 
         $a = array();
         foreach($this->Columns as $col){
