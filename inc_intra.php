@@ -1445,6 +1445,10 @@ function batchStart($conf = array()){
  * @category Batch run
  */
 function batchEcho($string){
+
+    if(!$this->flagBatch)
+        return;
+
     $args = func_get_args();
     $to_echo  = call_user_func_array( 
             ($this->conf['auto_translate'] 
@@ -1458,6 +1462,7 @@ function batchEcho($string){
 
     ob_flush();
     flush();
+    
 }
 
 /**
