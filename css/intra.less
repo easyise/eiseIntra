@@ -563,6 +563,11 @@ td     {  	vertical-align: top; padding: 0;}
                     font-size: 0.9em;
                 }
 
+                & > small {
+                    display: block;
+                    font-weight: 300;
+                }
+
                 & ul {
                     list-style: none;
                     display: block;
@@ -582,6 +587,18 @@ td     {  	vertical-align: top; padding: 0;}
                         &:before {
                             margin-left: -0.9em;
                             content: "\f007";
+                        }
+                        & > span {
+                            display: inline-block;
+                            &.disabled {
+                                text-decoration: line-through;
+                            }
+                        }
+                    }
+                    & li.system {
+                        &:before {
+                            margin-left: -0.9em;
+                            content: "\f085";
                         }
                         & > span {
                             display: inline-block;
@@ -1303,27 +1320,96 @@ div.eiseIntraComment {
     display: none;
 }
 
-.eiseIntraActionLogTable {
+.eiseIntraActionLogTable
+, .eif-checklist table {
     font-size: 8pt;
     border-bottom: 1px solid gray;
     width: 100%;
     table-layout: fixed;
 }
-.eiseIntraActionLogTable td {
+.eiseIntraActionLogTable td
+,  .eif-checklist table td
+{
     padding: 2pt;
 }
-.eiseIntraActionLogTable .eif_actTitlePast {
+.eiseIntraActionLogTable .eif_actTitlePast
+, .eif-checklist table .eif-title 
+{
     font-weight: bold;
     width: 120px;
 }
-.eiseIntraActionLogTable .eif_aclATA {
+
+.eiseIntraActionLogTable .eif_aclATA
+, .eif-checklist table .eif_aclATA
+{
     width: 100px;
 }
-.eiseIntraActionLogTable .eif_startblock td {
+
+.eiseIntraActionLogTable .eif_startblock td
+, .eif-checklist table .eif_startblock td
+{
     border-top: 1px solid gray;
 }
-.eiseIntraActionLogTable .eif_commentsTitle {
+.eiseIntraActionLogTable .eif_commentsTitle
+, .eif-checklist table .eif_commentsTitle
+{
     text-align: right;
+}
+
+
+/*****************************************************/
+/* eiseIntraChecklist */
+/*****************************************************/
+.eif-checklist {
+    
+    & table {
+        font-size: 8pt;
+        border-bottom: 1px solid gray;
+        width: 100%;
+        table-layout: fixed;
+
+        & tr.checked .eif-checkmark > i:before{
+            content: "\f046";
+        }
+        
+        & td {
+            padding: 2px;
+            vertical-align: top;
+        }
+
+        & .eif-checkmark {
+
+            padding-top: 0.25em;
+
+            & i:before {
+                font-style: normal;
+                content: "\f096";
+            }
+
+            width: 1.25em;
+            font: normal normal normal 14px / 1 FontAwesome;
+            font-size: 1.5em;
+            text-rendering: auto;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        & .eif-title {
+            font-weight: bold;
+            font-size:1.25em;
+            width: 100%;
+        }
+
+        & .eif-aclATA {
+            width: 100px;
+        }
+
+        .eif_startblock td{
+            border-top: 1px solid gray;
+        }
+
+
+    }
+
 }
 
 /*****************************************************/

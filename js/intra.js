@@ -1879,7 +1879,7 @@ var _fill = function($body, data, conf){
                 var v = (value && typeof(value.v)!='undefined' ? value.v : value),
                     t = (value && typeof(value.t)!='undefined' ? value.t : v);
 
-                var $elem = $subItem.find('.eif_'+field);
+                var $elem = $subItem.find('.eif_'+field+', .eif-'+field);
                 if (!$elem[0])
                     return true; //continue
                 switch ($elem[0].nodeName){

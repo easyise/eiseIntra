@@ -782,7 +782,7 @@ if($oSQL->d("SHOW TABLES LIKE 'stbl_checklist'")){
 
     echo '<hr>';
 
-    $sqlSta = "SELECT * FROM stbl_checklist WHERE chkEntityID='".$entID."' ORDER BY chkID";
+    $sqlSta = "SELECT * FROM stbl_checklist WHERE chkEntityID='".$entID."' ORDER BY chkTargetStatusID, chkID";
     $rsSta = $oSQL->do_query($sqlSta);
     while($rwSta = $oSQL->fetch_array($rsSta)){
        $rwSta['chkID_id'] = $rwSta['chkID']."##".$entID;
