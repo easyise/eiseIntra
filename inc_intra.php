@@ -97,6 +97,14 @@ private $arrClassInputTypes =
     Array("ajax_dropdown", "date", "datetime", "datetime-local", "time");
 
 /**
+ * This property is set to 'Local' when local language is selected by the user
+ *
+ * @category Initialization
+ * @category i18n
+ */
+public $local = ''; // is local language selected or not
+
+/**
  * Default configuration. Exact configuration parameters list is:
  * 
  * - 'dateFormat' - date format, default is "d.m.Y" 
@@ -548,7 +556,7 @@ function logout(){
     $prj_dir = str_replace('/login.php', '', $_SERVER['PHP_SELF']);
     if( $prj_dir !== $_SERVER['PHP_SELF']
         && !(isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
-        && ( $_SERVER['HTTP_REFERER'] && preg_match('/^'.preg_quote($prj_dir, '/').'/', parse_url($_SERVER['HTTP_REFERER'], PHP_URL_PATH)) )
+        && ( $_SERVER['HTTP_REFERER'] ?? null && preg_match('/^'.preg_quote($prj_dir, '/').'/', parse_url($_SERVER['HTTP_REFERER'], PHP_URL_PATH)) )
         && $_DEBUG
         ){
 

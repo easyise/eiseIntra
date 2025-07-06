@@ -103,7 +103,7 @@ $(document).ready(function(){
 <h1>Welcome to <?php  echo $title ; ?></h1>
 
 <?php 
-if ($_GET["error"]){
+if ($_GET["error"] ?? null){
 ?>
 <div class="eiseIntraError" style="text-align: center; margin-left: auto; margin-right: auto; margin-top: 30px; text-align: left; padding-left: 30px;">ERROR: <?php  echo $_GET["error"] ; ?></div>
 <?php
@@ -115,13 +115,13 @@ if ($_GET["error"]){
 <fieldset class="eiseIntraMainForm">
 
 <?php 
-if ($flagShowHost || $flagEiseAdmin) 
+if ($flagShowHost ?? null || $flagEiseAdmin ?? null) 
     echo $intra->field('Host', 'host', $flagEiseAdmin ? '' : 'localhost');
 
-echo $intra->field('Login', 'login', $flagEiseAdmin ? 'root' : $_COOKIE["last_succesfull_usrID"], ['FlagWrite'=>true]);
+echo $intra->field('Login', 'login', $flagEiseAdmin ? 'root' : $_COOKIE["last_succesfull_usrID"] ?? '', ['FlagWrite'=>true]);
 echo $intra->field('Password', 'password', '', ['FlagWrite'=>true, 'type'=>'password']);
 
-$login_info = "Please enter your <strong>".($binding ? "Windows" : "database")."</strong> login/password.";
+$login_info = "Please enter your <strong>".($binding ?? null ? "Windows" : "database")."</strong> login/password.";
 
 echo $intra->field('', null, $intra->showButton('btnsubmit'
         , $intra->translate("Login"), ['type'=>'submit', 'FlagWrite'=>true]).'<br>'.$login_info
