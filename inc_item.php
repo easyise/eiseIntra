@@ -1072,7 +1072,11 @@ static function sendMessages($conf){
             	: ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\" <".$rwUsr_To['usrEmail'].">" : '')
             );
 
-        $msg['Text'] = $rwMsg['msgText'];
+		if($conf['Content-Type'] == 'text/html'){
+		    $msg['Text'] = nl2br($rwMsg['msgText']); 
+		}else{
+			$msg['Text'] = $rwMsg['msgText'];
+		}
 
         if ($rwMsg['msgCCUserID'])
             $msg['Cc'] = "\"".$rwUsr_CC['usrName']."\" <".$rwUsr_CC['usrEmail'].">";
