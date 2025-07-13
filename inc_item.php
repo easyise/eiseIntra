@@ -32,6 +32,14 @@ public $conf = array(
 	);
 
 /**
+ * Unique identity of the item.
+ * 
+ * @category Initialization
+ */
+public $id = null;
+
+
+/**
  * The array with item data. To be filled inside [eiseItem::getData()](#eiseitem-getdata). 
  * 
  * Usually and by default this array consists of single table record data obtainted with `mysqli::fetch_assoc()` function.
@@ -47,7 +55,8 @@ public $item = array();
  * 
  * @category Item Data
  */
-public $item_before = array();
+public $item_before = array(),
+	$delta = array();
 
 /**
  * The array with the table information. To be filled inside [eiseItem::getData()](#eiseitem-getdata).
@@ -56,6 +65,29 @@ public $item_before = array();
  */
 public $table = null;
 
+/**
+ * ```eiseIntra``` object that's been used on item creation. To be set in constructor.
+ * 
+ * @category Initialization
+ */
+public $intra = null;
+
+/**
+ * ```eiseSQL``` object that's been used on item creation. Normally obtained from ```eiseIntra```, but it could be overridden with ```$conf['sql]```. Set inside the constructor.
+ * 
+ * @category Initialization
+ */
+public $oSQL = null;
+
+/**
+ * User message and data handling legacy properties. 
+ * ```$redirectTo``` is for web page redirection and ```$msgToUser``` is for message to be shown upon redirection.
+ * 
+ * @category Initialization
+ */
+public $redirectTo, $msgToUser;
+
+public $sqlWhere;
 
 /**
  * Class constructor. Can be called without any paramemters. Constructor obtains info on table, obtains data and entity configuration.
@@ -596,7 +628,7 @@ function deleteFile($q){
     $oSQL->do_query("DELETE FROM stbl_file WHERE filGUID='{$q['filGUID']}'");
     $oSQL->q("COMMIT");
 
-    $this->msgToUser = $err ? $err : $intra->translate("Deleted files: %s", $rwFile['filName']);
+    $this->msgToUser = $intra->translate("Deleted file: %s", $rwFile['filName']);
     $this->redirectTo = eiseIntra::getFullHREF($this->conf['form'].'?'.$this->getURI());
 
     return $this->getFiles();
