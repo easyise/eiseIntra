@@ -557,7 +557,7 @@ function logout(){
     $prj_dir = str_replace('/login.php', '', $_SERVER['PHP_SELF']);
     if( $prj_dir !== $_SERVER['PHP_SELF']
         && !(isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
-        && ( $_SERVER['HTTP_REFERER'] ?? null && preg_match('/^'.preg_quote($prj_dir, '/').'/', parse_url($_SERVER['HTTP_REFERER'], PHP_URL_PATH)) )
+        && ( isset($_SERVER['HTTP_REFERER']) && $_SERVER['HTTP_REFERER'] && preg_match('/^'.preg_quote($prj_dir, '/').'/', parse_url($_SERVER['HTTP_REFERER'], PHP_URL_PATH)) )
         && $_DEBUG
         ){
 
