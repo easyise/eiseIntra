@@ -634,11 +634,11 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
     
     $oSQL = ($oSQL!==null ? $oSQL : $this->oSQL);
 
-    static $tableFieldCache;  
+    static $tableFieldCache = [];  
 
     $cacheKey = $strPrefix.'|'.$strTable;
 
-    if($tableFieldCache[$cacheKey]){
+    if(isset($tableFieldCache[$cacheKey])){
 
         $arrFields = $tableFieldCache[$cacheKey];
 
@@ -740,8 +740,8 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
             .( ($flagShowDeleted===false && $arrFields["delField"]) ? " AND IFNULL(`{$arrFields["delField"]}`, 0)=0" : "")
             .$strExtra;
         if($strPrefix)
-            $sql .= "\r\nORDER BY `".($arrFields['orderField'] ? $arrFields['orderField'] : $arrFields["textField{$this->local}"])."`";
-        else if ( $arrFields['orderField'] ) 
+            $sql .= "\r\nORDER BY `".(isset($arrFields['orderField']) && $arrFields['orderField'] ? $arrFields['orderField'] : $arrFields["textField{$this->local}"])."`";
+        else if ( isset($arrFields['orderField']) && $arrFields['orderField'] ) 
             $sql .= "\r\nORDER BY `{$arrFields['orderField']}`";
     }
     if(!$flagNoLimits)

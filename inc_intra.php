@@ -158,6 +158,7 @@ public static $defaultConf = array(
         , 'selItemTopLevelMenu' => null
         , 'defaultPage' => 'about.php'
         , 'pass_hash' => 'md5'
+        , 'frame' => false
     );
 
 static $arrKeyboard = array(
@@ -1495,7 +1496,7 @@ function setUserMessage($strMessage, $conf = array()){
  * @return string with user message
  */
 function getUserMessage(){
-    $strRet = $_COOKIE[$this->conf['UserMessageCookieName']];
+    $strRet = isset($_COOKIE[$this->conf['UserMessageCookieName']]) ? $_COOKIE[$this->conf['UserMessageCookieName']] : '';
     if($strRet){
         setcookie($this->conf['UserMessageCookieName'], '', 0, $this->getCookiePath($_SERVER['PHP_SELF']));
         setcookie($this->conf['UserMessageCookieName'], ''); // backward-compatibility
@@ -1743,7 +1744,12 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
 
     $oSQL = $this->oSQL;
 
-    $value = (is_array($val_in) ? $val_in[$name] : $val_in);
+    $value = (is_array($val_in) 
+        ? (isset($val_in[$name])
+            ? $val_in[$name] 
+            : ''
+        )
+        : $val_in);
 
     $dataset = self::processHTMLDataset($conf);
 
@@ -1792,7 +1798,7 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
                 "\""
             .($name 
                 ? " id=\"field_{$name}\"" 
-                : ($conf['id']
+                : (isset($conf['id']) && $conf['id']
                     ? ' id="'.$conf['id'].'"'
                     : '')
                 )
@@ -1987,6 +1993,16 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
  */
 public function fieldset($legend=null, $fields='', $conf = array()){
 
+    $conf_default = Array(
+        'id' => '', // contents of ID attribute of <fieldset> tag, default is empty
+        'class' => '',  // contents of CLASS attribute of <fieldset> tag
+        'attr' => '',   // extra attributes to be added to <fieldset> tag
+        'attr_legend' => '',    // extra attributes to be added to <legend> tag
+        'subtitle' => '', // subtitle to be shown in <legend> tag
+    );
+
+    $conf = array_merge($conf_default, $conf);
+
     if($conf['subtitle'])
         $conf['class'] = 'has-subtitle '.$conf['class'];
 
@@ -2026,6 +2042,17 @@ public function fieldset($legend=null, $fields='', $conf = array()){
  *  - flagDontClose - if set to TRUE, <FORM> tag is not closed in function output.
  */
 public function form($action, $dataAction, $fields, $method='POST', $conf=array()){
+
+    $conf_default = array(
+        'class' => '', // contents of CLASS attribute of FORM tag, default is empty
+        'attr' => '',  // extra attributes to be added to FORM tag
+        'id' => '',    // contents of ID attribute of FORM tag, default is empty
+        'target' => '', // contents of TARGET attribute of FORM tag, default is empty
+        'flagAddJavaScript' => true, // if set to TRUE, adds JavaScript code to initialize eiseIntraForm on document ready
+        'flagDontClose' => false, // if set to TRUE, <FORM> tag is not closed in function output
+    );
+
+    $conf = array_merge($conf_default, $conf);
  
     return '<form action="'.htmlspecialchars($action).'"'
         .' method="'.htmlspecialchars($method).'"'
@@ -2201,7 +2228,7 @@ function showButton($name, $value, $arrConfig=array()){
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
 
-    $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
+    $flagWrite = $this->isEditable(isset($arrConfig["FlagWrite"]) && $arrConfig["FlagWrite"]);
     
     $o = $this->conf['addEiseIntraValueClass'];
     $this->conf['addEiseIntraValueClass'] = false;
@@ -2214,7 +2241,7 @@ function showButton($name, $value, $arrConfig=array()){
     $value = ($this->conf['auto_translate'] ? $this->translate($value) : $value);
 
     $strName = '';
-    if($arrConfig['type']=='submit'){
+    if(isset($arrConfig['type']) && $arrConfig['type']=='submit'){
         $strRet = '<input type="submit"'
             .($strName!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
             .' class="eiseIntraSubmit'.($strClass!='' ? ' ' : '').$strClass.'"'
@@ -2222,7 +2249,7 @@ function showButton($name, $value, $arrConfig=array()){
             .$extraAttr
             .' value="'.htmlspecialchars($value).'">';
     } else {
-        if($arrConfig['type']=='delete')
+        if(isset($arrConfig['type']) && $arrConfig['type']=='delete')
             $strClass = 'eiseIntraDelete'.($strClass!='' ? ' ' : '').$strClass;
         $strRet = '<button'
             .($name!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
@@ -2670,7 +2697,8 @@ function dataAction($dataAction, $funcOrObj=null){
 
     $dataAction = (is_array($dataAction) ? $dataAction : array($dataAction));
 
-    if(in_array($newData[$this->conf['dataActionKey']], $dataAction)
+    if(isset($newData[$this->conf['dataActionKey']])
+        && in_array($newData[$this->conf['dataActionKey']], $dataAction)
         && ($this->arrUsrData['FlagWrite'] || $this->arrUsrData['FlagCreate'] || $this->arrUsrData['FlagUpdate'])
         ){
         
@@ -2692,6 +2720,9 @@ function dataAction($dataAction, $funcOrObj=null){
             $ret = array();
 
             try {
+
+                if(!method_exists($obj, $method))
+                    throw new Exception(sprintf("Method %s::%s() not found on dataAction", get_class($obj), $method));
 
                 $ret = call_user_func_array(array($obj, $method), array_merge(Array($newData), $arrParam));
                 $status = ($ret===False ? '500' : 'ok');
@@ -2770,7 +2801,8 @@ function dataRead($dataReadValues, $function=null, $arrParam = array()){
 
     $dataReadValues = (is_array($dataReadValues) ? $dataReadValues : array($dataReadValues));
 
-    if(in_array($query[$this->conf['dataReadKey']], $dataReadValues)){
+    if(isset($query[$this->conf['dataReadKey']]) 
+        && in_array($query[$this->conf['dataReadKey']], $dataReadValues)){
         
         $arrParam = func_get_args();
         array_shift($arrParam);
@@ -2794,7 +2826,9 @@ function dataRead($dataReadValues, $function=null, $arrParam = array()){
             $ret = array();
 
             try {
-
+                if(!method_exists($obj, $method))
+                    throw new Exception(sprintf("Method %s::%s() not found on dataRead()", get_class($obj), $method));
+                
                 $ret = call_user_func_array(array($obj, $method), array_merge(Array($query), $arrParam));
                 
             } catch (Exception $e) {
@@ -2820,7 +2854,7 @@ public static function isRecursion(){
     $aCallsUnique = array();
     foreach (debug_backtrace() as $call) {
         $class_func_curr = ($call['class'] ? $call['class'].'::' : '').$call['function'];
-        $aCallsUnique[$class_func_curr] += 1;
+        $aCallsUnique[$class_func_curr] = (isset($aCallsUnique[$class_func_curr]) ? $aCallsUnique[$class_func_curr] : 0) + 1;
     }
     foreach($aCallsUnique as $nCalls){
         if($nCalls>1)
