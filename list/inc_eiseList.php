@@ -56,15 +56,75 @@ public $conf = Array(
     , 'cookieExpire' => 0 
 
     , 'hiddenColsExcel' =>  array() // array of columns to be hidden on Excel output
+    , 'flagNoExcel' => false
 
     , 'debug' => false
 
     , 'tabsFilterColumn' => null // if set, list will try to breakdown data into tabs with titles from column source
 );
 
-private $oSQL;
+private $oSQL, $intra;
 
 private $arrHiddenCols = Array();
+private $arrOrderByCols = Array();
+private $arrCookieToSet = Array();
+private $arrCookie = Array();
+private $arrSession = Array();
+
+private static $col_default = Array(
+    'title' => ''
+    , 'type' => 'text' // text, integer, date, datetime, select, combobox, ajax_dropdown, checkbox, row_id, order 
+    , 'PK' => false // if true, column is a primary key, it will be used to update data
+    , 'phpLNums' => null // if true, column will be rendered as row number, it will be used to update data
+    , 'sql' => null // SQL expression, if empty, field is used
+    , 'source' => null // source for select, combobox, ajax_dropdown
+    , 'source_prefix' => null // source for select, combobox, ajax_dropdown, if empty, field is used 
+    , 'order_field' => null // field name to order by, if empty, field is used
+    , 'filter' => null
+    , 'filterValue' => null // value to filter by, if empty, no filter is applied
+    , 'exactMatch' => false // if true, filter will be exact match, otherwise LIKE '%filterValue%'
+    , 'group' => null // field name to group by, if empty, no grouping is applied
+    , 'aggregate' => null // aggregate function to apply, if empty, no aggregate is applied
+    , 'flagNoExcel' => false // if true, column will not be shown in Excel output
+    , 'checkbox' => false // if true, column will be rendered as checkbox
+    , 'class' => '' // CSS class to apply to the column
+    , 'width' => '' // CSS width to apply to the column
+    , 'href' => null // if set, column will be rendered as link with this href
+    , 'nourlencode' => false // if true, href will not be urlencoded
+    , 'limitOutput' => 0 // if set, column will be limited to this number of characters
+);
+
+public $name;
+
+public $strSQL, 
+    $sqlPK,
+    $sqlFields, $sqlFieldsAggregate, 
+    $sqlFrom, $sqlFromAggregate, $fieldsForCount,
+    $sqlWhere, 
+    $sqlGroupBy, 
+    $sqlHaving,
+    $defaultOrderBy, $defaultSortOrder, $exactSQL, $strSQLAggregate, $orderBy;
+
+public $sortOrder = 'ASC', $sortOrderAlt = 'DESC';
+
+public $Tabs = array(); // array of tabs, each tab is an associative array with keys: 'title', 'filterValue', 'filterField', 'filterExactMatch'
+
+public $Columns = Array(); // array of columns, each column is an associative array
+
+public $nCols = 0;
+public $cols = '';
+
+public $iMaxRows = 0;
+
+public $flagExcel = false; // if true, list will output data in Excel XML format
+public $flagHasAggregate = false;
+public $flagHasFilters = false;
+public $flagFiltersSet = false;
+public $flagGroupBy = false;
+
+public $error = '';
+
+
 
 function __construct($oSQL, $strName, $arrConfig=Array()){
     
@@ -72,11 +132,11 @@ function __construct($oSQL, $strName, $arrConfig=Array()){
     
     $this->oSQL = $oSQL;
     
-    $this->sqlFrom = $arrConfig["sqlFrom"];unset($arrConfig["sqlFrom"]);
-    $this->sqlWhere = $arrConfig["sqlWhere"];unset($arrConfig["sqlWhere"]);
-    $this->defaultOrderBy = $arrConfig["defaultOrderBy"];unset($arrConfig["defaultOrderBy"]);
-    $this->defaultSortOrder = $arrConfig["defaultSortOrder"];unset($arrConfig["defaultSortOrder"]);
-    $this->exactSQL = $arrConfig["exactSQL"];unset($arrConfig["exactSQL"]);
+    $this->sqlFrom = (isset($arrConfig["sqlFrom"]) ? $arrConfig["sqlFrom"] : null);unset($arrConfig["sqlFrom"]);
+    $this->sqlWhere = (isset($arrConfig["sqlWhere"]) ? $arrConfig["sqlWhere"] : null);unset($arrConfig["sqlWhere"]);
+    $this->defaultOrderBy = (isset($arrConfig["defaultOrderBy"]) ? $arrConfig["defaultOrderBy"] : null);unset($arrConfig["defaultOrderBy"]);
+    $this->defaultSortOrder = (isset($arrConfig["defaultSortOrder"]) ? $arrConfig["defaultSortOrder"] : null);unset($arrConfig["defaultSortOrder"]);
+    $this->exactSQL = (isset($arrConfig["exactSQL"]) ? $arrConfig["exactSQL"] : null);unset($arrConfig["exactSQL"]);
     
     //merge with settings come from eiseINTRA
     if (is_object($arrConfig["intra"])){
@@ -110,7 +170,7 @@ function __construct($oSQL, $strName, $arrConfig=Array()){
         ); 
 
     foreach($this->conf['dateRegExs'] as &$arr){
-        if(!$arr['rex'])
+        if(!isset($arr['rex']))
             $arr['rex'] = str_replace(
                 Array(".", '-', '/', 'd', 'm', 'y', 'Y')
               , Array('\\.', '\\-', '\\/', '([0-9]{1,2})', '([0-9]{1,2})', '([0-9]{2,4})', '([0-9]{2,4})')
@@ -165,21 +225,24 @@ public function addColumn($arrCol){
     if($this->hasColumn($arrCol['field']))
         return;
 
-    if($arrCol['fieldInsertBefore'] || $arrCol['fieldInsertAfter']){
+    $fieldInsertBefore = isset($arrCol['fieldInsertBefore']) ? $arrCol['fieldInsertBefore'] : null;
+    $fieldInsertAfter = isset($arrCol['fieldInsertAfter']) ? $arrCol['fieldInsertAfter'] : null;
+
+    if( $fieldInsertBefore || $fieldInsertAfter ){
 
         $Columns_new = array();
         $flagInserted = false;
 
         foreach($this->Columns as $ix=>$col){
 
-            if($col['field']==$arrCol['fieldInsertBefore']){
+            if($col['field']==$fieldInsertBefore){
                 $Columns_new[$arrCol['field']] = $arrCol;
                 $flagInserted = true;
             }
 
             $Columns_new[$col['field']] = $col;
 
-            if($col['field']==$arrCol['fieldInsertAfter']){
+            if($col['field']==$fieldInsertAfter){
                 $Columns_new[$arrCol['field']] = $arrCol;
                 $flagInserted = true;
             }
@@ -211,7 +274,7 @@ public function setColumnProperty($field, $property, $value){
     $retVal = null;
     foreach($this->Columns as $ix=>$col){
         if($col['field']==$field){
-            $retVal = $col[$property];
+            $retVal = (isset($col[$property]) ? $col[$property] : null);
             if($value!==null)
                 $this->Columns[$ix][$property] = $value;
             else 
@@ -257,7 +320,7 @@ public function setColumnOrder($arrColFields){
  * This function returns column array and updates the key it could be accessed from $lst->Columns list
  */
 public function getColumn($field, &$key=''){
-    if($this->Columns[$field]){
+    if(isset($this->Columns[$field]) && $this->Columns[$field]){
         $key = $field;
         return $this->Columns[$field];
     }
@@ -284,7 +347,7 @@ public function removeColumn($field){
 
 public function handleDataRequest(){ // handle requests and return them with Ajax, Excel, XML, PDF, whatsoever user can ask
 
-    $DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
+    $DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : (isset($_GET["DataAction"]) ? $_GET["DataAction"] : null);
     if (!$DataAction || $DataAction=='getPostRequest'){
         $this->cacheColumns();
         return;
@@ -298,7 +361,7 @@ public function handleDataRequest(){ // handle requests and return them with Aja
     $oSQL = $this->oSQL;
     $this->error = "";
 
-    if (!$this->conf["cacheSQL"] || $_GET["noCache"] || $DataAction=='getPostRequest'){
+    if (!$this->conf["cacheSQL"] || (isset($_GET["noCache"]) && $_GET['noCache']) || $DataAction=='getPostRequest'){
 
         $this->handleInput();
         $this->composeSQL();
@@ -316,7 +379,7 @@ public function handleDataRequest(){ // handle requests and return them with Aja
         return;
     }
     
-    $iOffset = (int)$_GET["offset"];
+    $iOffset = isset($_GET["offset"]) ? (int)$_GET["offset"] : 0;
     
     $this->strSQL .= ($DataAction=="json" 
         ? "\n LIMIT {$iOffset}, ".($iOffset==0 
@@ -550,7 +613,7 @@ foreach ($_GET as $key => $value) {
     }
 }
 foreach ($this->Columns as $col) {
-    if (!$col['title'] && $col['filter']){
+    if (!$col['title'] && isset($col['filter']) && $col['filter']!=''){
         echo "<input type=hidden id=\"".$this->name.'_'.$col['filter']."\" name=\"".$this->name.'_'.$col['filter']."\" value=\"".urlencode($col["filterValue"])."\" class=\"el-filter\">\r\n";
     }
 }
@@ -612,9 +675,8 @@ private function showTableHeader(){
     
     $oSQL = $this->oSQL;
 
-    $this->nCols = 0;
-
-    $this->cols = '';
+    $firstRow = '';
+    $strOut = '';
 
     /* first and second rows - titles and filter inputs */
     foreach($this->Columns as $ix=>$col) {
@@ -625,17 +687,21 @@ private function showTableHeader(){
         
         $strColClass = "{$this->name}_{$col["field"]}";
 
-        $strClassList = ($col['order_field'] ? "el-sortable" : '');
+        $strClassList = (isset($col['order_field']) && $col['order_field']!='' ? "el-sortable" : '');
 
         $strArrowImg = "";
         if ($col['field']==$this->orderBy) {
             $strClassList .= ($strClassList!='' ? ' ' : '')."el-sorted-".strtolower($this->sortOrder);
         }
         
-        $this->Columns[$ix]['width'] = $col['width'].(preg_match('/^[0-9]+$/', $col['width']) ? 'px' : '');
+        $w = isset($col['width'])
+            ? $col['width'].(preg_match('/^[0-9]+$/', $col['width']) ? 'px' : '')
+            : '';
+        
+        $this->Columns[$ix]['width'] = $w;
 
         $strClassList .= ($strClassList!='' ? ' ' : '')
-            .($col['type']
+            .(isset($col['type']) && $col['type']
                 ? 'el-'.$col['type']
                 : ($col['checkbox'] 
                     ? 'el-checkbox'
@@ -645,15 +711,15 @@ private function showTableHeader(){
         
         /* TD for row title */
         $strTDHead = "<th";
-        $strTDHead .= ($col["width"] 
-            ? " style=\"width: ".$col["width"].(preg_match('/\%$/', $col['width']) 
+        $strTDHead .= ($w!='' 
+            ? " style=\"width: ".$w.(preg_match('/\%$/', $w) 
                 ? ';min-width: 150px;'
                 : '')
                 .'"'
             : '');
         $strTDHead .= " class=\"{$strClassList}\"";
         $strTDHead .= " data-field=\"{$col['field']}\"";
-        if($col['aggregate']){
+        if(isset($col['aggregate']) && $col['aggregate']!=''){
             $strTDHead .= " data-aggregate=\"{$col['field']}\"";
             $this->flagHasAggregate = true;
         }
@@ -666,9 +732,10 @@ private function showTableHeader(){
         /* TD for search input */
         $strTDFilter = "";
         if ($this->flagHasFilters) {
-            $classTD = "{$this->name}_{$col['field']}".($col["filterValue"]!="" ? " el-filterset" : "");
+            $filterValue = (isset($col['filterValue']) ? $col['filterValue'] : '');
+            $classTD = "{$this->name}_{$col['field']}".($filterValue != '' ? " el-filterset" : "");
             $strTDFilter .= "<div class=\"el-filter {$classTD}\">";
-            if ($col['filter']) {
+            if (isset($col['filter']) && $col['filter']) {
                 switch ($col['type']) {
                     case "combobox":
                         $arrCombo = $this->getComboboxSource($col);
@@ -676,15 +743,16 @@ private function showTableHeader(){
                         $strTDFilter .= "<select id='cb_".$col["filter"]."' name='".$this->name."_".$col["filter"]."' class='el-filter'>\r\n";
                         $strTDFilter .= "<option value=''>\r\n";
                         foreach ($arrCombo as $value => $text) {
-                            $strTDFilter .= "<option value='$value'".((string)$col["filterValue"]==(string)$value ? " selected" : "").">$text\r\n";
+                            $selected = ($filterValue===(string)$value ? " selected" : "");
+                            $strTDFilter .= "<option value=\"{$value}\"{$selected}>$text\r\n";
                         }
                         $strTDFilter .= "</select>\r\n";
                         break;
                     default:
                         $strFilterBoxHTML = '';
                         $strFilterClass = '';
-                        if( $col['filterType'] || in_array($col['type'], array('date', 'datetime')) ) {
-                            $fltType = ($col['filterType'] ? $col['filterType'] :$col['type']);
+                        if( (isset($col['filterType']) && $col['filterType']) || in_array($col['type'], array('date', 'datetime')) ) {
+                            $fltType = (isset($col['filterType']) ? $col['filterType'] :$col['type']);
                             $strFilterClass = ' el_special_filter el_filter_'.$fltType;
                             switch($fltType){
                                 case 'date':
@@ -706,11 +774,11 @@ private function showTableHeader(){
                                 .'</div>'
                                 .'</div>';
                         }
-                        $strTDFilter .= '<input type=text name="'.$this->name.'_'.$col['filter'].'" class="el_filter'.$strFilterClass.'" value="'.$col['filterValue'].'">';
+                        $strTDFilter .= '<input type=text name="'.$this->name.'_'.$col['filter'].'" class="el_filter'.$strFilterClass.'" value="'.$filterValue.'">';
                         $strTDFilter .= $strFilterBoxHTML;
                     break;
                 }
-            } elseif ($col['checkbox']) {
+            } elseif (isset($col['checkbox']) && $col['checkbox']) {
                 $strTDFilter .= "<div align='center'><input type='checkbox' style='width:auto;'".
                     "class=\"sel_{$this->name}_all\" title='Select/unselect All'></div>";
             } else {
@@ -903,14 +971,14 @@ private function showTemplateRow(){
             continue;
             
         $strRow.= "<td data-field=\"{$col["field"]}\" class=\"".
-            ($col["type"]!="" 
+            (isset($col["type"]) && $col["type"]!="" 
                 ? "el-".$col["type"] 
                 : ($col['checkbox'] ? "el-checkbox" : "el-text")).
             (isset($col['editable']) && $this->intra && ($this->intra->arrUsrData['FlagWrite'] ||$this->intra->arrUsrData['FlagUpdate'])  ? ' el-editable' : '').
             " {$this->name}_{$col["field"]}".
             '"'.
             (isset($col['target']) ? ' target="'.$col['target'].'"' : '').
-            '>'.($col['checkbox']
+            '>'.(isset($col['checkbox']) && $col['checkbox']
                 ? "<input type='checkbox' name='sel_{$this->name}[]' value='' id='sel_{$this->name}_{$col['field']}_'>" 
                 : "")."</td>\r\n";
         
@@ -921,7 +989,7 @@ private function showTemplateRow(){
 }
 
 private function showFooterRow(){
-    return "<td colspan=\"{$dummyspan}\">&nbsp;</td>";
+    return "<td>&nbsp;</td>";
 }
 
 private function showFieldChooser(){
@@ -932,7 +1000,7 @@ private function showFieldChooser(){
     
     $nElementsInColumn = $this->nCols/2;
     foreach($this->Columns as $cl){
-        if ( !in_array($cl["title"], Array("", "##")) && $cl["href"]=="" ){
+        if ( !in_array($cl["title"], Array("", "##")) && isset($cl["href"]) && $cl["href"]=="" ){
             $id = "flc_".$this->name."_".$cl["field"]."";
             $strOut .= "<input type=\"checkbox\" name=\"{$id}\" id=\"{$id}\" style=\"width:auto;\"".
                 (in_array($cl["field"], $this->arrHiddenCols) ? "" : " checked").">";
@@ -987,29 +1055,26 @@ private function handleInput(){
 
     //$_DEBUG = true;
 
-    $this->arrHiddenCols = Array();
-    $this->arrCookieToSet = Array();
-
     $this->getCookie();
     $this->getSession();
 
-    $hiddenCols = (isset($_GET[$this->name."HiddenCols"]) ? $_GET[$this->name."HiddenCols"] : $this->arrCookie["HiddenCols"]);
+    $hiddenCols = (isset($_GET[$this->name."HiddenCols"]) ? $_GET[$this->name."HiddenCols"] : (isset($this->arrCookie["HiddenCols"]) ? $this->arrCookie["HiddenCols"] : null));
     // print_r($hiddenCols);die();
     $this->arrHiddenCols = explode(",", $hiddenCols);
     $this->iMaxRows = (int)(isset($_GET[$this->name."MaxRows"])
            ? $_GET[$this->name."MaxRows"]
-           : $this->iMaxRows
+           : 0
         );
     $this->orderBy =  (isset($_GET[$this->name."OB"])
         ? $_GET[$this->name."OB"]
-        : ($this->arrCookie['OB']
+        : (isset($this->arrCookie['OB']) && $this->arrCookie['OB'] !== ""
             ? $this->arrCookie['OB']
             : $this->defaultOrderBy
             )
         );
     $this->sortOrder = (isset($_GET[$this->name."ASC_DESC"])
         ? $_GET[$this->name."ASC_DESC"]
-        : ($this->arrCookie["ASC_DESC"]
+        : (isset($this->arrCookie["ASC_DESC"]) && $this->arrCookie["ASC_DESC"] !== ""
             ? $this->arrCookie["ASC_DESC"]
             : ($this->defaultSortOrder=="" 
                 ? (in_array($this->Columns[$this->orderBy]['type'], array('date', 'datetime ')) 
@@ -1033,6 +1098,9 @@ private function handleInput(){
     $arrCookieFilter = [];
 
     foreach ($this->Columns as $i=>$col){
+
+        $col = array_merge(self::$col_default, $col);
+
         $this->arrOrderByCols[] = ($col["order_field"]!="" ? $col["order_field"] : $col["field"]);
         if ($col["filter"]) {
 
@@ -1050,7 +1118,9 @@ private function handleInput(){
             }
 
             $filterValue = $this->getFilterValue($col['filter']);
-            if( $filterValue !=='' || ($this->Columns[$i]['exactMatch'] && !$this->Columns[$i]['tabsFilter']) ){
+            $exactMatch = (isset($col['exactMatch']) ? $col['exactMatch'] : false);
+            $tabsFilter = (isset($col['tabsFilter']) ? $col['tabsFilter'] : false);
+            if( $filterValue !=='' || ($exactMatch && !$tabsFilter) ){
                 $this->Columns[$i]['filterValue'] = $filterValue;
                 $this->flagFiltersSet = true;
                 // $arrCookieFilter[$col["filter"]] = $filterValue;
@@ -1147,7 +1217,9 @@ public function getFilterParameterName( $field ){
  * @return array of cookie data for given list. If there're no cookie set, it returns null.
  */
 public function getCookie(){
-    $this->arrCookie = unserialize($_COOKIE[$this->conf["cookieName"]]);
+    $this->arrCookie = isset($_COOKIE[$this->conf["cookieName"]]) 
+        ? @unserialize($_COOKIE[$this->conf["cookieName"]]) 
+        : null;
     if (is_array($this->arrCookie) && count($this->arrCookie) > 0) {
         return $this->arrCookie;
     } else {
@@ -1188,7 +1260,7 @@ public function getFilterValue( $field ){
     return (
         isset($_GET[$strColInputName]) 
             ? $_GET[$strColInputName] 
-            : ($this->arrCookie[$field]
+            : (isset($this->arrCookie[$field])
                 ? $this->arrCookie[$field]
                 : '' 
                 )
@@ -1211,6 +1283,9 @@ private function composeSQL(){
 
 
     foreach ($this->Columns as $i => $col){
+
+        $col = array_merge(self::$col_default, $col);
+
         if ($col["field"]=="" || $col["field"]=="phpLNums") 
             continue;
             
@@ -1221,13 +1296,13 @@ private function composeSQL(){
             //$this->sqlFieldsAggregate .= ($this->sqlFieldsAggregate ? "\r\n, " : '').$col['field'];
         }
 
-        if($col['aggregate']){
+        if($col['aggregate']) {
             $this->sqlFieldsAggregate .= ($this->sqlFieldsAggregate ? "\r\n, " : '').strtoupper($col['aggregate'])."(".($col['sql'] ? "({$col['sql']})" : $col['field']).") as {$col['field']}";
         }
 
         // SELECT
         $sqlTextField = "";
-        if ($col["type"]=="combobox" || $col["type"]=="ajax_dropdown"){
+        if (isset($col['type']) && in_array($col["type"], ["select", "ajax_dropdown", "combobox"])){
             // if combobox or ajax_dropdown, we also compose _Text suffixed field
             if (!is_array($col['source'])){
                 if (preg_match("/^(vw_|tbl_|stbl_|svw_)/", $col["source"])){
@@ -1381,6 +1456,8 @@ private function composeSQL(){
 private function getSearchCondition(&$col){
      
     $oSQL = $this->oSQL;
+
+    $strCondition = '';
 
     // if filter value is empty and column is not 'exact match' filter
     if ( $col["filterValue"]=="" 
@@ -1561,9 +1638,11 @@ private function getRowArray($index, $rw){
         $arrField = Array();
         
         $valFormatted = "";
-        $val = $rw[$col['field']];
+        $val = isset($rw[$col['field']]) ? $rw[$col['field']] : null;
         $class = "";
         $href = "";
+
+        $col = array_merge(self::$col_default, $col);
         
         /* obtain calculated values for class and href */
         foreach($rw as $rowKey=>$rowValue){
@@ -1594,7 +1673,7 @@ private function getRowArray($index, $rw){
     }
     
     $arrRet["PK"] = $rw[$this->sqlPK];
-    if ($rw['__rowClass']){
+    if (isset($rw['__rowClass']) && $rw['__rowClass'] != "") {
         $arrRet["c"] = $rw['__rowClass'];
     }
     $arrRet['r'] = $arrFields;
@@ -1634,7 +1713,7 @@ private function formatData($col, $val, $rw){
                 break;
             case "combobox":         // return Text representation for FK-based columns
             case "ajax_dropdown":
-                $val = ($rw[$col['field']."_Text"]!=""
+                $val = (isset($rw[$col['field']."_Text"]) && $rw[$col['field']."_Text"]!=""
                     ? $rw[$col['field']."_Text"]
                     : (is_array($col['source']) 
                         ? (!empty($col['source'][$val]) ? $col['source'][$val] : $val)
