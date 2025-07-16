@@ -4,12 +4,19 @@ $intra->requireComponent('simpleTree');
 <html>
 <head>
 	<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
-    <title><?php echo ($pageTitle ? $pageTitle 
-        : ($title ? $title : $intra->arrUsrData["pagTitle{$intra->local}"])
+    <title><?php echo (isset($pageTitle) && $pageTitle!=='' ? $pageTitle 
+        : (isset($title) && $title!=='' ? $title : $intra->arrUsrData["pagTitle{$intra->local}"])
         ); ?></title>
 <?php 
 $intra->loadCSS();
 $intra->loadJS();
+
+$flagNoHeader = isset($flagNoHeader) ? $flagNoHeader : false;
+$warning = isset($warning) ? $warning : '';
+$flagNoMenu = isset($flagNoMenu) ? $flagNoMenu : false;
+$extraHTML = isset($extraHTML) ? $extraHTML : '';
+
+$arrActions = isset($arrActions) ? $arrActions : [];
 
 $paneClass = "ei-pane{$intra->conf['frame']}".($flagNoHeader ? ' no-header' : '');
 $conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)$intra->arrUsrData['FlagWrite'] ]  );
@@ -19,7 +26,9 @@ $conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)$intra->arrUsrData[
 <link rel="shortcut icon" href="./favicon.ico" type="image/x-icon" />
 
 </head>
-<body data-conf="<?php  echo htmlspecialchars(json_encode( $conf_to_set )) ; ?>" data-message="<?php  echo htmlspecialchars($intra->getUserMessage()) ; ?>" class="<?php echo eiseIntra::getSlug().($pageClass ? ' '.$pageClass : ''); ?>">  
+<body data-conf="<?php  echo htmlspecialchars(json_encode( $conf_to_set )) ; ?>" data-message="<?php  echo htmlspecialchars($intra->getUserMessage()) ; ?>" class="<?php echo eiseIntra::getSlug()
+    .(isset($pageClass) && $pageClass ? ' '.$pageClass : ''); 
+    ?>">  
 
 <?php if (!$flagNoHeader): ?>
     <div id="header" class="ei-header" role="nav">
@@ -42,7 +51,7 @@ $conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)$intra->arrUsrData[
         $usrName = ($authmethod=="mysql" ? $oSQL->dbuser : $intra->arrUsrData["usrName{$intra->local}"]);
         $usrDescr = ($authmethod=="mysql" ? '@'.$oSQL->dbhost : $intra->arrUsrData["usrDescription{$intra->local}"]);
 
-        if($intra->arrUsrData['usrIcon'])
+        if(isset($intra->arrUsrData['usrIcon']) && $intra->arrUsrData['usrIcon']!=='')
             echo '<div class="ei-user-icon"><img src="'.$intra->arrUsrData['usrIcon'].'"></div>'."\n";
         
         echo '<div class="ei-user-name">'.$usrName.'</div>'."\n";
@@ -68,7 +77,7 @@ $conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)$intra->arrUsrData[
 
     <div class="ei-sidebar-menu-content">
     <?php 
-    if($intra->conf['flagDontGetMenu'])
+    if(isset($intra->conf['flagDontGetMenu']) && $intra->conf['flagDontGetMenu']) 
         echo $intra->menu($intra->conf['MenuTarget']);
     ?>
 
