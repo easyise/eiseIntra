@@ -151,7 +151,12 @@ public function getIDFromQueryString(){
 	$arrIDs = array();
 
 	foreach ($this->table['PK'] as $pk) {
-		$arrIDs[$pk] = (isset($_POST[$pk]) ? $_POST[$pk] : $_GET[$pk]);
+		$arrIDs[$pk] = (isset($_POST[$pk]) 
+			? $_POST[$pk] 
+			: (isset($_GET[$pk]) 
+				? $_GET[$pk]
+				: null)
+		);
 	}
 
 	$this->id = ( count($this->table['PK'])==1 ? reset($arrIDs) : $arrIDs );
@@ -282,10 +287,15 @@ public function form( $fields = null, $conf = array() ){
 			)
 		);
 
-	$conf = array_merge( array('id'=>$this->table['prefix'], 'flagAddJavaScript'=>True), $conf);
+	$conf_default = array('id'=>$this->table['prefix'], 
+		'action'=>$this->conf['form'],
+		'DataAction'=>'update',
+		'flagAddJavaScript'=>True);
 
-	return $this->intra->form(($conf['action'] ? $conf['action'] : $this->conf['form'])
-		, ($conf['DataAction'] ? $conf['DataAction'] : 'update')
+	$conf = array_merge( $conf_default, $conf);
+
+	return $this->intra->form($conf['action']
+		, $conf['DataAction']
 		, $fields, 'POST', $conf);
 
 }
@@ -298,7 +308,7 @@ public function form( $fields = null, $conf = array() ){
 public function getPKFields(){
 	$fields = '';
 	foreach ($this->table['PK'] as $pk) {
-		$fields .= ($fields ? "\n" : '').$this->intra->field(null, $pk, $this->item[$pk], array('type'=>'hidden', 'dataset'=>['PK'=>True]));
+		$fields .= ($fields ? "\n" : '').$this->intra->field(null, $pk, $this->item, array('type'=>'hidden', 'dataset'=>['PK'=>True]));
 	}
 	return $fields;
 }
