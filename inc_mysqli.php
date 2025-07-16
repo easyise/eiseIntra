@@ -300,7 +300,9 @@ class eiseSQL extends mysqli{
             $mysqli_result = $mysqli_result_or_query;
             $mysqli_result->data_seek(0);
             $arr = $mysqli_result->fetch_array();
-            return $arr[0];
+            return $arr && is_array($arr) 
+                ? $arr[0]
+                : null;
         } else if (is_string($mysqli_result_or_query)){
             $sql = $mysqli_result_or_query;
             $mysqli_result = $this->q($sql);
