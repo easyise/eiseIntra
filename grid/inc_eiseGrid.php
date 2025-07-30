@@ -752,7 +752,8 @@ protected function __getRow($iRow, $row = null){
 protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     
     $field = ($col['type']=="del" ? "del" : $col["field"]);
-    $row = ($ixRow ? $this->Rows[$ixRow] : array());
+    $row = ($ixRow!==null && isset($this->Rows[$ixRow]) ? $this->Rows[$ixRow] : array());
+    
     $row[$field] = $val = ($ixRow===null 
         ? (isset($col['default']) ? $col['default'] : null)
         : (isset($row[$field]) ? $row[$field] : null)
