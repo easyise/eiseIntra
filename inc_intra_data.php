@@ -429,9 +429,10 @@ function decPHP2SQL($val, $valueIfNull=null){
  * @return string decimal value.
  */
 function decSQL2PHP($val, $decimalPlaces=null){
+    $intra = $this;
     $decPlaces = ($decimalPlaces!==null ? $decimalPlaces : self::getDecimalPlaces($val));
     return (!is_null($val) 
-            ? number_format((double)$val, (int)$decimalPlaces, $intra->conf['decimalSeparator'], $intra->conf['thousandsSeparator'])
+            ? number_format((double)$val, (int)$decPlaces, $intra->conf['decimalSeparator'], $intra->conf['thousandsSeparator'])
             : '');
 }
 
@@ -763,7 +764,7 @@ public function arrPHP2SQL($arrSrc, $types = array()){
         if(is_array($value)){
             $arrRet[$key] = $this->arrPHP2SQL($value, $types);
         } else {
-            switch ($types[$key]) {
+            switch (isset($types[$key]) ? $types[$key] : 'text') {
                 case 'date':
                     $arrRet[$key] = $this->oSQL->unq($this->datePHP2SQL($value));
                     break;

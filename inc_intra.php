@@ -1099,6 +1099,7 @@ private function menu_simpleTree($rs, $target){
  * This method returns HTML for "action menu" - the menu that displayed above the functional part of the screen. Menu content is set by __$arrActions__ parameter, the set of associative arrays with menu items.
  * Menu item definition array consists of the following properties:
  * array[] - menu item set. No nested menu items, no dropdowns in this version.  
+ *  - 'id'      (string) - (optional) HTML attribute "id" content
  *  - 'title'   (string) - Menu item title
  *  - 'action'  (string) - Menu item HREF attribute content. If it starts with 'javascript:' JS call will be encapsulated under ONCLICK attribute.
  *  - 'targer'  (string) - (optional) TARGET attribute content
@@ -1117,8 +1118,19 @@ function actionMenu($arrActions = array(), $flagShowLink=false){
     if(!$arrActions || count($arrActions)===0)
         return '';
 
-    $strRet .= '<div class="menubar ei-action-menu">'."\r\n";
+    $act_default = array(
+        'id' => '',
+        'title' => '',
+        'action' => '',
+        'target' => null,
+        'class' => ''
+    );
+
+    $strRet = '<div class="menubar ei-action-menu">'."\r\n";
     foreach ((array)$arrActions as $act) {
+
+            $act = array_merge($act_default, (array)$act);
+
             $strRet .=  "<div class=\"menubutton\">";
             $strRet .= "<a href=\"{$act['action']}\"".($act['id'] ? ' id="'.$act['id'].'"' : '');
 
@@ -1309,7 +1321,7 @@ function backref($urlIfNoReferer=null){
     $urlIfNoReferer = ($urlIfNoReferer ? $urlIfNoReferer : 'javascript:history.go(-1)');
     $backref = ($_COOKIE["referer"] ? $_COOKIE["referer"] : $urlIfNoReferer); // to be returned if there's no specific referers
 
-    if($_SERVER["HTTP_REFERER"]){
+    if(isset($_SERVER["HTTP_REFERER"])){
         $url_referer = parse_url($_SERVER["HTTP_REFERER"]);
         $request_uri_referer = $url_referer['path'].'?'.$url_referer['query'];
 
@@ -1843,6 +1855,8 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
                     )
             );
 
+        $flagIsSQL = false;
+
         switch($conf['type']){
 
             case "datetime":
@@ -1855,7 +1869,7 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
             case "money":
             case "real":
                 $html .= $this->showTextBox($name
-                    , $this->decSQL2PHP($value, $conf['decimalPlaces']!==null ? (int)$conf['decimalPlaces'] : 2) 
+                    , $this->decSQL2PHP($value, isset($conf['decimalPlaces']) && $conf['decimalPlaces']!==null ? (int)$conf['decimalPlaces'] : 2) 
                     , $conf); 
                 break;
 
@@ -1885,7 +1899,8 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
                                 $ds = $aDS[0];
                                 $conf['source_prefix'] = ($conf['source_prefix'] 
                                     ? $conf['source_prefix']
-                                    : $aDS[1]);        
+                                    : (isset($aDS[1]) ? $aDS[1] : '')
+                                );        
                             } else {
                                 $ds = $conf['source'];
                                 $flagIsSQL = true;
@@ -2120,6 +2135,20 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
     if(!is_array($arrConfig)){
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
+
+    $arrConfig = array_merge(array(
+        'FlagWrite' => null, // default is not set, so it will be determined by isEditable() method
+        'href' => '', // default href is empty
+        'target' => '', // default target is empty
+        'required' => false, // default required is false
+        'type' => 'text', // default type is text
+        'strAttrib' => '', // default attributes are empty
+        'maxlength' => 0, // default maxlength is 0
+        'decimalPlaces' => null, // default decimal places is null
+        'autocomplete' => true, // default autocomplete is true
+        'placeholder' => '', // default placeholder is empty
+        'id' => '', // default id is empty
+    ), $arrConfig);
     
     $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
     
@@ -2139,14 +2168,14 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
 
         $strRet = "<input type=\"{$strType}\" name=\"{$strName}\" id=\"{$id}\" class=\"{$strClassInput}\" data-type=\"{$arrConfig['type']}\"".
             ($strAttrib ? " ".$strAttrib : "").
-            (isset($arrConfig["required"]) && $arrConfig["required"] ? " required=\"required\"" : "").
-            (isset($arrConfig["decimalPlaces"]) && $arrConfig["decimalPlaces"]!==null ? " data-decimals=\"{$arrConfig["decimalPlaces"]}\"" : "").
-            (isset($arrConfig["autocomplete"]) && $arrConfig["autocomplete"]===false ? " autocomplete=\"off\"" : "").
-            (isset($arrConfig["placeholder"]) && $arrConfig["placeholder"] 
+            ($arrConfig["required"] ? " required=\"required\"" : "").
+            ($arrConfig["decimalPlaces"]!==null ? " data-decimals=\"{$arrConfig["decimalPlaces"]}\"" : "").
+            ($arrConfig["autocomplete"]===false ? " autocomplete=\"off\"" : "").
+            ($arrConfig["placeholder"] 
                 ? ' placeholder="'.htmlspecialchars($arrConfig["placeholder"]).'"'
                     .' title="'.htmlspecialchars($arrConfig["placeholder"]).'"'
                 : "").
-            (isset($arrConfig["maxlength"]) && $arrConfig["maxlength"] ? " maxlength=\"{$arrConfig["maxlength"]}\"" : "").
+            ($arrConfig["maxlength"] ? " maxlength=\"{$arrConfig["maxlength"]}\"" : "").
        " value=\"".htmlspecialchars($strValue)."\" />";
     } else {
         $strRet = "<div id=\"span_{$strName}\" class=\"{$strClass}\"".
@@ -2173,6 +2202,17 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
     if(!is_array($arrConfig)){
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
+
+    $arrConfig = array_merge(array(
+        'FlagWrite' => null, // default is not set, so it will be determined by isEditable() method
+        'rows' => 5, // default rows is 5
+        'strAttrib' => '', // default attributes are empty
+        'href' => '', // default href is empty
+        'target' => '', // default target is empty
+        'required' => false, // default required is false
+        'placeholder' => '', // default placeholder is empty
+        'id' => '', // default id is empty
+    ), $arrConfig);
 
     $strAttrib = $arrConfig["strAttrib"];
     
@@ -2309,6 +2349,19 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
     if(!is_array($confOptions)){
         $confOptions = Array("strAttrib"=>$confOptions);
     }
+
+    $confOptions = array_merge(array(
+        'FlagWrite' => null, // default is non-editable
+        'strAttrib' => '',
+        'required' => false,
+        'defaultText' => '',
+        'defaultTextPosition' => '', // 'first' or 'last'
+        'deletedOptions' => array(),
+        'optgroups' => array(),
+        'indent' => array(),
+        'href' => '',
+        'target' => '',
+    ), $confOptions);
     
     $flagWrite = $this->isEditable($confOptions["FlagWrite"]);
     
@@ -2364,6 +2417,8 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
     } else {
         
         $arrOptions = new RecursiveIteratorIterator(new RecursiveArrayIterator($arrOptions));
+        $valToShow = '';
+        $textToShow = '';
         foreach ($arrOptions as $key => $value){
             if ((string)$key==(string)$strValue) {
                $valToShow = $value;
@@ -2400,6 +2455,14 @@ function showCheckBox($strName, $strValue, $arrConfig=Array()){
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
 
+    $arrConfig = array_merge(array(
+        'FlagWrite' => null, // default is not set, so it will be determined by isEditable() method
+        'checked' => false, // default checked is false
+        'showValueAttr' => false, // if true, value attribute will be added to checkbox input
+        'strAttrib' => '', // default attributes are empty
+        'id' => '', // default id is empty
+    ), $arrConfig);
+
     $flagWrite = $this->isEditable($arrConfig["FlagWrite"]) ;
     
     $strClass = $this->handleClass($arrConfig);
@@ -2409,7 +2472,7 @@ function showCheckBox($strName, $strValue, $arrConfig=Array()){
 
     $strValue = ( isset($arrConfig['value']) ? $arrConfig['value'] : $strValue );
 
-    $showValueAttr = ( preg_match('/\[\]$/', $strName) || $arrConfig['showValueAttr'] || $arrConfig['value'] );
+    $showValueAttr = ( preg_match('/\[\]$/', $strName) || $arrConfig['showValueAttr'] || isset($arrConfig['value']) );
     
     $strAttrib = $arrConfig["strAttrib"];
     $retVal = "<input name=\"{$strName}\" id=\"{$id}\" class=\"{$strClassInput}\" type=\"checkbox\"".
@@ -2501,6 +2564,15 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
     if(!is_array($arrConfig)){
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
+
+    $arrConfig = array_merge(array(
+        'FlagWrite' => null, // default is not set, so it will be determined by isEditable() method
+        'href' => '', // default href is empty
+        'strAttrib' => '', // default attributes are empty
+        'source' => '', // source table for AJAX dropdown
+        'source_prefix' => '', // prefix for source table
+        'extra' => array(), // extra data to be passed to AJAX request
+    ), $arrConfig);
 
     $aSource = array(
         'table'=> eiseIntra::confVariations($arrConfig, array('source', 'strTable')),

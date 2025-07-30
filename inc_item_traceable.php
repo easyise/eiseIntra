@@ -100,6 +100,8 @@ private $conf_default = array(
     'entPrefix' => null, // entity prefix, e.g. 'ent'
 
     'radios' => array(), // array of radio buttons to be shown in the item form
+
+    'CHK' => array(), // checklists data
 );
 
 private $_aUser_Role_Tier;
@@ -745,30 +747,32 @@ private function init(){
                     $arrAct[$key] = $val;
             }
             
-            $this->conf['ACT'][$rwAAt['actID']] = array_merge($arrAct, array('RLA'=>($arrAct['actRoles'] ? preg_split('/[,;\s]+/', $arrAct['actRoles']) : array())));
+            $this->conf['ACT'][$rwAAt['actID']] = array_merge($arrAct, array('RLA'=>(isset($arrAct['actRoles']) &&  $arrAct['actRoles'] 
+                ? preg_split('/[,;\s]+/', $arrAct['actRoles']) 
+                : array())));
             $this->conf['ACT'][$rwAAt['actID']]['actOldStatusID'] = array();
             $this->conf['ACT'][$rwAAt['actID']]['actNewStatusID'] = array();
 
             $ts = array('ATA'=>'aclATA', 'ATD'=>'aclATD', 'ETA'=>'aclETA', 'ETD'=>'aclETD');
-            if (!$rwAAt["actFlagHasEstimates"]) {unset($ts["ETA"]);unset($ts["ETD"]);}
-            if (!$rwAAt["actFlagHasDeparture"]) {unset($ts["ATD"]);unset($ts["ETD"]);}
+            if ( !(isset($rwAAt["actFlagHasEstimates"]) && $rwAAt["actFlagHasEstimates"]) ) {unset($ts["ETA"]);unset($ts["ETD"]);}
+            if ( !(isset($rwAAt["actFlagHasDeparture"]) && $rwAAt["actFlagHasDeparture"]) ) {unset($ts["ATD"]);unset($ts["ETD"]);}
             $this->conf['ACT'][$rwAAt['actID']]['aatFlagTimestamp'] = $ts;
 
         } 
-        if($rwAAt['aatFlagToTrack'])
+        if(isset($rwAAt['aatFlagToTrack']) && $rwAAt['aatFlagToTrack'])
             $this->conf['ACT'][$rwAAt['actID']]['aatFlagToTrack'][$rwAAt['aatAttributeID']] = array('aatFlagEmptyOnInsert'=>(int)$rwAAt['aatFlagEmptyOnInsert']
                 , 'aatFlagToChange'=>(int)$rwAAt['aatFlagToChange']
                 , 'aatFlagTimestamp'=>$rwAAt['aatFlagTimestamp']
                 , 'aatFlagUserStamp'=>$rwAAt['aatFlagUserStamp']
                 );
-        if($rwAAt['aatFlagMandatory'])
+        if(isset($rwAAt['aatFlagMandatory']) && $rwAAt['aatFlagMandatory'])
             $this->conf['ACT'][$rwAAt['actID']]['aatFlagMandatory'][$rwAAt['aatAttributeID']] = array('aatFlagEmptyOnInsert'=>(int)$rwAAt['aatFlagEmptyOnInsert']
                 , 'aatFlagToChange'=>(int)$rwAAt['aatFlagToChange']);
-        if($rwAAt['aatFlagTimestamp']){
+        if(isset($rwAAt['aatFlagTimestamp']) && $rwAAt['aatFlagTimestamp']){
             if (isset($this->conf['ACT'][$rwAAt['actID']]['aatFlagTimestamp'][$rwAAt['aatFlagTimestamp']]))
                 $this->conf['ACT'][$rwAAt['actID']]['aatFlagTimestamp'][$rwAAt['aatFlagTimestamp']] = $rwAAt['aatAttributeID'];
         }
-        if($rwAAt['aatFlagUserStamp']){
+        if(isset($rwAAt['aatFlagUserStamp']) && $rwAAt['aatFlagUserStamp']){
             $this->conf['ACT'][$rwAAt['actID']]['aatFlagUserStamp'][$rwAAt['aatAttributeID']] = $rwAAt['aatAttributeID'];
         }
             
@@ -848,8 +852,9 @@ private function init(){
             $this->conf['ACT'][$rwATS['atsActionID']]['actNewStatusID'][] = $rwATS['atsNewStatusID'];
             $this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][$rwATS['atsActionID']] = &$this->conf['ACT'][$rwATS['atsActionID']];
         }
-            
-        if($this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3]){
+        
+
+        if($rwATS['atsOldStatusID'] && isset($this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3]) && $this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3]){
             unset($this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3]);
             $this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3] = $arrActDel;
         }
@@ -877,7 +882,7 @@ private function init(){
 
 
     foreach ($this->conf['STA'] as &$sta) {
-        if($sta['ACT'])
+        if(isset($sta['ACT']) && $sta['ACT'])
             usort($sta['ACT'], array($this, '_sort_STA_ACT'));
     }
 
@@ -903,7 +908,8 @@ private function init(){
  * @ignore
  */
 function _sort_STA_ACT($a, $b){
-    return $b['actNewStatusID'][0] - $a['actNewStatusID'][0];
+    return (isset($b['actNewStatusID'][0]) ?  $b['actNewStatusID'][0] : 0)
+        - (isset($a['actNewStatusID'][0]) ? $a['actNewStatusID'][0] : 0);
 }
 
 /**
@@ -925,8 +931,9 @@ public function RLAByMatrix(){
     $aAtrMTX = $this->conf['AtrMTX'];
 
     foreach ($this->conf['STA'] as $staID => $rwSTA) {
-        foreach ((array)$rwSTA['ACT'] as $actID => $act) {
-            if(!$act['MTX'])
+        $rwSTA['ACT'] = isset($rwSTA['ACT']) ? $rwSTA['ACT'] : array();
+        foreach ($rwSTA['ACT'] as $actID => $act) {
+            if( !(isset($act['MTX']) && $act['MTX']) )
                 continue;
             $rla = array();
             $rla_tiers = array();
@@ -1478,14 +1485,14 @@ function getAllData($toRetrieve = null){
 
     //   - Master table is $this->item
     // attributes and combobox values
-    if($this->item["{$this->entID}StatusID"]!==null)
-        $this->staID = (int)$this->item["{$this->entID}StatusID"];
+    if($this->item["{$this->conf['entPrefix']}StatusID"]!==null)
+        $this->staID = (int)$this->item["{$this->conf['entPrefix']}StatusID"];
 
     if(in_array('Master', $toRetrieve))
         $this->getData();
 
     if(in_array('Text', $toRetrieve)){  
-        $this->item["{$this->entID}StatusID_text"] = $this->conf['STA'][(int)$this->item["{$this->entID}StatusID"]]["staTitle{$this->intra->local}"];
+        $this->item["{$this->conf['entPrefix']}StatusID_text"] = $this->conf['STA'][(int)$this->item["{$this->conf['entPrefix']}StatusID"]]["staTitle{$this->intra->local}"];
         foreach($this->conf["ATR"] as $atrID=>$rwATR){
             if (in_array($rwATR["atrType"], Array("combobox", "ajax_dropdown"))){
                 $this->item[$rwATR["atrID"]."_text"] = !isset($this->item[$rwATR["atrID"]."_text"]) 
@@ -1955,7 +1962,7 @@ public function getStatusField($conf=[]){
     $defaultConf = ['clickable'=>True];
     $conf = array_merge($defaultConf, $conf);
 
-    return ($this->conf['flagNoStatusField'] 
+    return (isset($this->conf['flagNoStatusField'] ) && $this->conf['flagNoStatusField'] 
         ? ''
         : '<div class="statusTitle">'.$this->intra->translate('Status').': <span class="eif_curStatusTitle'
                 .($conf['clickable'] ? ' clickable' : ' non-clickable')
@@ -2298,11 +2305,11 @@ function getAttributeFields($fields, $item = null, $conf = array()){
     foreach($fields as $field){
         $atr = $this->conf['ATR'][$field];
 
-        if($conf['flagNonEmpty'] && !$item[$field])
+        if(isset($conf['flagNonEmpty']) && $conf['flagNonEmpty'] && !$item[$field])
             continue;
 
         $options = array('type'=>$atr['atrType']
-            , 'FlagWrite'=>($conf['forceFlagWrite'] 
+            , 'FlagWrite'=>(isset($conf['forceFlagWrite']) && $conf['forceFlagWrite'] 
                 ? $conf['FlagWrite']
                 : (in_array($field, (array)$this->conf['STA'][$this->staID]['satFlagEditable']) && $conf['FlagWrite']) )
             );
@@ -2323,9 +2330,9 @@ function getAttributeFields($fields, $item = null, $conf = array()){
         }
         if($atr['atrHref'])
             $options['href'] = $atr['atrHref'];
-        if($conf['suffix'])
+        if(isset($conf['suffix']) && $conf['suffix'])
             $options['field_suffix'] = $conf['suffix'];
-        if($conf['flagNoInputName'] && !$options['FlagWrite']){
+        if(isset($conf['flagNoInputName']) && $conf['flagNoInputName'] && !$options['FlagWrite']){
             $options['no_input_name'] = true;
         }
 
@@ -2369,7 +2376,7 @@ public function arrActionButtons(){
         foreach($arrActions_ as $rwAct){
 
             if($rwAct['actFlagSystem'] 
-                || in_array($rwAct['actID'], (array)$this->item['CHK_ACT_unnecesary']))
+                || ($this->conf['CHK'] && in_array($rwAct['actID'], (array)$this->item['CHK_ACT_unnecesary'])))
                 continue;
 
             if ($this->id) {
