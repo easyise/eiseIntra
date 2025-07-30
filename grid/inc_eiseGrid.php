@@ -43,6 +43,7 @@ static $defaultWidthsByType = array(
 static $defaultConf = Array(                    //defaults for eiseGrid
         'titleDel' => "Del" // column title for Del
         , "titleAdd" => "Add >>" // column title for Add
+        , 'controlBarButtons' => ''
         //, 'controlBarButtons' => 'add|insert|moveup|movedown|delete|excel|save'
         , 'extraInputs' => Array("DataAction"=>"update")
         , 'urlToSubmit' => ''
@@ -58,6 +59,8 @@ static $defaultConf = Array(                    //defaults for eiseGrid
         , 'arrPermissions' => Array("FlagWrite" => true)
         , 'Tabs3DCookieName' => '%s_tabs3d'
 
+        , 'class' => ''
+
         , 'eiseIntraRelativePath' => eiseIntraRelativePath
 
         , 'excelSheetName' => 'Sheet 1'
@@ -65,12 +68,62 @@ static $defaultConf = Array(                    //defaults for eiseGrid
 
         , 'colors' => array('#d79695', '#bd5050', '#fdc138', '#feff48', '#94d05e', '#928958', '#26afec', '#588cd0', '#b2a1c5', '#95cddb')
 
+        , 'intra' => null // intra object, if not set, will be taken from GLOBALS
+
     );
+
+public $col_default = array(
+    'field' => '', // field name, must be set
+    'fields' => null, // array of fields, if set, will be used for colspan purposes
+    'title' => '', // column title
+    'type' => 'text', // column type
+    'style' => '', // column style
+    'class' => '', // column class
+    'mandatory' => false, // is column mandatory
+    'sortable' => false, // is column sortable
+    'filterable' => false, // is column filterable
+    'headerClickable' => false, // is column header clickable
+    'readonly' => false, // is column read-only
+    'disabled' => false, // is column disabled
+    'static' => false, // is column static, i.e. not editable
+    'default' => null, // default value for the field
+
+    'flagDontUpdateRow' => false, // if true, the row will not be updated on change of this field
+
+    'totals' => null, // totals for the column, can be 'sum', 'count', 'avg', 'min', 'max'
+
+    'decimalPlaces' => null, // number of decimal places for the column, if applicable
+
+    'source' => null, // source for the column, can be array of options, SQL query or string with options
+    'source_prefix' => null, // prefix for the source, if applicable
+
+    'href' => null, // link for the column, if applicable
+    'target' => null, // target for the link, if applicable
+
+    'format' => null, // date-time format for the column, if applicable
+);
+
 
 /**
  * array of columns. can be associative or indexed.
  */
 public $Columns = array();
+
+public $visibleColumns = array(); // array of visible columns, indexed by field name
+
+public $headerColumns = array(); // array of header columns, indexed by field name
+
+public $hiddenInputs = array(),
+    $permissions = array(),
+    $arrWidth = array(),
+    $Tabs3D = null,
+    $arrSpans = array(); // array of spans for the header columns, indexed by field name
+
+public $conf = array(); // configuration of eiseGrid, see $defaultConf for defaults
+
+public $intra, $oSQL;
+
+public $name = ''; // name of the grid, used for HTML id and class attributes
 
 
 /**
@@ -107,8 +160,8 @@ function __construct($oSQL
 
     $arrConfig['urlToSubmit'] = (isset($arrConfig['urlToSubmit']) ? $arrConfig['urlToSubmit'] : $_SERVER["PHP_SELF"]);
     $arrConfig['excelFileName'] = (isset($arrConfig['excelFileName']) ? $arrConfig['excelFileName'] : pathinfo($_SERVER["PHP_SELF"], PATHINFO_FILENAME).'.xls');
-    $arrConfig['Tabs3DCookieName_src'] = $arrConfig['Tabs3DCookieName'];
-    $arrConfig['Tabs3DCookieName'] = sprintf($arrConfig['Tabs3DCookieName'], $strName);
+    $arrConfig['Tabs3DCookieName_src'] = isset($arrConfig['Tabs3DCookieName']) ? $arrConfig['Tabs3DCookieName'] : self::$defaultConf['Tabs3DCookieName'];
+    $arrConfig['Tabs3DCookieName'] = sprintf(isset($arrConfig['Tabs3DCookieName']) ? $arrConfig['Tabs3DCookieName'] : self::$defaultConf['Tabs3DCookieName'], $strName);
 
     $this->oSQL = $oSQL;
 
@@ -118,16 +171,23 @@ function __construct($oSQL
     $this->permissions = (isset($arrConfig["arrPermissions"]) 
         ? $arrConfig["arrPermissions"]
         : ( isset($intra->arrUsrData['FlagWrite'])
-            ? array('FlagWrite'=>$intra->arrUsrData['FlagWrite'])
+            ? array('FlagWrite'=>$intra->arrUsrData['FlagWrite'], 
+                'FlagDelete'=>$intra->arrUsrData['FlagWrite'],
+                )
             : self::$defaultConf['arrPermissions']) 
         );
     $this->intra = ($this->conf['intra'] ? $this->conf['intra'] : $intra);
     if($this->conf['intra'])
         unset($this->conf['intra']);
-    
+
     //backward-compatibility staff
-    $this->permissions["FlagDelete"] = (isset($this->conf['flagNoDelete']) ? !$this->conf['flagNoDelete'] : $this->permissions["FlagDelete"]);
     $this->permissions["FlagWrite"] = (isset($this->conf['flagDisabled']) ? !$this->conf['flagDisabled'] : $this->permissions["FlagWrite"]);
+    $this->permissions["FlagDelete"] = (isset($this->conf['flagNoDelete']) 
+        ? !$this->conf['flagNoDelete'] 
+        : (isset($this->permissions["FlagDelete"])
+            ? $this->permissions["FlagDelete"]
+            : $this->permissions["FlagWrite"])
+    );
     
 }
 
@@ -261,6 +321,7 @@ function get_html($allowEdit=true){
         $this->permissions["FlagWrite"] = false;
 
     foreach ($this->Columns as $col) {
+        $col = array_merge($this->col_default, $col);
         if($col['title'] && $col['filterable']===true){
             if(strpos($this->conf['controlBarButtons'], 'filter')===false)
                 $this->conf['controlBarButtons'] .= ($this->conf['controlBarButtons'] ? '|' : '').'filter';
@@ -304,7 +365,7 @@ function get_html($allowEdit=true){
     /**
      * <THEAD>
      */
-    $strHead .= "<tr>\r\n";
+    $strHead = "<tr>\r\n";
 
     $this->visibleColumns = Array();
     $this->hiddenInputs = Array();
@@ -319,12 +380,16 @@ function get_html($allowEdit=true){
     $spannedColumns = array();
 
     foreach ($this->Columns  as $ix=>$col){
+
+        $col = array_merge($this->col_default, $col);
         
         if ((int)$this->permissions["FlagWrite"]==0){
             $this->Columns[$ix]['static'] = true;
         }
         if ($col['class']){
             $this->Columns[$ix]['staticClass'] = ' '.preg_replace("/\[.+?\]/", "", $col['class']);
+        } else {
+            $this->Columns[$ix]['staticClass'] = '';
         }
         
         if ($col["title"]){
@@ -394,7 +459,7 @@ function get_html($allowEdit=true){
             } else {
                 $maxW = 0;
                 foreach($this->Columns[$ix]['fields'] as $fldName=>$fld){
-                    $w = ($fld['width'] 
+                    $w = (isset($fld['width']) && $fld['width']
                             ? $fld['width'].(preg_match('/^[0-9]+$/', $fld['width']) ? 'px' : '')
                             : self::$defaultWidthsByType[($fld['type'] ? $fld['type'] : 'text')]
                         );
@@ -546,12 +611,13 @@ function get_html($allowEdit=true){
     */
 
     //if there's any totals
-    $strFooter .= "<tfoot>";
+    $strFooter = "<tfoot>";
     $strFooter .= "<tr>";
     
     $iColspan = 0;
     $iTotalsCol = 0;
     foreach($this->visibleColumns as $field => $col){
+        $col = array_merge($this->col_default, $col);
         if ($col['totals']){
             if ($iColspan>0){
                 $strFooter .= "\t<td class=\"eg-totals-caption\"".($iColspan>1 ? " colspan=\"{$iColspan}\"" : "").">".
@@ -654,8 +720,8 @@ protected function __getRow($iRow, $row = null){
     $html = '<tbody class="'.(
             $iRow===null
             ? 'eg-template'
-            : 'eg-data'.($row['__rowClass'] ? ' '.$row['__rowClass'] : '').(
-                $row['__rowDisabled']
+            : 'eg-data'.(isset($row['__rowClass']) ? ' '.$row['__rowClass'] : '').(
+                (isset($row['__rowDisabled']) ? $row['__rowDisabled'] : '')
                 ? ' eg-row-disabled'
                 : ''
                 )
@@ -666,7 +732,7 @@ protected function __getRow($iRow, $row = null){
         $html .= '<tr>'."\r\n";
 
         foreach($this->visibleColumns as $ixCol=>$col){
-            if($row['__rowDisabled'])
+            if($row && isset($row['__rowDisabled']) && $row['__rowDisabled'])
                 $col['fields'][$iSubRow]['disabled'] = true;
             $html .= ($col['fields'][$iSubRow]
                 ? $this->__paintCell($col['fields'][$iSubRow], $ixCol, $iRow)
@@ -686,8 +752,14 @@ protected function __getRow($iRow, $row = null){
 protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     
     $field = ($col['type']=="del" ? "del" : $col["field"]);
-    $row = $this->Rows[$ixRow];
-    $row[$field] = $val = ($ixRow===null ? $col['default'] : $row[$field]);
+    $row = ($ixRow ? $this->Rows[$ixRow] : array());
+    $row[$field] = $val = ($ixRow===null 
+        ? (isset($col['default']) ? $col['default'] : null)
+        : (isset($row[$field]) ? $row[$field] : null)
+    );
+
+    $col = array_merge($this->col_default, $col);
+
     $cell = $col;
     
     $arrSuffix = array();
@@ -755,10 +827,12 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     if ($ixField===0){
         if (is_array($this->hiddenInputs))
         foreach($this->hiddenInputs as $hidden_field=>$hidden_col){
+            $hidden_col = array_merge($this->col_default, $hidden_col);
             $strCell .= "\r\n\t\t<input type=\"hidden\" name=\"{$hidden_field}[]\" value=\"".
                 htmlspecialchars($ixRow===null 
                     ? $hidden_col["default"] 
-                    : $this->Rows[$ixRow][$hidden_field]).
+                    : (isset($this->Rows[$ixRow][$hidden_field]) ? $this->Rows[$ixRow][$hidden_field] : '')
+                    ).
                 "\">";
         }
         
