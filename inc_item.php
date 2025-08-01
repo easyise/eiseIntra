@@ -901,9 +901,10 @@ function formMessages(){
         </div>';
     $strRes .= "</form>\r\n";
 
-    if( $this->intra->conf['flagRunMessageSend'] && file_exists(dirname($_SERVER['SCRIPT_FILENAME']).DIRECTORY_SEPARATOR.'bat_messagesend.php') ){
-    	$strRes .= "\n".'<script type="text/javascript">$(document).ready(function(){ $.get("bat_messagesend.php?nc="+Math.random()*1000); });</script>'."\n";
-    }
+	// DISABLED because mail sending is on crontab
+    // if( $this->intra->conf['flagRunMessageSend'] && file_exists(dirname($_SERVER['SCRIPT_FILENAME']).DIRECTORY_SEPARATOR.'bat_messagesend.php') ){
+    // 	$strRes .= "\n".'<script type="text/javascript">$(document).ready(function(){ $.get("bat_messagesend.php?nc="+Math.random()*1000); });</script>'."\n";
+    // }
 
     $this->intra->arrUsrData['FlagWrite'] = $oldFlagWrite;
 

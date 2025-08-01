@@ -597,7 +597,7 @@ private function init(){
         (isset($this->intra->conf['systemID']) && $this->intra->conf['systemID']!=='' ? $this->intra->conf['systemID'].':' : '')
         .$this->entID;
 
-    if($_SESSION[$sessKey] && !$this->conf['flagDontCacheConfig']){
+    if(isset($_SESSION[$sessKey]) && !$this->conf['flagDontCacheConfig']){
     // if(false){
         $this->conf = array_merge($this->conf, $_SESSION[$sessKey]);
         return $this->conf;
@@ -2079,15 +2079,15 @@ public function getActionLog($q){
     foreach ($arrACL as $aclGUID => $acl) {
 
 
-        if($acl['aclActionID']==2 && !$q['flagFull'])
+        if($acl['aclActionID']==2 && !isset($q['flagFull']))
             continue;
 
         if($acl['aclActionPhase']>2)
             continue;
 
         $act = $this->conf['ACT'][$acl['aclActionID']];
-        $sta_old = $this->conf['STA'][$acl['aclOldStatusID']];
-        $sta_new = $this->conf['STA'][$acl['aclNewStatusID']];
+        $sta_old = $acl['aclOldStatusID'] ? $this->conf['STA'][$acl['aclOldStatusID']] : null;
+        $sta_new = $acl['aclNewStatusID'] ? $this->conf['STA'][$acl['aclNewStatusID']] : null;
 
         $rw = array('aclGUID' => $acl['aclGUID']
             , 'actID' => $acl['aclActionID']
@@ -2106,7 +2106,10 @@ public function getActionLog($q){
                     .(strtotime($acl["aclATA"])!=strtotime(date('Y-m-d', strtotime($acl["aclATA"]))) ? " {$this->intra->conf['timeFormat']}" : '')
                 , strtotime($acl["aclATA"]))
             );
-        $aclFieldsToTrack = array_keys((array)$this->conf['ACT'][$acl['actID']]['aatFlagToTrack']);
+        $aclFieldsToTrack = (!empty($this->conf['ACT'][$acl['actID']]['aatFlagToTrack']) 
+            ? array_keys((array)$this->conf['ACT'][$acl['actID']]['aatFlagToTrack'])
+            : array()
+        );
         if($acl['aclItemTraced'] && count($aclFieldsToTrack)){
             $tracedHTML = $this->getAttributeFields($aclFieldsToTrack, $this->getTracedData($acl)
                 , array('suffix'=>'_'.$acl['aclGUID'], 'FlagWrite'=>false, 'flagNonEmpty'=>true, 'flagNoInputName'=>true)

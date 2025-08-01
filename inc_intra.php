@@ -1323,7 +1323,7 @@ function backref($urlIfNoReferer=null){
 
     if(isset($_SERVER["HTTP_REFERER"])){
         $url_referer = parse_url($_SERVER["HTTP_REFERER"]);
-        $request_uri_referer = $url_referer['path'].'?'.$url_referer['query'];
+        $request_uri_referer = $url_referer['path'].'?'.(isset($url_referer['query']) ? $url_referer['query'] : '');
 
         if($_SERVER['REQUEST_METHOD']=='GET'){
 
@@ -2224,7 +2224,7 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
     $id = ($arrConfig['id'] ? $arrConfig['id'] : $strName);
 
     if ($flagWrite){
-        $strRet .= "<textarea class=\"{$strClassInput}\""
+        $strRet = "<textarea class=\"{$strClassInput}\""
             .($arrConfig['rows'] ? " rows=\"{$arrConfig['rows']}\"" : '')
             ." id=\"$id\""
             ." name=\"".$strName."\"";
@@ -2925,7 +2925,7 @@ function cancelDataRead(){
 public static function isRecursion(){
     $aCallsUnique = array();
     foreach (debug_backtrace() as $call) {
-        $class_func_curr = ($call['class'] ? $call['class'].'::' : '').$call['function'];
+        $class_func_curr = (isset($call['class']) ? $call['class'].'::' : '').$call['function'];
         $aCallsUnique[$class_func_curr] = (isset($aCallsUnique[$class_func_curr]) ? $aCallsUnique[$class_func_curr] : 0) + 1;
     }
     foreach($aCallsUnique as $nCalls){
@@ -2974,7 +2974,7 @@ function showDatesPeriod($trnStartDate, $trnEndDate, $precision = 'date'){
 
 function getUserData($usrID){
 
-    if($this->userInfoCache[$usrID]){
+    if(isset($this->userInfoCache[$usrID])){
         return $this->userInfoCache[$usrID];
     }
 
@@ -2983,7 +2983,7 @@ function getUserData($usrID){
     $rw = $oSQL->fetch_array($rs);
     
     $retVal = ($rw["optValue"]!="" 
-        ? ($rw["optText{$this->local}"]==""
+        ? (empty($rw["optText{$this->local}"])
             ? $rw["optText"]
             : $rw["optText{$this->local}"])
          : $usrID);
