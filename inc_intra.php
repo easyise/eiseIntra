@@ -1319,7 +1319,7 @@ function redirect($strMessage, $strLocation, $arrConfig = array()){
 function backref($urlIfNoReferer=null){
 
     $urlIfNoReferer = ($urlIfNoReferer ? $urlIfNoReferer : 'javascript:history.go(-1)');
-    $backref = ($_COOKIE["referer"] ? $_COOKIE["referer"] : $urlIfNoReferer); // to be returned if there's no specific referers
+    $backref = (isset($_COOKIE["referer"]) ? $_COOKIE["referer"] : $urlIfNoReferer); // to be returned if there's no specific referers
 
     if(isset($_SERVER["HTTP_REFERER"])){
         $url_referer = parse_url($_SERVER["HTTP_REFERER"]);
@@ -2146,6 +2146,7 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
         'maxlength' => 0, // default maxlength is 0
         'decimalPlaces' => null, // default decimal places is null
         'autocomplete' => true, // default autocomplete is true
+        'readonly' => false, // default readonly is false
         'placeholder' => '', // default placeholder is empty
         'id' => '', // default id is empty
     ), $arrConfig);
@@ -2168,6 +2169,7 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
 
         $strRet = "<input type=\"{$strType}\" name=\"{$strName}\" id=\"{$id}\" class=\"{$strClassInput}\" data-type=\"{$arrConfig['type']}\"".
             ($strAttrib ? " ".$strAttrib : "").
+            ($arrConfig["readonly"] ? " readonly=\"readonly\"" : "").
             ($arrConfig["required"] ? " required=\"required\"" : "").
             ($arrConfig["decimalPlaces"]!==null ? " data-decimals=\"{$arrConfig["decimalPlaces"]}\"" : "").
             ($arrConfig["autocomplete"]===false ? " autocomplete=\"off\"" : "").
