@@ -2092,6 +2092,7 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
 
         $strRet = "<input type=\"{$strType}\" name=\"{$strName}\" id=\"{$id}\" class=\"{$strClassInput}\" data-type=\"{$arrConfig['type']}\"".
             ($strAttrib ? " ".$strAttrib : "").
+            ($arrConfig["readonly"] ? " readonly=\"readonly\"" : "").
             ($arrConfig["required"] ? " required=\"required\"" : "").
             ($arrConfig["decimalPlaces"]!==null ? " data-decimals=\"{$arrConfig["decimalPlaces"]}\"" : "").
             ($arrConfig["autocomplete"]===false ? " autocomplete=\"off\"" : "").
