@@ -164,12 +164,15 @@ var eiseIntraActionSubmit = function(event, $form){
             var arrFieldsToFill = [];
             if(o.act.aatFlagMandatory)
                 $.each(o.act.aatFlagMandatory, function(fieldName, arrFlags){
-                    if(typeof($form.find('#'+fieldName)[0])=='undefined' && o.atr[fieldName].atrType!='combobox'){
+                    $inp = $form.find('#'+fieldName);
+                    if((typeof($inp[0])=='undefined' || $inp.attr('readonly'))
+                        && ($inp.length && $inp.attr('type')!='combobox')
+                    ){
                         arrFieldsToFill.push({name: o.atr[fieldName].atrID
                             , title: ($form.data('eiseIntraForm').conf.local ? o.atr[fieldName].atrTitleLocal : o.atr[fieldName].atrTitle)
-                            , type: o.atr[fieldName].atrType
+                            , type: (o.atr[fieldName].atrType=='boolean' ? 'checkbox' : o.atr[fieldName].atrType)
                             , defaultValue: o.atr[fieldName].atrDefault
-                            , required: true});
+                            , required: ['boolean', 'checkbox'].includes(o.atr[fieldName].atrType) ? false : true});
                     }
                 });
 

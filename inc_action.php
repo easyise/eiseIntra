@@ -329,8 +329,12 @@ public function validate(){
                 ? $this->arrAction[$atrID]
                 : ($this->item->item[$atrID])
                 ); 
-        if(!$v || (is_numeric($v) && (double)$v===0.0 )){
-            $aMissingFields[] = $this->item->conf['ATR'][$atrID]['atrTitle'.$this->intra->local]." ({$atrID})";
+
+        $flagBoolean = in_array($this->item->conf['ATR'][$atrID]['atrType'], array('boolean', 'checkbox'));
+        if(!$flagBoolean){
+            if(!$v || (is_numeric($v) && (double)$v===0.0 )){
+                $aMissingFields[] = $this->item->conf['ATR'][$atrID]['atrTitle'.$this->intra->local]." ({$atrID})";
+            }
         }
     }
     if(count($aMissingFields)){

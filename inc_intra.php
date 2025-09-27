@@ -2354,7 +2354,7 @@ function showCheckBox($strName, $strValue, $arrConfig=Array()){
     }
 
     $flagWrite = $this->isEditable($arrConfig["FlagWrite"]) ;
-    
+
     $strClass = $this->handleClass($arrConfig);
     $strClassInput = 'eif-input'.($strClass ? ' '.$strClass : '');
 
@@ -2370,7 +2370,7 @@ function showCheckBox($strName, $strValue, $arrConfig=Array()){
         ? " checked=\"checked\" " 
         : "").
     ($showValueAttr ? ' value="'.htmlspecialchars($strValue).'"' : "").
-    (!$flagWrite ? " readonly=\"readonly\"" : "").
+    (!$flagWrite ? " readonly=\"readonly\" onclick=\"return false;\"" : "").
     ($strAttrib!="" ? $strAttrib : " style='width:auto;'" ).">";
 
     return $retVal;
