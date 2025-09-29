@@ -1,8 +1,36 @@
 <?php
+/**
+ * This class handles actions on traceable items. Actions can be performed both by users and programmatically. Actions are defined in stbl_action table and linked to statuses in stbl_status table. Action can change status of the item, update some fields and trace item data defined by item configuration. 
+ * 
+ * Object created as class instance defines single action to be performed on the item. Action is executed by execute() method. Execution means that action is added to action log (stbl_action_log) and, if required, item data is updated in the master table. If action is not set to autocomplete, it should be started and finished separately.
+ * 
+ * Actions can be planned for forecasting purposes without execution. Planned actions are stored in stbl_action_log table with action phase set to 0. Planned actions can be started and finished later.
+ * 
+ * System can trace ETA/ETD/ATA/ATD timestamps for both actions, depending on action configuration options. These timestamps can be set programmatically or as actual timestamps when start or finish actions.
+ */
 class eiseAction {
+
+public $item;
+public $oSQL;
+public $intra;
+public $entID;
+public $flagIsManagement = false;
 
 public static $ts = array('ETD', 'ATD', 'ETA', 'ATA');
 
+/**
+ * @var array $conf Associative array defining action configuration as obtained from stbl_action table.
+ * Might contain ```aclGUID``` key if action has been obtained from stbl_action_log table. 
+ */
+public $arrAction = array();
+
+/**
+ * Constructor of eiseAction class
+ * 
+ * @param eiseItemTraceable $item Instance of eiseItemTraceable class the action is performed on
+ * @param array $arrAct Associative array defining action to be performed. Should contain at least 'actID' or 'aclGUID' keys
+ * @param array $options Associative array of options.
+ */
 public function __construct($item, $arrAct, $options = array()){
 
 	$this->item = $item;
@@ -91,6 +119,12 @@ public function __construct($item, $arrAct, $options = array()){
 
 }
 
+/**
+ * This function "executes" the action. If action is set to autocomplete, it is added to action log and finished in one go. If not, it is just added to action log and should be started and finished later.
+ * 
+ * @return string Returns aclGUID of the action just executed
+ * 
+ */
 public function execute(){
 
     // proceed with the action
@@ -128,6 +162,13 @@ public function execute(){
 
 }
 
+/**
+ * This function updates action log record with new data. It can be used to update traced fields, comments and timestamps.
+ * 
+ * @param array $nd Associative array of fields to update. Should contain keys like 'aclETA', 'aclETD', 'aclATA', 'aclATD' or any other fields defined as traceable in item configuration.
+ * 
+ * @return void
+ */
 public function update($nd = null){
 
     $aToUpdate_old = (array)@json_decode($this->arrAction['aclItemTraced'], true);
@@ -181,6 +222,13 @@ public function update($nd = null){
 
 }
 
+/**
+ * Function adds new action to action log. ```aclActionPhase``` is set to 0 (planned). Action should be started and finished later unless it's set to autocomplete.
+ * Function also updates ```$arrAction``` property of the class instance with data just inserted to action log.
+ * Being executed it triggers ```beforeActionPlan``` and ```onActionPlan``` hooks of the item.
+ * 
+ * @return string Returns aclGUID of the action just added
+ */
 public function add(){
 
     // 0. Trigger beforeActionPlan hook
@@ -237,6 +285,11 @@ public function add(){
 
 }
 
+/**
+ * Function starts the action previously added to action log. ```aclActionPhase``` is set to 1 (started).
+ * Being executed it triggers ```onActionStart``` hook of the item.
+ * 
+ */
 function start(){
     
     $this->arrAction['aclOldStatusID'] = $this->item->staID;
@@ -278,6 +331,17 @@ function start(){
 
 }
 
+/**
+ * This function validates if action can be performed. It does not check if user has permissions to run the action, this should be done separately.
+ * 
+ * It checks following:
+ * - if action is create, update or delete, it checks if item is in correct status and if user has permissions to perform such action
+ * - it checks if item is in correct status to run the action
+ * - it checks mandatory fields defined for the action. 
+ * 
+ * In case of any problem, it throws an Exception with description of the problem.
+ * 
+ */
 public function validate(){
 
 	$aclOldStatusID = (array_key_exists("aclOldStatusID", $this->arrAction) 
@@ -342,6 +406,12 @@ public function validate(){
     }
 }
 
+/**
+ * This function finishes the action previously started. ```aclActionPhase``` is set to 2 (completed). If action changes status, status log entry is added and master table is updated.
+ * Being executed it triggers ```onActionFinish``` hook of the item.
+ * 
+ * @return void
+ */
 public function finish(){
 
 	if (!$this->arrAction["aclActionPhase"]){
@@ -468,6 +538,11 @@ public function finish(){
 
 }
 
+/**
+ * This function cancels the action previously added to action log. If action was in phase 0 (planned), it is deleted from action log. If it was started (phase 1), it is marked as cancelled (phase 3).
+ * 
+ * @return void
+ */
 function cancel(){
 
     $oSQL = $this->oSQL;
@@ -490,7 +565,12 @@ function cancel(){
 
 }
 
-
+/**
+ * This function checks if action timeline is correct, i.e. ATA is not less than previous ATA and not less than ATD.
+ * 
+ * In case of any problem, it throws an Exception with description of the problem.
+ * 
+ */
 function checkTimeLine(){
 	
     $oSQL = $this->oSQL;
@@ -531,6 +611,12 @@ function checkTimeLine(){
 	return true;
 }
 
+/**
+ * This function checks if all mandatory fields defined for the action are filled and if all fields defined as "to change" are actually changed.
+ * 
+ * In case of any problem, it throws an Exception with description of the problem.
+ * 
+ */
 function checkMandatoryFields(){
     
     $oSQL = $this->oSQL;
@@ -592,6 +678,16 @@ function checkMandatoryFields(){
     
 }
 
+/**
+ * This function checks if user has permissions to run the action.
+ * 
+ * It checks following:
+ * - if user is member of at least one role defined for the action
+ * - if user is not member of any role defined as disabled for the action
+ * 
+ * In case of any problem, it throws an Exception with description of the problem.
+ * 
+ */
 public function checkPermissions(){
 
     if($this->arrAction['actFlagSystem']){ // system actions has no UI but it can be invoked in code
@@ -607,6 +703,9 @@ public function checkPermissions(){
          throw new Exception($this->intra->translate("Not authorized as %s", $reason));
 }
 
+/**
+ * @ignore
+ */
 public function getTimeStamps($nd = null, $flag='all', &$tsValues = array()){
 
     $sql = '';
@@ -662,6 +761,9 @@ public function getTimeStamps($nd = null, $flag='all', &$tsValues = array()){
 
 }
 
+/**
+ * @ignore
+ */
 public function getUserStamps(){
     $sql = '';
     foreach ( (array)$this->conf["aatFlagUserStamp"] as $atrID => $xx ) {
@@ -672,6 +774,9 @@ public function getUserStamps(){
     return $sql;
 }
 
+/**
+ * @ignore
+ */
 public function getTraceData(){
 
     $aRet = array();
@@ -687,9 +792,9 @@ public function getTraceData(){
 
 }
 
-
-
-
+/**
+ * @ignore
+ */
 static function itemCleanUp($item, $prefix = ''){
 
     foreach ($item as $key => $value) {
