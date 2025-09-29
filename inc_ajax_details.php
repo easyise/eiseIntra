@@ -68,6 +68,19 @@ switch ($DataAction){
         } catch (Exception $e){
             $intra->json('error', $e->getMessage());
         }
+        
+    case 'getChecklist':
+        
+        include eiseIntraAbsolutePath."inc_item_traceable.php";
+        try {
+            $o = new eiseItemTraceable($arrIn['entItemID'], ['entID'=>$arrIn['entID']]);    
+            $arrACL = $o->getChecklist();
+
+            $intra->json('ok', $intra->translate('Events: ').count($arrACL), $arrACL);
+
+        } catch (Exception $e){
+            $intra->json('error', $e->getMessage());
+        }
 
     case 'getActionLog_':
         

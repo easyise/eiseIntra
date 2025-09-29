@@ -621,9 +621,9 @@ switch ($DataAction){
                  $sql[] = "UPDATE stbl_action SET 
                       actTitle{$strLocal}=".$oSQL->escape_string($_POST["actTitle"][$i]).",
                       actTitlePast{$strLocal}=".$oSQL->escape_string($_POST["actTitlePast"][$i]).",
-                      actFlagDeleted=".($_POST["actFlagDeleted"][$i]).",
+                      actFlagDeleted=".(int)($_POST["actFlagDeleted"][$i]).",
                       actPriority=".($_POST["actPriority"][$i]=="" ? "0" : $_POST["actPriority"][$i]).",
-                      actFlagComment=".($_POST["actFlagComment"][$i]).",
+                      actFlagComment=".(int)($_POST["actFlagComment"][$i]).",
                       actEditBy='$intra->usrID', actEditDate=NOW()
                      WHERE actID='".$_POST["actID"][$i]."'";
                  $sql[] = "SET @actID='".$_POST["actID"][$i]."'";
@@ -782,7 +782,7 @@ if($oSQL->d("SHOW TABLES LIKE 'stbl_checklist'")){
 
     echo '<hr>';
 
-    $sqlSta = "SELECT * FROM stbl_checklist WHERE chkEntityID='".$entID."' ORDER BY chkID";
+    $sqlSta = "SELECT * FROM stbl_checklist WHERE chkEntityID='".$entID."' ORDER BY chkTargetStatusID, chkID";
     $rsSta = $oSQL->do_query($sqlSta);
     while($rwSta = $oSQL->fetch_array($rsSta)){
        $rwSta['chkID_id'] = $rwSta['chkID']."##".$entID;

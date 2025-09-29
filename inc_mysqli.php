@@ -10,6 +10,8 @@
  */
 class eiseSQL extends mysqli{
 
+    public $flagProfiling = false;
+
 /**
  *  This array maps intra data types into MySQL data types
  */
@@ -298,7 +300,9 @@ class eiseSQL extends mysqli{
             $mysqli_result = $mysqli_result_or_query;
             $mysqli_result->data_seek(0);
             $arr = $mysqli_result->fetch_array();
-            return $arr[0];
+            return $arr && is_array($arr) 
+                ? $arr[0]
+                : null;
         } else if (is_string($mysqli_result_or_query)){
             $sql = $mysqli_result_or_query;
             $mysqli_result = $this->q($sql);
@@ -515,6 +519,7 @@ class eiseSQL extends mysqli{
         $sqlCols = "SHOW FULL COLUMNS FROM `".$tblName."`";
         $rsCols  = $oSQL->do_query($sqlCols);
         $ii = 0;
+        $pkType = "user_defined";
         while ($rwCol = $oSQL->fetch_array($rsCols)){
             
             if ($ii==0)
@@ -577,9 +582,7 @@ class eiseSQL extends mysqli{
                     $pkType = "auto_increment";
                 else 
                     if (preg_match("/GUID$/", $rwCol["Field"]) && preg_match("/^(varchar)|(char)/", $rwCol["Type"]))
-                        $pkType = "GUID";
-                    else 
-                        $pkType = "user_defined";
+                        $pkType = "GUID";    
             }
             $ii++;
         }
@@ -587,6 +590,7 @@ class eiseSQL extends mysqli{
         if (count($arrPK)==0)
             $arrPK[] = $arrCols[$firstCol]['Field'];
         
+        $arrKeys = array();
         $sqlKeys = "SHOW KEYS FROM `".$tblName."`";
         $rsKeys  = $oSQL->do_query($sqlKeys);
         while ($rwKey = $oSQL->fetch_array($rsKeys)){
@@ -595,26 +599,24 @@ class eiseSQL extends mysqli{
         
         //foreign key constraints
         $rwCreate = $oSQL->fetch_array($oSQL->do_query("SHOW CREATE TABLE `{$tblName}`"));
-        $strCreate = $rwCreate["Create Table"];
-        $arrCreate = explode("\n", $strCreate);$arrCreateLen = count($arrCreate);
-        for($i=0;$i<$arrCreateLen;$i++){
-            // CONSTRAINT `FK_vhcTypeID` FOREIGN KEY (`vhcTypeID`) REFERENCES `tbl_vehicle_type` (`vhtID`)
-            if (preg_match("/^CONSTRAINT `([^`]+)` FOREIGN KEY \(`([^`]+)`\) REFERENCES `([^`]+)` \(`([^`]+)`\)/", trim($arrCreate[$i]), $arrConstraint)){
-                foreach($arrCols as $idx=>$col){
-                    if ($col["Field"]==$arrConstraint[2]) { //if column equals to foreign key constraint
-                        $arrCols[$idx]["DataType"]="FK";
-                        $arrCols[$idx]["ref_table"] = $arrConstraint[3];
-                        $arrCols[$idx]["ref_column"] = $arrConstraint[4];
-                        break;
+        if($rwCreate && isset($rwCreate["Create Table"])){
+            $strCreate = $rwCreate["Create Table"];
+            $arrCreate = explode("\n", $strCreate);$arrCreateLen = count($arrCreate);
+            for($i=0;$i<$arrCreateLen;$i++){
+                // CONSTRAINT `FK_vhcTypeID` FOREIGN KEY (`vhcTypeID`) REFERENCES `tbl_vehicle_type` (`vhtID`)
+                if (preg_match("/^CONSTRAINT `([^`]+)` FOREIGN KEY \(`([^`]+)`\) REFERENCES `([^`]+)` \(`([^`]+)`\)/", trim($arrCreate[$i]), $arrConstraint)){
+                    foreach($arrCols as $idx=>$col){
+                        if ($col["Field"]==$arrConstraint[2]) { //if column equals to foreign key constraint
+                            $arrCols[$idx]["DataType"]="FK";
+                            $arrCols[$idx]["ref_table"] = $arrConstraint[3];
+                            $arrCols[$idx]["ref_column"] = $arrConstraint[4];
+                            break;
+                        }
                     }
                 }
-                /*
-                echo "<pre>";
-                print_r($arrConstraint);
-                echo "</pre>";
-                //*/
             }
-        }
+        }   
+        
         
         $arrColsIX = array();
         $arrColsDict = array();

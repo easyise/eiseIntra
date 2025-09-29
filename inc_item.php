@@ -32,6 +32,14 @@ public $conf = array(
 	);
 
 /**
+ * Unique identity of the item.
+ * 
+ * @category Initialization
+ */
+public $id = null;
+
+
+/**
  * The array with item data. To be filled inside [eiseItem::getData()](#eiseitem-getdata). 
  * 
  * Usually and by default this array consists of single table record data obtainted with `mysqli::fetch_assoc()` function.
@@ -47,7 +55,8 @@ public $item = array();
  * 
  * @category Item Data
  */
-public $item_before = array();
+public $item_before = array(),
+	$delta = array();
 
 /**
  * The array with the table information. To be filled inside [eiseItem::getData()](#eiseitem-getdata).
@@ -56,6 +65,29 @@ public $item_before = array();
  */
 public $table = null;
 
+/**
+ * ```eiseIntra``` object that's been used on item creation. To be set in constructor.
+ * 
+ * @category Initialization
+ */
+public $intra = null;
+
+/**
+ * ```eiseSQL``` object that's been used on item creation. Normally obtained from ```eiseIntra```, but it could be overridden with ```$conf['sql]```. Set inside the constructor.
+ * 
+ * @category Initialization
+ */
+public $oSQL = null;
+
+/**
+ * User message and data handling legacy properties. 
+ * ```$redirectTo``` is for web page redirection and ```$msgToUser``` is for message to be shown upon redirection.
+ * 
+ * @category Initialization
+ */
+public $redirectTo, $msgToUser;
+
+public $sqlWhere;
 
 /**
  * Class constructor. Can be called without any paramemters. Constructor obtains info on table, obtains data and entity configuration.
@@ -119,7 +151,12 @@ public function getIDFromQueryString(){
 	$arrIDs = array();
 
 	foreach ($this->table['PK'] as $pk) {
-		$arrIDs[$pk] = (isset($_POST[$pk]) ? $_POST[$pk] : $_GET[$pk]);
+		$arrIDs[$pk] = (isset($_POST[$pk]) 
+			? $_POST[$pk] 
+			: (isset($_GET[$pk]) 
+				? $_GET[$pk]
+				: null)
+		);
 	}
 
 	$this->id = ( count($this->table['PK'])==1 ? reset($arrIDs) : $arrIDs );
@@ -250,10 +287,15 @@ public function form( $fields = null, $conf = array() ){
 			)
 		);
 
-	$conf = array_merge( array('id'=>$this->table['prefix'], 'flagAddJavaScript'=>True), $conf);
+	$conf_default = array('id'=>$this->table['prefix'], 
+		'action'=>$this->conf['form'],
+		'DataAction'=>'update',
+		'flagAddJavaScript'=>True);
 
-	return $this->intra->form(($conf['action'] ? $conf['action'] : $this->conf['form'])
-		, ($conf['DataAction'] ? $conf['DataAction'] : 'update')
+	$conf = array_merge( $conf_default, $conf);
+
+	return $this->intra->form($conf['action']
+		, $conf['DataAction']
 		, $fields, 'POST', $conf);
 
 }
@@ -266,7 +308,7 @@ public function form( $fields = null, $conf = array() ){
 public function getPKFields(){
 	$fields = '';
 	foreach ($this->table['PK'] as $pk) {
-		$fields .= ($fields ? "\n" : '').$this->intra->field(null, $pk, $this->item[$pk], array('type'=>'hidden', 'dataset'=>['PK'=>True]));
+		$fields .= ($fields ? "\n" : '').$this->intra->field(null, $pk, $this->item, array('type'=>'hidden', 'dataset'=>['PK'=>True]));
 	}
 	return $fields;
 }
@@ -596,7 +638,7 @@ function deleteFile($q){
     $oSQL->do_query("DELETE FROM stbl_file WHERE filGUID='{$q['filGUID']}'");
     $oSQL->q("COMMIT");
 
-    $this->msgToUser = $err ? $err : $intra->translate("Deleted files: %s", $rwFile['filName']);
+    $this->msgToUser = $intra->translate("Deleted file: %s", $rwFile['filName']);
     $this->redirectTo = eiseIntra::getFullHREF($this->conf['form'].'?'.$this->getURI());
 
     return $this->getFiles();
@@ -849,9 +891,9 @@ function formMessages(){
     $strRes .= '<input type="hidden" name="entID" id="entID_Message" value="'.$entID.'">'."\r\n";
     $strRes .= '<input type="hidden" name="entItemID" id="entItemID_Message" value="'.$this->id.'">'."\r\n";
     $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('To').':</label>'
-        .$this->intra->showAjaxDropdown('msgToUserID', '', array('required'=>true, 'strTable'=>'svw_user')).'</div>';
+        .$this->intra->showAjaxDropdown('msgToUserID', '', array('required'=>true, 'source'=>'svw_user')).'</div>';
     $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('CC').':</label>'
-        .$this->intra->showAjaxDropdown('msgCCUserID', '', array('strTable'=>'svw_user')).'</div>';
+        .$this->intra->showAjaxDropdown('msgCCUserID', '', array('source'=>'svw_user')).'</div>';
     $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('Subject').':</label>'.$this->intra->showTextBox('msgSubject', '').'</div>';
     $strRes .= '<div class="eiseIntraMessageBody">'.$this->intra->showTextArea('msgText', '').'</div>';
     $strRes .= '<div class="eiseIntraMessageButtons"><input type="submit" id="msgPost" value="'.$this->intra->translate('Send').'">
@@ -859,9 +901,10 @@ function formMessages(){
         </div>';
     $strRes .= "</form>\r\n";
 
-    if( $this->intra->conf['flagRunMessageSend'] && file_exists(dirname($_SERVER['SCRIPT_FILENAME']).DIRECTORY_SEPARATOR.'bat_messagesend.php') ){
-    	$strRes .= "\n".'<script type="text/javascript">$(document).ready(function(){ $.get("bat_messagesend.php?nc="+Math.random()*1000); });</script>'."\n";
-    }
+	// DISABLED because mail sending is on crontab
+    // if( $this->intra->conf['flagRunMessageSend'] && file_exists(dirname($_SERVER['SCRIPT_FILENAME']).DIRECTORY_SEPARATOR.'bat_messagesend.php') ){
+    // 	$strRes .= "\n".'<script type="text/javascript">$(document).ready(function(){ $.get("bat_messagesend.php?nc="+Math.random()*1000); });</script>'."\n";
+    // }
 
     $this->intra->arrUsrData['FlagWrite'] = $oldFlagWrite;
 

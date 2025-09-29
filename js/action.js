@@ -255,6 +255,31 @@ var fillActionLogAJAX = function($form, extra_entID){
 
 }
 
+var fillChecklistAJAX = function($form, extra_entID){
+
+    var selector = '.eif-checklist table tbody',
+        $tbody = $(selector);
+        
+    if(!$tbody[0])
+        return;
+
+    var entID = (extra_entID ?  extra_entID : $form.data('eiseIntraForm').entID);
+    var entItemID = $form.data('eiseIntraForm').entItemID;
+    var url = ajaxActionURL+"?DataAction=getChecklist&entItemID="+encodeURIComponent(entItemID)+
+                "&entID="+encodeURIComponent(entID),
+        urlLocal = location.pathname+location.search+"&DataAction=getChecklist";
+
+    var conf = {};
+    conf.afterFill = function(){
+        $div.find('.eif_startblock').each(function(){
+            // console.log( $(this).next('.eif_tr_traced')[0] )
+        })
+    }
+
+    $tbody.eiseIntraAJAX('fillTable', urlLocal, conf);
+
+}
+
 var showMessages = function($form){
 
     var entID = $form.data('eiseIntraForm').entID;
@@ -429,6 +454,7 @@ init: function( options ) {
                     .eiseIntraAJAX('fillTable', location.pathname+location.search+"&DataAction=getFiles");  
                 return false; 
             });
+
         $('a[href="#ei_get_whos_next"]').click( function(ev) { 
 
                 var $initiator = $(this);
@@ -479,6 +505,8 @@ init: function( options ) {
         if(statusFieldNonClickable){
             fillActionLogAJAX.call(statusFieldNonClickable, $form, statusFieldNonClickable.dataset.entID);
         }
+
+        fillChecklistAJAX($form, this.dataset.entID);
 
         $form.submit(function(event) {
 

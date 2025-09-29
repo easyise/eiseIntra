@@ -97,6 +97,14 @@ private $arrClassInputTypes =
     Array("ajax_dropdown", "date", "datetime", "datetime-local", "time");
 
 /**
+ * This property is set to 'Local' when local language is selected by the user
+ *
+ * @category Initialization
+ * @category i18n
+ */
+public $local = ''; // is local language selected or not
+
+/**
  * Default configuration. Exact configuration parameters list is:
  * 
  * - 'dateFormat' - date format, default is "d.m.Y" 
@@ -140,11 +148,17 @@ public static $defaultConf = array(
         , 'system' => 'nc'
         , 'cookiePath' => 'nc'
         , 'cookieExpire' => 'nc'
+        , 'useBootstrap' => false
+        , 'strAttrib' => ''
+        , 'context' => ''
+        , 'auto_translate'=>true
+        , 'collect_keys'=>false
 //       , 'flagSetGlobalCookieOnRedirect' = false
         , 'selItemMenu' => null
         , 'selItemTopLevelMenu' => null
         , 'defaultPage' => 'about.php'
         , 'pass_hash' => 'md5'
+        , 'frame' => false
     );
 
 static $arrKeyboard = array(
@@ -543,7 +557,7 @@ function logout(){
     $prj_dir = str_replace('/login.php', '', $_SERVER['PHP_SELF']);
     if( $prj_dir !== $_SERVER['PHP_SELF']
         && !(isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
-        && ( $_SERVER['HTTP_REFERER'] && preg_match('/^'.preg_quote($prj_dir, '/').'/', parse_url($_SERVER['HTTP_REFERER'], PHP_URL_PATH)) )
+        && ( isset($_SERVER['HTTP_REFERER']) && $_SERVER['HTTP_REFERER'] && preg_match('/^'.preg_quote($prj_dir, '/').'/', parse_url($_SERVER['HTTP_REFERER'], PHP_URL_PATH)) )
         && $_DEBUG
         ){
 
@@ -640,7 +654,7 @@ function checkPermissions( ){
         // checking user timeout
         if ($_SESSION["last_login_time"]!="" && $strSubTitle != "DEVELOPMENT" ){
            if (time() - strtotime($_SESSION["last_login_time"])>60*$this->conf['logofftimeout']) {
-               $tt = Date("Y-m-d H:i:s", mktime())." - ".$_SESSION["last_login_time"];
+               $tt = Date("Y-m-d H:i:s", time())." - ".$_SESSION["last_login_time"];
                throw new eiseException($this->translate("Session timeout ($tt). Please re-login."), 401);
            }
         }
@@ -1085,6 +1099,7 @@ private function menu_simpleTree($rs, $target){
  * This method returns HTML for "action menu" - the menu that displayed above the functional part of the screen. Menu content is set by __$arrActions__ parameter, the set of associative arrays with menu items.
  * Menu item definition array consists of the following properties:
  * array[] - menu item set. No nested menu items, no dropdowns in this version.  
+ *  - 'id'      (string) - (optional) HTML attribute "id" content
  *  - 'title'   (string) - Menu item title
  *  - 'action'  (string) - Menu item HREF attribute content. If it starts with 'javascript:' JS call will be encapsulated under ONCLICK attribute.
  *  - 'targer'  (string) - (optional) TARGET attribute content
@@ -1103,8 +1118,19 @@ function actionMenu($arrActions = array(), $flagShowLink=false){
     if(!$arrActions || count($arrActions)===0)
         return '';
 
-    $strRet .= '<div class="menubar ei-action-menu">'."\r\n";
+    $act_default = array(
+        'id' => '',
+        'title' => '',
+        'action' => '',
+        'target' => null,
+        'class' => ''
+    );
+
+    $strRet = '<div class="menubar ei-action-menu">'."\r\n";
     foreach ((array)$arrActions as $act) {
+
+            $act = array_merge($act_default, (array)$act);
+
             $strRet .=  "<div class=\"menubutton\">";
             $strRet .= "<a href=\"{$act['action']}\"".($act['id'] ? ' id="'.$act['id'].'"' : '');
 
@@ -1293,11 +1319,11 @@ function redirect($strMessage, $strLocation, $arrConfig = array()){
 function backref($urlIfNoReferer=null){
 
     $urlIfNoReferer = ($urlIfNoReferer ? $urlIfNoReferer : 'javascript:history.go(-1)');
-    $backref = ($_COOKIE["referer"] ? $_COOKIE["referer"] : $urlIfNoReferer); // to be returned if there's no specific referers
+    $backref = (isset($_COOKIE["referer"]) ? $_COOKIE["referer"] : $urlIfNoReferer); // to be returned if there's no specific referers
 
-    if($_SERVER["HTTP_REFERER"]){
+    if(isset($_SERVER["HTTP_REFERER"])){
         $url_referer = parse_url($_SERVER["HTTP_REFERER"]);
-        $request_uri_referer = $url_referer['path'].'?'.$url_referer['query'];
+        $request_uri_referer = $url_referer['path'].'?'.(isset($url_referer['query']) ? $url_referer['query'] : '');
 
         if($_SERVER['REQUEST_METHOD']=='GET'){
 
@@ -1482,7 +1508,7 @@ function setUserMessage($strMessage, $conf = array()){
  * @return string with user message
  */
 function getUserMessage(){
-    $strRet = $_COOKIE[$this->conf['UserMessageCookieName']];
+    $strRet = isset($_COOKIE[$this->conf['UserMessageCookieName']]) ? $_COOKIE[$this->conf['UserMessageCookieName']] : '';
     if($strRet){
         setcookie($this->conf['UserMessageCookieName'], '', 0, $this->getCookiePath($_SERVER['PHP_SELF']));
         setcookie($this->conf['UserMessageCookieName'], ''); // backward-compatibility
@@ -1574,7 +1600,11 @@ function translate($key){
     if (!isset($this->lang[$key]) && $this->conf['collect_keys'] && $this->local){
         $this->addTranslationKey($key);
     }
-    $retVal = @vsprintf( (isset($this->lang[$key]) ? $this->lang[$key] : $key), $args );
+    if(count($args) > 0){
+        $retVal = vsprintf((isset($this->lang[$key]) ? $this->lang[$key] : $key), $args);
+    } else {
+        $retVal = (isset($this->lang[$key]) ? $this->lang[$key] : $key);
+    }    
     return stripslashes(
         ( $retVal ? $retVal : (isset($this->lang[$key]) ? $this->lang[$key] : $key) )
         );
@@ -1618,7 +1648,7 @@ function readSettings(){
 
     while ($rwSetup = $oSQL->fetch_array($rsSetup)){
 
-        if($rwSetup['stpFlagOnDemand'])
+        if(!empty($rwSetup['stpFlagOnDemand']))
             continue;
 
         switch ($rwSetup["stpCharType"]){
@@ -1726,17 +1756,22 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
 
     $oSQL = $this->oSQL;
 
-    $value = (is_array($val_in) ? $val_in[$name] : $val_in);
+    $value = (is_array($val_in) 
+        ? (isset($val_in[$name])
+            ? $val_in[$name] 
+            : ''
+        )
+        : $val_in);
 
     $dataset = self::processHTMLDataset($conf);
 
-    if(in_array($conf['type'], array('row_id', 'hidden')) )
+    if(isset($conf['type']) && in_array($conf['type'], array('row_id', 'hidden')) )
         return '<input type="hidden" name="'.$name.'" id="'.$name.'" value="'.htmlspecialchars($value).'"'.$dataset.'>'."\r\n";
 
 
     if($name){
         foreach(['href', 'extra'] as $opts_key){
-            if($conf[$opts_key] && $name){
+            if(isset($conf[$opts_key]) && $name){
                 $vals = (is_array($val_in) ? $val_in : array($name=>$val_in));
                 foreach ($vals as $field => $fieldVal) {
                     if(is_array($fieldVal))
@@ -1762,7 +1797,7 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
         if($flagFieldDelimiter)
             $conf['type'] = 'delimiter';
 
-        $conf['type'] = ((trim($title)!=='' && !isset($conf['type'])) ? 'text' : $conf['type']);
+        $conf['type'] = isset($conf['type']) ? $conf['type'] : (trim($title)!=='' ? 'text' : null);
 
 
         $html .= "<div class=\"eiseIntraField eif-field".
@@ -1771,15 +1806,15 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
                     ? " field-{$name}" 
                     : ''
                     ).
-                ($conf['fieldClass'] ? " {$conf['fieldClass']}" : '').
+                (isset($conf['fieldClass']) && $conf['fieldClass'] ? " {$conf['fieldClass']}" : '').
                 "\""
             .($name 
                 ? " id=\"field_{$name}\"" 
-                : ($conf['id']
+                : (isset($conf['id']) && $conf['id']
                     ? ' id="'.$conf['id'].'"'
                     : '')
                 )
-            .($conf['title'] 
+            .(isset($conf['title']) && $conf['title'] 
                 ? ' title="'.htmlspecialchars($conf['title']).'"'
                 : ''
                 )
@@ -1789,7 +1824,7 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
 
         if(!in_array($conf['type'], array('boolean', 'checkbox', 'radio')) ) {
             if ($title!==''){
-                $labelClass = ($name ? 'title-'.$name : '').($conf['labelClass'] ? ' '.$conf['labelClass'] : '');
+                $labelClass = ($name ? 'title-'.$name : '').(isset($conf['labelClass']) && $conf['labelClass'] ? ' '.$conf['labelClass'] : '');
                 $html .= "<label".($name ? " id=\"title_{$name}\"" : '')." class=\"{$labelClass}\">".(preg_match('/\<[a-z]/i', $title) 
                     ? $title 
                     : htmlspecialchars($title))
@@ -1803,22 +1838,24 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
 
     if($name){
 
-        $name = $name.$conf['field_suffix'];
+        $name = $name.(isset($conf['field_suffix']) ? $conf['field_suffix'] : '');
 
         $this->fieldTypes[(preg_replace('/\[\]$/', '', $name))] = $conf['type'];
 
-        if($conf['no_input_name']){
+        if(isset($conf['no_input_name']) && $conf['no_input_name']){
             $conf['id'] = $name;
             $name = '';
         }
 
-        $conf['id'] = ($conf['id'] 
+        $conf['id'] = (isset($conf['id']) && $conf['id'] 
             ? $conf['id']
             : ( (preg_match('/\[\]$/',$name) ||  $conf['type']==='radio')
                     ? eiseIntra::idByValue($name, $value)
                     : preg_replace('/([^a-z0-9\_\.]+)/i', '', $name)
                     )
             );
+
+        $flagIsSQL = false;
 
         switch($conf['type']){
 
@@ -1832,7 +1869,7 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
             case "money":
             case "real":
                 $html .= $this->showTextBox($name
-                    , $this->decSQL2PHP($value, $conf['decimalPlaces']!==null ? (int)$conf['decimalPlaces'] : 2) 
+                    , $this->decSQL2PHP($value, isset($conf['decimalPlaces']) && $conf['decimalPlaces']!==null ? (int)$conf['decimalPlaces'] : 2) 
                     , $conf); 
                 break;
 
@@ -1852,9 +1889,9 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
                     if(!$ds){
                         if(!$conf['source'])
                             throw new Exception("Source for column {$name} not specified ({$conf['source']}).", 1);
-                        try {
-                            @eval('$ds = '.$conf['source'].';');
-                        } catch (ParseError $e) {}
+                        // try {
+                        //     @eval('$ds = '.$conf['source'].';');
+                        // } catch (ParseError $e) {}
                         
                         if(!$ds){
                             if(!preg_match('/^select\s+/i', $conf['source'])){
@@ -1862,7 +1899,8 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
                                 $ds = $aDS[0];
                                 $conf['source_prefix'] = ($conf['source_prefix'] 
                                     ? $conf['source_prefix']
-                                    : $aDS[1]);        
+                                    : (isset($aDS[1]) ? $aDS[1] : '')
+                                );        
                             } else {
                                 $ds = $conf['source'];
                                 $flagIsSQL = true;
@@ -1899,7 +1937,7 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
                             $optsData[$rwCMB["optValue"]]=$rwCMB["optData"];
                     }
                 }
-                if(@count($optsData))
+                if (!empty($optsData))
                     $conf['optsData'] = $optsData;
                 $html .= $this->showCombo($name, $value, $opts, $conf);
                 break;
@@ -1939,14 +1977,14 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
 
     } else {
 
-        $html .= ($value ? '<div class="eiseIntraValue'.($conf['class'] ? " {$conf['class']}" : '').'">'.$value.'</div>' : '');
+        $html .= ($value ? '<div class="eiseIntraValue'.(isset($conf['class']) && $conf['class'] ? " {$conf['class']}" : '').'">'.$value.'</div>' : '');
 
     }
 
 
     if($title!==null){
 
-        $html .= $conf['extraHTML'].'</div>'."\r\n\r\n";
+        $html .= (isset($conf['extraHTML']) ? $conf['extraHTML'] : '').'</div>'."\r\n\r\n";
 
     }
 
@@ -1969,6 +2007,16 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
  *
  */
 public function fieldset($legend=null, $fields='', $conf = array()){
+
+    $conf_default = Array(
+        'id' => '', // contents of ID attribute of <fieldset> tag, default is empty
+        'class' => '',  // contents of CLASS attribute of <fieldset> tag
+        'attr' => '',   // extra attributes to be added to <fieldset> tag
+        'attr_legend' => '',    // extra attributes to be added to <legend> tag
+        'subtitle' => '', // subtitle to be shown in <legend> tag
+    );
+
+    $conf = array_merge($conf_default, $conf);
 
     if($conf['subtitle'])
         $conf['class'] = 'has-subtitle '.$conf['class'];
@@ -2009,6 +2057,17 @@ public function fieldset($legend=null, $fields='', $conf = array()){
  *  - flagDontClose - if set to TRUE, <FORM> tag is not closed in function output.
  */
 public function form($action, $dataAction, $fields, $method='POST', $conf=array()){
+
+    $conf_default = array(
+        'class' => '', // contents of CLASS attribute of FORM tag, default is empty
+        'attr' => '',  // extra attributes to be added to FORM tag
+        'id' => '',    // contents of ID attribute of FORM tag, default is empty
+        'target' => '', // contents of TARGET attribute of FORM tag, default is empty
+        'flagAddJavaScript' => true, // if set to TRUE, adds JavaScript code to initialize eiseIntraForm on document ready
+        'flagDontClose' => false, // if set to TRUE, <FORM> tag is not closed in function output
+    );
+
+    $conf = array_merge($conf_default, $conf);
  
     return '<form action="'.htmlspecialchars($action).'"'
         .' method="'.htmlspecialchars($method).'"'
@@ -2032,23 +2091,26 @@ public function form($action, $dataAction, $fields, $method='POST', $conf=array(
 
 private function handleClass(&$arrConfig){
 
+    $strClass = '';
     $arrClass = Array();
     if ($this->conf['addEiseIntraValueClass'])
         $arrClass['eiseIntraValue'] = 'eiseIntraValue';
     
     // get contents of 'class' attribute in strAttrib
     $prgClass = "/\s+class=[\"\']([^\"\']+)[\"\']/i";
-    $attribs = $arrConfig["strAttrib"];
+    $attribs = isset($arrConfig["strAttrib"]) ? $arrConfig["strAttrib"] : null;
     if (preg_match($prgClass, $attribs, $arrMatch)){
         $strClass = $arrMatch[1];
         $arrConfig["strAttrib"] = preg_replace($prgClass, "", $arrConfig["strAttrib"]);
     }
     
     // if we specify something in arrConfig, we add it to the string
-    if (!is_array($arrConfig["class"])){
-        $strClass = ($strClass!="" ? $strClass." " : "").$arrConfig["class"];
-    } else {
-        $strClass = ($strClass!="" ? $strClass." " : "").implode(" ",$arrConfig["class"]);
+    if (isset($arrConfig["class"])) {
+        if (!is_array($arrConfig["class"])) {
+            $strClass .= $arrConfig["class"];
+        } else {
+            $strClass .= implode(" ", $arrConfig["class"]);
+        }
     }
     
     // split class sting into array
@@ -2073,6 +2135,21 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
     if(!is_array($arrConfig)){
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
+
+    $arrConfig = array_merge(array(
+        'FlagWrite' => null, // default is not set, so it will be determined by isEditable() method
+        'href' => '', // default href is empty
+        'target' => '', // default target is empty
+        'required' => false, // default required is false
+        'type' => 'text', // default type is text
+        'strAttrib' => '', // default attributes are empty
+        'maxlength' => 0, // default maxlength is 0
+        'decimalPlaces' => null, // default decimal places is null
+        'autocomplete' => true, // default autocomplete is true
+        'readonly' => false, // default readonly is false
+        'placeholder' => '', // default placeholder is empty
+        'id' => '', // default id is empty
+    ), $arrConfig);
     
     $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
     
@@ -2081,7 +2158,7 @@ function showTextBox($strName, $strValue, $arrConfig=Array()) {
 
     $id = ($arrConfig['id'] ? $arrConfig['id'] : $strName);
    
-    $strAttrib = $arrConfig["strAttrib"];
+    $strAttrib = isset($arrConfig["strAttrib"]) ? $arrConfig["strAttrib"] : null;
     if ($flagWrite){
         
         $strType = (in_array($arrConfig['type'], $this->arrHTML5AllowedInputTypes) ? $arrConfig["type"] : 'text');
@@ -2128,6 +2205,17 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
 
+    $arrConfig = array_merge(array(
+        'FlagWrite' => null, // default is not set, so it will be determined by isEditable() method
+        'rows' => 5, // default rows is 5
+        'strAttrib' => '', // default attributes are empty
+        'href' => '', // default href is empty
+        'target' => '', // default target is empty
+        'required' => false, // default required is false
+        'placeholder' => '', // default placeholder is empty
+        'id' => '', // default id is empty
+    ), $arrConfig);
+
     $strAttrib = $arrConfig["strAttrib"];
     
     $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
@@ -2138,7 +2226,7 @@ function showTextArea($strName, $strValue, $arrConfig=Array()){
     $id = ($arrConfig['id'] ? $arrConfig['id'] : $strName);
 
     if ($flagWrite){
-        $strRet .= "<textarea class=\"{$strClassInput}\""
+        $strRet = "<textarea class=\"{$strClassInput}\""
             .($arrConfig['rows'] ? " rows=\"{$arrConfig['rows']}\"" : '')
             ." id=\"$id\""
             ." name=\"".$strName."\"";
@@ -2182,7 +2270,7 @@ function showButton($name, $value, $arrConfig=array()){
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
 
-    $flagWrite = $this->isEditable($arrConfig["FlagWrite"]);
+    $flagWrite = $this->isEditable(isset($arrConfig["FlagWrite"]) && $arrConfig["FlagWrite"]);
     
     $o = $this->conf['addEiseIntraValueClass'];
     $this->conf['addEiseIntraValueClass'] = false;
@@ -2194,7 +2282,8 @@ function showButton($name, $value, $arrConfig=array()){
 
     $value = ($this->conf['auto_translate'] ? $this->translate($value) : $value);
 
-    if($arrConfig['type']=='submit'){
+    $strName = '';
+    if(isset($arrConfig['type']) && $arrConfig['type']=='submit'){
         $strRet = '<input type="submit"'
             .($strName!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
             .' class="eiseIntraSubmit'.($strClass!='' ? ' ' : '').$strClass.'"'
@@ -2202,7 +2291,7 @@ function showButton($name, $value, $arrConfig=array()){
             .$extraAttr
             .' value="'.htmlspecialchars($value).'">';
     } else {
-        if($arrConfig['type']=='delete')
+        if(isset($arrConfig['type']) && $arrConfig['type']=='delete')
             $strClass = 'eiseIntraDelete'.($strClass!='' ? ' ' : '').$strClass;
         $strRet = '<button'
             .($name!='' ? ' name="'.htmlspecialchars($name).'" id="'.htmlspecialchars($name).'"' : '')
@@ -2221,7 +2310,7 @@ function showButton($name, $value, $arrConfig=array()){
  */
 static function processHTMLDataset($arr){
     $strRet = '';
-    if(is_array($arr['dataset'])){
+    if(isset($arr['dataset']) && is_array($arr['dataset'])){
         foreach ($arr['dataset'] as $key => $value) {
             if(!preg_match('/^[0-9]/', $key)){
                 $strRet .= " data-{$key}=\"".htmlspecialchars(is_array($value) ? json_encode($value) : $value).'"';
@@ -2262,6 +2351,19 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
     if(!is_array($confOptions)){
         $confOptions = Array("strAttrib"=>$confOptions);
     }
+
+    $confOptions = array_merge(array(
+        'FlagWrite' => null, // default is non-editable
+        'strAttrib' => '',
+        'required' => false,
+        'defaultText' => '',
+        'defaultTextPosition' => '', // 'first' or 'last'
+        'deletedOptions' => array(),
+        'optgroups' => array(),
+        'indent' => array(),
+        'href' => '',
+        'target' => '',
+    ), $confOptions);
     
     $flagWrite = $this->isEditable($confOptions["FlagWrite"]);
     
@@ -2317,6 +2419,8 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
     } else {
         
         $arrOptions = new RecursiveIteratorIterator(new RecursiveArrayIterator($arrOptions));
+        $valToShow = '';
+        $textToShow = '';
         foreach ($arrOptions as $key => $value){
             if ((string)$key==(string)$strValue) {
                $valToShow = $value;
@@ -2353,6 +2457,14 @@ function showCheckBox($strName, $strValue, $arrConfig=Array()){
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
 
+    $arrConfig = array_merge(array(
+        'FlagWrite' => null, // default is not set, so it will be determined by isEditable() method
+        'checked' => false, // default checked is false
+        'showValueAttr' => false, // if true, value attribute will be added to checkbox input
+        'strAttrib' => '', // default attributes are empty
+        'id' => '', // default id is empty
+    ), $arrConfig);
+
     $flagWrite = $this->isEditable($arrConfig["FlagWrite"]) ;
 
     $strClass = $this->handleClass($arrConfig);
@@ -2362,7 +2474,7 @@ function showCheckBox($strName, $strValue, $arrConfig=Array()){
 
     $strValue = ( isset($arrConfig['value']) ? $arrConfig['value'] : $strValue );
 
-    $showValueAttr = ( preg_match('/\[\]$/', $strName) || $arrConfig['showValueAttr'] || $arrConfig['value'] );
+    $showValueAttr = ( preg_match('/\[\]$/', $strName) || $arrConfig['showValueAttr'] || isset($arrConfig['value']) );
     
     $strAttrib = $arrConfig["strAttrib"];
     $retVal = "<input name=\"{$strName}\" id=\"{$id}\" class=\"{$strClassInput}\" type=\"checkbox\"".
@@ -2454,6 +2566,15 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
     if(!is_array($arrConfig)){
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
+
+    $arrConfig = array_merge(array(
+        'FlagWrite' => null, // default is not set, so it will be determined by isEditable() method
+        'href' => '', // default href is empty
+        'strAttrib' => '', // default attributes are empty
+        'source' => '', // source table for AJAX dropdown
+        'source_prefix' => '', // prefix for source table
+        'extra' => array(), // extra data to be passed to AJAX request
+    ), $arrConfig);
 
     $aSource = array(
         'table'=> eiseIntra::confVariations($arrConfig, array('source', 'strTable')),
@@ -2601,6 +2722,7 @@ function loadCSS(){
     GLOBAL $arrCSS;
 
     krsort($arrCSS);
+    $arrCSS = array_filter($arrCSS, 'is_string');
     $arrCSS = array_unique($arrCSS);
     ksort($arrCSS);
     
@@ -2622,7 +2744,7 @@ function loadCSS(){
  * @return string The query string.
  */
 private function getCachePreventor(){
-
+    GLOBAL $intra;
     return $intra->conf['cachePreventorVar'].'='.preg_replace('/\D/', '', $this->conf['versionIntra'].$this->conf['version']);
 
 }
@@ -2649,7 +2771,8 @@ function dataAction($dataAction, $funcOrObj=null){
 
     $dataAction = (is_array($dataAction) ? $dataAction : array($dataAction));
 
-    if(in_array($newData[$this->conf['dataActionKey']], $dataAction)
+    if(isset($newData[$this->conf['dataActionKey']])
+        && in_array($newData[$this->conf['dataActionKey']], $dataAction)
         && ($this->arrUsrData['FlagWrite'] || $this->arrUsrData['FlagCreate'] || $this->arrUsrData['FlagUpdate'])
         ){
         
@@ -2671,6 +2794,9 @@ function dataAction($dataAction, $funcOrObj=null){
             $ret = array();
 
             try {
+
+                if(!method_exists($obj, $method))
+                    throw new Exception(sprintf("Method %s::%s() not found on dataAction", get_class($obj), $method));
 
                 $ret = call_user_func_array(array($obj, $method), array_merge(Array($newData), $arrParam));
                 $status = ($ret===False ? '500' : 'ok');
@@ -2749,7 +2875,8 @@ function dataRead($dataReadValues, $function=null, $arrParam = array()){
 
     $dataReadValues = (is_array($dataReadValues) ? $dataReadValues : array($dataReadValues));
 
-    if(in_array($query[$this->conf['dataReadKey']], $dataReadValues)){
+    if(isset($query[$this->conf['dataReadKey']]) 
+        && in_array($query[$this->conf['dataReadKey']], $dataReadValues)){
         
         $arrParam = func_get_args();
         array_shift($arrParam);
@@ -2773,7 +2900,9 @@ function dataRead($dataReadValues, $function=null, $arrParam = array()){
             $ret = array();
 
             try {
-
+                if(!method_exists($obj, $method))
+                    throw new Exception(sprintf("Method %s::%s() not found on dataRead()", get_class($obj), $method));
+                
                 $ret = call_user_func_array(array($obj, $method), array_merge(Array($query), $arrParam));
                 
             } catch (Exception $e) {
@@ -2798,8 +2927,8 @@ function cancelDataRead(){
 public static function isRecursion(){
     $aCallsUnique = array();
     foreach (debug_backtrace() as $call) {
-        $class_func_curr = ($call['class'] ? $call['class'].'::' : '').$call['function'];
-        $aCallsUnique[$class_func_curr] += 1;
+        $class_func_curr = (isset($call['class']) ? $call['class'].'::' : '').$call['function'];
+        $aCallsUnique[$class_func_curr] = (isset($aCallsUnique[$class_func_curr]) ? $aCallsUnique[$class_func_curr] : 0) + 1;
     }
     foreach($aCallsUnique as $nCalls){
         if($nCalls>1)
@@ -2847,7 +2976,7 @@ function showDatesPeriod($trnStartDate, $trnEndDate, $precision = 'date'){
 
 function getUserData($usrID){
 
-    if($this->userInfoCache[$usrID]){
+    if(isset($this->userInfoCache[$usrID])){
         return $this->userInfoCache[$usrID];
     }
 
@@ -2856,7 +2985,7 @@ function getUserData($usrID){
     $rw = $oSQL->fetch_array($rs);
     
     $retVal = ($rw["optValue"]!="" 
-        ? ($rw["optText{$this->local}"]==""
+        ? (empty($rw["optText{$this->local}"])
             ? $rw["optText"]
             : $rw["optText{$this->local}"])
          : $usrID);

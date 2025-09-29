@@ -25,7 +25,7 @@ public function __construct($item, $arrAct, $options = array()){
     if(!$options['flagDoNotRefresh'])
         $this->item->getAllData(array('Master', 'Text','ACL'));
 
-	if($arrAct['aclGUID']){
+	if(isset($arrAct['aclGUID']) && $arrAct['aclGUID']){
         $this->arrAction = $this->item->item['ACL'][$arrAct['aclGUID']];
         if(!$this->arrAction){
             throw new Exception("Action {$arrAct['aclGUID']}/{$arrAct['actID']} not found", 1);
@@ -400,6 +400,7 @@ public function finish(){
 
     // if status is changed or action requires status stay interruption, we insert status log entry and update master table
     if (($this->arrAction["aclOldStatusID"]!==$this->arrAction["aclNewStatusID"]
+          && $this->item->processCheckmarks($this->arrAction)
           && (string)$this->arrAction["aclNewStatusID"]!=''
         )
         || $this->conf["actFlagInterruptStatusStay"]){

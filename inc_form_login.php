@@ -1,10 +1,13 @@
 <?php
-$DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
+$DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : (isset($_GET["DataAction"]) ? $_GET["DataAction"] : '');
 
 if(!isset($intra))
     $intra = new eiseIntra($oSQL, Array('version'=>$version));
 
 $flagEiseAdmin = is_a($intra, 'eiseAdmin');
+
+$flagShowHost = isset($flagShowHost) ? $flagShowHost : false;
+
 
 switch ($DataAction){
     case "login":
@@ -67,10 +70,11 @@ $intra->loadJS();
 <body class="form-login" data-conf="<?php  echo htmlspecialchars(json_encode($intra->conf)) ; ?>">
 
 <?php
-$arrUsr = explode("[\\]", $AUTH_USER);
-$usrID = strtoupper($arrUsr[count($arrUsr)-1]);
-
-if ($strMode == "LDAP"){
+if(isset($AUTH_USER)){
+    $arrUsr = explode("[\\]", $AUTH_USER);
+    $usrID = strtoupper($arrUsr[count($arrUsr)-1]);
+}
+if (isset($strMode) && $strMode == "LDAP"){
 	$ldap_conn = ldap_connect($ldap_server);
 	$binding = @ldap_bind($ldap_conn, $ldap_anonymous_login, $ldap_anonymous_pass);
 }
@@ -102,7 +106,7 @@ $(document).ready(function(){
 <h1>Welcome to <?php  echo $title ; ?></h1>
 
 <?php 
-if ($_GET["error"]){
+if (isset($_GET["error"]) && $_GET['error']){
 ?>
 <div class="eiseIntraError" style="text-align: center; margin-left: auto; margin-right: auto; margin-top: 30px; text-align: left; padding-left: 30px;">ERROR: <?php  echo $_GET["error"] ; ?></div>
 <?php
@@ -117,9 +121,10 @@ if ($_GET["error"]){
 if ($flagShowHost || $flagEiseAdmin) 
     echo $intra->field('Host', 'host', $flagEiseAdmin ? '' : 'localhost');
 
-echo $intra->field('Login', 'login', $flagEiseAdmin ? 'root' : $_COOKIE["last_succesfull_usrID"], ['FlagWrite'=>true]);
+echo $intra->field('Login', 'login', $flagEiseAdmin ? 'root' : (isset($_COOKIE["last_succesfull_usrID"]) ? $_COOKIE["last_succesfull_usrID"] : ''), ['FlagWrite'=>true]);
 echo $intra->field('Password', 'password', '', ['FlagWrite'=>true, 'type'=>'password']);
 
+$binding = isset($binding) ? $binding : null;
 $login_info = "Please enter your <strong>".($binding ? "Windows" : "database")."</strong> login/password.";
 
 echo $intra->field('', null, $intra->showButton('btnsubmit'

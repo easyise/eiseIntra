@@ -429,9 +429,10 @@ function decPHP2SQL($val, $valueIfNull=null){
  * @return string decimal value.
  */
 function decSQL2PHP($val, $decimalPlaces=null){
+    $intra = $this;
     $decPlaces = ($decimalPlaces!==null ? $decimalPlaces : self::getDecimalPlaces($val));
     return (!is_null($val) 
-            ? number_format((double)$val, (int)$decimalPlaces, $intra->conf['decimalSeparator'], $intra->conf['thousandsSeparator'])
+            ? number_format((double)$val, (int)$decPlaces, $intra->conf['decimalSeparator'], $intra->conf['thousandsSeparator'])
             : '');
 }
 
@@ -634,11 +635,11 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
     
     $oSQL = ($oSQL!==null ? $oSQL : $this->oSQL);
 
-    static $tableFieldCache;  
+    static $tableFieldCache = [];  
 
     $cacheKey = $strPrefix.'|'.$strTable;
 
-    if($tableFieldCache[$cacheKey]){
+    if(isset($tableFieldCache[$cacheKey])){
 
         $arrFields = $tableFieldCache[$cacheKey];
 
@@ -740,8 +741,8 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
             .( ($flagShowDeleted===false && $arrFields["delField"]) ? " AND IFNULL(`{$arrFields["delField"]}`, 0)=0" : "")
             .$strExtra;
         if($strPrefix)
-            $sql .= "\r\nORDER BY `".($arrFields['orderField'] ? $arrFields['orderField'] : $arrFields["textField{$this->local}"])."`";
-        else if ( $arrFields['orderField'] ) 
+            $sql .= "\r\nORDER BY `".(isset($arrFields['orderField']) && $arrFields['orderField'] ? $arrFields['orderField'] : $arrFields["textField{$this->local}"])."`";
+        else if ( isset($arrFields['orderField']) && $arrFields['orderField'] ) 
             $sql .= "\r\nORDER BY `{$arrFields['orderField']}`";
     }
     if(!$flagNoLimits)
@@ -763,7 +764,7 @@ public function arrPHP2SQL($arrSrc, $types = array()){
         if(is_array($value)){
             $arrRet[$key] = $this->arrPHP2SQL($value, $types);
         } else {
-            switch ($types[$key]) {
+            switch (isset($types[$key]) ? $types[$key] : 'text') {
                 case 'date':
                     $arrRet[$key] = $this->oSQL->unq($this->datePHP2SQL($value));
                     break;
