@@ -940,7 +940,7 @@ public function RLAByMatrix(){
             foreach ($act['MTX'] as $mtx) {
                 $conditionWorked = array();
                 $tierConditionWorked = array();
-                foreach ($aAtrMTX as $atrID => $condition) {
+                foreach ((array)$aAtrMTX as $atrID => $condition) {
                     $valueMTX = $mtx[preg_replace('/^'.preg_quote($this->conf['entPrefix'], '/').'/', 'mtx', $atrID)];
                     $valueItem = $this->item[$atrID];
                     $condition = ($condition=='=' ? '==' : $condition);
@@ -1305,6 +1305,14 @@ public function doAction($oAct){
     unset($this->currentAction);
     // do extra actions
     foreach ($this->extraActions as $act) {
+        try{
+            $act->checkPermissions();
+        } catch (Exception $e){
+            if($act->arrAction['flagSkipIfNoPermissions'])
+                continue;
+            else
+                throw $e;   
+        }
         $this->currentAction = $act;
         $act->execute();
         unset($this->currentAction);
