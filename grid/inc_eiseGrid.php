@@ -828,7 +828,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     if ($ixField===0){
         if (is_array($this->hiddenInputs))
         foreach($this->hiddenInputs as $hidden_field=>$hidden_col){
-            $hidden_col = array_merge($this->col_default, $hidden_col);
+            $hidden_col = array_merge($this->col_default, (array)$hidden_col);
             $strCell .= "\r\n\t\t<input type=\"hidden\" name=\"{$hidden_field}[]\" value=\"".
                 htmlspecialchars($ixRow===null 
                     ? $hidden_col["default"] 
