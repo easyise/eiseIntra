@@ -211,7 +211,7 @@ var fillActionLogAJAX = function($form, extra_entID){
 
     var entID = (extra_entID ?  extra_entID : $form.data('eiseIntraForm').entID);
     var entItemID = $form.data('eiseIntraForm').entItemID;
-    var strActionLogSelectors = '#eiseIntraActionLog, #eif_actionLog',
+    var strActionLogSelectors = (this.dataset && this.dataset.actionLogSelector ? this.dataset.actionLogSelector : '#eiseIntraActionLog, #eif_actionLog'),
         strAjaxActionURL = ajaxActionURL+"?DataAction=getActionLog&entItemID="+encodeURIComponent(entItemID)+
                 "&entID="+encodeURIComponent(entID),
         strLocalURL = location.pathname+location.search+"&DataAction=getActionLog";
