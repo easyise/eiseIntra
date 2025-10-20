@@ -588,17 +588,20 @@ function checkTimeLine(){
 	
 	$sqlMaxATA = "SELECT 
 		CASE WHEN DATEDIFF(
-			(SELECT aclATA FROM stbl_action_log WHERE aclGUID='{$aclGUID}')
+			(SELECT aclATA FROM stbl_action_log WHERE aclGUID='{$aclGUID}' )
 			, MAX(aclATA)
 			) < 0 THEN 0 ELSE 1 END as ATAnotLessThanPrevious
 	FROM stbl_action_log 
+        INNER JOIN stbl_action ON aclActionID=actID AND actEntityID='{$entID}'
 	WHERE aclEntityItemID='{$entItemID}' AND aclActionPhase=2 AND aclActionID>2";
 	if (!$oSQL->get_data($oSQL->do_query($sqlMaxATA))) {
         $ata = $oSQL->d("SELECT aclATA FROM stbl_action_log WHERE aclGUID='{$aclGUID}'");
-        list($maxATA, $actTitle, $aclGUID) = $oSQL->fa($oSQL->q("SELECT aclATA, actTitle{$this->intra->local}, aclGUID
-            FROM stbl_action_log LEFT OUTER JOIN stbl_action ON aclActionID=actID
+        $sqlMaxATA = "SELECT aclATA, actTitle{$this->intra->local}, aclGUID
+            FROM stbl_action_log INNER JOIN stbl_action ON aclActionID=actID AND actEntityID='{$entID}'
             WHERE aclEntityItemID='{$entItemID}' AND aclActionPhase=2 AND aclActionID>2
-            ORDER BY aclATA DESC LIMIT 0,1"));
+            ORDER BY aclATA DESC LIMIT 0,1";
+        echo $sqlMaxATA;
+        list($maxATA, $actTitle, $aclGUID) = $oSQL->fa($oSQL->q($sqlMaxATA));
 		throw new Exception("ATA ({$ata}) for execueted action cannot be in the past for {$this->item->conf['entTitle']}:{$entItemID}, last action {$actTitle}: {$maxATA}");
 	}
 	
