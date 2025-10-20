@@ -370,7 +370,10 @@ public function validate(){
 
         
         if( !$this->flagIsManagement ) 
-            if(!in_array($this->item->item["{$this->item->conf['prefix']}StatusID"], $this->conf['actOldStatusID'])){
+            if(!(in_array($this->item->item["{$this->item->conf['prefix']}StatusID"], $this->conf['actOldStatusID'])
+                    || in_array(null, $this->conf['actOldStatusID'])
+                )
+                ){
                 throw new Exception($this->intra->translate("%s %s: Action \"%s\" could not run in status \"%s\""
                     , $this->item->conf['entTitle'.$this->intra->local] 
                     , $this->item->id
@@ -437,7 +440,7 @@ public function finish(){
             {$tracedFields}
             {$userstamps}
             {$timestamps}
-            , {$this->item->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->item->conf['prefix']}EditDate=NOW()
+            , {$this->item->table['prefix']}EditBy='{$this->intra->usrID}', {$this->item->table['prefix']}EditDate=NOW()
         WHERE ".$this->item->getSQLWhere();
 
         $this->oSQL->q($sqlMaster);
@@ -523,7 +526,7 @@ public function finish(){
             {$this->item->conf['prefix']}ActionLogID='{$this->arrAction["aclGUID"]}'
             , {$this->item->conf['prefix']}StatusActionLogID='{$this->arrAction["aclGUID"]}'
             , {$this->item->conf['prefix']}StatusID=".(int)$this->arrAction["aclNewStatusID"]."
-            , {$this->item->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->item->conf['prefix']}EditDate=NOW()
+            , {$this->item->table['prefix']}EditBy='{$this->intra->usrID}', {$this->item->table['prefix']}EditDate=NOW()
             WHERE {$this->item->table['PK'][0]}='{$this->item->id}'";
         
         for($i=0;$i<count($sql);$i++){

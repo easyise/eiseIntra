@@ -1517,7 +1517,7 @@ function getAllData($toRetrieve = null){
         $sqlACL = "SELECT * FROM stbl_action_log 
                 INNER JOIN stbl_action ON actID= aclActionID AND (actEntityID='{$this->conf['entID']}' OR actID IN (1,2,3,4))
                 WHERE aclEntityItemID='{$this->id}'
-                ORDER BY aclActionPhase, IFNULL(aclATA, NOW()) DESC, aclOldStatusID DESC";
+                ORDER BY aclActionPhase, IFNULL(aclATA, NOW()) DESC, aclNewStatusID DESC";
         $rsACL = $this->oSQL->do_query($sqlACL);
         while($rwACL = $this->oSQL->fetch_array($rsACL)){
             if($rwACL['aclActionPhase']<=2)
@@ -2081,6 +2081,7 @@ public function getActionLog($q){
     $aRet = array();$aActionIDs = array();
 
     $arrACL = (array)$this->item['ACL'];
+
     if($q['order']='reverse'){
         $arrACL = array_reverse($arrACL);
     }
