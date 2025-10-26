@@ -2658,7 +2658,7 @@ public function isEditable($flagToForce = null){
 public static function confVariations($conf, $variations){
     $retVal = null;
     foreach($variations as $variant){
-        if(isset($conf[$variant])){
+        if(!empty($conf[$variant])){
             $retVal = $conf[$variant];
             break;
         }
