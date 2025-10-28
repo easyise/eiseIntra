@@ -2270,7 +2270,7 @@ function showButton($name, $value, $arrConfig=array()){
         $arrConfig = Array("strAttrib"=>$arrConfig);
     }
 
-    $flagWrite = $this->isEditable(isset($arrConfig["FlagWrite"]) && $arrConfig["FlagWrite"]);
+    $flagWrite = $this->isEditable(array_key_exists("FlagWrite", $arrConfig) ? $arrConfig["FlagWrite"] : null);
     
     $o = $this->conf['addEiseIntraValueClass'];
     $this->conf['addEiseIntraValueClass'] = false;
@@ -2658,7 +2658,7 @@ public function isEditable($flagToForce = null){
 public static function confVariations($conf, $variations){
     $retVal = null;
     foreach($variations as $variant){
-        if(isset($conf[$variant])){
+        if(!empty($conf[$variant])){
             $retVal = $conf[$variant];
             break;
         }
@@ -3288,4 +3288,5 @@ if (!function_exists('__')) {
         }
     }
 }
+
 

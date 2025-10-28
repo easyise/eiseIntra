@@ -1488,9 +1488,10 @@ switch ($da) {
             $intra->json( ($error!='' ? 'error' : 'ok'), $msg, ($item ? $item->getFiles() : array()) );
         }
 
+        $entItemIDField = eiseEntity::getItemIDField($item ? $item->conf : array('entPrefix' => '', 'entID' => $entID));        
         $intra->redirect($msg, ($item 
             ? self::getFormURL($item->conf, $item->item) 
-            : $_SERVER["PHP_SELF"]."?{$this->entItemIDField}=".urlencode($_POST["entItemID_Attach"] )
+            : $_SERVER["PHP_SELF"]."?{$entItemIDField}=".urlencode($_POST["entItemID_Attach"] )
             )
         );
 
