@@ -17,7 +17,7 @@ class eiseItem {
  * - 'list' - PHP script name for form. E.g. 'item_list.php'. Not mandatory. If not set, it is calculated from 'name'.
  * - 'flagFormShowAllFields' - this parameter is used in function [eiseItem::getFields()](#eiseitem-getfields), see ref.
  * 
- * @category Initialization
+ * @category Configuration
  * 
  */
 public $conf = array(
@@ -34,7 +34,7 @@ public $conf = array(
 /**
  * Unique identity of the item.
  * 
- * @category Initialization
+ * @category Data Handling
  */
 public $id = null;
 
@@ -46,14 +46,15 @@ public $id = null;
  * 
  * Example: `$title = $objThing->item['thnTitle'];`
  * 
- * @category Item Data
+ * @category Data Handling
  */
 public $item = array();
 
 /**
  * Historical item data obtained on initialization, before any changes made to the object. To be filled inside [eiseItem::getData()](#eiseitem-getdata). It is a copy of `$this->item` array till there's no changes made with the object.
  * 
- * @category Item Data
+ * @category Data Handling
+ * @ignore
  */
 public $item_before = array(),
 	$delta = array();
@@ -61,21 +62,21 @@ public $item_before = array(),
 /**
  * The array with the table information. To be filled inside [eiseItem::getData()](#eiseitem-getdata).
  * 
- * @category Initialization
+ * @category Configuration
  */
 public $table = null;
 
 /**
  * ```eiseIntra``` object that's been used on item creation. To be set in constructor.
  * 
- * @category Initialization
+ * @category Configuration
  */
 public $intra = null;
 
 /**
  * ```eiseSQL``` object that's been used on item creation. Normally obtained from ```eiseIntra```, but it could be overridden with ```$conf['sql]```. Set inside the constructor.
  * 
- * @category Initialization
+ * @category Configuration
  */
 public $oSQL = null;
 
@@ -83,7 +84,7 @@ public $oSQL = null;
  * User message and data handling legacy properties. 
  * ```$redirectTo``` is for web page redirection and ```$msgToUser``` is for message to be shown upon redirection.
  * 
- * @category Initialization
+ * @category Configuration
  */
 public $redirectTo, $msgToUser;
 
@@ -92,7 +93,7 @@ public $sqlWhere;
 /**
  * Class constructor. Can be called without any paramemters. Constructor obtains info on table, obtains data and entity configuration.
  * 
- * @category Initialization
+ * @category Configuration
  * 
  * @param variant $id - item unique identificator.
  * @param array $conf - associative array with configuration options. Defaults are set at [eiseItem::$conf](#eiseitem-conf)
@@ -144,7 +145,7 @@ public function __construct($id = null,  $conf = array() ){
 /**
  * This function gets PK (primary key) values from GET or POST query strings.
  * 
- * @category Initialization
+ * @category Data Handling
  */
 public function getIDFromQueryString(){
 
@@ -168,7 +169,7 @@ public function getIDFromQueryString(){
 /**
  * This function returns SQL search condition basing on primary keys. 
  * 
- * @category Item Data
+ * @category Data Handling
  */
 public function getSQLWhere($pkValue = null){
 
@@ -200,7 +201,7 @@ public function getSQLWhere($pkValue = null){
 /**
  * This function returns URI for a form basing on primary keys. 
  * 
- * @category Item Data
+ * @category Data Handling
  */
 public function getURI( $pkValue = null ){
 
@@ -229,7 +230,7 @@ public function getURI( $pkValue = null ){
 /**
  * Reads record from database table $conf['table'] associated with current $pk.
  * 
- * @category Initialization
+ * @category Data Handling
  */
 public function getData($pk = null){
 
@@ -264,7 +265,7 @@ public function getData($pk = null){
 /**
  * Calls ```$this->getData()``` so refreshes ```$this->item``` property.
  * 
- * @category Item Data
+ * @category Data Handling
  */
 public function refresh(){
 	$this->getData();
@@ -275,7 +276,7 @@ public function refresh(){
  * Returns form HTML. By default it contains DataAction and Primary Keys inputs.
  * 
  *
- * @category Forms
+ * @category Data Display
  */
 public function form( $fields = null, $conf = array() ){
 
@@ -303,7 +304,7 @@ public function form( $fields = null, $conf = array() ){
 /**
  * Returns HTML for hidden fields that correspond to PK
  * 
- * @category Forms
+ * @category Data Handling
  */
 public function getPKFields(){
 	$fields = '';
@@ -316,7 +317,7 @@ public function getPKFields(){
 /**
  * Returns HTML with fields to be displayed on the form
  * 
- * @category Forms
+ * @category Data Display
  */
 public function getFields($aFields = null){
 	$aToGet = ($aFields ? $aFields : ($this->conf['flagFormShowAllFields'] ? $this->table['columns_index'] : array()));
@@ -354,7 +355,8 @@ public function getFields($aFields = null){
 /**
  * Returns HTML for buttons (submit, delete)
  * 
- * @category Forms
+ * @category Data Display
+ * @category Events and Actions
  */
 public function getButtons(){
 
@@ -366,7 +368,7 @@ public function getButtons(){
 /**
  * To be triggered on DataAction=insert or REST POST/PUT query. Current function does nothing with the data, it just set some headers for web user to be returned to item form. Normally it should be overridden.
  * 
- * @category Data modification
+ * @category Data Handling
  */
 public function insert($newData){
 
@@ -380,7 +382,7 @@ public function insert($newData){
 /**
  * To be triggered on DataAction=update or REST POST/PUT query. Current function does nothing with the data, it just set some headers for web user to be returned to item form. Normally it should be overridden.
  * 
- * @category Data modification
+ * @category Data Handling
  */
 public function update($newData){
 
@@ -393,7 +395,7 @@ public function update($newData){
 /**
  * To be triggered by default on DataAction=delete or REST DELETE query. Current function DELETEs the record and set some headers for web user to be returned to item list.
  * 
- * @category Data handling
+ * @category Data Handling
  */
 public function delete(){
 
@@ -409,7 +411,7 @@ public function delete(){
 /**
  * This function prevents recursive hooks when object instances are created within existing hook (e.g. when you create the object inside the object with some DataAction like 'insert' or 'update'). Function should be called right after hook function starts.
  * 
- * @category Data handling
+ * @category Data Handling
  */
 public function preventRecursiveHooks(&$nd = array()){
 
@@ -422,7 +424,7 @@ public function preventRecursiveHooks(&$nd = array()){
 /**
  * This function transforms data from the input array into UPDATE SQL and runs it. SQL for data fields is obtained from `eiseItem::getSQLFields()`. Also it calculates delta and returns it.
  * 
- * @category Data handling
+ * @category Data Handling
  */
 public function updateTable($nd, $flagDontConvertToSQL = false){
 
@@ -460,7 +462,7 @@ public function updateTable($nd, $flagDontConvertToSQL = false){
 /**
  * This function calculates difference between two associative arrays using `array_diff_assoc()`. All numeric data is converted to `double` data type.
  * 
- * @category Data handling
+ * @category Data Handling
  */
 public function getDelta($old, $new){
 	foreach($old as $key=>$value){
@@ -476,7 +478,7 @@ public function getDelta($old, $new){
 /**
  * This function fixes the situation when booelan (checkbox) field presents on the form but being unchecked, it doesn't appear in $nd ($_POST) array of data. This function returns fixed array of $nd, where unchecked elements are present with value of '0' (string zero). So [eiseItem::updateTable()](#eiseitem-updatetable) function updates these fields with 0 values. Function ```convertBooleanData()``` should be called prior to ```updateTable()```.
  * 
- * @category Data handling
+ * @category Data Handling
  * 
  * @param array $nd - new data, it might be a copy of $_POST array.
  * @param array $aBooleanFields - list of boolean fields to be fixed. If not set - it is filled from the $table property.
@@ -768,7 +770,7 @@ public function getFile($q, $filePathVar = 'stpFilesPath'){
  * 
  * 
  * @category Files
- * @category Forms
+ * @category Data Display
  */
 function formFiles(){
 
@@ -854,7 +856,7 @@ function formFileAttach(){
  * @return string - HTML.
  * 
  * @category Messages
- * @category Forms
+ * @category Data Display
  */
 function formMessages(){
 
@@ -917,7 +919,7 @@ function formMessages(){
  * 
  * @return string - JSON with message list.
  *
- * @category Messsages
+ * @category Messages
  */
 public function getMessages(){
 
@@ -1155,7 +1157,7 @@ static function sendMessages($conf){
  * 
  * @return string
  * 
- * @category Files
+ * @ignore
  */
 public static function convert_size_human($size){
 	

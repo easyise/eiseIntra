@@ -168,7 +168,6 @@ class eiseSQL extends mysqli{
  * - call stack
  *
  * @category Database routines
- * @category Useful stuff
  *
  * @return MySQL resource
  */
@@ -218,7 +217,6 @@ class eiseSQL extends mysqli{
  * So it is a little bit more than wrapper around MySQL result::fetch_assoc()
  *
  * @category Database routines
- * @category Useful stuff
  *
  * @param variant $mysqli_result_or_query - it could be MySQL result object or a string with SQL query. 
  *
@@ -289,7 +287,6 @@ class eiseSQL extends mysqli{
  * So it is a little bit more than wrapper around MySQL result::fetch_assoc()
  *
  * @category Database routines
- * @category Useful stuff
  *
  * @param variant $mysqli_result_or_query - it could be MySQL result object or a string with SQL query. 
  *
@@ -463,9 +460,7 @@ class eiseSQL extends mysqli{
 /**
  * getTableInfo() funiction retrieves useful MySQL table information: in addition to MySQL's 'SHOW FULL COLUMNS ...' and 'SHOW KEYS FROM ...' it also returns some PHP code that could be added to URL string, SQL queries or evaluated. See description below.
  *
- * @category Data read
  * @category Database routines
- * @category Useful stuff
  *
  * @param string $tblName - table name
  * @param string $dbName - database name (optional), if not set it returns information for table with $tblName in current database

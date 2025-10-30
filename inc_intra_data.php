@@ -247,7 +247,7 @@ public function formatByType2SQL($type, $value, &$thisType = ''){
  * [{a: {v: b }, c: {v: d}, e: {v: f, t: f_text} }, {a: {v: b1 },{c: {v: d1}}, e: {v: f1, t: f_text1} }] - as you can see data value is places under "v" key, and text represntation that originally comes with "_text" suffix is placed under "t" key for field "e".
  * More through output cofiguration can be set with $arrConf parameter of this function.
  * 
- * @category Data read
+ * @category Data Output
  *
  * @param resource $rs - SQL server resource handle
  * @param array $arrConf - confiration array. Here is detailed description of each feature:
@@ -618,7 +618,7 @@ function getMultiPKCondition($arrPK, $strValue){
 /**
  * This function reads data from SQL views or tables that's used as foreign key references. This function is widely used in eiseIntra as the data source for <select> elements and AJAX autocomplete (ajax_dropdown) elements. It can retrieve single record or whole recordset that match some criteria. It returns a recordset of value-text pairs with 'optValue' field that correspond to values and 'optText' field that correspond to text. Also it returns 'optTextLocal' for text representation in local language and 'optFlagDeleted' with flag that shows whether record is disabled for use or not. 
  * 
- * @category Data read
+ * @category Database routines
  * 
  * @param string $strValue - value to search for; when it's specified, the function searches for records by primary key.
  * @param string $strText - text to search for - when we try to find match by text with `LIKE %..%`, e.g. for AJAX autocomplete list.

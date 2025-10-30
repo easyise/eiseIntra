@@ -30,6 +30,8 @@ public $arrAction = array();
  * @param eiseItemTraceable $item Instance of eiseItemTraceable class the action is performed on
  * @param array $arrAct Associative array defining action to be performed. Should contain at least 'actID' or 'aclGUID' keys
  * @param array $options Associative array of options.
+ * 
+ * @category Events and Actions
  */
 public function __construct($item, $arrAct, $options = array()){
 
@@ -124,6 +126,7 @@ public function __construct($item, $arrAct, $options = array()){
  * 
  * @return string Returns aclGUID of the action just executed
  * 
+ * @category Events and Actions
  */
 public function execute(){
 
@@ -168,6 +171,8 @@ public function execute(){
  * @param array $nd Associative array of fields to update. Should contain keys like 'aclETA', 'aclETD', 'aclATA', 'aclATD' or any other fields defined as traceable in item configuration.
  * 
  * @return void
+ * 
+ * @category Events and Actions
  */
 public function update($nd = null){
 
@@ -228,6 +233,8 @@ public function update($nd = null){
  * Being executed it triggers ```beforeActionPlan``` and ```onActionPlan``` hooks of the item.
  * 
  * @return string Returns aclGUID of the action just added
+ *
+ * @category Events and Actions
  */
 public function add(){
 
@@ -289,6 +296,7 @@ public function add(){
  * Function starts the action previously added to action log. ```aclActionPhase``` is set to 1 (started).
  * Being executed it triggers ```onActionStart``` hook of the item.
  * 
+ * @category Events and Actions
  */
 function start(){
     
@@ -341,6 +349,7 @@ function start(){
  * 
  * In case of any problem, it throws an Exception with description of the problem.
  * 
+ * @category Events and Actions
  */
 public function validate(){
 
@@ -414,6 +423,8 @@ public function validate(){
  * Being executed it triggers ```onActionFinish``` hook of the item.
  * 
  * @return void
+ * 
+ * @category Events and Actions
  */
 public function finish(){
 
@@ -545,6 +556,8 @@ public function finish(){
  * This function cancels the action previously added to action log. If action was in phase 0 (planned), it is deleted from action log. If it was started (phase 1), it is marked as cancelled (phase 3).
  * 
  * @return void
+ * 
+ * @category Events and Actions
  */
 function cancel(){
 
@@ -573,6 +586,7 @@ function cancel(){
  * 
  * In case of any problem, it throws an Exception with description of the problem.
  * 
+ * @category Events and Actions
  */
 function checkTimeLine(){
 	
@@ -622,6 +636,7 @@ function checkTimeLine(){
  * 
  * In case of any problem, it throws an Exception with description of the problem.
  * 
+ * @category Events and Actions
  */
 function checkMandatoryFields(){
     
@@ -693,6 +708,7 @@ function checkMandatoryFields(){
  * 
  * In case of any problem, it throws an Exception with description of the problem.
  * 
+ * @category Events and Actions
  */
 public function checkPermissions(){
 

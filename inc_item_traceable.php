@@ -19,7 +19,7 @@ const statusField = 'StatusID';
 /**
  * This property is used to store the entity properties of the item. It is being filled in ```init()``` method.
  * 
- * @category Initialization
+ * @category Configuration
  */
 public $ent = array();
 
@@ -27,14 +27,14 @@ public $ent = array();
 /**
  * ```$staID``` is the current status ID of the item. It is set after the item is created or loaded.
  * 
- * @category Events
+ * @category Events and Actions
  */
 public $staID = null;
 
 /**
  * This property is used to store the current action that is being performed on the item. It is set when the item is updated, deleted or any other action is performed.
  * 
- * @category Events
+ * @category Events and Actions
  */
 public $currentAction = null;
 
@@ -86,6 +86,8 @@ public $entID = null; // entity ID of the item that this object will represent. 
 
 /**
  * This property is used to store the configuration of the item object. It is set in the constructor and can be overridden by passing a configuration array to the constructor.
+ * 
+ * @category Configuration
  */
 private $conf_default = array(
     'flagDontCacheConfig' => false, // if set to true, the configuration will not be cached in the session
@@ -116,7 +118,7 @@ private $_aUser_Role_Tier;
  * @param mixed $id Item ID. If not set, this will create an empty item object.
  * @param array $conf Configuration array. If not set, this will use default configuration.
  * 
- * @category Initialization
+ * @category Configuration
  */
 public function __construct($id = null,  $conf = array() ){
     
@@ -219,7 +221,7 @@ function checkForCheckboxes(&$nd){
  * @param array $nd Array of data to update the item with. 
  * 
  * @category Data Handling
- * @category Events
+ * @category Events and Actions
  */
 public function update($nd){
 
@@ -311,7 +313,7 @@ public function updateFullEdit($nd){
 /**
  * **Suparaction** is a special action that allows to put the item into any state. It is used for administrative purposes, e.g. to change the status of the item, add comments, etc.
  * 
- * @category Events
+ * @category Events and Actions
  */
 public function superaction($nd){
 
@@ -351,7 +353,7 @@ public function superaction($nd){
  *  
  * @param array $nd Array of data to update the item with. It is not used in this method, but it is required for compatibility with other methods.
  * 
- * @category Events
+ * @category Events and Actions
  */
 public function undo($nd){
 
@@ -589,7 +591,7 @@ public function delete(){
  * 
  * For debug purposes you can comment line ```if($_SESSION[$sessKey] && !$this->conf['flagDontCacheConfig']){``` and uncomment line ```if(false){```. This will force the configuration to be read from the database every time the item is created, instead of reading it from the session. This is useful for debugging purposes, but it will slow down the application significantly.
  * 
- * @category Initialization
+ * @category Configuration
  */
 private function init(){
 
@@ -921,7 +923,7 @@ function _sort_STA_ACT($a, $b){
  * 
  * Matrix is loaded upon item initialization and then cached in user session.
  * 
- * @category Events
+ * @category Events and Actions
  */
 public function RLAByMatrix(){
 
@@ -975,7 +977,7 @@ public function RLAByMatrix(){
  * 
  * This function returns a list of items based on the entity configuration and the current status ID. It uses the intra component to create a list object and adds columns to it based on the entity's attributes, actions, and status.
  * 
- * @category Lists and Forms
+ * @category Data Display
  * @uses eiseList
  * 
  * @return eiseList
@@ -1246,6 +1248,8 @@ public function getNewItemID($data = array()){
 
 /**
  * This function creates a new item in the database based on the provided data array. It generates a new item ID, prepares the SQL fields for insertion, and executes the SQL query to insert the new item into the database. After the insertion, it appends action log entry for the "Create" action (actID=1).
+ * 
+ * @category Data Handling
  */
 public function newItem($nd = array()){
 
@@ -1297,7 +1301,7 @@ public function insert($nd){
  * 
  * @uses eiseAction
  * 
- * @category Events
+ * @category Events and Actions
  */
 public function doAction($oAct){
     $this->currentAction = $oAct;
@@ -1324,7 +1328,7 @@ public function doAction($oAct){
  * 
  * This function is called after item update in order to re-assign virtual roles to users related to the item.
  * 
- * @category Events
+ * @category Events and Actions
  * 
  */
 public function updateRolesVirtual(){
@@ -1370,7 +1374,7 @@ public function updateRolesVirtual(){
  * 
  * @return array
  * 
- * @category Events 
+ * @category Events and Actions 
  */
 public function getVirtualRoleMembers($rolID){
     
@@ -1396,7 +1400,7 @@ public function getVirtualRoleMembers($rolID){
  * 
  * @param array|null $nd - The data array to update the actions with. If null, it uses the `$_POST` data.
  * 
- * @category Events
+ * @category Events and Actions
  * @category Data Handling
  */
 public function updateUnfinishedActions($nd = null){
@@ -1420,7 +1424,7 @@ public function updateUnfinishedActions($nd = null){
  * @param array $rwACL - The ACL data for the action to be updated.
  * @param array $nd - Additional data to be used for updating the action.
  * 
- * @category Events
+ * @category Events and Actions
  * @category Data Handling
  */
 public function updateAction($rwACL, $nd){
@@ -1599,8 +1603,7 @@ public function refresh(){
 /**
  * This function creates a backup of the current item data in JSON format. It retrieves all data using the `getAllData()` method, prepares the data for backup, and then either returns the JSON string or sends it as a downloadable file based on the `$q['asFile']` parameter.
  *
- * @category Data Handling
- * #category Backup and Restore 
+ * @category Backup and Restore 
  */
  public function backup($q){
 
@@ -1644,7 +1647,6 @@ public function refresh(){
  * @param mixed $arg - The backup data to restore. It can be a JSON string or an uploaded file.
  * 
  * @category Backup and Restore
- * @category Data Handling
  */
 public function restore($arg){
 
@@ -1729,7 +1731,7 @@ public function restore($arg){
  * This function is called before action is "planned", i.e. record is added to the Action Log. 
  * It is usable to modify action data before it is occured in the database.
  *
- * @category Events
+ * @category Events and Actions
  *
  * @param string $actID - action ID
  * @param int $oldStatusID - status ID to be moved from
@@ -1742,7 +1744,7 @@ function beforeActionPlan($actID, $oldStatusID, $newStatusID){
  * This function is called after action is "planned", i.e. record is added to the Action Log. 
  * In case when something went wrong it should throw an exception.
  *
- * @category Events
+ * @category Events and Actions
  *
  * @param string $actID - action ID
  * @param int $oldStatusID - status ID to be moved from
@@ -1756,7 +1758,7 @@ function onActionPlan($actID, $oldStatusID, $newStatusID){
  * This function is called after action is "started", i.e. Action Log record has changed its aclActionPhase=1.
  * In case when something went wrong it should throw an exception.
  *
- * @category Events
+ * @category Events and Actions
  *
  * @param string $actID - action ID
  * @param int $oldStatusID - status ID to be moved from
@@ -1768,7 +1770,7 @@ function onActionStart($actID, $oldStatusID, $newStatusID){}
  * This function is called after action is "finished", i.e. Action Log record has changed its aclActionPhase=2.
  * In case when something went wrong it should throw an exception.
  *
- * @category Events
+ * @category Events and Actions
  *
  * @param string $actID - action ID
  * @param int $oldStatusID - status ID to be moved from
@@ -1786,7 +1788,7 @@ public function onActionFinish($actID, $oldStatusID, $newStatusID){
  * This function is called on event when action is "cancelled", i.e. Action Log record has changed its aclActionPhase=3.
  * In case when something went wrong it should throw an exception and cancellation will be prevented.
  *
- * @category Events
+ * @category Events and Actions
  *
  * @param string $actID - action ID
  * @param int $oldStatusID - status ID to be moved from
@@ -1798,7 +1800,7 @@ public function onActionCancel($actID, $oldStatusID, $newStatusID){}
  * This function is called when user would like to undo given action, before anything's restored.
  * In case when something went wrong it should throw an exception.
  *
- * @category Events
+ * @category Events and Actions
  *
  * @param string $actID - action ID
  * @param int $oldStatusID - status ID to be moved from
@@ -1810,7 +1812,7 @@ public function onActionUndo($actID, $oldStatusID, $newStatusID){}
  * This function is called when item arrives to given status.
  * In case when something went wrong it should throw an exception.
  *
- * @category Events
+ * @category Events and Actions
  *
  * @param string $staID - status ID
  */
@@ -1820,7 +1822,7 @@ public function onStatusArrival($staID){}
  * This function is called when item departs from given status.
  * In case when something went wrong it should throw an exception.
  *
- * @category Events
+ * @category Events and Actions
  *
  * @param string $staID - status ID
  */
@@ -1829,9 +1831,9 @@ public function onStatusDeparture($staID){}
 /**
  * This function processes checkmarks for the item based on the provided action data. It checks if the item has any checkmarks defined, and if so, it counts how many checkmarks are required and how many are completed. If a checkmark is not completed but is set to be checked by the action, it updates the checkmark in the database.
  * 
- * @parram array $arrAction - The action data containing the new status ID and action ID.
+ * @param array $arrAction - The action data containing the new status ID and action ID.
  * 
- * @category Events
+ * @category Events and Actions
  */
 public function processCheckmarks($arrAction){
 
@@ -1880,7 +1882,7 @@ public function processCheckmarks($arrAction){
  * 
  * @return string - The generated HTML form.
  * 
- * @category Lists and Forms
+ * @category Data Display
  */
 public function form($fields = '',  $arrConfig=Array()){
 
@@ -1936,7 +1938,7 @@ public function form($fields = '',  $arrConfig=Array()){
  * 
  * @return string - The generated HTML form for listing multiple items.
  * 
- * @category Lists and Forms
+ * @category Data Display
  */
 public function form4list(){
 
@@ -1963,7 +1965,7 @@ public function form4list(){
  * 
  * @return string - The generated HTML for the status field.
  * 
- * @category Lists and Forms
+ * @category Data Display
  */
 public function getStatusField($conf=[]){
 
@@ -1986,7 +1988,7 @@ public function getStatusField($conf=[]){
  * 
  * @return string - The generated HTML skeleton for the Action Log.
  * 
- * @category Lists and Forms
+ * @category Data Display
  */
 public function getActionLogSkeleton($conf=[]){
 
@@ -2028,7 +2030,7 @@ public function getActionLogSkeleton($conf=[]){
  * 
  * @return string - The generated HTML skeleton for the Checklist.
  * 
- * @category Lists and Forms
+ * @category Data Display
  */
 public function getChecklistSkeleton($conf=[]){
 
@@ -2071,7 +2073,7 @@ public function getChecklistSkeleton($conf=[]){
  * 
  * @return array - The formatted action log entries.
  * 
- * @category Lists and Forms
+ * @category Data Display
  */
 public function getActionLog($q){
 
@@ -2161,8 +2163,10 @@ public function getActionLog($q){
  * 
  * @return array|null - An array of matching checkmarks or null if no checkmarks are defined.
  * 
- * @category Lists and Forms
+ * @category Data Display
  * @category Checklists
+ * 
+ * @ignore
  */
 public function collectChecklist(){
 
@@ -2234,7 +2238,9 @@ public function collectChecklist(){
  * @return array - An array of checklist items with titles, descriptions, and status.
  * 
  * @category Checklists
- * @category Lists and Forms
+ * @category Data Display
+ * 
+ * @ignore
  */
 public function getChecklist(){
 
@@ -2269,7 +2275,7 @@ public function getChecklist(){
  * 
  * @return array - An array of fields to be displayed or used in a form.
  * 
- * @category Lists and Forms
+ * @category Data Display
  */
 public function getFields($aFields = null){
 
@@ -2304,7 +2310,7 @@ public function getFields($aFields = null){
  * 
  * @return string - The generated HTML for the attribute fields.
  * 
- * @category Lists and Forms
+ * @category Data Display
  */
 function getAttributeFields($fields, $item = null, $conf = array()){
 
@@ -2361,8 +2367,8 @@ function getAttributeFields($fields, $item = null, $conf = array()){
  * 
  * @return array - An array of action buttons with titles, actions, IDs, datasets, and classes.
  * 
- * @category Lists and Forms
- * @category Events
+ * @category Data Display
+ * @category Events and Actions
  */
 public function arrActionButtons(){
 
@@ -2451,8 +2457,8 @@ public function arrActionButtons(){
  * 
  * @return string - The generated HTML for the action buttons.
  * 
- * @category Lists and Forms
- * @category Events
+ * @category Data Display
+ * @category Events and Actions
  */
 public function showActionButtons(){
 
@@ -2472,7 +2478,7 @@ public function showActionButtons(){
 /**
  * Alias for the ```showActionButtons()``` method
  * 
- * @category Lists and Forms
+ * @category Data Display
  */
 public function getActionButtons(){  return $this->showActionButtons(); }
 
@@ -2481,7 +2487,7 @@ public function getActionButtons(){  return $this->showActionButtons(); }
  * 
  * @return string - The generated HTML for the action radio buttons.
  * 
- * @category Lists and Forms
+ * @category Data Display
  */
 function showActionRadios(){
 
@@ -2541,7 +2547,7 @@ function showActionRadios(){
  * 
  * @return string - The generated HTML for the status log.
  * 
- * @category Lists and Forms
+ * @category Data Display
  */
 public function showStatusLog($conf = array()){
 
@@ -2618,7 +2624,7 @@ public function showStatusLog($conf = array()){
  * 
  * @return string - The generated HTML for unfinished actions.
  * 
- * @category Lists and Forms
+ * @category Data Display
  */
 function showUnfinishedActions(){
 
@@ -2670,7 +2676,7 @@ function showUnfinishedActions(){
  * 
  * @return string - The generated HTML for the action information.
  * 
- * @category Lists and Forms
+ * @category Data Display
  */
 function showActionInfo($aclGUID, $conf = array()){
 
@@ -2749,7 +2755,7 @@ function showActionInfo($aclGUID, $conf = array()){
  * 
  * @return array - An associative array of traced data for the ACL item, including field values and dropdown text if applicable.
  * 
- * @category Lists and Forms
+ * @category Data Display
  */
 public function getTracedData($rwACL){
 
@@ -2783,8 +2789,8 @@ public function getTracedData($rwACL){
  * 
  * @return void - It throws a JSON response with action and ACL details.
  * 
- * @category Lists and Forms
- * @category Events
+ * @category Data Display
+ * @category Events and Actions
  */
 function getActionDetails($q){
 
@@ -2817,8 +2823,8 @@ function getActionDetails($q){
  * 
  * @return array - An associative array containing the action data, including old and new status information.
  * 
- * @category Lists and Forms
- * @category Events
+ * @category Data Display
+ * @category Events and Actions
  */
 public function getActionData($aclGUID, $rwACL=null){
     
@@ -2870,7 +2876,7 @@ public function getActionData($aclGUID, $rwACL=null){
  * 
  * @return string|null - The text corresponding to the value in the dropdown options, or a default text if the value is not found.
  * 
- * @category Lists and Forms
+ * @category Data Display
  */
 public function getDropDownText($arrATR, $value){
 
@@ -2908,8 +2914,8 @@ public function getDropDownText($arrATR, $value){
  * 
  * @return string - The generated HTML for the "Who's Next" status information.
  * 
- * @category Lists and Forms
- * @category Events
+ * @category Data Display
+ * @category Events and Actions
  */
 public function get_whos_next($q){
 
@@ -2925,8 +2931,8 @@ public function get_whos_next($q){
  * 
  * @return int - The ID of the next bigger status, or the maximum status ID if no larger status is found.
  * 
- * @category Lists and Forms
- * @category Events
+ * @category Data Display
+ * @category Events and Actions
  */
 public function getNextBiggerStatus($staID){
 
@@ -2959,8 +2965,8 @@ public function getNextBiggerStatus($staID){
  * 
  * @return string - The generated HTML for the "Who's Next" status information, including status title, description, actions, and associated users and roles.
  * 
- * @category Lists and Forms
- * @category Events
+ * @category Data Display
+ * @category Events and Actions
  * 
  */
 public function getWhosNextStatus($staID, $counter){
