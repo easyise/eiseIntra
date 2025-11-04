@@ -1,21 +1,29 @@
 <?php
 /**
- * eiseGrid PHP class
+ * # eiseGrid
  * 
- * PHP backend for eiseGrid library that displays data grid, handles client side operations (data input, calculation and validation) and data update on the server side.
+ * eiseGrid PHP class is backend for eiseGrid library that displays data grid, handles client side operations (data input, calculation and validation) and data update on the server side.
+ * Grid is configured on PHP side and rendered as HTML+JavaScript. Data is submitted to server as form data POST and can be obtained via JSON or directly  posted into database.
+ * 
+ * eiseGrid integrates tightly with eiseIntra framework, but can be used as standalone component as well.
  * 
  * @package eiseIntra
  * @subpackage eiseGrid
  *
  * @author Ilya Eliseev (ie@e-ise.com)
- * @copyright (c) 2006-2018 Ilya S. Eliseev
+ * @copyright (c) 2006-2025 Ilya S. Eliseev
  *
- * @license http://opensource.org/licenses/gpl-license.php GNU Public License
+ * @license MIT License
  *
  * @version 2.5beta
  */
 class eiseGrid {
 
+/**
+ * Default widths for column types
+ * 
+ * @category Grid Configuration
+ */
 static $defaultWidthsByType = array(
         'numeric' => '60px'
         , 'number' => '60px'
@@ -39,6 +47,8 @@ static $defaultWidthsByType = array(
 
 /**
  * Default config of eiseGrid
+ * 
+ * @category Grid Configuration
  */
 static $defaultConf = Array(                    //defaults for eiseGrid
         'titleDel' => "Del" // column title for Del
@@ -72,6 +82,12 @@ static $defaultConf = Array(                    //defaults for eiseGrid
 
     );
 
+/** 
+ * This array defines default properties of each column.
+ * 
+ * @category Grid Configuration
+ * 
+*/
 public $col_default = array(
     'field' => '', // field name, must be set
     'fields' => null, // array of fields, if set, will be used for colspan purposes
@@ -106,6 +122,8 @@ public $col_default = array(
 
 /**
  * array of columns. can be associative or indexed.
+ * 
+ * @category Grid Configuration
  */
 public $Columns = array();
 
@@ -119,29 +137,40 @@ public $hiddenInputs = array(),
     $Tabs3D = null,
     $arrSpans = array(); // array of spans for the header columns, indexed by field name
 
-public $conf = array(); // configuration of eiseGrid, see $defaultConf for defaults
+/**
+ * Configuration of eiseGrid instance (see [eiseGrid::$defaultConf](#eisegrid-defaultconf) for possible settings)
+ * 
+ * @category Grid Configuration
+ */
+public $conf = array();
 
 public $intra, $oSQL;
 
 public $name = ''; // name of the grid, used for HTML id and class attributes
 
+// Associative array of fields. Key is field name, value is array similar to $Columns
+protected $__fields = array(); 
 
-/**
- * Associative array of fields. Key is field name, value is array similar to $Columns
- */
-protected $__fields = array();
-
-/**
- * Rowspan. Default 1. To be updated on initialization, after field number calculation for each column
- */
-protected $__rowspan = 1;
+// Rowspan. Default 1. To be updated on initialization, after field number calculation for each column
+protected $__rowspan = 1; 
 
 
 /**
  * array of rows. each row is accociative array of fieldName=>fieldValue
+ * 
+ * @category Grid Data
  */
 public $Rows = array();
 
+/**
+ * Grid constructor. 
+ * 
+ * @param object $oSQL - eiseSQL object
+ * @param string $strName - grid name
+ * @param array $arrConfig - grid configuration overrides. See description of static property [eiseGrid::$defaultConf](#eisegrid-defaultconf).
+ * 
+ * @category Grid Configuration
+ */
 function __construct($oSQL
     , $strName
     , $arrConfig = array()
@@ -197,6 +226,8 @@ function __construct($oSQL
  * @param string $newName - new grid name
  *
  * @return string - old name
+ * 
+ * @category Grid Configuration
  */
 function rename($newName){
 
@@ -224,6 +255,8 @@ function rename($newName){
  *            , 'totals' => "sum"
  *            , 'width' => '30px'
  *    ));
+ * 
+ * @category Grid Configuration
  *
  */
 function addColumn($arrCol){
@@ -269,6 +302,8 @@ function addColumn($arrCol){
  * @param $field - field name to be removed.
  *
  * @example     $gridJCN->removeColumn('qq');
+ * 
+ * @category Grid Configuration
  *
  */
 function removeColumn($field){
@@ -289,6 +324,14 @@ function removeColumn($field){
 
 /**
  * This function changes column property to defined values and returns its previous value.
+ * 
+ * @param string $field - field name
+ * @param string $property - property name
+ * @param mixed $value - new property value
+ *
+ * @return mixed - old property value
+ * 
+ * @category Grid Configuration
  */
 function setColumnProperty($field, $property, $value){
     $retVal = null;
@@ -305,6 +348,7 @@ function setColumnProperty($field, $property, $value){
 /**
  * This function does main job: it generates HTML for the whole eiseGrid.
  *
+ * @category Grid Display
  */
 function get_html($allowEdit=true){
 
@@ -362,9 +406,6 @@ function get_html($allowEdit=true){
         $htmlTabs .= "</div>\r\n";
     }
 
-    /**
-     * <THEAD>
-     */
     $strHead = "<tr>\r\n";
 
     $this->visibleColumns = Array();
@@ -705,6 +746,9 @@ function get_html($allowEdit=true){
 
 /**
  * This function echoes eiseGrid HTML
+ * 
+ * @category Grid Display
+ * @category Grid Backward Compatibility
  */
 function Execute($allowEdit=true) {
     
@@ -713,7 +757,7 @@ function Execute($allowEdit=true) {
 }
 
 /**
- * 
+ * @ignore
  */  
 protected function __getRow($iRow, $row = null){
 
@@ -749,6 +793,9 @@ protected function __getRow($iRow, $row = null){
 
 }
 
+/**
+ * @ignore
+ */
 protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     
     $field = ($col['type']=="del" ? "del" : $col["field"]);
@@ -1030,6 +1077,9 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     return $strCell;
 }
 
+/**
+ * @ignore
+ */
 function getSelectValue($cell, $row, $suffix=''){
     
     $oSQL = $this->oSQL;
@@ -1139,6 +1189,15 @@ $result = preg_replace("/( 00\:00(\:00){0,1})/", "", $result);
 return($result);
 }
 
+/**
+ * This function updates data in the database basing on user eiseGrid input
+ * 
+ * @category Grid Data Handling
+ * 
+ * @param array $newData Optional. Array of new data to be used instead of $_POST
+ * @param array $conf Optional. Configuration array. Supported options:
+ *  - flagOnDuplicateKeyUpdate - boolean, default false. If true, INSERT statements will have ON DUPLICATE KEY UPDATE clause
+ */
 function Update($newData = null, $conf = array()){
 
     GLOBAL $usrID, $intra;
@@ -1229,6 +1288,17 @@ function Update($newData = null, $conf = array()){
 
 }
 
+/**
+ * This function returns JSON-encoded data from eiseGrid input
+ * 
+ * @category Grid Data Handling
+ * 
+ * @param array $newData Optional. Array of new data to be used instead of $_POST
+ * @param array $conf Optional. Configuration array. Supported options:
+ *       - flagDontEncode - boolean, default false. If true, function returns array instead of JSON-encoded string
+ * 
+ * @return JSON-encoded string or array of data
+ */
 function json( $newData = null, $conf = array() ){
 
     GLOBAL $intra;
@@ -1291,6 +1361,8 @@ function json( $newData = null, $conf = array() ){
 
 /**
  * This function returns row_id column name
+ * 
+ * @ignore
  */
 function getPK(){
 
@@ -1314,6 +1386,9 @@ function getPK(){
     return $pkColName;
 }
 
+/**
+ * @ignore
+ */
 private function getMultiPKCondition($arrPK, $strValue){
     
     GLOBAL $intra;
@@ -1350,5 +1425,12 @@ private static function confVariations($conf, $variations){
 
 }
 
+/**
+ * @category Grid Backward Compatibility
+ * 
+ * @deprecated since version 3.7.0
+ * 
+ * Class easyGrid is kept for backward compatibility. Please use eiseGrid instead.
+ */
 class easyGrid extends eiseGrid{}
 ?>

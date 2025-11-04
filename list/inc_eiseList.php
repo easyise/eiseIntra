@@ -1,24 +1,31 @@
 <?php
-/* ===================================================== */
-//    eiseList
-//    Version 1.5 (4.5)
-// replaces Ilya's library called 'phpList'
-// (c)2005-2014 Eliseev Ilya http://e-ise.com
-// requires - JS: jquery ui
-// requires - PHP: eise's inc_mysql.php
-// eiseIntra: compatibility OK, reads $intra->conf if it exists
-// Authors: Ilya Eliseev, Pencho Belneiski, Dmitry Zakharov, Igor Zhuravlev
-// License: GNU Public License v.3
-// sponsored: Yusen Logistics Rus LLC
-// contibutors: Ilya Eliseev, Igor Zhuravlev, Dmitry Zakharov, Pencho Belneiski
-/* ===================================================== */
-
+/**
+ * # eiseList
+ * 
+ * Data listing and filtering class with support of autoloading on scroll event, Excel output, Ajax cell update, column chooser, tabs filter.
+ * 
+ *    Version 1.5 (4.5)
+ * 
+ * Formerly known as 'phpList'
+ * (c)2005-2025 Eliseev Ilya https://russysdev.github.io/eiseIntra/
+ * 
+ * Authors: Ilya Eliseev, Pencho Belneiski, Dmitry Zakharov, Igor Zhuravlev
+ * License: MIT
+ * 
+ * sponsored: Yusen Logistics Rus LLC
+ * 
+ */
 class eiseList{
 
 const DS = DIRECTORY_SEPARATOR;
 const counterColumn = "phpLNums";
 const cookieNameSuffix = "_LstParams";
 
+/**
+ * Configuration array with default settings. You can override them in constructor.
+ * 
+ * @category List Configuration
+ */
 public $conf = Array(
     'includePath' => '../'
     , 'dateFormat' => "d.m.Y" // 
@@ -71,6 +78,11 @@ private $arrCookieToSet = Array();
 private $arrCookie = Array();
 private $arrSession = Array();
 
+/**
+ * Default column settings
+ * 
+ * @category List Configuration
+ */
 private static $col_default = Array(
     'title' => ''
     , 'type' => 'text' // text, integer, date, datetime, select, combobox, ajax_dropdown, checkbox, row_id, order 
@@ -125,7 +137,15 @@ public $flagGroupBy = false;
 public $error = '';
 
 
-
+/**
+ * Class constructor. Intra object can be passed as part of $arrConfig array with 'intra' key to inherit some settings from eiseIntra.
+ * 
+ * @param object $oSQL SQL object
+ * @param string $strName List name
+ * @param array $arrConfig Configuration array (see [eiseList::$conf](#eiselist-conf) for possible settings)
+ * 
+ * @category List Configuration
+ */
 function __construct($oSQL, $strName, $arrConfig=Array()){
     
     $this->name = $strName;
@@ -216,6 +236,7 @@ public function hasColumn($fieldName){
  *            , 'width' => '30px'
  *    ));
  *
+ * @category List Configuration
  */
 public function addColumn($arrCol){
 
@@ -269,6 +290,8 @@ public function addColumn($arrCol){
  * @param variant $value - value to be set. If NULL, $property become unset from this column
  *
  * @return variant - previous property value. If property ot column is not found , it returns NULL
+ * 
+ * @category List Configuration
  */
 public function setColumnProperty($field, $property, $value){
     $retVal = null;
@@ -287,6 +310,10 @@ public function setColumnProperty($field, $property, $value){
 
 /**
  * This method filters columns according to supplied array and put it in specified order
+ *
+ * @param array $arrColFields - array of field names to be kept and their order
+ * 
+ * @category List Configuration
  */
 public function setColumnOrder($arrColFields){
 
@@ -318,6 +345,8 @@ public function setColumnOrder($arrColFields){
 
 /**
  * This function returns column array and updates the key it could be accessed from $lst->Columns list
+ * 
+ * @category List Configuration
  */
 public function getColumn($field, &$key=''){
     if(isset($this->Columns[$field]) && $this->Columns[$field]){
@@ -335,6 +364,8 @@ public function getColumn($field, &$key=''){
 
 /**
  * This function removes column by field name.
+ * 
+ * @category List Configuration
  */
 public function removeColumn($field){
     foreach($this->Columns as $ix=>$col){
@@ -345,6 +376,13 @@ public function removeColumn($field){
     }
 }
 
+/**
+ * This function handles data requests and returns them in requested format: JSON, Aggregate data JSON or Excel XML.
+ * 
+ * It caches SQL query and columns configuration for faster response on next requests.
+ * 
+ * @category List Data Handling
+ */
 public function handleDataRequest(){ // handle requests and return them with Ajax, Excel, XML, PDF, whatsoever user can ask
 
     $DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : (isset($_GET["DataAction"]) ? $_GET["DataAction"] : null);
@@ -580,6 +618,8 @@ public function handleDataRequest(){ // handle requests and return them with Aja
 
 /**
  * This function directly outputs list contents in HTML.
+ * 
+ * @category List Display
  */
 public function show(){ // draws the wrapper
 
@@ -671,6 +711,11 @@ endif;
 <?php
 }
 
+/**
+ * Show the table header with column titles and filter inputs.
+ *
+ * @ignore
+ */
 private function showTableHeader(){
     
     $oSQL = $this->oSQL;
@@ -835,6 +880,8 @@ private function showTableHeader(){
  * This function returns combobox source basnig for column passes as **$col** parameter
  * @param array $col List column with $col['source'] and $col['source_prefix'] specified
  * @return array of value=>text pairs to fill in the combobox
+ * 
+ * @ignore
  */
 protected function getComboboxSource($col){
 
@@ -880,6 +927,8 @@ protected function getComboboxSource($col){
 /**
  * This function appends tabs to $list->Tabs array if there's required to break down list by tabs with setting $list->conf['tabsFilterColumn'] option. List developer can assign the name of list column to it and this function will query list table for quantitative breakdown on this field. This field should have 'combobox' property and $col['source_raw'] should be filled as associative array.
  * Tabs will be ordered according to this combobox order.
+ * 
+ * @ignore
  */
 protected function breakDownByTabs(){
 
@@ -1028,26 +1077,27 @@ private function showFieldChooser(){
  *
  * The list gets search parameters from cookie or session, but if there's something set with $_GET, this data overrides cookie settings.
  * What parameters can be set with $_GET:
- * - <list name>HiddenCols - comma-separated list of hidden columns
- * - <list name>MaxRows - maximum row number to obtain during the query
- * - <list name>OB - field name to order by
- * - <list name>ASC_DESC - direction field, can be 'ASC' or 'DESC'
- * - <list name>_<field name> - filter value(s).
+ * - ```<list name>HiddenCols``` - comma-separated list of hidden columns
+ * - ```<list name>MaxRows``` - maximum row number to obtain during the query
+ * - ```<list name>OB``` - field name to order by
+ * - ```<list name>ASC_DESC``` - direction field, can be 'ASC' or 'DESC'
+ * - ```<list name>_<field name>``` - filter value(s).
  *
- * Parameters that saved with cookies are stored as serialized array under key $this->conf['cookieName'].
+ * Parameters that saved with cookies are stored as serialized array under key ```$this->conf['cookieName']```.
  * Cookie array member keys are: 
  * - HiddenCols - comma-separated string with columns names to be hidden
  * - MaxRows - maximum row number to obtain
- * - OB - order by fiels name
+ * - OB - order by field name
  * - ASC_DESC - ordering direction (ascending/descending)
- * - <filter values> - are stored under keys consists of $this->name.'_'.$col['filter'] .
+ * - ```<filter values>``` - are stored under keys consists of ```$this->name.'_'.$col['filter']``` .
  *
- * Filter values for columns with 'filterType'=>'multiline' are stored into $_SESSION variable as array member under $this->conf['cookieName'] key.
+ * Filter values for columns with  ```'filterType'=>'multiline'``` are stored into ```$_SESSION``` variable as array member under ```$this->conf['cookieName']``` key.
  * 
  * Hidden columns array, maximum row number, sort ordering parameters are being set to the corresponding list variables.
  * Filter values are assigned to $this->Columns array members as 'filterValue' array member.
  * Afterwards it sets cookie with specified parameters and saves correspoding data into the session.
  *
+ * @category List Data Handling
  */ 
 private function handleInput(){
 
@@ -1156,9 +1206,11 @@ private function handleInput(){
  * In currenct version it works only with string and int values. NULL cannot be transferred.
  *
  * @param array $newData - data necesasry fo update, as associative array:
- * - pk (string) - primary key value
- * - field (string) - field name
- * - value (string) - field value
+ *      - pk (string) - primary key value
+ *      - field (string) - field name
+ *      - value (string) - field value
+ * 
+ * @category List Data Handling
  *
  */
 public function updateCell($newData = null, $opts = array()){
@@ -1207,6 +1259,8 @@ public function updateCell($newData = null, $opts = array()){
  * This method returns $_GET parameter name for filter field.
  * @param string $field - field name
  * @return string
+ * 
+ * @ignore
  */
 public function getFilterParameterName( $field ){
     return $this->name.'_'.$field;
@@ -1230,6 +1284,7 @@ public function getCookie(){
 /**
  * This function returns session array.
  * @return array of session data for given list. If there're nothing in session, it returns null.
+ * @ignore
  */
 public function getSession(){
     if (!isset($_SESSION[$this->conf["cookieName"]])) {
@@ -1249,6 +1304,8 @@ public function getSession(){
  * 
  * @param $field string - field name to get filter value for.
  * @return string - filter value. If filter's not set, it returns NULL.
+ * 
+ * @category List Data Handling
  */
 public function getFilterValue( $field ){
 
@@ -1268,6 +1325,12 @@ public function getFilterValue( $field ){
 
 }
 
+/**
+ * This function composes SQL query for the list basing on list columns, filters, sorting and grouping settings.
+ * 
+ * @category List Data Handling
+ * 
+ */
 private function composeSQL(){
     
     GLOBAL $_DEBUG, $intra;
@@ -1437,21 +1500,29 @@ private function composeSQL(){
 }
 
 /**
- * This method returns SQL search expression for given column as string that looks like "myColumn='my filter value'".
- * In common case: <searchSubject> <searchOperator> <searchCriteria>
- * <searchSubject> is column name or SQL expression that would be tested on match with supplied filter value.
- * <searchOperator> and <searchCriteria> are defined basing on column type, filter value and other factors.
- * For text, it searches for partial match by default (expression is "myColumn LIKE '%my filter value%'")
- * In case when column has 'exactMatch' property set to TRUE or filter value is encolsed into double or single quotes ("'" or """), it returns expression for direct match: "myColumn='my filter value'"
- * For numeric values it allows to use comparison operators, like "=", ">", "<", ">=" or "<="
+ * This method returns SQL search expression for given column as string that looks like ```myColumn='my filter value'```.
+ * In common case: ```<searchSubject> <searchOperator> <searchCriteria>```
+ * 
+ * ```<searchSubject>``` is column name or SQL expression that would be tested on match with supplied filter value.
+ * 
+ * ```<searchOperator>``` and ```<searchCriteria>``` are defined basing on column type, filter value and other factors.
+ * 
+ * For text, it searches for partial match by default (expression is ```myColumn LIKE '%my filter value%'```)
+ * 
+ * In case when column has 'exactMatch' property set to TRUE or filter value is encolsed into double or single quotes ("'" or """), it returns expression for direct match: ```myColumn='my filter value'```
+ * 
+ * For numeric values it allows to use comparison operators, like ```=```, ```,```, ```<```, ```>=``` or ```<=``` before the number in filter value.
  * Same is for date/datetime values. For these types it also allows logical "&" ("and")  operator.
  *
- * If filter value is empty, it returns empty string (only if exact match option is not set for this column).
- * If filter value matches matches isNullFilterValue from configuration we return '<searchExpression> IS NULL'.
+ * If filter value is empty, it returns empty string (only if ```exact match``` option is not set for this column).
+ * If filter value matches matches isNullFilterValue from configuration we return ```<searchExpression> IS NULL```.
  *
  * @param array $col - column, a single member of eiseList::Columns property.
  *
  * @return string
+ * 
+ * @category List Data Handling
+ * 
  */
 private function getSearchCondition(&$col){
      
@@ -1738,6 +1809,12 @@ private function dateSQL2PHP($dtVar, $datFmt="d.m.Y H:i"){
 
 }
 
+/**
+ * phpLister class extends eiseList class to provide backward compatibility with phpLister library.
+ * It has the same constructor as phpLister class had and an Execute method that sets main SQL parameters.
+ * 
+ * @category List Backward Compatibility
+ */
 class phpLister extends eiseList{
     function __construct($name){
         GLOBAL $oSQL;

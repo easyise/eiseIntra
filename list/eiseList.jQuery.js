@@ -14,7 +14,7 @@
  *  - Dmitry Zakharov
  *  - Igor Zhuravlev
  *
- *  eiseList reference [http://russysdev.com/eiseIntra/docs/list/]()
+ *  eiseList reference [http://russysdev.com/eiseIntra/gridlist]()
  */
 var eiseLists = [];
 
