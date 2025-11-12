@@ -1,29 +1,38 @@
-/********************************************************/
-/*  
-eiseGrid jQuery wrapper
-
-requires jQuery UI 1.8: 
-http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js
-
-
-Published under GPL version 2 license
-(c)2006-2019 Ilya S. Eliseev ie@e-ise.com, easyise@gmail.com
-
-Contributors:
-Pencho Belneiski
-Dmitry Zakharov
-Igor Zhuravlev
-
-eiseGrid reference:
-http://e-ise.com/eiseGrid/
-
-*/
-/********************************************************/
+/**
+ *
+ * **eiseGrid jQuery wrapper**
+ * 
+ * requires jQuery UI 1.8: 
+ * [http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js]()
+ * 
+ * 
+ * Published under MIT license
+ * (c)2006-2025 Ilya S. Eliseev ie@e-ise.com, easyise@gmail.com
+ * 
+ * Contributors:
+ * - Pencho Belneiski
+ * - Alexander Demidov
+ * - Dmitry Zakharov
+ * - Igor Zhuravlev
+ * 
+ * eiseGrid reference:
+ * [http://russysdev.github.io/eiseIntra/gridlist]()
+ * 
+ * 
+ * @category Grid Display
+ */
 (function( $ ) {
 var settings = {
     
 };
 
+/**
+ * eiseGrid class constructor. Object of this class encapsulates all grid functionality. jQuery plugins are just wrappers around this class methods. See jQuery plugins documentation for details.
+ * 
+ * @param {jQuery} gridDIV jQuery object of DIV containing the grid
+ * 
+ * @category Grid Display
+ */
 function eiseGrid(gridDIV){
 
     this.id = gridDIV.attr('id');
@@ -791,6 +800,7 @@ var _setCaretPos = function(oField, posToSet){
 
 /**
  * Initialize regular expressions
+ * @ignore
  */
 var __initRex = function(){
 
@@ -2172,6 +2182,11 @@ eiseGrid.prototype.excel = function(options){
 
 }
 
+/**
+ * Color the selected rows in the grid basing on the predefined colors in the grid configuration chosen by the user from the color picker dialog
+ * 
+ * @param {*} ev Event object
+ */
 eiseGrid.prototype.colorRow = function(ev){
 
     if ($('.eg-colorpicker')[0]) { $('.eg-colorpicker').dialog('close') };
@@ -2472,6 +2487,14 @@ eiseGrid.prototype.applyFilters = function(){
 };
 
 var methods = {
+
+/**
+ * Plugin initialization method.
+ * 
+ * @param {*} conf Array of configuration parameters. Normally all configuration is set in PHP and passed to JS as a JSON object.
+ * 
+ * @category Grid Display
+ */
 init: function( conf ) {
 
     this.each(function() {
@@ -2527,6 +2550,16 @@ conf: function( conf ) {
 
     return this;
 },
+
+/**
+ * This method adds a new row to the grid.
+ * 
+ * @param {*} $trAfter - jQuery object of the row after which the new row will be added. If not set, the row is added to the end of the grid.
+ * @param {*} callback - function to be called after the row is added.
+ * @param {*} conf 
+ * 
+ * @category Grid Manipulation
+ */
 addRow: function ($trAfter, callback, conf){
     //Adds a row after specified trAfter row. If not set, adds a row to the end of the grid.
     this.each(function(){
@@ -2537,6 +2570,15 @@ addRow: function ($trAfter, callback, conf){
     return this;
 
 }, 
+
+/**
+ * Method ```selectRow``` "selects" a row in the grid by adding it to the set of selected rows and coresponding CSS class to it.
+ * 
+ * @param {*} $tr - row to marked as selected
+ * @param {*} event - event object (optional) of the event that triggered the row selection
+ * 
+ * @category Grid Manipulation
+ */
 selectRow: function ($tr, event){
     //Selects a row specified by tr parameter.
     this.each(function(){
@@ -2546,24 +2588,63 @@ selectRow: function ($tr, event){
     });
     return this;
 }, 
+
+/**
+ * This method copies the specified rows.
+ * 
+ * @param {*} rowsToCopy - Array of rows to be copied.
+ * 
+ * @category Grid Manipulation
+ */
 copyRows: function(rowsToCopy){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     grid.copyRows(rowsToCopy);
     return this;
 },
+
+/**
+ * This method returns the jQuery object of the last selected row in the grid.
+ * 
+ * @returns {*} jQuery object of the last selected row in the grid.
+ * 
+ * @category Grid Manipulation
+ */
 getSelectedRow: function (){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     var $lastSelectedRow = grid.activeRow[grid.lastClickedRowIx];
     return $lastSelectedRow;
 }, 
+
+/**
+ * This method returns an array of jQuery objects of all selected rows in the grid.
+ *
+ * @return {*} Array of jQuery objects of all selected rows in the grid.
+ * 
+ * @category Grid Manipulation
+ */
 getSelectedRows: function (){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     return grid.activeRow;
 }, 
+
+/**
+ * This method returns the ID of the specified row. ID is the contents of field marked as ```row_id``` in the grid configuration on PHP side.
+ *
+ * @param {*} $tr - jQuery object of the row
+ * @return {*} ID of the row
+ * 
+ * @category Grid Manipulation
+ */
 getRowID: function ($tr){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     return grid.getRowID($tr);
 },
+
+/**
+ * This method returns the ID of the last selected row in the grid. ID is the contents of field marked as ```row_id``` in the grid configuration on PHP side.
+ *
+ * @return {*} ID of the last selected row
+ */
 getSelectedRowID: function ($tr){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     var $lastSelectedRow = grid.activeRow[grid.lastClickedRowIx];
@@ -2572,6 +2653,14 @@ getSelectedRowID: function ($tr){
     else 
         return grid.getRowID($lastSelectedRow);
 },
+
+/**
+ * This method returns an array of IDs of all selected rows in the grid. IDs are the contents of field marked as ```row_id``` in the grid configuration on PHP side.
+ *
+ * @return {*} Array of IDs of all selected rows
+ * 
+ * @category Grid Manipulation
+ */
 getSelectedRowIDs: function ($tr){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     var arrRet = [];
@@ -2587,6 +2676,14 @@ getSelectedRowIDs: function ($tr){
     return arrRet; 
 },
 
+/**
+ * This function deletes a row from the grid.
+ * 
+ * @param {*} $tr - jQuery object of the row to be deleted.
+ * @param {*} callback - function to be called after the row is deleted.
+ * 
+ * @category Grid Manipulation
+ */
 deleteRow: function ($tr, callback){
     //Removes a row specified by tr parameter. If not set, removes selected row
     this.each(function(){
@@ -2597,11 +2694,33 @@ deleteRow: function ($tr, callback){
     return this;
 },
 
+/**
+ * This function deletes selected rows from the grid. 
+ * You can add user confirmation before deletion by adding ```beforeDelete``` callback to the ```eiseGrid``` object.
+ * 
+ * Example:
+ * ```javascript
+ * $('#myGrid').eiseGrid('beforeDelete', function(selectedRowIDs, event){
+ *    return confirm('Are you sure you want to delete rows: '+selectedRowIDs.join(', ')+'?');
+ * });
+ * ```
+ * @param {*} event - The event object.
+ * @param {*} callback - Function to be called after the rows are deleted.
+ * 
+ * @category Grid Manipulation
+ */
 deleteSelectedRows: function(event, callback){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     return grid.deleteSelectedRows(event, callback);
 },
 
+/**
+ * Function marks the specified row as updated. Can be called after changing values in the row programmatically.
+ * 
+ * @param {*} $tr - ```<tbody>``` jQuery object of the row(s) to be marked as updated.
+ * 
+ * @category Grid Manipulation
+ */
 updateRow: function ($tr){
     //It marks specified row as updated
     this.each(function(){
@@ -2612,6 +2731,13 @@ updateRow: function ($tr){
     return this;
 
 }, 
+
+/**
+ * Special function that recalculates order field (with ```type='order'``` in grid config) values for all rows in the grid.
+ * 
+ * @category Grid Manipulation
+ * 
+ */
 recalcOrder: function(){
     //recalculates row order since last changed row
     this.each(function(){
@@ -2622,6 +2748,13 @@ recalcOrder: function(){
     return this;
 },
 
+/**
+ * Function moves the selected row up by 1 step, if possible.
+ * 
+ * @param {*} flagDontUpdateRows - when ```true``` rows remain not marked as 'updated' during this move.
+ * 
+ * @category Grid Manipulation
+ */
 moveUp: function(flagDontUpdateRows){
     //Moves selected row up by 1 step, if possible
     this.each(function(){
@@ -2632,6 +2765,13 @@ moveUp: function(flagDontUpdateRows){
     return this;
 },
 
+/**
+ * Function moves the selected row down by 1 step, if possible.
+ * 
+ * @param {*} flagDontUpdateRows - when ```true``` rows remain not marked as 'updated' during this move.
+ * 
+ * @category Grid Manipulation
+ */
 moveDown: function(flagDontUpdateRows){
     //Moves selected row down by 1 step, if possible
     this.each(function(){
@@ -2642,6 +2782,13 @@ moveDown: function(flagDontUpdateRows){
     return this;
 },
 
+/**
+ * Special function that brings data that correspond to tab ID to the front. 
+ * 
+ * @param {*} ID 
+ * 
+ * @category Grid Tabs
+ */
 sliceByTab3d: function(ID){ 
     //brings data that correspond to tab ID to the front
     this.each(function(){
@@ -2651,6 +2798,13 @@ sliceByTab3d: function(ID){
     return this;
 },
 
+/**
+ * ```recalcTotals``` method recalculates totals for the specified field in all grids matching the selector.
+ * 
+ * @param {*} strField 
+ * 
+ * @returns 
+ */
 recalcTotals: function (strField){
     //Recalculates totals for given field.
     this.each(function(){
@@ -2661,6 +2815,15 @@ recalcTotals: function (strField){
     return this;
 },
 
+/**
+ * Function returns current totals for the specified field in all grids matching the selector. Toltals formula is defined in grid configuration on PHP side.
+ * 
+ * @param {*} strField 
+ * 
+ * @returns {*} totals value
+ * 
+ * @category Grid Data
+ */
 totals: function(strField){
     
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
@@ -2668,6 +2831,13 @@ totals: function(strField){
 
 },
 
+/**
+ * ```change``` method assigns "change" event callback for fields enlisted in strFields parameter.
+ * 
+ * @param {*} strFields 
+ * @param {*} callback 
+ * @returns 
+ */
 change:  function(strFields, callback){
     //Assigns “change” event callback for fields enlisted in strFields parameter.
     this.each(function(){
@@ -2680,6 +2850,18 @@ change:  function(strFields, callback){
     return this;
 },
 
+/**
+ * This method sets or retrieves value for field strField in specified row ```$tr```.
+ * 
+ * @param {jQuery} $tr - jQuery object of the ```<tbody>``` which encloses one or more rows.
+ * @param {string} strField - field name
+ * @param {*} value - value to be set
+ * @param {string} text - text representation of the value
+ * @param {Array} options - additional options
+ * @returns the value of the field if only ```$tr``` and ```strField``` parameters are set; otherwise, returns ```undefined```.
+ * 
+ * @category Grid Data
+ */
 value: function ($tr, strField, value, text, options){
     //Sets or gets value for field strField in specified row, if there’s a complex field 
     //(combobox, ajax_dropdown), it can also set text representation of data.
@@ -2689,13 +2871,32 @@ value: function ($tr, strField, value, text, options){
         : grid.value($tr, strField, value, text, options)
         );
 },
-
+    
+/**
+ * This method sets and/or returns text representation of data for field strField in specified row ```$tr```.
+ * 
+ * @param {jQuery} $tr - jQuery object of the ```<tbody>``` which encloses one or more rows.
+ * @param {string} strField - field name
+ * @param {string} text - if set, this is the text representation of the value
+ * 
+ * @returns {string} - text representation of the value
+ * 
+ * @category Grid Data
+ */
 text: function($tr, strField, text) {
     //Returns text representation of data for field strField in specified row tr.
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     return grid.text($tr, strField, text);
 },
 
+/**
+ * This method sets focus to field strField in specified data row ```$tr```.
+ * 
+ * @param {jQuery} $tr - jQuery object of the ```<tbody>``` which encloses one or more rows.
+ * @param {string} strField - field name
+ * 
+ * @category Grid Manipulation
+ */
 focus: function($tr, strField){
     //Sets focus to field strField in specified row tr.
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
@@ -2703,6 +2904,15 @@ focus: function($tr, strField){
     return this;
 },
 
+/**
+ * Validates data for field strField in row tr. Returns true if valid.
+ * 
+ * @param {jQuery} $tr - jQuery object of the ```<tbody>``` which encloses one or more rows.
+ * @param {string} strField - field name
+ * @returns {boolean} - true if valid
+ * 
+ * @category Grid Data
+ */
 validateInput: function ($tr, strField){
     //Validates data for field strField in row tr. Returns true if valid.
     this.each(function(){
@@ -2715,6 +2925,14 @@ validateInput: function ($tr, strField){
     return this;
 },
 
+/**
+ * Validates entire contents of eiseGrids matching selectors. Returns true if all data in all grids is valid.
+ * 
+ * @param {Array} options 
+ * @returns {boolean} - true if all data in all grids is valid
+ * 
+ * @category Grid Data
+ */
 validate: function( options ){
     //Validates entire contents of eiseGrids matching selectors. Returns true if all data in all grids is valid
     var flagOK = true;
@@ -2728,6 +2946,13 @@ validate: function( options ){
     return flagOK;
 },
 
+/**
+ * This method wraps whole grid with FORM tag and submits it to script specified in settings. Then this data is sent to the server for processing.
+ * 
+ * @param {function} onSubmit - function to be called before submission. If it returns false, submission is cancelled.
+ * 
+ * @category Grid Data Handling
+ */
 save: function(onSubmit){
     //Wraps whole grid with FORM tag and submits it to script specified in settings.
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
@@ -2735,12 +2960,27 @@ save: function(onSubmit){
     return this;
 },
 
+/**
+ * This method sets the height of the grid. Parameter nHeight specifies the new height in pixels and includes header and footer if any.
+ * 
+ * @param {number} nHeight - The new height of the grid.
+ * @param {function} callback - A callback function to be executed after the height is set.
+ *
+ * @category Grid Display
+ */
 height: function(nHeight, callback){
     //Wraps whole grid with FORM tag and submits it to script specified in settings.
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     return grid.height(nHeight, callback);
 },
 
+/**
+ * ```dblclick``` method assigns double-click event callback for all data rows in the grid.
+ * 
+ * @param {*} dblclickCallback 
+ * 
+ * @category Grid Events
+ */
 dblclick: function(dblclickCallback){
     if(!$(this[0]).data('eiseGrid'))
         return this;
@@ -2752,54 +2992,129 @@ dblclick: function(dblclickCallback){
     return this;
 },
 
+/**
+ * This method assigns a callback function to be executed before a row is deleted. If this function returns false, the deletion is cancelled.
+ * 
+ * ```grid.beforeDeleteCallback``` fires only with ```eiseGrid('deleteSelectedRows')``` method.
+ *
+ * @param {*} callback
+ * @returns
+ *
+ * @category Grid Events
+ */
 beforeDelete: function(callback){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     grid.beforeDeleteCallback = callback;
     return this;
 },
 
-
+/**
+ * This method assigns a callback function to be executed after deletion of a row. This function can be used to perform some actions in the UI or send AJAX request to the server to delete the row from the database.
+ *
+ * ```grid.afterDeleteCallback``` fires only with ```eiseGrid('deleteSelectedRows')``` method.
+ *
+ * @param {*} callback
+ * @returns
+ *
+ * @category Grid Events
+ */
 afterDelete: function(callback){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     grid.afterDeleteCallback = callback;
     return this;
 },
 
+/**
+ * 
+ * ```onDelete``` method assigns ```onDeleteCallback``` callback function that fires on any row deletion - doesnt matter if by ```eiseGrid('deleteSelectedRows')``` (from UI)  or ```eiseGrid('deleteRow')``` method (both UI and programmatically). Doesnt matter what this function returns - row is always deleted.
+ * 
+ * @param {*} callback 
+ * @returns 
+ * 
+ * @category Grid Events
+ */
 onDelete: function(callback){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     grid.onDeleteCallback = callback;
     return this;
 },
 
-
+/**
+ * This method assigns a callback function to be executed before saving data from the grid. If this function returns false, the save operation is cancelled. Can be used for data validation before save.
+ *
+ * @param {*} onSaveCallback 
+ * @returns 
+ * 
+ * @category Grid Events
+ * @category Grid Data Handling
+ */
 beforeSave: function(onSaveCallback){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     grid.onSaveCallback = onSaveCallback;
     return this;
 },
 
-
+/**
+ * This method returns the eiseGrid object associated with the current jQuery element. This can be useful for accessing grid methods and properties via eiseGrid object.
+ *
+ * @returns {Object} The eiseGrid object.
+ */
 getGridObject: function(){
     return $(this[0]).data('eiseGrid').eiseGrid;
 },
 
+/**
+ * This method resets the grid: it clears all data and restores default values in all cells. Default values defined in the grid configuration on PHP side and stored in "template row" of the grid.
+ *
+ * @param {*} fn - callback function to be called after reset operation is completed.
+ * @returns 
+ * 
+ * @category Grid Data Handling
+ */
 reset: function(fn){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     grid.reset(fn);
     return this;
 },
 
+/**
+ * This method shows a spinner (loading indicator) in the grid while an operation is in progress. You can call this method with a boolean argument to show or hide the spinner, or with a callback function that's being executed when the spinner is shown.
+ *
+ * @param {*} arg - can be a boolean to show/hide the spinner or an object with options.
+ * @returns 
+ * 
+ * @category Grid Display
+ */
 spinner: function(arg){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     grid.spinner(arg);
     return this;
 },
 
+/**
+ * Fills a row in the grid with data.
+ *
+ * @param {*} $rw - The jQuery object representing the row to fill.
+ * @param {*} rowData - The data to fill the row with.
+ * @returns 
+ * 
+ * @category Grid Data Handling
+ */
 fillRow: function($rw, rowData){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     grid.fillRow($rw, rowData);
     return this;
 },
+
+/**
+ * Fills the grid with data.
+ *
+ * @param {*} data - An array of data objects to fill the grid with.
+ * @param {*} fn - A callback function to be called after the grid is filled.
+ * @returns 
+ * 
+ * @category Grid Data Handling
+ */
 fill: function(data, fn){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     grid.fill(data, fn);
@@ -2813,7 +3128,7 @@ toggleMultiLine: function(fieldSequence){
 },
 
 /**
- * eiseGrid('dragNDrop', function(event){} ) method allows drag-n-drop operations on eiseGrid.
+ * ```eiseGrid('dragNDrop', function(event){} )``` method allows drag-n-drop operations on eiseGrid.
  * It shows the target over eiseGrid when user start drag over document body. When user finishes drag it removes the target.
  * Callback function is bound to 'drop' event over eiseGrid elements. Before the call grid shows the spinner.
  * Callback is called in the context of eiseGrid object, not the main <DIV> or jQuery object.
@@ -2821,7 +3136,7 @@ toggleMultiLine: function(fieldSequence){
  * 
  * @param function fnCallback(event) - the function that executes right after 'drop' event occured, target is hidden and spinner is shown. Context is current eiseGrid object.
  * 
- * @return jQuery
+ * @category Grid Data Handling
  */
 dragNDrop: function(fnCallback){
 
@@ -2859,6 +3174,14 @@ dragNDrop: function(fnCallback){
 
 },
 
+/**
+ * This function preforms AJAX file upload to the server and fills the grid with returned data. It is useful for grids that manage file attachments.
+ * 
+ * @param {*} fileUploadOptions 
+ * @returns 
+ * 
+ * @category Grid Data Handling
+ */
 fileUpload: function( fileUploadOptions ){
 
     var fileUploadOptions_default = {
@@ -2997,6 +3320,8 @@ fileUpload: function( fileUploadOptions ){
  * This method helps to struggle with large amount of <input> elements and PHP limits to handle them. This limit is set in max_input_vars php.ini setting and it is 1000 by default. eiseGrid('disableUnchanged') disables inputs in the rows that wasn't changed so browser doesn't include its contents into POST. Keep your php.ini safe, call this method before your main form submits.
  *
  * @return jQuery
+ * 
+ * @category Grid Manipulation
  */
 disableUnchanged: function(){
 
@@ -3016,11 +3341,29 @@ disableUnchanged: function(){
     return this;
 },
 
+/**
+ * This function retrieves data from the grid as an array of grid rows that represented as dictionaries of field values.
+ * 
+ * @param {*} rows (optional) - array of jQuery <tbody> objects representing rows to get data from. If not set, data is retrieved from all rows.
+ * @param {*} cols (optional) - array of column names to retrieve data from. If not set, data is retrieved from all columns.
+ * @param {*} colsToExclude (optional) - array of column indexes to exclude from the retrieved data.
+ * @returns {Array} - array of grid rows represented as dictionaries of field values.
+ * 
+ * @category Grid Data Handling
+ */
 getData: function(rows, cols, colsToExclude){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     return grid.getData(rows, cols, colsToExclude);
 },
 
+/**
+ * This function exports grid data to an Excel file.
+ *
+ * @param {*} options - options for the export.
+ * @returns 
+ * 
+ * @category Grid Data Handling
+ */
 excel: function(options){
     var grid = $(this[0]).data('eiseGrid').eiseGrid;
     grid.excel(options);
@@ -3029,6 +3372,11 @@ excel: function(options){
 
 /**
  * This function returns an object with row data in {xx: {v: , t: }}, pasteable to othe grid with fill() function 
+ * 
+ * @param {*} $tbody - jQuery object of the <tbody> representing the row to get data from.
+ * @returns {Object} - object with row data in {xx: {v: , t: }}, pasteable to othe grid with fill() function 
+ * 
+ * @category Grid Data Handling
  */
 getRow: function($tbody){
 

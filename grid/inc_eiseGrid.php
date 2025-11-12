@@ -2,7 +2,7 @@
 /**
  * # eiseGrid
  * 
- * eiseGrid PHP class is backend for eiseGrid library that displays data grid, handles client side operations (data input, calculation and validation) and data update on the server side.
+ * **eiseGrid** PHP class is the backend for eiseGrid library that displays data grid, handles client side operations (data input, calculation and validation) and data update on the server side.
  * Grid is configured on PHP side and rendered as HTML+JavaScript. Data is submitted to server as form data POST and can be obtained via JSON or directly  posted into database.
  * 
  * eiseGrid integrates tightly with eiseIntra framework, but can be used as standalone component as well.
@@ -16,6 +16,14 @@
  * @license MIT License
  *
  * @version 2.5beta
+ */
+
+
+/**
+ * eiseGrid class
+ *
+ * This class is responsible for managing the data grid, including
+ * rendering, data manipulation, and interaction with the backend.
  */
 class eiseGrid {
 
@@ -50,7 +58,7 @@ static $defaultWidthsByType = array(
  * 
  * @category Grid Configuration
  */
-static $defaultConf = Array(                    //defaults for eiseGrid
+static $defaultConf = Array(                    
         'titleDel' => "Del" // column title for Del
         , "titleAdd" => "Add >>" // column title for Add
         , 'controlBarButtons' => ''
