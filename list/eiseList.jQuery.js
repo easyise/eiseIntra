@@ -1,3 +1,5 @@
+var eiseLists = [];
+
 /**
  * eiseList jQuery wrapper
  * ===
@@ -7,17 +9,16 @@
  *
  *
  * Published under GPL version 2 license
- * (c)2005-2015 Ilya S. Eliseev ie@e-ise.com, easyise@gmail.com
+ * (c)2005-2025 Ilya S. Eliseev ie@e-ise.com, easyise@gmail.com
  *
  * Contributors:
  *  - Pencho Belneiski
+ *  - Alexander Demidov
  *  - Dmitry Zakharov
  *  - Igor Zhuravlev
  *
- *  eiseList reference [http://russysdev.com/eiseIntra/gridlist]()
+ *  eiseList reference [http://russysdev.github.io/eiseIntra/gridlist]()
  */
-var eiseLists = [];
-
 (function( $ ) {
 var settings = {
     
@@ -362,7 +363,7 @@ eiseList.prototype.checkFilterVisible = function(field, value){
 
 /**
  * This function returns object from query string like "a=b&c=d" => {a: 'b', c: 'd'}
- * @category Filters
+ * @ignore
  */
 eiseList.prototype._qs2obj = function(qs, options){
 
@@ -395,8 +396,9 @@ eiseList.prototype._qs2obj = function(qs, options){
 
 /**
  * This function returns array of current filters
- * @category Filters
  * @return array with filters data
+ * 
+* @category List Data Handling
  */
 eiseList.prototype.getFilters = function(){
     
@@ -447,7 +449,7 @@ eiseList.prototype.saveFilters = function(){
 
 /**
  * This functions returns object with field name and field value for given tab, supports both LI and A DOM objects
- * @category tabs
+ * @ignore
  * @param DOMobject obj - LI or A element of tab
  * @return object {field: listID+fieldName, value: filter value}
  */
@@ -1644,6 +1646,15 @@ eiseList.prototype.debug = function(msg){
 }
 
 var methods = {
+
+/**
+ * This function initializes eiseList plugin on specified element. This element is formed with eiseList PHP class. It craetes eiseList object and associates it with the element.
+ * 
+ * @param {*} conf - Configuration object that overrides default settings. See eiseList.defaults for available settings and their default values.
+ * @returns 
+ * 
+ * @category List Configuration
+ */
 init: function( conf ) {
 
     this.each(function() {
@@ -1701,6 +1712,7 @@ destroy: function( ) {
 
     return this;
 },
+
 conf: function( conf ) {
 
     this.each(function() {
@@ -1718,6 +1730,13 @@ conf: function( conf ) {
     return this;
 },
 
+/**
+ * Refreshes the eiseList contents according to existing filters and sort order.
+ * 
+ * @returns 
+ * 
+ * @category List Data Handling
+ */
 refresh: function(){
 
     return this.each(function(){
@@ -1726,12 +1745,20 @@ refresh: function(){
 
 },
 
+/**
+ * ```eiseList('getListObject')``` returns eiseList object associated with the element.
+ * 
+ * @returns eiseList object
+ * 
+ * @category List Configuration
+ */
 getListObject: function(){
 
     var list = $(this[0]).data('eiseList').eiseList;
     return list;
 
 },
+
 getEiseListObject: function(){
 
     var list = $(this[0]).data('eiseList').eiseList;
@@ -1739,6 +1766,11 @@ getEiseListObject: function(){
 
 },
 
+/**
+ * This method returns array or string of selected row IDs - in other words, rows marked with checkboxes in fields that match the selector```input[name='sel_"+list.id+"[]']```. 
+ * 
+ * @returns array of row IDs 
+ */
 getRowSelection:  function(){
     var list = $(this[0]).data('eiseList').eiseList;
     return list.getRowSelection();
