@@ -109,6 +109,13 @@ private $conf_default = array(
 private $_aUser_Role_Tier;
 
 /**
+ * Array of virtual role members - key is role ID, value is array of user IDs. Can be used to cache virtual role members.
+ * 
+ * @category Events and Actions
+ */
+public $virtualRoleMembers = array();
+
+/**
  * This constructor initializes the item object. If ```$id``` is not set, this will create an empty object with functionality that can be used to obtain list, craet new item etc.
  * 
  * The constructor requires ```$entID``` to be set in the configuration array. This is the entity ID of the item that this object will represent. Entity item configuration is obtained from the database and merged with the configuration array passed to the constructor.
@@ -173,6 +180,7 @@ public function __construct($id = null,  $conf = array() ){
                     unset($this->intra->arrUsrData['roleIDs'][$ix]);
                 }
             }
+            $this->virtualRoleMembers[$rwRole['rolID']] = $roleMembers;
         }
         $this->intra->arrUsrData['roles'] = @array_values($this->intra->arrUsrData['roles']);
         $this->intra->arrUsrData['roleIDs'] = @array_values($this->intra->arrUsrData['roleIDs']);
@@ -599,8 +607,8 @@ private function init(){
         (isset($this->intra->conf['systemID']) && $this->intra->conf['systemID']!=='' ? $this->intra->conf['systemID'].':' : '')
         .$this->entID;
 
-    if(isset($_SESSION[$sessKey]) && !$this->conf['flagDontCacheConfig']){
-    // if(false){
+    // if(isset($_SESSION[$sessKey]) && !$this->conf['flagDontCacheConfig']){
+    if(false){
         $this->conf = array_merge($this->conf, $_SESSION[$sessKey]);
         return $this->conf;
     }
