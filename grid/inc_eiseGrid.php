@@ -181,7 +181,7 @@ function __construct($oSQL
     foreach(array('dateFormat', 'timeFormat', 'decimalSeparator', 'thousandsSeparator') as $f)
         $arrConfig[$f] = (isset($arrConfig[$f]) 
             ? $arrConfig[$f] 
-            : ($intra->conf[$f] 
+            : ($intra && isset($intra->conf[$f]) && $intra->conf[$f] 
                 ? $intra->conf[$f] 
                 : self::$defaultConf[$f]
                 )
@@ -356,9 +356,7 @@ function get_html($allowEdit=true){
     GLOBAL $strLocal;
 
     $intra = $this->intra;
-   
-    $oSQL=$intra->oSQL;
-   
+      
     $strRet = '<div class="eiseGrid'.($this->conf['class'] ? ' '.$this->conf['class'] : '').'" id="'.$this->name.'" data-config="##GRID_CONFIG##">'."\r\n";
     
     if (!$allowEdit)
@@ -502,14 +500,14 @@ function get_html($allowEdit=true){
                 foreach($this->Columns[$ix]['fields'] as $fldName=>$fld){
                     $w = (isset($fld['width']) && $fld['width']
                             ? $fld['width'].(preg_match('/^[0-9]+$/', $fld['width']) ? 'px' : '')
-                            : self::$defaultWidthsByType[($fld['type'] ? $fld['type'] : 'text')]
+                            : ( (isset($fld['type']) && isset(self::$defaultWidthsByType[$fld['type']])) ? self::$defaultWidthsByType[$fld['type']] : self::$defaultWidthsByType['text'] )
                         );
                     if($w){
                         $this->arrWidth[$key] = $w;
                         break;
                     }
                 }
-                if(!$this->arrWidth[$key]) 
+                if(!isset($this->arrWidth[$key]) || !$this->arrWidth[$key]) 
                     $this->arrWidth[$key] = self::$defaultWidthsByType['text'] ;
             }
 
@@ -575,7 +573,9 @@ function get_html($allowEdit=true){
                         $rs = $oSQL->do_query($fld['source']);
                     } else 
                         if ($fld['source']){
-                            list($prefix, $extra) = explode('|', $fld['source_prefix']);
+                            $parts = explode('|', $fld['source_prefix']);
+                            $prefix = isset($parts[0]) ? $parts[0] : null;
+                            $extra = isset($parts[1]) ? $parts[1] : null;
                             $rs = $this->getDataFromCommonViews($oSQL, "", "", $fld['source'], $prefix, 0, $extra);
                         }
                     if (is_resource($rs) // for mysql_query() function
@@ -1017,7 +1017,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                             if (is_array($_value)){ // if there's an optgoup
                                 $strCell .= '<optgroup label="'.(isset($cell['optgroups']) ? $cell['optgroups'][$key] : $key).'">';
                                 foreach($_value as $optVal=>$optText){
-                                    $strCell .= "<option value='$optVal'".((string)$optVal==(string)$strValue ? " SELECTED " : "").">".str_repeat('&nbsp;',5*$cell["indent"][$key]).htmlspecialchars($optText)."</option>\r\n";
+                                    $strCell .= "<option value='$optVal'".((string)$optVal==(string)(isset($strValue) ? $strValue : '') ? " SELECTED " : "").">".str_repeat('&nbsp;',5*(isset($cell["indent"][$key]) ? $cell["indent"][$key] : 0)).htmlspecialchars($optText)."</option>\r\n";
                                 }
                                 $strCell .= '</optgroup>';
                             } else
@@ -1058,10 +1058,10 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                 case "text":
                 default:
                     $strCell .= "<input{$classAttr} type=\"text\" name=\"{$_field}[]\" value=\"".htmlspecialchars($_val)."\""
-                            .($noAutoComplete ||  $cell['noAutoComplete'] ? " autocomplete=\"off\"" : '')
-                            .($cell['readonly'] ? " readonly=\"true\"" : '')
-                            .($cell['maxlength'] ? " maxlength=\"{$cell['maxlength']}\"" : '')
-                            .($cell['placeholder'] ? ' placeholder="'.htmlspecialchars($cell['placeholder']).'"' : '')
+                            .($noAutoComplete || (isset($cell['noAutoComplete']) && $cell['noAutoComplete']) ? " autocomplete=\"off\"" : '')
+                            .(isset($cell['readonly']) && $cell['readonly'] ? " readonly=\"true\"" : '')
+                            .(isset($cell['maxlength']) && $cell['maxlength'] ? " maxlength=\"{$cell['maxlength']}\"" : '')
+                            .(isset($cell['placeholder']) && $cell['placeholder'] ? ' placeholder="'.htmlspecialchars($cell['placeholder']).'"' : '')
                             .">";
                     break;
             }
@@ -1084,11 +1084,11 @@ function getSelectValue($cell, $row, $suffix=''){
     
     $oSQL = $this->oSQL;
 
-    $_val = ($suffix ? $row[$cell['field']][$suffix] : $row[$cell['field']]);
-    $_text = ($suffix ? $row[$cell['field'].'_text'][$suffix] : $row[$cell['field'].'_text']);
+    $_val = ($suffix ? (isset($row[$cell['field']][$suffix]) ? $row[$cell['field']][$suffix] : null) : (isset($row[$cell['field']]) ? $row[$cell['field']] : null));
+    $_text = ($suffix ? (isset($row[$cell['field'].'_text'][$suffix]) ? $row[$cell['field'].'_text'][$suffix] : null) : (isset($row[$cell['field'].'_text']) ? $row[$cell['field'].'_text'] : null));
     
     if ( $_val==='' || $_val===null ){
-        return $cell['defaultText'];
+        return isset($cell['defaultText']) ? $cell['defaultText'] : '';
     }
 
     if ( $_text ){
@@ -1119,7 +1119,9 @@ function getSelectValue($cell, $row, $suffix=''){
     } else {
         
         if ($cell['source']!=''){
-            list($prefix, $extra) = explode('|', $cell['source_prefix']);
+            $parts = explode('|', $cell['source_prefix']);
+            $prefix = isset($parts[0]) ? $parts[0] : null;
+            $extra = isset($parts[1]) ? $parts[1] : null;
             $rs = $this->getDataFromCommonViews($this->oSQL, $_val, "", $cell['source'], $prefix, 1, $extra);
             $rw = $oSQL->fetch_array($rs);
             $ret = $rw["optText"];
