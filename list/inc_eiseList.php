@@ -354,7 +354,7 @@ public function getColumn($field, &$key=''){
         return $this->Columns[$field];
     }
     foreach($this->Columns as $ix=>$col){
-        if($col['field']==$field){
+        if(isset($col['field']) && $col['field']==$field){
             $key = $ix;
             return $col;
         }
@@ -630,7 +630,7 @@ public function show(){ // draws the wrapper
 
     $col_order = [];
     foreach ($this->Columns as $ix => $col) {
-        if(!$col['title'] || in_array($col["field"], $this->arrHiddenCols))
+        if(!isset($col['title']) || !$col['title'] || in_array($col["field"], $this->arrHiddenCols))
             continue;
         $col_order[] = $col['field'];
     }
@@ -653,8 +653,9 @@ foreach ($_GET as $key => $value) {
     }
 }
 foreach ($this->Columns as $col) {
-    if (!$col['title'] && isset($col['filter']) && $col['filter']!=''){
-        echo "<input type=hidden id=\"".$this->name.'_'.$col['filter']."\" name=\"".$this->name.'_'.$col['filter']."\" value=\"".urlencode($col["filterValue"])."\" class=\"el-filter\">\r\n";
+    if (!isset($col['title']) || !$col['title'] && isset($col['filter']) && $col['filter']!=''){
+        $filterValue = isset($col["filterValue"]) ? $col["filterValue"] : '';
+        echo "<input type=hidden id=\"".$this->name.'_'.$col['filter']."\" name=\"".$this->name.'_'.$col['filter']."\" value=\"".urlencode($filterValue)."\" class=\"el-filter\">\r\n";
     }
 }
  ?>
@@ -662,7 +663,7 @@ foreach ($this->Columns as $col) {
 <div class="el-header">
 <h1><?php echo $this->conf["title"]; ?>
 <span class="el-foundRows el-span-foundRows"></span>
-<?php if ($this->conf['subtitle']): ?>
+<?php if (isset($this->conf['subtitle']) && $this->conf['subtitle']): ?>
 <small><?php echo $this->conf['subtitle'] ?></small>
 <?php endif ?>
 </h1>
@@ -726,7 +727,7 @@ private function showTableHeader(){
     /* first and second rows - titles and filter inputs */
     foreach($this->Columns as $ix=>$col) {
 
-        if ($col["title"]=="" || in_array($col["field"], $this->arrHiddenCols)) {
+        if (!isset($col["title"]) || $col["title"]=="" || in_array($col["field"], $this->arrHiddenCols)) {
             continue;
         }
         
@@ -748,7 +749,7 @@ private function showTableHeader(){
         $strClassList .= ($strClassList!='' ? ' ' : '')
             .(isset($col['type']) && $col['type']
                 ? 'el-'.$col['type']
-                : ($col['checkbox'] 
+                : (isset($col['checkbox']) && $col['checkbox'] 
                     ? 'el-checkbox'
                     : 'el-text')
                 )
@@ -781,7 +782,7 @@ private function showTableHeader(){
             $classTD = "{$this->name}_{$col['field']}".($filterValue != '' ? " el-filterset" : "");
             $strTDFilter .= "<div class=\"el-filter {$classTD}\">";
             if (isset($col['filter']) && $col['filter']) {
-                switch ($col['type']) {
+                switch (isset($col['type']) ? $col['type'] : '') {
                     case "combobox":
                         $arrCombo = $this->getComboboxSource($col);
                         $col['source_raw'] = $arrCombo;
@@ -796,8 +797,8 @@ private function showTableHeader(){
                     default:
                         $strFilterBoxHTML = '';
                         $strFilterClass = '';
-                        if( (isset($col['filterType']) && $col['filterType']) || in_array($col['type'], array('date', 'datetime')) ) {
-                            $fltType = (isset($col['filterType']) ? $col['filterType'] :$col['type']);
+                        if( (isset($col['filterType']) && $col['filterType']) || (isset($col['type']) && in_array($col['type'], array('date', 'datetime'))) ) {
+                            $fltType = (isset($col['filterType']) ? $col['filterType'] : (isset($col['type']) ? $col['type'] : ''));
                             $strFilterClass = ' el_special_filter el_filter_'.$fltType;
                             switch($fltType){
                                 case 'date':
@@ -900,7 +901,7 @@ protected function getComboboxSource($col){
             $rsCMB = $this->intra->getDataFromCommonViews(null, null, $col['source']
                 , $col["source_prefix"]
                 , 1
-                , (string)$col['extra']
+                , (isset($col['extra']) ? (string)$col['extra'] : '')
                 , true
                 , $oSQL
                 );    
@@ -942,7 +943,7 @@ protected function breakDownByTabs(){
     if(!$col)
         return;
 
-    if(!$col['source_raw']){
+    if(!isset($col['source_raw']) || !$col['source_raw']){
         $col['source_raw'] = $this->getComboboxSource($col);
     }
 
@@ -1016,13 +1017,13 @@ private function showTemplateRow(){
     $strRow = "";
     
     foreach($this->Columns as $col){
-        if (!$col["title"] || in_array($col["field"], $this->arrHiddenCols))
+        if (!isset($col["title"]) || !$col["title"] || in_array($col["field"], $this->arrHiddenCols))
             continue;
             
         $strRow.= "<td data-field=\"{$col["field"]}\" class=\"".
             (isset($col["type"]) && $col["type"]!="" 
                 ? "el-".$col["type"] 
-                : ($col['checkbox'] ? "el-checkbox" : "el-text")).
+                : (isset($col['checkbox']) && $col['checkbox'] ? "el-checkbox" : "el-text")).
             (isset($col['editable']) && $this->intra && ($this->intra->arrUsrData['FlagWrite'] ||$this->intra->arrUsrData['FlagUpdate'])  ? ' el-editable' : '').
             " {$this->name}_{$col["field"]}".
             '"'.
@@ -1162,7 +1163,7 @@ private function handleInput(){
                 }
             }
 
-            if($this->conf['tabsFilterColumn']==$col['field']){
+            if (isset($col['field']) && $this->conf['tabsFilterColumn'] == $col['field']) {
                 $this->Columns[$i]['exactMatch'] = true;
                 $this->Columns[$i]['tabsFilter'] = true;
             }
@@ -1349,7 +1350,7 @@ private function composeSQL(){
 
         $col = array_merge(self::$col_default, $col);
 
-        if ($col["field"]=="" || $col["field"]=="phpLNums") 
+        if (!isset($col["field"]) || $col["field"]=="" || $col["field"]=="phpLNums") 
             continue;
             
         if ($col['PK']){ //if it is PK
@@ -1381,7 +1382,7 @@ private function composeSQL(){
                     $col['idField'] = ($col["source_prefix"]!="" ? $col["source_prefix"]."ID" : "optValue");
                     $col['tableAlias'] = "t_{$col['field']}";
 
-                    $extraConditions = ($col['extra'] && in_array(($col["source_prefix"]!="" ? $col["source_prefix"] : "opt")."Extra", $fields)
+                    $extraConditions = (isset($col['extra']) && $col['extra'] && in_array(($col["source_prefix"]!="" ? $col["source_prefix"] : "opt")."Extra", $fields)
                                 ? " AND {$col['tableAlias']}.".($col["source_prefix"]!="" ? $col["source_prefix"] : "opt")."Extra=".$this->oSQL->e($col['extra'])
                                 : ''
                             );
@@ -1408,7 +1409,7 @@ private function composeSQL(){
                             .")";
                     }
 
-                    if($col['defaultText'])
+                    if(isset($col['defaultText']) && $col['defaultText'])
                         $sqlTextField = "IFNULL({$sqlTextField}, ".$this->oSQL->e($col['defaultText']).")";
                     
                     $sqlTextField = $sqlTextField." as {$col["field"]}_Text";
@@ -1709,7 +1710,7 @@ private function getRowArray($index, $rw){
         $arrField = Array();
         
         $valFormatted = "";
-        $val = isset($rw[$col['field']]) ? $rw[$col['field']] : null;
+        $val = (isset($col['field']) && isset($rw[$col['field']])) ? $rw[$col['field']] : null;
         $class = "";
         $href = "";
 
@@ -1727,7 +1728,7 @@ private function getRowArray($index, $rw){
         if($col['href'])
             $arrField["h"] = (empty($val) ? "" : $col['href']);
         
-        if ($col["field"]=="phpLNums")
+        if (isset($col["field"]) && $col["field"]=="phpLNums")
             $val = ($index+1).".";
         
         /* formatting data */
@@ -1739,7 +1740,7 @@ private function getRowArray($index, $rw){
 
         $arrField['type'] = $col["type"];
             
-        $arrFields[$col['field']] = $arrField;
+        $arrFields[isset($col['field']) ? $col['field'] : ''] = $arrField;
         
     }
     

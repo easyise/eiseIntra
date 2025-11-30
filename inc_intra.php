@@ -1347,7 +1347,7 @@ function backref($urlIfNoReferer=null){
                 !preg_match('/login.php/', $request_uri_referer) // and not from login form
 
             ){
-                if ($_SERVER["HTTP_REFERER"]!=$_COOKIE['referer'])
+                if (!isset($_COOKIE['referer']) || $_SERVER["HTTP_REFERER"]!=$_COOKIE['referer'])
                     SetCookie("referer", $_SERVER["HTTP_REFERER"], 0, $_SERVER["PHP_SELF"]);
                 return $_SERVER["HTTP_REFERER"];
             } else {
@@ -2407,19 +2407,19 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
                 foreach($value as $optVal=>$optText){
                     $retVal .= "<option value='$optVal'".((string)$optVal==(string)$strValue ? " SELECTED " : "").
                         (in_array($optVal, $confOptions['deletedOptions']) ? ' class="deleted"' : '').
-                        ">".str_repeat('&nbsp;',5*$confOptions["indent"][$key]).htmlspecialchars($optText)."</option>\r\n";
+                        ">".str_repeat('&nbsp;',5*(isset($confOptions["indent"][$key]) ? $confOptions["indent"][$key] : 0)).htmlspecialchars($optText)."</option>\r\n";
                 }
                 $retVal .= '</optgroup>';
             } else
                 $retVal .= "<option value='$key'"
-                    .($confOptions['optsData'][$key] ? ' data-metadata="'.htmlspecialchars($confOptions['optsData'][$key]).'"' : '')
+                    .(isset($confOptions['optsData'][$key]) && $confOptions['optsData'][$key] ? ' data-metadata="'.htmlspecialchars($confOptions['optsData'][$key]).'"' : '')
                     .((string)$key==(string)$strValue
                     || (is_integer($key) && (string)$value==(string)$strValue)
                     || $key===$strValue
                         ? " SELECTED " 
                         : "").
                         (in_array($key, $confOptions['deletedOptions']) ? ' class="deleted"' : '').
-                        ">".str_repeat('&nbsp;',5*$confOptions["indent"][$key]).htmlspecialchars($value)."</option>\r\n";
+                        ">".str_repeat('&nbsp;',5*(isset($confOptions["indent"][$key]) ? $confOptions["indent"][$key] : 0)).htmlspecialchars($value)."</option>\r\n";
         }
         $retVal .= ($confOptions['defaultTextPosition']=='last' ? $optDefaultText : '');
         $retVal .= "</select>";
@@ -3011,7 +3011,7 @@ function getUserData($usrID){
     $rs = $this->getDataFromCommonViews($usrID, "", "svw_user", "");
     $rw = $oSQL->fetch_array($rs);
     
-    $retVal = ($rw["optValue"]!="" 
+    $retVal = ($rw && $rw["optValue"]!="" 
         ? (empty($rw["optText{$this->local}"])
             ? $rw["optText"]
             : $rw["optText{$this->local}"])

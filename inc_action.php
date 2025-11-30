@@ -527,10 +527,6 @@ public function finish(){
             INNER JOIN stbl_status ON aclNewStatusID=staID AND staEntityID='{$this->item->conf['entID']}'
             WHERE aclGUID='{$this->arrAction['aclGUID']}'";
         
-        $arrSAT = $this->conf['STA'][$this->arrAction['aclNewStatusID']]['satFlagTrackOnArrival'];
-        if (@count($arrSAT)>0){
-            
-        }
         
         // after action is done, we update entity table with last status action log id
         $sql[] = "UPDATE {$this->item->conf["entTable"]} SET
@@ -712,7 +708,7 @@ function checkMandatoryFields(){
  */
 public function checkPermissions(){
 
-    if($this->arrAction['actFlagSystem']){ // system actions has no UI but it can be invoked in code
+    if(isset($this->arrAction['actFlagSystem']) && $this->arrAction['actFlagSystem']){ // system actions has no UI but it can be invoked in code
         return;
     }
 

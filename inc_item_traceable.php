@@ -167,7 +167,7 @@ public function __construct($id = null,  $conf = array() ){
 
     if($this->id){
         $this->item_before = $this->item; 
-        $this->staID = $this->item[$this->conf['statusField']];
+        $this->staID = isset($this->item[$this->conf['statusField']]) ? $this->item[$this->conf['statusField']] : 0;
         foreach ((array)$this->conf['RolesVirtual'] as $ix => $rwRole) {
             $roleMembers = $this->getVirtualRoleMembers($rwRole['rolID']);
             if(in_array(strtoupper($this->intra->usrID), array_keys($roleMembers))){
@@ -951,7 +951,8 @@ public function RLAByMatrix(){
                 $conditionWorked = array();
                 $tierConditionWorked = array();
                 foreach ((array)$aAtrMTX as $atrID => $condition) {
-                    $valueMTX = $mtx[preg_replace('/^'.preg_quote($this->conf['entPrefix'], '/').'/', 'mtx', $atrID)];
+                    $mtxKey = preg_replace('/^'.preg_quote($this->conf['entPrefix'], '/').'/', 'mtx', $atrID);
+                    $valueMTX = isset($mtx[$mtxKey]) ? $mtx[$mtxKey] : null;
                     $valueItem = $this->item[$atrID];
                     $condition = ($condition=='=' ? '==' : $condition);
                     $toEval = "\$conditionWorked[\$atrID] = (int)(\$valueItem {$condition} \$valueMTX);";
@@ -965,10 +966,11 @@ public function RLAByMatrix(){
                         $tierConditionWorked[$atrID] = 1;
                 }
                 if(count($conditionWorked)>0 && array_sum($conditionWorked)/count($conditionWorked)===1){
-                    $rla[] = $mtx['mtxRoleID'];
+                    $mtxRoleID = isset($mtx['mtxRoleID']) ? $mtx['mtxRoleID'] : '';
+                    $rla[] = $mtxRoleID;
                     $nTier = count($aAtrMTX) - array_sum($tierConditionWorked);
-                    $rla_tiers[$mtx['mtxRoleID']] = isset($rla_tiers[$mtx['mtxRoleID']])
-                        ? ( $nTier < $rla_tiers[$mtx['mtxRoleID']] ? $nTier : $rla_tiers[$mtx['mtxRoleID']] )
+                    $rla_tiers[$mtxRoleID] = isset($rla_tiers[$mtxRoleID])
+                        ? ( $nTier < $rla_tiers[$mtxRoleID] ? $nTier : $rla_tiers[$mtxRoleID] )
                         : $nTier;
                 }
             } 
@@ -1004,7 +1006,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     $prfx = $this->conf['entPrefix'];
     $listName = $prfx;
     
-    $this->staID = (!isset($_GET[$prfx."_staID"]) || $_GET[$prfx."_staID"]==='' || $_GET['DataAction']==='json' 
+    $this->staID = (!isset($_GET[$prfx."_staID"]) || $_GET[$prfx."_staID"]==='' || (isset($_GET['DataAction']) && $_GET['DataAction']==='json') 
         ? null 
         : (isset($_GET[$prfx."_staID"]) ? $_GET[$prfx."_staID"] : null));
     // $this->staID = ($_GET[$prfx."_staID"]==='' ? null : $_GET[$prfx."_staID"]);
@@ -1393,7 +1395,11 @@ public function getVirtualRoleMembers($rolID){
             break;
 
         case '__EDITOR':
-            $lastEditor = $this->item['ACL'][$this->item[$this->conf['prefix'].'StatusActionLogID']]['aclInsertBy'];
+            $statusActionLogID = $this->item[$this->conf['prefix'].'StatusActionLogID'];
+            $lastEditor = null;
+            if ($statusActionLogID && isset($this->item['ACL'][$statusActionLogID])) {
+                $lastEditor = $this->item['ACL'][$statusActionLogID]['aclInsertBy'];
+            }
             return ($lastEditor ? array(strtoupper($lastEditor)=>null) : array());
             break;
 
@@ -1505,14 +1511,17 @@ function getAllData($toRetrieve = null){
 
     //   - Master table is $this->item
     // attributes and combobox values
-    if($this->item["{$this->conf['entPrefix']}StatusID"]!==null)
-        $this->staID = (int)$this->item["{$this->conf['entPrefix']}StatusID"];
+    $fld = $this->conf['entPrefix']."StatusID";
+    if(isset($this->item[$fld]) && $this->item[$fld] !== null) 
+        $this->staID = (int)$this->item[$fld];
 
     if(in_array('Master', $toRetrieve))
         $this->getData();
 
     if(in_array('Text', $toRetrieve)){  
-        $this->item["{$this->conf['entPrefix']}StatusID_text"] = $this->conf['STA'][(int)$this->item["{$this->conf['entPrefix']}StatusID"]]["staTitle{$this->intra->local}"];
+        $sid = isset($this->item[$fld]) ? (int)$this->item[$fld] : 0;
+        $tKey = "staTitle{$this->intra->local}";
+        $this->item[$fld."_text"] = (isset($this->conf['STA'][$sid][$tKey]) ? $this->conf['STA'][$sid][$tKey] : '');
         foreach($this->conf["ATR"] as $atrID=>$rwATR){
             if (in_array($rwATR["atrType"], Array("combobox", "ajax_dropdown"))){
                 $this->item[$rwATR["atrID"]."_text"] = !isset($this->item[$rwATR["atrID"]."_text"]) 
@@ -2186,23 +2195,23 @@ public function collectChecklist(){
     
     foreach ($this->conf['CHK'] as $rwCHK) {
         $matchScore = 0;
-        foreach((array)json_decode($rwCHK['chkMatrix'], true) as $mtx){
-            $conditionWorked = [];
-            $tierConditionWorked = [];
+        foreach((array)json_decode($rwCHK['chkMatrix'], true) as $mtx) {
+            $conditionWorked = array();
+            $tierConditionWorked = array();
             foreach ($this->conf['AtrMTX'] as $atrID => $condition) {
-                $valueMTX = $mtx[preg_replace('/^'.preg_quote($this->conf['entPrefix'], '/').'/', 'mtx', $atrID)];
+                $mtxKey = preg_replace('/^'.preg_quote($this->conf['entPrefix'], '/').'/', 'mtx', $atrID);
+                $valueMTX = isset($mtx[$mtxKey]) ? $mtx[$mtxKey] : null;
                 $valueItem = $this->item[$atrID];
                 $condition = ($condition=='=' ? '==' : $condition);
                 $toEval = "\$conditionWorked[\$atrID] = (int)(\$valueItem {$condition} \$valueMTX);";
                 $tierConditionWorked[$atrID] = 0;
-                // echo '<pre>'.$atrID.' '.var_export($valueMTX, true);
                 if($valueMTX===null || $valueMTX==='' || $valueMTX==='%'){
                     $conditionWorked[$atrID] = 1;
                     continue;
                 }
                 eval($toEval);
                 if($conditionWorked[$atrID])
-                    $tierConditionWorked[$atrID] = 1;        
+                    $tierConditionWorked[$atrID] = 1;
             }
             // if no match, skip this position
             if(min($conditionWorked)==0)
@@ -2292,7 +2301,7 @@ public function getFields($aFields = null){
         : ($this->conf['flagFormShowAllFields'] 
             ? array_keys($this->conf['ATR']) 
             : ($this->staID!==null
-                ? ($this->conf['flagShowOnlyEditable'] 
+                ? (isset($this->conf['flagShowOnlyEditable']) && $this->conf['flagShowOnlyEditable'] 
                     ? $this->conf['STA'][$this->staID]['satFlagEditable']
                     : $this->conf['STA'][$this->staID]['satFlagShowInForm']
                     )
@@ -2337,7 +2346,7 @@ function getAttributeFields($fields, $item = null, $conf = array()){
         $options = array('type'=>$atr['atrType']
             , 'FlagWrite'=>(isset($conf['forceFlagWrite']) && $conf['forceFlagWrite'] 
                 ? $conf['FlagWrite']
-                : (in_array($field, (array)$this->conf['STA'][$this->staID]['satFlagEditable']) && $conf['FlagWrite']) )
+                : (isset($this->conf['STA'][$this->staID]['satFlagEditable']) && in_array($field, (array)$this->conf['STA'][$this->staID]['satFlagEditable']) && $conf['FlagWrite']) )
             );
 
         if(in_array($atr['atrType'], array('combobox', 'select', 'ajax_dropdown')) ) { 
@@ -2390,18 +2399,20 @@ public function arrActionButtons(){
 
     if($this->staID!==null){
 
-        $arrActions_ = (array)$this->conf['STA'][$this->staID]['ACT'];
+        $arrActions_ = (isset($this->conf['STA'][$this->staID]['ACT']) ? (array)$this->conf['STA'][$this->staID]['ACT'] : array());
 
         usort($arrActions_, function ($act1, $act2) {
-            if ($act1['actPriority'] == $act2['actPriority']) {
+            $priority1 = isset($act1['actPriority']) ? $act1['actPriority'] : 0;
+            $priority2 = isset($act2['actPriority']) ? $act2['actPriority'] : 0;
+            if ($priority1 == $priority2) {
                 return 0;
             }
-            return ($act1['actPriority'] > $act2['actPriority']) ? -1 : 1;
+            return ($priority1 > $priority2) ? -1 : 1;
         });
 
         foreach($arrActions_ as $rwAct){
 
-            if($rwAct['actFlagSystem'] 
+            if((isset($rwAct['actFlagSystem']) && $rwAct['actFlagSystem']) 
                 || ($this->conf['CHK'] && in_array($rwAct['actID'], (array)$this->item['CHK_ACT_unnecesary'])))
                 continue;
 
@@ -2421,10 +2432,14 @@ public function arrActionButtons(){
                   $rwAct["actNewStatusID"][0];
 
             $escalated = false;
-            if($rwAct['RLA_tiers']){
+            if(isset($rwAct['RLA_tiers']) && $rwAct['RLA_tiers']){
                 $aUserTiers = array();
                 $suitableRoles = array_values(array_intersect($rwAct['RLA'], $this->intra->arrUsrData['roleIDs']));
-                foreach ($suitableRoles as $rol) { $aUserTiers[$rol] = $rwAct['RLA_tiers'][$rol]; }    
+                foreach ($suitableRoles as $rol) { 
+                    if (isset($rwAct['RLA_tiers'][$rol])) {
+                        $aUserTiers[$rol] = $rwAct['RLA_tiers'][$rol]; 
+                    }
+                }    
                 if (!empty($rwAct['RLA_tiers']) && !empty($aUserTiers)) {
                     $escalated = (int)(min($rwAct['RLA_tiers']) < min($aUserTiers));
                 }
@@ -2506,7 +2521,7 @@ function showActionRadios(){
 
     $aclOldStatusID = $this->staID;
 
-    if(is_array($this->conf['STA'][$this->staID]['ACT']))
+    if(isset($this->conf['STA'][$this->staID]['ACT']) && is_array($this->conf['STA'][$this->staID]['ACT']))
         foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
             
             if($rwAct['actFlagDeleted'])
@@ -3131,7 +3146,8 @@ public function checkDisabledRoleMembership($usrID, $act, &$reason = ''){
     $rolemembership = '';
     foreach(array('editor', 'creator') as $rrr){
         $rolID = '__'.strtoupper($rrr);
-        if($act['actFlagNot4'.ucfirst($rrr)] && in_array($usrID, array_keys($this->getVirtualRoleMembers($rolID))) ){
+        $flagKey = 'actFlagNot4'.ucfirst($rrr);
+        if(isset($act[$flagKey]) && $act[$flagKey] && in_array($usrID, array_keys($this->getVirtualRoleMembers($rolID))) ){
             $aRet[] = $rolID;   
             $rolemembership .= ($rolemembership ? ', ' : '').$this->conf['Roles'][$rolID]['rolTitle'.$this->intra->local];
         }
