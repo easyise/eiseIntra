@@ -86,8 +86,8 @@ public function __construct($item, $arrAct, $options = array()){
     switch($this->conf['actID']){
         case 0:
         case 3:
-            $this->arrAction['aclOldStatusID'] = $this->arrAction['actOldStatusID'][0];
-            $this->arrAction['aclNewStatusID'] = $this->arrAction['actNewStatusID'][0];
+            $this->arrAction['aclOldStatusID'] = isset($this->arrAction['actOldStatusID'][0]) ? $this->arrAction['actOldStatusID'][0] : null;
+            $this->arrAction['aclNewStatusID'] = isset($this->arrAction['actNewStatusID'][0]) ? $this->arrAction['actNewStatusID'][0] : null;
             $this->arrAction['RLA'] = ($this->intra->arrUsrData['FlagWrite'] || $this->intra->arrUsrData['FlagDelete'] ? array($item->conf['RoleDefault']) : array());
             break;
         case 2:

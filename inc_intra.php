@@ -1258,7 +1258,7 @@ private function getCookiePath($strLocation, $arrConfig = array()){
 
     $conf = array_merge($this->conf, $arrConfig);
     
-    return ($conf['flagSetGlobalCookieOnRedirect']
+    return (isset($conf['flagSetGlobalCookieOnRedirect']) && $conf['flagSetGlobalCookieOnRedirect']
         ? $this->conf['cookiePath']
         : parse_url($strLocation, PHP_URL_PATH) 
     );
