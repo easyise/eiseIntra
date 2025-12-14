@@ -2190,6 +2190,10 @@ public function collectChecklist(){
     if(!$this->conf['CHK'])
         return null;
 
+    $this->item['CHK'] = [];
+    $this->item['CHK_ACT_unnecesary'] = [];
+
+
     $matching = [];
     $unnecesary = [];
     
@@ -2425,11 +2429,13 @@ public function arrActionButtons(){
                 }
             }
 
+            $str_actNewStatusID = (isset($rwAct["actNewStatusID"][0]) ? $rwAct["actNewStatusID"][0] : '');
+
             $title = ($rwAct["actTitle{$this->intra->local}"] ? $rwAct["actTitle{$this->intra->local}"] : $rwAct["actTitle"]) ;
               
             $strID = "btn_".$rwAct["actID"]."_".
                   $this->staID."_".
-                  $rwAct["actNewStatusID"][0];
+                  $str_actNewStatusID;
 
             $escalated = false;
             if(isset($rwAct['RLA_tiers']) && $rwAct['RLA_tiers']){
@@ -2450,7 +2456,7 @@ public function arrActionButtons(){
                    , 'id' => $strID
                    , "dataset" => array("action"=>array('actID'=>$rwAct["actID"]
                         , 'aclOldStatusID' => $this->staID
-                        , 'aclNewStatusID' => $rwAct["actNewStatusID"][0]
+                        , 'aclNewStatusID' => $str_actNewStatusID
                         , 'escalated' => (int)$escalated
                         )
                    )
@@ -2823,7 +2829,7 @@ function getActionDetails($q){
         throw new Exception("Action details cannot be resolved: nether action not action log IDs provided", 1);
     }
 
-    if($q['aclGUID']){
+    if(isset($q['aclGUID']) && $q['aclGUID']!=''){
         $acl = $this->item['ACL'][$q['aclGUID']];
         if(!$acl)
             throw new Exception("Action details cannot be resolved: action log ID provided is wrong", 1);
@@ -2918,7 +2924,7 @@ public function getDropDownText($arrATR, $value){
             ? $arrOptions[$value]
             : $arrATR["atrTextIfNull"]);
     } elseif ($arrATR["atrType"] == "combobox" && ($arrOptions = @json_decode($arrATR["atrDataSource"], true)) ) {
-        $strRet = ($arrOptions[$value]!=''
+        $strRet = (isset($arrOptions[$value]) && $arrOptions[$value]!=''
             ? $arrOptions[$value]
             : $arrATR["atrTextIfNull"]);
     } else {
@@ -3018,12 +3024,13 @@ public function getWhosNextStatus($staID, $counter){
 
     $html .= '<ul class="actions">';
     // $html .= '<pre>'.var_export((array)$sta['ACT'], true).'</pre>';
+    $htmlNext = '';
     foreach ((array)$sta['ACT'] as $act) {
         if($act['actNewStatusID'][0]==$staID)
             continue;
         // if($act['actFlagSystem'])
         //     continue;
-        if(in_array($act['actID'], (array)$this->item['CHK_ACT_unnecesary']))
+        if($this->conf['CHK'] && in_array($act['actID'], (array)$this->item['CHK_ACT_unnecesary']))
             continue;
         if(count($act['RLA'])==0 && !$act['actFlagSystem'])
             continue;
@@ -3055,16 +3062,20 @@ public function getWhosNextStatus($staID, $counter){
                         $aUsers[] = strtoupper($usrID); 
                         $aVirtualRoles[$rolID][] = $originRole;
                         $aVirtualRoleMembers[$rolID][] = $usrID;
-                        $this->_aUser_Role_Tier[$usrID][$rolID] = $act['RLA_tiers'][$rolID] > $this->_aUser_Role_Tier[$usrID][$rolID] 
-                            ? $act['RLA_tiers'][$rolID]
-                            : $this->_aUser_Role_Tier[$usrID][$rolID] ;
+                        $role_tier = isset($act['RLA_tiers'][$rolID]) ? $act['RLA_tiers'][$rolID] : 0;
+                        $user_role_tier = isset($this->_aUser_Role_Tier[$usrID][$rolID]) ? $this->_aUser_Role_Tier[$usrID][$rolID] : 0;
+                        $this->_aUser_Role_Tier[$usrID][$rolID] = $role_tier > $user_role_tier 
+                            ? $role_tier
+                            : $user_role_tier ;
                     }
                 } else {
                     $_users = (array)$this->intra->getRoleUsers($rolID);
                     foreach ($_users as $usrID) {
-                        $this->_aUser_Role_Tier[$usrID][$rolID] = $act['RLA_tiers'][$rolID] > $this->_aUser_Role_Tier[$usrID][$rolID] 
-                            ? $act['RLA_tiers'][$rolID]
-                            : $this->_aUser_Role_Tier[$usrID][$rolID] ;
+                        $role_tier = isset($act['RLA_tiers'][$rolID]) ? $act['RLA_tiers'][$rolID] : 0;
+                        $user_role_tier = isset($this->_aUser_Role_Tier[$usrID][$rolID]) ? $this->_aUser_Role_Tier[$usrID][$rolID] : 0;
+                        $this->_aUser_Role_Tier[$usrID][$rolID] = $role_tier > $user_role_tier 
+                            ? $role_tier
+                            : $user_role_tier ;
                     }
                     $aUsers = array_merge( $aUsers,  $_users);
                 }
