@@ -21,7 +21,7 @@ switch ($DataAction){
         die();
 
     case 'getTopLevelMenu':
-        if(!empty($eiseIntraTopLevelMenu))
+        if (isset($eiseIntraTopLevelMenu) && !empty($eiseIntraTopLevelMenu))
             echo $intra->topLevelMenu($eiseIntraTopLevelMenu);
         die();
 

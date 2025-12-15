@@ -168,19 +168,21 @@ public function __construct($id = null,  $conf = array() ){
     if($this->id){
         $this->item_before = $this->item; 
         $this->staID = isset($this->item[$this->conf['statusField']]) ? $this->item[$this->conf['statusField']] : 0;
-        foreach ((array)$this->conf['RolesVirtual'] as $ix => $rwRole) {
-            $roleMembers = $this->getVirtualRoleMembers($rwRole['rolID']);
-            if(in_array(strtoupper($this->intra->usrID), array_keys($roleMembers))){
-                $this->intra->arrUsrData['roles'][] = $rwRole['rolTitle'.$this->intra->local];
-                $this->intra->arrUsrData['roleIDs'][] = $rwRole['rolID'];
-            } else {
-                $ix = array_search( $rwRole['rolID'], (array)$this->intra->arrUsrData['roleIDs'] );
-                if($ix!==false){
-                    unset($this->intra->arrUsrData['roles'][$ix]);
-                    unset($this->intra->arrUsrData['roleIDs'][$ix]);
+        foreach ((array)(isset($this->conf['RolesVirtual']) ? $this->conf['RolesVirtual'] : array()) as $ix => $rwRole) {
+            if (isset($rwRole['rolID'])) {
+                $roleMembers = $this->getVirtualRoleMembers($rwRole['rolID']);
+                if(in_array(strtoupper($this->intra->usrID), array_keys($roleMembers))){
+                    $this->intra->arrUsrData['roles'][] = isset($rwRole['rolTitle'.$this->intra->local]) ? $rwRole['rolTitle'.$this->intra->local] : '';
+                    $this->intra->arrUsrData['roleIDs'][] = $rwRole['rolID'];
+                } else {
+                    $ix = array_search( $rwRole['rolID'], (array)$this->intra->arrUsrData['roleIDs'] );
+                    if($ix!==false){
+                        unset($this->intra->arrUsrData['roles'][$ix]);
+                        unset($this->intra->arrUsrData['roleIDs'][$ix]);
+                    }
                 }
+                $this->virtualRoleMembers[$rwRole['rolID']] = $roleMembers;
             }
-            $this->virtualRoleMembers[$rwRole['rolID']] = $roleMembers;
         }
         $this->intra->arrUsrData['roles'] = @array_values($this->intra->arrUsrData['roles']);
         $this->intra->arrUsrData['roleIDs'] = @array_values($this->intra->arrUsrData['roleIDs']);
@@ -195,7 +197,7 @@ public function __construct($id = null,  $conf = array() ){
 
     ;
 
-    $this->conf['attr_types'] = array_merge($this->table['columns_types'], (array)$this->conf['attr_types']);
+    $this->conf['attr_types'] = array_merge($this->table['columns_types'], (array)(isset($this->conf['attr_types']) ? $this->conf['attr_types'] : array()));
 
     $a_reads = array_diff(['getActionLog', 'getChecklist', 'getActionDetails', 'getFiles', 'getFile', 'getMessages','sendMessage']
         , $this->conf['aExcludeReads']);
@@ -307,10 +309,12 @@ public function updateFullEdit($nd){
     $this->checkForCheckboxes($nd);
 
     $this->updateTable($nd);
-    foreach($this->item['ACL'] as $aclGUID=>$rwACL){
-        if($rwACL['aclActionPhase']==2 && $rwACL['aclActionID']>4)
-            $this->updateAction($rwACL, $nd);
+    if (isset($this->item['ACL'])) {
+        foreach($this->item['ACL'] as $aclGUID=>$rwACL){
+            if(isset($rwACL['aclActionPhase']) && isset($rwACL['aclActionID']) && $rwACL['aclActionPhase']==2 && $rwACL['aclActionID']>4)
+                $this->updateAction($rwACL, $nd);
 
+        }
     }
     $this->oSQL->q('COMMIT');
 
@@ -331,9 +335,9 @@ public function superaction($nd){
 
     try {
         $act = new eiseAction($this, array('actID'=>4
-                , 'aclNewStatusID'=>$nd['aclNewStatusID']
-                , 'aclATA'=>$nd['aclATA']
-                , 'aclComments'=>$nd['aclComments']));
+                , 'aclNewStatusID'=>isset($nd['aclNewStatusID']) ? $nd['aclNewStatusID'] : null
+                , 'aclATA'=>isset($nd['aclATA']) ? $nd['aclATA'] : null
+                , 'aclComments'=>isset($nd['aclComments']) ? $nd['aclComments'] : null));
         $act->execute();
     } catch (Exception $e) {
         $oSQL->q('ROLLBACK');
@@ -371,40 +375,48 @@ public function undo($nd){
     $aUpdates = array();
     $acl_undo = null;
     $acl_prev = null;
-    foreach($this->item['ACL'] as $acl){
-        if($acl['aclActionPhase']!=2 || in_array($acl['aclActionID'], [1,2,3,4]))
-            continue;
+    if (isset($this->item['ACL'])) {
+        foreach($this->item['ACL'] as $acl){
+            if(isset($acl['aclActionPhase']) && isset($acl['aclActionID']) && ($acl['aclActionPhase']!=2 || in_array($acl['aclActionID'], [1,2,3,4])))
+                continue;
 
-        if(in_array($acl['aclActionID'], [2])) {
-            if(!$acl_undo)
-                $aUpdates[] = $acl['aclGUID'];
-            continue;
-        }
+            if(isset($acl['aclActionID']) && in_array($acl['aclActionID'], [2])) {
+                if(!$acl_undo && isset($acl['aclGUID']))
+                    $aUpdates[] = $acl['aclGUID'];
+                continue;
+            }
 
-        if( !$acl_undo ){
-            $acl_undo = $acl;    
-        } else {
-            $acl_prev = $acl;
-            break;
+            if( !$acl_undo ){
+                $acl_undo = $acl;    
+            } else {
+                $acl_prev = $acl;
+                break;
+            }
+            
         }
-        
     }
 
-    $this->currentAction = new eiseAction($this, array('aclGUID'=>$acl_undo['aclGUID']));
+    $acl_guid = isset($acl_undo['aclGUID']) ? $acl_undo['aclGUID'] : null;
+    $this->currentAction = new eiseAction($this, array('aclGUID'=>$acl_guid));
 
     // 2. Pop previous action
+    $acl_prev_guid = isset($acl_prev["aclGUID"]) ? $acl_prev["aclGUID"] : '';
+    $acl_undo_old_status_id = isset($acl_undo["aclOldStatusID"]) ? $acl_undo["aclOldStatusID"] : 0;
     $sqlPop = "UPDATE {$this->conf["entTable"]} SET
-            {$this->conf['prefix']}ActionLogID='{$acl_prev["aclGUID"]}'
-            , {$this->conf['prefix']}StatusActionLogID='{$acl_prev["aclGUID"]}'
-            , {$this->conf['prefix']}StatusID=".(int)$acl_undo["aclOldStatusID"]."
+            {$this->conf['prefix']}ActionLogID='{$acl_prev_guid}'
+            , {$this->conf['prefix']}StatusActionLogID='{$acl_prev_guid}'
+            , {$this->conf['prefix']}StatusID=".(int)$acl_undo_old_status_id."
             , {$this->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->conf['prefix']}EditDate=NOW()
             WHERE {$this->table['PK'][0]}='{$this->id}'";
     $this->oSQL->q($sqlPop);
 
 
     // 2. update item data with itemBefore
-    $itemBefore = @json_decode( $acl_undo['aclItemBefore'], true );
-    if ( count($itemBefore) ){
+    $itemBefore = array();
+    if (isset($acl_undo['aclItemBefore'])) {
+        $itemBefore = @json_decode( $acl_undo['aclItemBefore'], true );
+    }
+    if ( is_array($itemBefore) && count($itemBefore) ){
         $this->updateTable( $itemBefore , true);
     }
 
@@ -938,7 +950,7 @@ public function RLAByMatrix(){
     if(!$this->conf['entMatrix'])
         return;
 
-    $aAtrMTX = $this->conf['AtrMTX'];
+    $aAtrMTX = isset($this->conf['AtrMTX']) ? $this->conf['AtrMTX'] : array();
 
     foreach ($this->conf['STA'] as $staID => $rwSTA) {
         $rwSTA['ACT'] = isset($rwSTA['ACT']) ? $rwSTA['ACT'] : array();
@@ -1854,7 +1866,7 @@ public function onStatusDeparture($staID){}
  */
 public function processCheckmarks($arrAction){
 
-    if(!$this->item['CHK'])
+    if(!isset($this->item['CHK']) || !$this->item['CHK'])
         return true;
 
     $required = [];
@@ -2537,7 +2549,7 @@ function showActionRadios(){
             if(count(array_intersect($aUserRoles, $rwAct['RLA']))==0)
                 continue;
 
-            $aclNewStatusID = $rwAct["actNewStatusID"][0];
+            $aclNewStatusID = (isset($rwAct["actNewStatusID"][0]) ? $rwAct["actNewStatusID"][0] : null);
 
             $arrRepeat = Array(($rwAct["actFlagAutocomplete"] ? "1" : "0") => (!$rwAct["actFlagAutocomplete"] ? $this->intra->translate("Plan") : ""));
             
@@ -2547,7 +2559,7 @@ function showActionRadios(){
                    : $rwAct["actTitle{$this->intra->local}"].
                       ($rwAct["actOldStatusID"]!=$rwAct["actNewStatusID"]
                       ?  " (".$this->conf['STA'][$rwAct["actOldStatusID"][0]]["staTitle{$this->intra->local}"]
-                        ." > ".$this->conf['STA'][$rwAct["actNewStatusID"][0]]["staTitle{$this->intra->local}"].")"
+                        ." > ".$this->conf['STA'][(isset($rwAct["actNewStatusID"][0]) ? $rwAct["actNewStatusID"][0] : null)]["staTitle{$this->intra->local}"].")"
                       :  "")
                 );
               
@@ -2584,13 +2596,15 @@ public function showStatusLog($conf = array()){
 
     foreach((array)$this->item["STL"] as $stlGUID => $rwSTL){
 
-        if ($conf['flagHideDraftStatusStay'] && $rwSTL['stlStatusID']==='0')
+        if (isset($conf['flagHideDraftStatusStay']) && $conf['flagHideDraftStatusStay'] && isset($rwSTL['stlStatusID']) && $rwSTL['stlStatusID']==='0')
             continue;
 
+        if (!isset($rwSTL['staID']) ) {
+           $rwSTL['staID'] = $rwSTL['stlStatusID'];
+        }
         $rwSTA = $this->conf['STA'][$rwSTL['staID']];
 
-        $htmlRemove = ($conf['flagFullEdit'] ? '('.$rwSTL['staID'].') &nbsp;<a href="#remove_stl" class="remove">[x]</a>' : '');
-
+        $htmlRemove = (isset($conf['flagFullEdit']) && $conf['flagFullEdit'] ? '('.$rwSTL['staID'].') &nbsp;<a href="#remove_stl" class="remove">[x]</a>' : '');
         $htmlTiming = '<div class="dates"><span class="eiseIntra_stlATA">'
                         .($rwSTA["staTrackPrecision"] == 'datetime' 
                             ? $this->intra->datetimeSQL2PHP($rwSTL["stlATA"])
@@ -2750,23 +2764,23 @@ function showActionInfo($aclGUID, $conf = array()){
         $traced = $this->getTracedData(array_merge($rwACL, $rwACT));
 
         if($conf['flagFullEdit']){
-            if($rwACT['actFlagHasEstimates']){
-                if($rwACT['actFlagHasDeparture'])
-                    $html .= ( !$rwACT['aatFlagTimestamp']['ETD'] || $rwACT['aatFlagTimestamp']['ETD']=='aclETD' ? $this->intra->field('ETD', 'aclETD_'.$aclGUID, $rwACL['aclETD'], array('type'=>$rwACT['actTrackPrecision'])) : '');
-                $html .= ( !$rwACT['aatFlagTimestamp']['ETA'] || $rwACT['aatFlagTimestamp']['ETA']=='aclETA' ? $this->intra->field('ETA', 'aclETA_'.$aclGUID, $rwACL['aclETA'], array('type'=>$rwACT['actTrackPrecision'])) : '');
+            if(isset($rwACT['actFlagHasEstimates']) && $rwACT['actFlagHasEstimates']){
+                if(isset($rwACT['actFlagHasDeparture']) && $rwACT['actFlagHasDeparture'])
+                    $html .= ( !isset($rwACT['aatFlagTimestamp']) || !isset($rwACT['aatFlagTimestamp']['ETD']) || $rwACT['aatFlagTimestamp']['ETD']=='aclETD' ? $this->intra->field('ETD', 'aclETD_'.$aclGUID, isset($rwACL['aclETD']) ? $rwACL['aclETD'] : '', array('type'=>$rwACT['actTrackPrecision'])) : '');
+                $html .= ( !isset($rwACT['aatFlagTimestamp']) || !isset($rwACT['aatFlagTimestamp']['ETA']) || $rwACT['aatFlagTimestamp']['ETA']=='aclETA' ? $this->intra->field('ETA', 'aclETA_'.$aclGUID, isset($rwACL['aclETA']) ? $rwACL['aclETA'] : '', array('type'=>$rwACT['actTrackPrecision'])) : '');
             } 
-            if($rwACT['actFlagHasDeparture'])
-                $html .= ( !$rwACT['aatFlagTimestamp']['ATD'] || $rwACT['aatFlagTimestamp']['ATD']=='aclATD'  ? $this->intra->field('ATD', 'aclATD_'.$aclGUID, $rwACL['aclATD'], array('type'=>$rwACT['actTrackPrecision'])) : '');
-            $html .= ( !$rwACT['aatFlagTimestamp']['ATA'] || $rwACT['aatFlagTimestamp']['ATA']=='aclATA' ? $this->intra->field('ATA', 'aclATA_'.$aclGUID, $rwACL['aclATA'], array('type'=>$rwACT['actTrackPrecision'])) : '');
+            if(isset($rwACT['actFlagHasDeparture']) && $rwACT['actFlagHasDeparture'])
+                $html .= ( !isset($rwACT['aatFlagTimestamp']) || !isset($rwACT['aatFlagTimestamp']['ATD']) || $rwACT['aatFlagTimestamp']['ATD']=='aclATD'  ? $this->intra->field('ATD', 'aclATD_'.$aclGUID, isset($rwACL['aclATD']) ? $rwACL['aclATD'] : '', array('type'=>$rwACT['actTrackPrecision'])) : '');
+            $html .= ( !isset($rwACT['aatFlagTimestamp']) || !isset($rwACT['aatFlagTimestamp']['ATA']) || $rwACT['aatFlagTimestamp']['ATA']=='aclATA' ? $this->intra->field('ATA', 'aclATA_'.$aclGUID, isset($rwACL['aclATA']) ? $rwACL['aclATA'] : '', array('type'=>$rwACT['actTrackPrecision'])) : '');
         }
 
 
-        $html .= $this->getAttributeFields(array_keys((array)$rwACT['aatFlagToTrack']), $traced
+        $html .= $this->getAttributeFields(array_keys(isset($rwACT['aatFlagToTrack']) ? (array)$rwACT['aatFlagToTrack'] : array()), $traced
             , array_merge($conf, array('suffix'=>'_'.$aclGUID))
             );
 
-        $html .= ($rwACT['actFlagComment'] || $rwACL['aclComments'] || $conf['flagFullEdit']
-            ? $this->intra->field($this->intra->translate('Comments'), 'aclComments_'.$aclGUID, $rwACL['aclComments'])
+        $html .= ((isset($rwACT['actFlagComment']) && $rwACT['actFlagComment']) || (isset($rwACL['aclComments']) && $rwACL['aclComments']) || $conf['flagFullEdit']
+            ? $this->intra->field($this->intra->translate('Comments'), 'aclComments_'.$aclGUID, isset($rwACL['aclComments']) ? $rwACL['aclComments'] : '')
             : '');
         
         if(isset($conf['actionCallBack']) && $conf['actionCallBack']){
@@ -2788,19 +2802,22 @@ function showActionInfo($aclGUID, $conf = array()){
  */
 public function getTracedData($rwACL){
 
-    if( $rwACL['aclItemTraced'] )
+    if( isset($rwACL['aclItemTraced']) && $rwACL['aclItemTraced'] )
         return json_decode($rwACL['aclItemTraced'],true);
 
     $aRet = [];
 
-    if(count($rwACL['aatFlagToTrack']) && $this->conf['logTable']){
+    if(!empty($rwACL['aatFlagToTrack']) && isset($this->conf['logTable']) && $this->conf['logTable']){
         $sqlLog = "SELECT * FROM {$this->conf['logTable']} WHERE l{$this->table['prefix']}GUID='{$rwACL['aclGUID']}'";
         $rwLog = $this->oSQL->f($sqlLog);
         foreach ((array)$rwACL['aatFlagToTrack'] as $field=>$stuff){
-            $rwATR = $this->conf['ATR'][$field];
-            $aRet[$field] = $rwLog["l{$field}"];
-            if (in_array($rwATR["atrType"], Array("combobox", 'select', "ajax_dropdown"))){
-                $aRet[$rwATR["atrID"]."_text"] = $this->getDropDownText($rwATR, $aRet[$field]);
+            if (isset($this->conf['ATR'][$field])) {
+                $rwATR = $this->conf['ATR'][$field];
+                $aRet[$field] = isset($rwLog["l{$field}"]) ? $rwLog["l{$field}"] : null;
+                if (isset($rwATR["atrType"]) && in_array($rwATR["atrType"], Array("combobox", 'select', "ajax_dropdown"))){
+                    $atrID = isset($rwATR["atrID"]) ? $rwATR["atrID"] : '';
+                    $aRet[$atrID."_text"] = $this->getDropDownText($rwATR, $aRet[$field]);
+                }
             }
         }
     }
@@ -2825,7 +2842,7 @@ function getActionDetails($q){
 
     $arrRet = Array();
           
-    if (!$q['actID'] && !$q['aclGUID']){
+    if (!isset($q['actID']) && !isset($q['aclGUID'])){
         throw new Exception("Action details cannot be resolved: nether action not action log IDs provided", 1);
     }
 
@@ -2835,7 +2852,7 @@ function getActionDetails($q){
             throw new Exception("Action details cannot be resolved: action log ID provided is wrong", 1);
         $act = $this->conf['ACT'][$acl['actID']];
     } else {
-        $acl = $act = $this->conf['ACT'][$q['actID']];
+        $acl = $act = (isset($q['actID']) ? $this->conf['ACT'][$q['actID']] : array());
     }
 
     $this->intra->json('ok', '', Array("acl"=>$acl 
@@ -2876,15 +2893,21 @@ public function getActionData($aclGUID, $rwACL=null){
     $rwACT['actID'] = $rwACT['aclActionID'];
 
     //$rwACT = @array_merge($this->conf['ACT'][$rwACT['aclActionID']], $rwACT);
+    $staID_Old = isset($rwACT['aclOldStatusID']) && isset($this->conf['STA'][$rwACT['aclOldStatusID']]) ? $this->conf['STA'][$rwACT['aclOldStatusID']]['staID'] : null;
+    $staTitle_Old = isset($rwACT['aclOldStatusID']) && isset($this->conf['STA'][$rwACT['aclOldStatusID']]) ? $this->conf['STA'][$rwACT['aclOldStatusID']]['staTitle'] : '';
+    $staTitleLocal_Old = isset($rwACT['aclOldStatusID']) && isset($this->conf['STA'][$rwACT['aclOldStatusID']]) ? $this->conf['STA'][$rwACT['aclOldStatusID']]['staTitleLocal'] : '';
     $rwACT = @array_merge($rwACT, array(
-        'staID_Old' => $this->conf['STA'][$rwACT['aclOldStatusID']]['staID']
-        , 'staTitle_Old' => $this->conf['STA'][$rwACT['aclOldStatusID']]['staTitle']
-        , 'staTitleLocal_Old' => $this->conf['STA'][$rwACT['aclOldStatusID']]['staTitleLocal']
+        'staID_Old' => $staID_Old
+        , 'staTitle_Old' => $staTitle_Old
+        , 'staTitleLocal_Old' => $staTitleLocal_Old
         ));
+    $staID_New = isset($rwACT['aclNewStatusID']) && isset($this->conf['STA'][$rwACT['aclNewStatusID']]) ? $this->conf['STA'][$rwACT['aclNewStatusID']]['staID'] : null;
+    $staTitle_New = isset($rwACT['aclNewStatusID']) && isset($this->conf['STA'][$rwACT['aclNewStatusID']]) ? $this->conf['STA'][$rwACT['aclNewStatusID']]['staTitle'] : '';
+    $staTitleLocal_New = isset($rwACT['aclNewStatusID']) && isset($this->conf['STA'][$rwACT['aclNewStatusID']]) ? $this->conf['STA'][$rwACT['aclNewStatusID']]['staTitleLocal'] : '';
     $rwACT = @array_merge($rwACT, array(
-        'staID_New' => $this->conf['STA'][$rwACT['aclNewStatusID']]['staID']
-        , 'staTitle_New' => $this->conf['STA'][$rwACT['aclNewStatusID']]['staTitle']
-        , 'staTitleLocal_New' => $this->conf['STA'][$rwACT['aclNewStatusID']]['staTitleLocal']
+        'staID_New' => $staID_New
+        , 'staTitle_New' => $staTitle_New
+        , 'staTitleLocal_New' => $staTitleLocal_New
         ));
     
     return $rwACT;
@@ -2920,7 +2943,7 @@ public function getDropDownText($arrATR, $value){
             : $arrATR["atrTextIfNull"]);
     } elseif ($arrATR["atrType"] == "combobox" && preg_match('/^Array\(/i', $arrATR["atrDataSource"]) ) {
         eval( '$arrOptions = '.$arrATR["atrDataSource"].';' );
-        $strRet = ($arrOptions[$value]!=''
+        $strRet = (isset($arrOptions[$value]) && $arrOptions[$value]!=''
             ? $arrOptions[$value]
             : $arrATR["atrTextIfNull"]);
     } elseif ($arrATR["atrType"] == "combobox" && ($arrOptions = @json_decode($arrATR["atrDataSource"], true)) ) {
@@ -3011,6 +3034,7 @@ public function getWhosNextStatus($staID, $counter){
     
     $defaultActID = null;
     $actNext = [];
+    $htmlNext = '';
     foreach ((array)$sta['ACT'] as $act){
         if(count($act['RLA'])==0)
             continue;
@@ -3030,7 +3054,7 @@ public function getWhosNextStatus($staID, $counter){
             continue;
         // if($act['actFlagSystem'])
         //     continue;
-        if($this->conf['CHK'] && in_array($act['actID'], (array)$this->item['CHK_ACT_unnecesary']))
+        if($this->conf['CHK'] && isset($this->item['CHK_ACT_unnecesary']) && in_array($act['actID'], (array)$this->item['CHK_ACT_unnecesary']))
             continue;
         if(count($act['RLA'])==0 && !$act['actFlagSystem'])
             continue;
@@ -3142,7 +3166,9 @@ public function getWhosNextStatus($staID, $counter){
  * @ignore
  */
 private function _sort_User_Role_Tier($a, $b){
-    $tierDiff = max($this->_aUser_Role_Tier[$a]) - max($this->_aUser_Role_Tier[$b]);
+    $tierA = isset($this->_aUser_Role_Tier[$a]) ? max($this->_aUser_Role_Tier[$a]) : 0;
+    $tierB = isset($this->_aUser_Role_Tier[$b]) ? max($this->_aUser_Role_Tier[$b]) : 0;
+    $tierDiff = $tierA - $tierB;
     return ($tierDiff 
         ? $tierDiff
         : ($a > $b ? 1 : -1)

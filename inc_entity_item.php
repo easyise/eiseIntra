@@ -19,6 +19,9 @@ public $arrActionPhase = Array('0' => "Planned"
 
 protected $arrAction = Array(); // current action data
 protected $arrNewData = Array(); // new data, it could be $_POST
+protected $arrATR = Array(); // attribute array
+protected $arrMaster = Array(); // master table info
+public $flagFullEdit = false;
 
 protected $defaultDataToObtain = array('Text', 'ACL', 'STL', 'comments', 'files', 'messages');
 
@@ -40,7 +43,7 @@ function __construct( $oSQL, $intra, $entID, $entItemID, $conf = array() ){
     if ($entItemID || $conf['flagCreateEmptyObject']) {
 
         if($entItemID){
-            if (!$flagArchive){
+            if (!$this->flagArchive){
                 $this->getEntityItemData();
             } else  {
                 $this->getEntityItemDataFromArchive();
@@ -141,7 +144,7 @@ function getEntityItemAllData($toRetrieve = null){
     
     //   - Master table is $this->item
     // attributes and combobox values
-    if($this->item["{$this->entID}StatusID"]!==null)
+    if(isset($this->item["{$this->entID}StatusID"]) && $this->item["{$this->entID}StatusID"]!==null)
         $this->staID = (int)$this->item["{$this->entID}StatusID"];
 
     if(in_array('Master', $toRetrieve))
@@ -825,7 +828,7 @@ function updateMasterTable($arrNewData = Array(), $flagUpdateMultiple = false, $
         $this->arrNewData = $arrNewData;
     
     if (count($this->arrNewData)==0){
-        throw new Exception($intra->translate("New data set is empty for {$this->entID}/{$this->entItemID}"));
+        throw new Exception("New data set is empty for {$this->entID}/{$this->entItemID}");
     }
     
     $oSQL = $this->oSQL;
@@ -864,6 +867,7 @@ function updateMasterTable($arrNewData = Array(), $flagUpdateMultiple = false, $
             || !isset($arrNewData[$rwSAT["atrID"]]))                           // not set
         continue;
         
+        $newValue = null;
         $toEval = "\"".str_replace("\$_POST", "\$this->arrNewData", $intra->getSQLValue(Array('Field'=>$rwSAT['atrID'], 'DataType'=>$rwSAT['atrType'])))."\"";
         eval("\$newValue = ".$toEval.";");
         
@@ -893,7 +897,7 @@ function updateActionLog($arrNewData = Array()){
         $this->arrNewData = $arrNewData;
     
     if (count($this->arrNewData)==0){
-        throw new Exception($intra->translate("New data set is empty for {$this->entID}/{$this->entItemID}"));
+        throw new Exception("New data set is empty for {$this->entID}/{$this->entItemID}");
     }
     
     if (count($this->arrAction)==0){
@@ -991,7 +995,7 @@ function updateStatusLogItem($stlGUID, $arrSTL = null){
     $intra = $this->intra;
     
     if($arrSTL===null){
-        foreach($entItem->rwEnt["STL"] as $stlGUID_ => $rwSTL){
+        foreach($this->item["STL"] as $stlGUID_ => $rwSTL){
             if ($stlGUID_==$stlGUID){
                 $arrSTL = $rwSTL;
                 break;
@@ -1346,7 +1350,7 @@ switch ($DataAction) {
        break;
     case "add_comment":
         
-        self::addComment($_GET);
+        $scmGUID = self::addComment($_GET);
        
         $arrData = Array("scmGUID"=>$scmGUID
             , "user"=>$intra->getUserData($intra->usrID).' '.$intra->translate('at').' '
@@ -1406,6 +1410,7 @@ switch ($da) {
         $entID = $_POST["entID_Attach"];
 
         $err = '';
+        $error = '';
         /*
         print_r($_POST);
         print_r($_FILES);
@@ -1550,11 +1555,11 @@ static function checkFilePath($filesPath){
     if(!$filesPath)
         throw new Exception('File path not set');
 
-    if($filesPath[strlen($arrSetup['stpFilesPath'])-1]!=DIRECTORY_SEPARATOR)
-        $filesPath=$filesPath.DIRECTORY_SEPARATOR;
-
     if(!is_dir($filesPath))
         throw new Exception('File path '.$filesPath.' is not a directory');
+
+    if(substr($filesPath, -1) !== DIRECTORY_SEPARATOR)
+        $filesPath .= DIRECTORY_SEPARATOR;
 
     return $filesPath;
 }
@@ -1592,7 +1597,7 @@ static function updateMessages($newData){
 
     $oSQL = $intra->oSQL;
 
-    $da = $newData["DataAction"];
+    $da = isset($newData["DataAction"]) ? $newData["DataAction"] : null;
 
     try {
         $intra->checkMessageQueueExists();    
@@ -1709,7 +1714,7 @@ static function updateBookmarks($newData){
 
     $oSQL = $intra->oSQL;
 
-    $da = $newData["DataAction"];
+    $da = isset($newData["DataAction"]) ? $newData["DataAction"] : null;
 
     if($da=='bookmark'){
 
@@ -1740,7 +1745,7 @@ function archive($arrExtraTables = Array()) {
     $oSQL = $this->oSQL;
     $intra = $this->intra;
     
-    if (!isset($intra->$oSQL_arch)){
+    if (!isset($intra->oSQL_arch)){
         $oSQL_arch = $intra->getArchiveSQLObject();
     } else {
         $oSQL_arch = $intra->oSQL_arch;
@@ -1757,6 +1762,7 @@ function archive($arrExtraTables = Array()) {
 	// compose SQL
 	// get attributes
 	if (!isset($this->arrATR)){
+        $this->arrATR = array();
 		$sqlATR = "SELECT * FROM stbl_attribute WHERE atrEntityID='{$this->entID}' ORDER BY atrOrder";
 		$rsATR = $oSQL->do_query($sqlATR);
 		while ($rwATR = $oSQL->fetch_array($rsATR)) {
@@ -1826,7 +1832,7 @@ function restore($arrExtraTables = Array()) {
     $oSQL = $this->oSQL;
     $intra = $this->intra;
     
-    if (!isset($intra->$oSQL_arch)){
+    if (!isset($intra->oSQL_arch)){
         $oSQL_arch = $intra->getArchiveSQLObject();
     } else {
         $oSQL_arch = $intra->oSQL_arch;
@@ -1867,7 +1873,7 @@ function restore($arrExtraTables = Array()) {
     
     // restore files
     foreach($this->item["files"] as $rwFile){
-        $this->restoreFile($rwFile);
+        $this->restoreFiles($rwFile);
     }
     
     //restore extras
@@ -2064,7 +2070,7 @@ function getActionData($aclGUID){
 	
 	$rwACT = $oSQL->fetch_array($oSQL->do_query($sqlACT));
 
-    $rwACT = @array_merge($this->conf['ACT'][$rwACT['aclActionID']], $rwACT);
+    $rwACT = @array_merge((array)$this->conf['ACT'][$rwACT['aclActionID']], (array)$rwACT);
     $rwACT = @array_merge($rwACT, array(
         'staID_Old' => $this->conf['STA'][$rwACT['aclOldStatusID']]['staID']
         , 'staTitle_Old' => $this->conf['STA'][$rwACT['aclOldStatusID']]['staTitle']
@@ -2079,7 +2085,9 @@ function getActionData($aclGUID){
 	$arrRet = $rwACT;
 	
 	// linked attributes
-	$arrAAT = $this->conf['ACT'][$rwACT["actID"]]['aatFlagToTrack'];
+	$arrAAT = (isset($rwACT["actID"]) && isset($this->conf['ACT'][$rwACT["actID"]]['aatFlagToTrack'])) 
+	    ? $this->conf['ACT'][$rwACT["actID"]]['aatFlagToTrack'] 
+	    : array();
 
     if(!empty($arrAAT)) {
         $sqlLOG = "SELECT * FROM {$this->conf["entTable"]}_log WHERE l{$this->conf['entPrefix']}GUID='{$rwACT["aclGUID"]}'";

@@ -1,5 +1,8 @@
 <?php
 
+GLOBAL $intra;
+$oSQL = $intra->oSQL;
+
 $intra->dataAction('update');
 
 function update($newData){
@@ -49,7 +52,7 @@ $rsSTP = $oSQL->do_query("SELECT * FROM stbl_setup ORDER BY stpFlagReadOnly ASC,
    
 while ($rwSTP = $oSQL->fetch_array($rsSTP)) {
 
-    if($rwSTP["stpFlagHiddenOnForm"])
+    if(isset($rwSTP["stpFlagHiddenOnForm"]) && $rwSTP["stpFlagHiddenOnForm"])
         continue;
 
     $arrConf = Array("FlagWrite"=>(!$rwSTP["stpFlagReadOnly"] && (bool)$intra->arrUsrData["FlagWrite"]));
@@ -75,7 +78,7 @@ while ($rwSTP = $oSQL->fetch_array($rsSTP)) {
     if($rwSTP['stpDataSource']){
         $strSource = explode('|', $rwSTP['stpDataSource']);
         $aSource['source'] = $strSource[0];    
-        if($strSource[1])
+        if(isset($strSource[1]) && $strSource[1])
             $aSource['source_prefix'] = $strSource[1];    
     }
     
@@ -92,7 +95,7 @@ while ($rwSTP = $oSQL->fetch_array($rsSTP)) {
             ) 
     );
 
-    if($rwSTP["stpCharValueLocal"]!==null){
+    if(isset($rwSTP["stpCharValueLocal"]) && $rwSTP["stpCharValueLocal"]!==null){
         echo $intra->field($title.' ('.$intra->conf['language'].')'
             , $rwSTP["stpVarName"].'_local'
             , $rwSTP["stpCharValueLocal"]
@@ -185,3 +188,4 @@ function SubmitForm(){
 
 <?php 
 include eiseIntraAbsolutePath."inc{$intra->conf['frame']}_bottom.php"; 
+?>

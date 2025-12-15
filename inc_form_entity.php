@@ -2,9 +2,9 @@
 // test
 $intra->requireComponent('jquery-ui', 'grid', 'batch');
 
-$DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
+$DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : (isset($_GET["DataAction"]) ? $_GET["DataAction"] : null);
 
-$entID = ($_POST["entID"] ? $_POST["entID"] : $_GET["entID"]);
+$entID = isset($_POST["entID"]) && $_POST["entID"] ? $_POST["entID"] : (isset($_GET["entID"]) ? $_GET["entID"] : null);
 
 $sqlEnt = "SELECT * FROM stbl_entity WHERE entID='".$entID."'";
 $rsEnt = $oSQL->do_query($sqlEnt);
@@ -816,6 +816,9 @@ $gridATR->Execute();
 <?php 
 
 $flagActionStatus = $oSQL->d("SHOW TABLES LIKE 'stbl_action_status'");
+
+$roleFields = "";
+$roleJoins = "";
 
 $sqlAct = "SELECT actID
     , actTitle{$strLocal} as actTitle

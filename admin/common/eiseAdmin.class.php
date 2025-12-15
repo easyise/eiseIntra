@@ -214,6 +214,8 @@ function topLevelMenu($arrItems = null, $options = null){
 
 function menu($target = null){
 
+    GLOBAL $intra;
+    
     $oSQL = $this->oSQL;
     $dbName = $this->getDBName();
 
@@ -255,8 +257,9 @@ function menu($target = null){
         $sqlEnt = "SELECT * FROM `{$dbName}`.`stbl_entity`";
         $rsEnt = $oSQL->do_query($sqlEnt);
         while ($rwEnt = $oSQL->fetch_array($rsEnt)){
+            $localTitle = (isset($intra->local)) ? $intra->local : '';
             $strRet .= '<li id="ent-'.$dbName."-".$rwEnt['entID']. '"><a href="entity_form.php?dbName='.urlencode($dbName).'&entID='.urlencode($rwEnt['entID']). '"><i class="fa fa-cog"></i> '
-                .$rwEnt['entTitle'.$intra->local]
+                .$rwEnt['entTitle'.$localTitle]
                 .'</a>'."\n";
         }
 
@@ -356,16 +359,18 @@ function getAttributes_dropdown($entID){
 
 function getDBName(){
 
-    if($_POST['dbName']){
+    global $_SESSION;
+
+    if(isset($_POST['dbName']) && $_POST['dbName']){
         $_SESSION['DBNAME'] = $_POST['dbName'];
     } 
-    if($_GET['dbName']){
+    if(isset($_GET['dbName']) && $_GET['dbName']){
         $_SESSION['DBNAME'] = $_GET['dbName'];
     } 
 
-    $dbName = ($_SESSION['DBNAME'] 
+    $dbName = (isset($_SESSION['DBNAME']) && $_SESSION['DBNAME'] 
         ? $_SESSION['DBNAME'] 
-        : ($_COOKIE['dbName']
+        : (isset($_COOKIE['dbName']) && $_COOKIE['dbName']
             ? $_COOKIE['dbName']
             : 'mysql')
         );
@@ -416,7 +421,7 @@ function dumpTables($arrTables, $arrOptions=Array()){
 function dumpTable ($tableName, $tableOptions){
 
     $oSQL = $this->oSQL;
-
+    $flagView = false;
     
     $tableInfo = $oSQL->getTableInfo($tableName);
 

@@ -5,7 +5,8 @@ $intra->requireComponent('batch');
 
 ///*
 try {
-    $item = new eiseItemTraceable( $_GET['ID'], array('entID'=>($_POST['entID'] ? $_POST['entID'] : $_GET['entID'])) );
+    $entID = (isset($_POST['entID']) ? $_POST['entID'] : (isset($_GET['entID']) ? $_GET['entID'] : ''));
+    $item = new eiseItemTraceable( $_GET['ID'], array('entID'=>$entID) );
     $intra->arrUsrData['FlagWrite'] = ($item->conf['entManagementRoles'] ? $item->conf['flagSuperuser'] : $intra->arrUsrData['FlagWrite']);
     if(!$intra->arrUsrData['FlagWrite'])
         throw new Exception("Full Edit Mode is not allowed for user {$intra->usrID}".($item->conf['entManagementRoles'] ? ", ask someone from roles {$item->conf['entManagementRoles']}" : ''), 1);
@@ -51,7 +52,7 @@ if ($intra->arrUsrData['FlagWrite']) {
        , "class"=> "ss_script"
     );
 
-    $arrActions[]= Array ("title" => $intra->translate("Save")." ".$entItem->conf["entTitle{$intra->local}"]
+    $arrActions[]= Array ("title" => $intra->translate("Save")." ".$item->conf["entTitle{$intra->local}"]
        , "action" => 'javascript:save()'
        , "class"=> "ss_disk save_button bold"
     );
