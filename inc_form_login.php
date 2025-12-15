@@ -8,6 +8,7 @@ $flagEiseAdmin = is_a($intra, 'eiseAdmin');
 
 $flagShowHost = isset($flagShowHost) ? $flagShowHost : false;
 
+$extraBottomHTML = isset($extraBottomHTML) ? $extraBottomHTML : '';
 
 switch ($DataAction){
     case "login":

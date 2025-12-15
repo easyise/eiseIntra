@@ -1,5 +1,5 @@
 <?php 
-if ($_GET["pane"])
+if (isset($_GET["pane"]) && $_GET["pane"])
    $paneSrc = $_GET["pane"];
 else 
    $paneSrc = (isset($defaultPaneSrc) ? $defaultPaneSrc : $intra->conf['defaultPage']) ;

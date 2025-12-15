@@ -24,14 +24,14 @@ function explainQuery($db, $q){
 }
 
 
-$DataAction = $_POST['DataAction'] ? $_POST['DataAction'] : $_GET['DataAction'];
+$DataAction = (isset($_POST['DataAction']) ? $_POST['DataAction'] : (isset($_GET['DataAction']) ? $_GET['DataAction'] : ''));
 
 switch($DataAction){
 	case 'getProcInfo':
 
 		header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
-    	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
-    	header("Content-type: application/json"); // Date in the past
+		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
+		header("Content-type: application/json"); // Date in the past
 
 		$sqlQ = "SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST WHERE ID=".$oSQL->e($_GET['procID']);
 		$rsQ = $oSQL->q($sqlQ);
@@ -50,8 +50,8 @@ switch($DataAction){
 	case 'explainQuery':
 
 		header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
-    	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
-    	header("Content-type: application/json"); // Date in the past
+		header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); // Date in the past
+		header("Content-type: application/json"); // Date in the past
 
 		$arrExpl = @explainQuery($_GET['db'], $_GET['q']);
 

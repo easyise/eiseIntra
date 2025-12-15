@@ -3,7 +3,10 @@
 include_once "inc_entity_item.php";
 
 class eiseEntityItemForm extends eiseEntityItem {
-
+    
+    public $flagArchive;
+    public $entItemIDField;
+    public $staID;
 function __construct($oSQL, $intra, $entID, $entItemID, $conf = array()){
     
     parent::__construct($oSQL, $intra, $entID, $entItemID, $conf);
@@ -122,7 +125,7 @@ function showActions($actionCallBack=""){
     if (!$this->flagArchive){
         
         echo $this->showActionRadios();
-        
+
         if ($this->intra->arrUsrData["FlagWrite"]){
             echo "<div align=\"center\"><input class=\"eiseIntraSubmit\" id=\"btnsubmit\" type=\"submit\" value=\"".$this->intra->translate("Run")."\"></div>";
         }
@@ -169,12 +172,13 @@ function showEntityItemFields($arrConfig = Array()){
 function showFieldset($title, $id, $arrAtr, $strExtraField=''){
     $oSQL = $this->intra->oSQL;
     $intra = $this->intra;
+    $strFields = '';
 ?>
 <fieldset id="<?php echo $id ?>"><legend><?php echo $title; ?></legend>
 <?php 
 echo $strExtraField;
 
-if (count($arrAtr)==0)
+if (!$arrAtr || count($arrAtr)==0)
     $arrAtr = array_keys($this->conf['ATR']);
 
 foreach($arrAtr as $atr){
@@ -208,7 +212,7 @@ function field( $atr, $arrConf_ = array() ){
     $rwAtr = $this->conf['ATR'][$atr];
 
     $arrConf = array('type'=>$rwAtr['atrType']
-            , 'text' => $this->item[$rwAtr["atrID"]."_text"]
+            , 'text' => isset($this->item[$rwAtr["atrID"]."_text"]) ? $this->item[$rwAtr["atrID"]."_text"] : ''
             , 'source' => $rwAtr['atrDataSource']
             , 'source_prefix' => $rwAtr['atrProgrammerReserved']
             , 'FlagWrite' => $this->conf['STA'][(int)$this->staID]['satFlagShowInForm'][$atr]
@@ -295,13 +299,13 @@ if (count($this->item['ACL_Cancelled']) > 0 ) {
 <fieldset><legend><?php  echo $this->intra->translate("Cancelled actions") ; ?></legend>
 <?php 
 $ii = 0;
+$staID = null;
 foreach ($this->item["ACL_Cancelled"] as $rwACL) {
    if ($rwACL["aclActionPhase"]!=3) continue;
-    $this->showActionInfo($rwACL, $actionCallBack);
+    $this->showActionInfo($rwACL, "");
     $staID = ($ii==0 ? $rwACL["aclNewStatusID"] : $staID);
     $ii++;
-}
-?>
+}?>
 </fieldset>
 <?php
 }
@@ -392,19 +396,18 @@ function showActionInfo($rwACT, $actionCallBack=""){
         ?><div align="center"><?php
         
         if ($rwACT["aclActionPhase"]=="0"){
-            ?><input name="start_<?php  echo $aclGUID ; ?>" id="start_<?php  echo $rwACT["aclGUID"] ; ?>" 
+            ?><input name="start_<?php  echo $rwACT["aclGUID"] ; ?>" id="start_<?php  echo $rwACT["aclGUID"] ; ?>" 
             type="button" value="Start" class="eiseIntraActionButton">
             <?php
         }
         if ($rwACT["aclActionPhase"]=="1"){
-            ?><input name="finish_<?php  echo $aclGUID ; ?>" id="finish_<?php  echo $rwACT["aclGUID"] ; ?>" 
+            ?><input name="finish_<?php  echo $rwACT["aclGUID"] ; ?>" id="finish_<?php  echo $rwACT["aclGUID"] ; ?>" 
             type="button" value="Finish" class="eiseIntraActionButton">
             <?php
         }
-        ?><input name="cancel_<?php  echo $aclGUID ; ?>" id="cancel_<?php  echo $rwACT["aclGUID"] ; ?>" 
+        ?><input name="cancel_<?php  echo $rwACT["aclGUID"] ; ?>" id="cancel_<?php  echo $rwACT["aclGUID"] ; ?>" 
         type="button" value="Cancel" class="eiseIntraActionButton"></div>
-        <?php
-    }
+        <?php    }
     ?>
     </div>
     <?php
@@ -903,7 +906,7 @@ public static function getBookmarks($arrDescr = array()){
                 $entID = $rwE['entID'];
                 $table = $rwE['entTable'];
                 $entItemIDField = eiseEntity::getItemIDField($rwE);
-                $descr = ($arrDescr[$entID] ? $arrDescr[$entID] : "##{$entItemIDField}##");
+                $descr = (isset($arrDescr[$entID]) ? $arrDescr[$entID] : "##{$entItemIDField}##");
                 $form = preg_replace('/^(tbl_)/', '', $table).'_form.php';
                 ?><h3><a href='#'><?php echo $rwE["entTitle{$intra->local}Mul"];?></a></h3>
                 <div>
@@ -913,14 +916,14 @@ public static function getBookmarks($arrDescr = array()){
 
             $description = $descr;
             foreach($o->item as $field=>$valRaw){
-                $val = $intra->formatByType2PHP($o->conf['ATR'][$field]['atrType'], $valRaw);
+                $val = (isset($o->conf['ATR'][$field]['atrType']) ? $intra->formatByType2PHP($o->conf['ATR'][$field]['atrType'], $valRaw) : $valRaw);
                 $description = str_replace('##'.$field.'##', $val, $description);
             }
 
             echo "<div><a href='".$form."?".$entID."ID=".$o->item[$entID."ID"]."&hash=".md5($o->item[$entID.'EditDate'])."'>" 
                 ,'<div>'.htmlentities($description).'</div>'
                 ,"</a>"
-                ,'<div><small>',$o->item["staTitle{$intra->local}"],' ',date('d.m.Y H:i',strtotime($o->item[$entID."EditDate"])),'</small></div>'
+                ,'<div><small>',(isset($o->item["staTitle{$intra->local}"]) ? $o->item["staTitle{$intra->local}"] : ''), ' ',date('d.m.Y H:i',strtotime($o->item[$entID."EditDate"])),'</small></div>'
                 ,"</div>\r\n";
             $entity = $rw['bkmEntityID'];
         }

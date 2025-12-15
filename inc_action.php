@@ -52,7 +52,7 @@ public function __construct($item, $arrAct, $options = array()){
         $types['acl'.$_ts] = 'datetime';
     $types = array_merge($types, $this->item->conf['attr_types']);
 
-    if(!$options['flagDoNotRefresh'])
+    if(!isset($options['flagDoNotRefresh']) || !$options['flagDoNotRefresh'])
         $this->item->getAllData(array('Master', 'Text','ACL'));
 
 	if(isset($arrAct['aclGUID']) && $arrAct['aclGUID']){
@@ -179,7 +179,7 @@ public function update($nd = null){
     $aToUpdate_old = (array)@json_decode($this->arrAction['aclItemTraced'], true);
     $aToUpdate = array();
 
-    foreach(array_merge(array_keys((array)$this->conf['aatFlagToTrack']), array('aclATA','aclATD','aclETA','aclETD')) as $atrID){
+    foreach(array_merge(array_keys((array)(isset($this->conf['aatFlagToTrack']) ? $this->conf['aatFlagToTrack'] : array())), array('aclATA','aclATD','aclETA','aclETD')) as $atrID){
         $nd_key = $atrID.'_'.$this->arrAction['aclGUID'];
         if(isset($this->arrAction[$nd_key])){
             $aToUpdate[$atrID] = $this->arrAction[$nd_key];
@@ -248,7 +248,10 @@ public function add(){
     
     $aToTrace = array();
 
-    foreach((array)$this->conf['aatFlagToTrack'] as $field=>$props){
+    $flagsToTrack = !empty($this->conf['aatFlagToTrack'])
+        ? (array)$this->conf['aatFlagToTrack']
+        : [];
+    foreach ($flagsToTrack as $field => $props) {
 
         $aToTrace[$field] = (isset($this->item->item[$field]) && !$props['aatFlagEmptyOnInsert']
             ? $this->item->item[$field]
@@ -400,7 +403,10 @@ public function validate(){
 
     // mandatory items check
     $aMissingFields = array();
-    foreach ((array)$this->arrAction['aatFlagMandatory'] as $atrID => $props) {
+    $mandatory = !empty($this->arrAction['aatFlagMandatory'])
+    ? (array)$this->arrAction['aatFlagMandatory']
+    : [];
+    foreach ($mandatory as $atrID => $props) {
         $v = ($this->arrAction[$atrID]
                 ? $this->arrAction[$atrID]
                 : ($this->item->item[$atrID])
@@ -487,7 +493,7 @@ public function finish(){
           && $this->item->processCheckmarks($this->arrAction)
           && (string)$this->arrAction["aclNewStatusID"]!=''
         )
-        || $this->conf["actFlagInterruptStatusStay"]){
+        || (isset($this->conf["actFlagInterruptStatusStay"]) ? $this->conf["actFlagInterruptStatusStay"] : false)){
 
         $sql = Array();
         $stlGUID = $this->oSQL->get_data($this->oSQL->do_query("SELECT UUID()"));
@@ -648,7 +654,11 @@ function checkMandatoryFields(){
     $aMandatoryFails = array();
     $aChangedFails = array();
 
-    foreach((array)$this->arrAction["aatFlagMandatory"] as $atrID => $rwATR){
+    $mandatory = !empty($this->arrAction['aatFlagMandatory'])
+    ? (array)$this->arrAction['aatFlagMandatory']
+    : [];
+
+    foreach ($mandatory as $atrID => $rwATR) {
             
         $oldValue = $this->item->item[$atrID];
         
@@ -690,7 +700,7 @@ function checkMandatoryFields(){
         throw new Exception($this->intra->translate("These fields should be changed: %s for %s", $strFields, $this->item->id));
     }
 
-    if($this->conf['actFlagComment'] && !$this->arrAction['aclComments'])
+    if((isset($this->conf['actFlagComment']) ? $this->conf['actFlagComment'] : false) && !$this->arrAction['aclComments'])
         throw new Exception($this->intra->translate("Action '%s' requires a comment", $this->conf['actTitle'.$this->intra->local]));
     
 }
@@ -733,7 +743,7 @@ public function getTimeStamps($nd = null, $flag='all', &$tsValues = array()){
     $valNull = 'NOW()';
 
     foreach(self::$ts as $ts){
-        $val_ts = $a[$this->conf['aatFlagTimestamp'][$ts]];
+        $val_ts = (isset($this->conf['aatFlagTimestamp'][$ts]) && isset($a[$this->conf['aatFlagTimestamp'][$ts]]) ? $a[$this->conf['aatFlagTimestamp'][$ts]] : null);
         $tsValues[$ts] = ($this->conf['actTrackPrecision']==='datetime'
                 ? $this->intra->datetimePHP2SQL($val_ts, $valNull)
                 : $this->intra->datePHP2SQL($val_ts, $valNull)
@@ -746,12 +756,12 @@ public function getTimeStamps($nd = null, $flag='all', &$tsValues = array()){
         $tsValues[$ts] = ( $tsValues[$ts]==$valNull ? $aclATA : $tsValues[$ts] );
     }
 
-    if(!$this->conf['actFlagHasEstimates']){
+    if(!isset($this->conf['actFlagHasEstimates']) || !$this->conf['actFlagHasEstimates']){
         $tsValues['ETD'] = $tsValues['ATD'];
         $tsValues['ETA'] = $tsValues['ATA'];
     }
 
-    if(!$this->conf['actFlagHasDeparture']){
+    if(!isset($this->conf['actFlagHasDeparture']) || !$this->conf['actFlagHasDeparture']){
         $tsValues['ETD'] = $tsValues['ETA'];
         $tsValues['ATD'] = $tsValues['ATA'];   
     }
@@ -784,10 +794,10 @@ public function getTimeStamps($nd = null, $flag='all', &$tsValues = array()){
  */
 public function getUserStamps(){
     $sql = '';
-    foreach ( (array)$this->conf["aatFlagUserStamp"] as $atrID => $xx ) {
+    foreach ( (array)(isset($this->conf["aatFlagUserStamp"]) ? $this->conf["aatFlagUserStamp"] : array()) as $atrID => $xx ) {
         if(array_key_exists($atrID, (array)$this->arrAction["aatFlagToTrack"]))
             continue;
-        $sql .= "\n, {$atrID} = ".$oSQL->e($this->intra->usrID);
+        $sql .= "\n, {$atrID} = ".$this->oSQL->e($this->intra->usrID);
     }
     return $sql;
 }
@@ -800,7 +810,7 @@ public function getTraceData(){
     $aRet = array();
     $aTraced = @json_decode($this->arrAction['aclItemTraced'], true);
 
-    foreach((array)$this->conf['aatFlagToTrack'] as $field=>$props){
+    foreach((array)(isset($this->conf['aatFlagToTrack']) ? $this->conf['aatFlagToTrack'] : array()) as $field=>$props){
         $aRet[$field] = (isset($this->arrAction[$field]) ? $this->arrAction[$field] : $aTraced[$field]);
     }
 

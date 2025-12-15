@@ -3,13 +3,14 @@ include "common/auth.php";
 
 $oSQL->startProfiling();
 
-$DataAction = $_GET["DataAction"] ? $_GET["DataAction"] : $_POST["DataAction"];
-$pagID = $_GET["pagID"] ? $_GET["pagID"] : $_POST["pagID"];
-$pos = $_GET["pos"] ? $_GET["pos"] : $_POST["pos"];
-$pagParentID = $_GET["pagParentID"] ? $_GET["pagParentID"] : $_POST["pagParentID"];
+// Fixed undefined array key warnings by checking if keys exist first
+$DataAction = (isset($_GET["DataAction"]) ? $_GET["DataAction"] : (isset($_POST["DataAction"]) ? $_POST["DataAction"] : ''));
+$pagID = (isset($_GET["pagID"]) ? $_GET["pagID"] : (isset($_POST["pagID"]) ? $_POST["pagID"] : ''));
+$pos = (isset($_GET["pos"]) ? $_GET["pos"] : (isset($_POST["pos"]) ? $_POST["pos"] : ''));
+$pagParentID = (isset($_GET["pagParentID"]) ? $_GET["pagParentID"] : (isset($_POST["pagParentID"]) ? $_POST["pagParentID"] : ''));
 
+$dbName = (isset($_GET["dbName"]) ? $_GET["dbName"] : (isset($_POST["dbName"]) ? $_POST["dbName"] : ''));
 
-$dbName = $_GET["dbName"] ? $_GET["dbName"] : $_POST["dbName"];
 $oSQL->select_db($dbName);
 
 $intra->requireComponent('grid');

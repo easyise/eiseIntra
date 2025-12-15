@@ -3,7 +3,7 @@
 $intra->requireComponent('grid');
 
 
-if ($_POST["DataAction"]=="update"){
+if (isset($_POST["DataAction"]) && $_POST["DataAction"]=="update"){
     
     $sqlRoles = "SELECT rolID FROM stbl_role";
     $rsRol = $oSQL->do_query($sqlRoles);

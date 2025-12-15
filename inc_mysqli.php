@@ -11,6 +11,18 @@
 class eiseSQL extends mysqli{
 
     public $flagProfiling = false;
+    public $dbhost;
+    public $dbuser;
+    public $dbpass;
+    public $dbname;
+    public $flagPersistent;
+    public $dbtype;
+    public $rs;
+    public $arrQueries = array();
+    public $arrResults = array();
+    public $arrMicroseconds = array();
+    public $arrBacktrace = array();
+    public $errornum;
 
 /**
  *  This array maps intra data types into MySQL data types
@@ -187,7 +199,7 @@ class eiseSQL extends mysqli{
             $arrBkTrace = debug_backtrace();
             $arrToRecord = array();
             foreach($arrBkTrace as $i=>$call){
-                $arrToRecord[$i] = ($call['class'] ? $call['class'].'::' : '').$call['function'].'() @ '.$call['file'].':'.$call['line'];
+                $arrToRecord[$i] = (isset($call['class']) ? $call['class'].'::' : '').$call['function'].'() @ '.(isset($call['file']) ? $call['file'] : '').':'.(isset($call['line']) ? $call['line'] : '');
             }
             $this->arrBacktrace[] = $arrToRecord;
         }
@@ -231,7 +243,7 @@ class eiseSQL extends mysqli{
             $mysqli_result = $this->q($sql);
             return $this->f($mysqli_result);
         } else
-            throw new eiseSQLException('Wront variable type passed to eiseSQL::f() function: '.gettype($variant));
+            throw new eiseSQLException('Wrong variable type passed to eiseSQL::f() function: '.gettype($mysqli_result_or_query));
     }
 
 /**
@@ -305,7 +317,7 @@ class eiseSQL extends mysqli{
             $mysqli_result = $this->q($sql);
             return $this->d($mysqli_result);
         } else
-            throw new eiseSQLException('Wront variable type passed to eiseSQL::d() function: '.gettype($variant));
+            throw new eiseSQLException('Wrong variable type passed to eiseSQL::d() function: '.gettype($mysqli_result_or_query));
     }
     
     function fetch_fields($mysqli_result){
@@ -336,7 +348,7 @@ class eiseSQL extends mysqli{
   // Grab the error descriptor
   // #######################################################################
     function graberrordesc() {
-      $this->error=mysql_error();
+      $this->error=$this->error;
       return $this->error;
     }
 
@@ -451,7 +463,7 @@ class eiseSQL extends mysqli{
           $arrRet[] = array('query'=>$this->arrQueries[$ii]
             , 'affected'=>$this->arrResults[$ii]['affected']
             , 'returned'=>$this->arrResults[$ii]['returned']
-            , 'backtrace'=>$this->backtrace[$ii]
+            , 'backtrace'=>$this->arrBacktrace[$ii]
             , 'time'=>$this->arrMicroseconds[$ii]);
       }
       return $arrRet;

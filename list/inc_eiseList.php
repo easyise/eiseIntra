@@ -50,7 +50,7 @@ public $conf = Array(
     , 'exactMatch' => false
     
     , 'dataSource' => "" //$_SERVER["PHP_SELF"]
-    
+    , 'strLocal' => ''
     , 'rowsFirstPage' => 100
     , 'rowsPerPage' => 100
     , 'maxRowsForSelection' => 5000
@@ -159,7 +159,7 @@ function __construct($oSQL, $strName, $arrConfig=Array()){
     $this->exactSQL = (isset($arrConfig["exactSQL"]) ? $arrConfig["exactSQL"] : null);unset($arrConfig["exactSQL"]);
     
     //merge with settings come from eiseINTRA
-    if (is_object($arrConfig["intra"])){
+    if (isset($arrConfig["intra"]) && is_object($arrConfig["intra"])){
         $intra = $arrConfig['intra'];
         $this->conf['dateFormat'] = $intra->conf['dateFormat'];
         $this->conf['timeFormat'] = $intra->conf['timeFormat'];
@@ -653,7 +653,7 @@ foreach ($_GET as $key => $value) {
     }
 }
 foreach ($this->Columns as $col) {
-    if (!isset($col['title']) || !$col['title'] && isset($col['filter']) && $col['filter']!=''){
+    if ( (!isset($col['title']) || !$col['title']) && isset($col['filter']) && $col['filter']!=''){
         $filterValue = isset($col["filterValue"]) ? $col["filterValue"] : '';
         echo "<input type=hidden id=\"".$this->name.'_'.$col['filter']."\" name=\"".$this->name.'_'.$col['filter']."\" value=\"".urlencode($filterValue)."\" class=\"el-filter\">\r\n";
     }
@@ -899,7 +899,7 @@ protected function getComboboxSource($col){
                 $this->intra = new eiseIntra($this->oSQL);
             }
             $rsCMB = $this->intra->getDataFromCommonViews(null, null, $col['source']
-                , $col["source_prefix"]
+                , (isset($col["source_prefix"]) ? $col["source_prefix"] : null)
                 , 1
                 , (isset($col['extra']) ? (string)$col['extra'] : '')
                 , true
@@ -918,7 +918,8 @@ protected function getComboboxSource($col){
         //echo $col['title']."\r\n";
         $rsCombo = $oSQL->do_query($sqlCombo);
         while ($rwCombo = $oSQL->fetch_array($rsCombo)) {
-            $arrCombo[$rwCombo['optValue']] = $rwCombo["optText{$this->conf['strLocal']}"];
+            $localizedKey = "optText{$this->conf['strLocal']}";
+            $arrCombo[$rwCombo['optValue']] = isset($rwCombo[$localizedKey]) ? $rwCombo[$localizedKey] : (isset($rwCombo['optText']) ? $rwCombo['optText'] : '');
         }
     }
 
@@ -976,7 +977,7 @@ protected function breakDownByTabs(){
     
     if( $nullTab ){
         $this->Tabs[] = array(
-                    'title' => ($col['defaultText'] 
+                    'title' => ((isset($col['defaultText']) && $col['defaultText']) 
                         ? $col['defaultText']
                         : ($this->intra 
                             ? $this->intra->translate('- not set -')
@@ -1002,8 +1003,8 @@ protected function breakDownByTabs(){
     if($totalCount > 0){
         $this->Tabs[] = array(
                     'title' => ($this->intra 
-                            ? $this->intra->translate($this->conf['titleTabAny'], $col['title'])
-                            : sprintf($this->conf['titleTabAny'], $col['title']) 
+                            ? $this->intra->translate($this->conf['titleTabAny'], (isset($col['title']) ? $col['title'] : ''))
+                            : sprintf($this->conf['titleTabAny'], (isset($col['title']) ? $col['title'] : '')) 
                         )." ({$totalCount})"
                     , 'filter' => $filter
                     , 'value' => ''
@@ -1128,7 +1129,7 @@ private function handleInput(){
         : (isset($this->arrCookie["ASC_DESC"]) && $this->arrCookie["ASC_DESC"] !== ""
             ? $this->arrCookie["ASC_DESC"]
             : ($this->defaultSortOrder=="" 
-                ? (in_array($this->Columns[$this->orderBy]['type'], array('date', 'datetime ')) 
+                ? (isset($this->Columns[$this->orderBy]) && is_array($this->Columns[$this->orderBy]) && isset($this->Columns[$this->orderBy]['type']) && in_array($this->Columns[$this->orderBy]['type'], array('date', 'datetime ')) 
                     ? 'DESC'
                     : 'ASC'
                     )
@@ -1684,7 +1685,7 @@ private function cacheSQL(){
 
 private function getCachedColumns(){
     
-    $cols = $_SESSION[$this->name."_columns"];
+    $cols = (isset($_SESSION[$this->name."_columns"]) ? $_SESSION[$this->name."_columns"] : array());
     if(count((array)$cols)){
         $this->Columns = $cols;
     }

@@ -143,7 +143,8 @@ public $hiddenInputs = array(),
     $permissions = array(),
     $arrWidth = array(),
     $Tabs3D = null,
-    $arrSpans = array(); // array of spans for the header columns, indexed by field name
+    $arrSpans = array(), // array of spans for the header columns, indexed by field name
+    $newData_transposed = array(); // array of transposed data for updates
 
 /**
  * Configuration of eiseGrid instance (see [eiseGrid::$defaultConf](#eisegrid-defaultconf) for possible settings)
@@ -206,26 +207,33 @@ function __construct($oSQL
 
     $this->name = $strName;
     $this->permissions = (isset($arrConfig["arrPermissions"]) 
-        ? $arrConfig["arrPermissions"]
+        ? (is_array($arrConfig["arrPermissions"]) ? $arrConfig["arrPermissions"] : array())
         : ( isset($intra->arrUsrData['FlagWrite'])
             ? array('FlagWrite'=>$intra->arrUsrData['FlagWrite'], 
                 'FlagDelete'=>$intra->arrUsrData['FlagWrite'],
                 )
-            : self::$defaultConf['arrPermissions']) 
+            : (is_array(self::$defaultConf['arrPermissions']) ? self::$defaultConf['arrPermissions'] : array())) 
         );
     $this->intra = ($this->conf['intra'] ? $this->conf['intra'] : $intra);
     if($this->conf['intra'])
         unset($this->conf['intra']);
 
     //backward-compatibility staff
-    $this->permissions["FlagWrite"] = (isset($this->conf['flagDisabled']) ? !$this->conf['flagDisabled'] : $this->permissions["FlagWrite"]);
-    $this->permissions["FlagDelete"] = (isset($this->conf['flagNoDelete']) 
-        ? !$this->conf['flagNoDelete'] 
-        : (isset($this->permissions["FlagDelete"])
-            ? $this->permissions["FlagDelete"]
-            : $this->permissions["FlagWrite"])
-    );
-    
+    if (is_array($this->permissions)) {
+        $this->permissions["FlagWrite"] = (isset($this->conf['flagDisabled']) ? !$this->conf['flagDisabled'] : (isset($this->permissions["FlagWrite"]) ? $this->permissions["FlagWrite"] : true));
+        $this->permissions["FlagDelete"] = (isset($this->conf['flagNoDelete']) 
+            ? !$this->conf['flagNoDelete'] 
+            : (isset($this->permissions["FlagDelete"])
+                ? $this->permissions["FlagDelete"]
+                : (isset($this->permissions["FlagWrite"]) ? $this->permissions["FlagWrite"] : true))
+        );
+    } else {
+        // Initialize with default values if permissions is not an array
+        $this->permissions = array(
+            "FlagWrite" => !(isset($this->conf['flagDisabled']) ? $this->conf['flagDisabled'] : false),
+            "FlagDelete" => !(isset($this->conf['flagNoDelete']) ? $this->conf['flagNoDelete'] : false)
+        );
+    }
 }
 
 /**
@@ -273,21 +281,21 @@ function addColumn($arrCol){
         throw new Exception("No field specified");
         
 
-    if($arrCol['fieldInsertBefore'] || $arrCol['fieldInsertAfter']){
+    if((isset($arrCol['fieldInsertBefore']) && $arrCol['fieldInsertBefore']) || (isset($arrCol['fieldInsertAfter']) && $arrCol['fieldInsertAfter'])){
 
         $Columns_new = array();
         $flagInserted = false;
 
         foreach($this->Columns as $ix=>$col){
 
-            if($col['field']==$arrCol['fieldInsertBefore']){
+            if(isset($arrCol['fieldInsertBefore']) && $col['field']==$arrCol['fieldInsertBefore']){
                 $Columns_new[$arrCol['field']] = $arrCol;
                 $flagInserted = true;
             }
 
             $Columns_new[$col['field']] = $col;
 
-            if($col['field']==$arrCol['fieldInsertAfter']){
+            if(isset($arrCol['fieldInsertAfter']) && $col['field']==$arrCol['fieldInsertAfter']){
                 $Columns_new[$arrCol['field']] = $arrCol;
                 $flagInserted = true;
             }
@@ -345,7 +353,7 @@ function setColumnProperty($field, $property, $value){
     $retVal = null;
     foreach($this->Columns as &$col){
         if($col['field']==$field){
-            $retVal = $col[$property];
+            $retVal = isset($col[$property]) ? $col[$property] : null;
             $col[$property] = $value;
             break;
         }
@@ -461,15 +469,25 @@ function get_html($allowEdit=true){
             
             $spannedColumns[] = $this->Columns[$ix];                
             
-            if ((isset($this->Columns[$ix+1])
-                && $this->Columns[$ix+1]['title']!=$col['title']) || !isset($this->Columns[$ix+1])){
+            $keys = array_keys($this->Columns);
+            $pos = array_search($ix, $keys, true);
+
+            $nextPos = $pos !== false ? $pos + 1 : null;
+
+            $hasNext = ($nextPos !== null && isset($keys[$nextPos]));
+
+            $nextCol = $hasNext ? $this->Columns[$keys[$nextPos]] : null;
+
+            $nextTitle = (isset($nextCol['title']) && $nextCol['title']) ? $nextCol['title'] : '';
+
+            if (($hasNext && $nextTitle != $col['title'])|| !$hasNext) {
                 
                 $strHead .= "\t<th".
                             " data-field=\"{$col['field']}\"".
                             ($col["style"]!="" 
                             ? " style=\"{$col['style']}\""
                             : "").
-                        " class=\"{$this->name}-{$spannedColumns[0]['fields'][0]['field']}"
+                        " class=\"{$this->name}-".(isset($spannedColumns[0]['fields'][0]['field']) ? $spannedColumns[0]['fields'][0]['field'] : "")
                             .($col['mandatory'] 
                                 ? " eg-mandatory" 
                                 : "")
@@ -484,7 +502,7 @@ function get_html($allowEdit=true){
                                 : "").$this->Columns[$ix]['staticClass']."\"";
                        
                 if (count($spannedColumns)>1) {
-                    $this->arrSpans[$spannedColumns[0]['field']]=count($spannedColumns);
+                    $this->arrSpans[(isset($spannedColumns[0]['field']) ? $spannedColumns[0]['field'] : '')]=count($spannedColumns);
                     $strHead .= ' colspan="'.count($spannedColumns).'"';
                 }
 
@@ -492,7 +510,7 @@ function get_html($allowEdit=true){
                         .($nColNumber==0 && $this->permissions["FlagWrite"] && !($this->permissions["FlagDelete"]===false)
                             ? '<input type="hidden" id="inp_'.$this->name.'_deleted" name="inp_'.$this->name.'_deleted" value="">'
                             : '')
-                        .'<span>'.htmlspecialchars($col["title"]).'</span>'
+                        .'<span>'.htmlspecialchars(isset($col["title"]) ? $col["title"] : '').'</span>'
                         ."</th>\r\n";
 
                 $this->headerColumns[$col['field']] = array_merge($col, array('spannedColumns'=>$spannedColumns));
@@ -614,14 +632,12 @@ function get_html($allowEdit=true){
         ."</thead>\r\n";
 
     $this->hiddenInputs = array_merge(
-        Array($inpRowID['field'] => $inpRowID
-            , "inp_{$this->name}_updated" => Array(
-                    'field' => "inp_{$this->name}_updated"
-                )
-           )
+        (isset($inpRowID) ? Array($inpRowID['field'] => $inpRowID) : Array())
+        , Array("inp_{$this->name}_updated" => Array(
+                'field' => "inp_{$this->name}_updated"
+            ))
         , $this->hiddenInputs
-    );
-    
+    );    
     // no rows and spinner rows
     $strRet .= "<tbody class=\"eg-no-rows\"><tr><td colspan=\"".count($this->visibleColumns)."\">{$this->conf['noRowsTitle']}</td></tr></tbody>\r\n";
     $strRet .= "<tbody class=\"eg-spinner\"><tr><td colspan=\"".count($this->visibleColumns)."\">{$this->conf['spinnerTitle']}</td></tr></tbody>\r\n";
@@ -699,41 +715,41 @@ function get_html($allowEdit=true){
     foreach($this->__fields as $fieldName=>$field){
         $arrConfig['fieldIndex'][] = $fieldName;
         $arrConfig['fields'][$fieldName] = Array('type'=>$field['type'], 'title'=>$field['title']);
-        if ($field['mandatory']){
+        if (isset($field['mandatory']) && $field['mandatory']){
             $arrConfig['fields'][$fieldName]['mandatory'] = $field['mandatory'];
         }
-        if ($field['href']){
+        if (isset($field['href']) && $field['href']){
             $arrConfig['fields'][$fieldName]['href'] = $field['href'];
-            if ($field['target']){
+            if (isset($field['target']) && $field['target']){
                 $arrConfig['fields'][$fieldName]['target'] = $field['target'];
             }
         }
-        if ($field['totals']){
+        if (isset($field['totals']) && $field['totals']){
             $arrConfig['fields'][$fieldName]['totals'] = $field['totals'];
         }
-        if ($field['decimalPlaces']){
+        if (isset($field['decimalPlaces']) && $field['decimalPlaces']){
             $arrConfig['fields'][$fieldName]['decimalPlaces'] = $field['decimalPlaces'];
         }
-        if ($field['static']===true){
+        if (isset($field['static']) && $field['static']===true){
             $arrConfig['fields'][$fieldName]['static'] = true;
         }
-        if ($field['disabled']===true){
+        if (isset($field['disabled']) && $field['disabled']===true){
             $arrConfig['fields'][$fieldName]['disabled'] = true;
         }
-        if (is_array($field['source'])){
+        if (isset($field['source']) && is_array($field['source'])){
             $arrConfig['fields'][$fieldName]['source'] = $field['source'];
         }
         
-        if ($field['headerClickable']){
+        if (isset($field['headerClickable']) && $field['headerClickable']){
             $arrConfig['fields'][$fieldName]['headerClickable'] = true;
         }
-        if ($field['flagDontUpdateRow']){
+        if (isset($field['flagDontUpdateRow']) && $field['flagDontUpdateRow']){
             $arrConfig['fields'][$fieldName]['flagDontUpdateRow'] = true;
         }
-        if ($field['sortable']===true){
+        if (isset($field['sortable']) && $field['sortable']===true){
             $arrConfig['fields'][$fieldName]['sortable'] = true;
         }
-        if ($field['filterable']===true){
+        if (isset($field['filterable']) && $field['filterable']===true){
             $arrConfig['fields'][$fieldName]['filterable'] = true;
         }
     }
@@ -786,7 +802,7 @@ protected function __getRow($iRow, $row = null){
         foreach($this->visibleColumns as $ixCol=>$col){
             if($row && isset($row['__rowDisabled']) && $row['__rowDisabled'])
                 $col['fields'][$iSubRow]['disabled'] = true;
-            $html .= ($col['fields'][$iSubRow]
+            $html .= (isset($col['fields'][$iSubRow]) && $col['fields'][$iSubRow]
                 ? $this->__paintCell($col['fields'][$iSubRow], $ixCol, $iRow)
                 : '<td>&nbsp;</td>'."\r\n"
                 );
@@ -840,7 +856,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     } else // calculate row-dependent options: class, static/disabled, or href 
         foreach(array('class', 'static', 'readonly', 'source', 'extra', 'placeholder', 'href', 'disabled') as $prop){
             foreach($this->Rows[$ixRow] as $rowKey=>$rowValue){
-                if(!isset($cell[$prop]))
+                if(!isset($cell[$prop]) || is_array($rowValue) || is_object($rowValue))
                     continue;
 
                 if($prop=='href'){
@@ -1040,14 +1056,14 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                     $arrSource = array(
                         'table' => $cell['source'],
                         'prefix' => $cell['source_prefix'],
-                        'showDeleted' => ($cell['showDeleted'] ? 1 : 0),
-                        'extra' => (string)$cell['extra']
+                        'showDeleted' => (isset($cell['showDeleted']) && $cell['showDeleted'] ? 1 : 0),
+                        'extra' => (isset($cell['extra']) ? (string)$cell['extra'] : '')
                         );
                     if(isset($cell['threshold'])) $arrSource['threshold'] = (int)$cell['threshold'];
                     $strCell .= "<input{$classAttr} type=\"text\" name=\"{$_textfield}[]\""
                         .' data-source="'.htmlspecialchars( json_encode($arrSource) ).'"'
                         ." autocomplete=\"off\""
-                        .($cell['placeholder'] ? ' placeholder="'.htmlspecialchars($cell['placeholder']).'"' : '')
+                        .(isset($cell['placeholder']) && $cell['placeholder'] ? ' placeholder="'.htmlspecialchars($cell['placeholder']).'"' : '')
                         //.($cell['extra'] ? ' extra="'.htmlspecialchars($cell['extra']).'"' : '')
                         ." value=\"".htmlspecialchars($this->getSelectValue($cell, $row, $suffix))."\">";
                 case "del":
@@ -1233,7 +1249,7 @@ function Update($newData = null, $conf = array()){
         $extraFieldsUpd[$arrTable['prefix']."EditDate"] = 'NOW()';
     }
 
-    if( $arrTable['PKtype']=='GUID' && !isset( $arrNewData[$arrTable['PK'][0]]) )
+    if( $arrTable['PKtype']=='GUID' && !isset( $newData[$arrTable['PK'][0]]) )
         $extraFieldsIns[$arrTable['PK'][0]] = 'UUID()';
 
     foreach (explode("|", $newData["inp_".$this->name."_deleted"]) as $idToDelete)
@@ -1335,17 +1351,17 @@ function json( $newData = null, $conf = array() ){
                     $val = $i;
                     break;
                 case 'date':
-                    $val = $intra->oSQL->unq($intra->datePHP2SQL($newData[$col['field']][$i]));
+                    $val = (isset($this->oSQL) ? $this->oSQL->unq($intra->datePHP2SQL($newData[$col['field']][$i])) : '');
                     break;
                 case 'datetime':
-                    $val = $intra->oSQL->unq($intra->datetimePHP2SQL($newData[$col['field']][$i]));
+                    $val = (isset($this->oSQL) ? $this->oSQL->unq($intra->datetimePHP2SQL($newData[$col['field']][$i])) : '');
                     break;
                 case "integer":
                 case "real":
                 case "numeric":
                 case "number":
                 case "money":
-                    $val = $intra->oSQL->unq($intra->decPHP2SQL($newData[$col['field']][$i]));
+                    $val = (isset($this->oSQL) ? $this->oSQL->unq($intra->decPHP2SQL($newData[$col['field']][$i])) : '');
                     break;
                 case 'combobox':
                 case 'select':

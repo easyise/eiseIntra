@@ -3,7 +3,7 @@ include 'common/auth.php';
 
 $atrID  = (isset($_POST['atrID']) ? $_POST['atrID'] : $_GET['atrID'] );
 $atrEntityID  = (isset($_POST['atrEntityID']) ? $_POST['atrEntityID'] : $_GET['atrEntityID'] );
-$DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['DataAction'] );
+$DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : (isset($_GET['DataAction']) ? $_GET['DataAction'] : ''));
 
 $intra->requireComponent('grid');
 
@@ -45,7 +45,7 @@ switch($DataAction){
                     , ".$oSQL->escape_string($_POST['atrShortTitleLocal'])."
                     , ".$oSQL->escape_string($_POST['atrType'])."
                     , '".(integer)$_POST['atrOrder']."'
-                    , ".$oSQL->escape_string($_POST['atrClasses'])."
+                    , ".(isset($_POST['atrClasses']) ? $oSQL->escape_string($_POST['atrClasses']) : "''")."
                     , ".$oSQL->escape_string($_POST['atrDefault'])."
                     , ".$oSQL->escape_string($_POST['atrTextIfNull'])."
                     , ".$oSQL->escape_string($_POST['atrProgrammerReserved'])."
@@ -172,7 +172,7 @@ include eiseIntraAbsolutePath.'inc_top.php';
 
 <div class="eiseIntraField">
 <label><?php echo $intra->translate("True when there's no field for this attribute in Master table"); ?>:</label><?php
- echo $intra->showCheckBox("atrFlagNoField", $rwATR["atrFlagNoField"]);?></div>
+ echo $intra->showCheckBox("atrFlagNoField", isset($rwATR["atrFlagNoField"]) ? $rwATR["atrFlagNoField"] : '');?></div>
 
 <div class="eiseIntraField">
 <label><?php echo $intra->translate("Type (see Intra types)"); ?>:</label><?php
@@ -184,7 +184,7 @@ include eiseIntraAbsolutePath.'inc_top.php';
 
 <div class="eiseIntraField">
 <label><?php echo $intra->translate("CSS classes"); ?>:</label><?php
- echo $intra->showTextBox("atrClasses", $rwATR["atrClasses"], Array('type'=>'text'));?></div>
+ echo $intra->showTextBox("atrClasses", isset($rwATR["atrClasses"]) ? $rwATR["atrClasses"] : '', Array('type'=>'text'));?></div>
 
 <div class="eiseIntraField">
 <label><?php echo $intra->translate("Default Value"); ?>:</label><?php
@@ -225,7 +225,7 @@ if ($intra->arrUsrData["FlagWrite"]) {
  ?>
 <label>&nbsp;</label><div class="eiseIntraValue"><input class="eiseIntraSubmit" type="Submit" value="Update">
 <?php 
-if ($atrID!="" && $rwATR["atrDeleteDate"]==""){
+if ($atrID!="" && (isset($rwATR["atrDeleteDate"]) ? $rwATR["atrDeleteDate"] : "")==""){
 ?>
 <input type="Submit" value="Delete" class="eiseIntraDelete">
 <?php  

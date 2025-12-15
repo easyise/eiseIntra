@@ -323,33 +323,37 @@ public function getFields($aFields = null){
 	$aToGet = ($aFields ? $aFields : ($this->conf['flagFormShowAllFields'] ? $this->table['columns_index'] : array()));
 	$html = '';
 	foreach($aToGet as $field){
-		$col = $this->table['columns'][$field];
-		$title = ($col['title'.$this->intra->local]
-			? $col['title'.$this->intra->local]
-			: ($col['title'] ? $col['title'] : $this->intra->translate($col['Comment']))
-			);
-		$conf = array_merge((array)$col, array('type'=>(!$title ? 'hidden' : $col['DataType'])));
-		if($conf['type']==='FK'){
-			$conf['type'] = 'combobox';
-			if($col['ref_table']){
-				try {
-					$tableRef = $this->oSQL->getTableInfo($col['ref_table']);	
-				} catch (Exception $e) {}
-			
-				if($tableRef && $tableRef['prefix'] && $tableRef['prefix']!='opt'){
-					$conf['source'] = $col['ref_table'];
-					$conf['source_prefix'] = $tableRef['prefix'];
-					$conf['type'] = 'ajax_dropdown';
-				} else {
-					$conf['type'] = 'combobox';
-					$conf['defaultText'] = 'THIS IS DEFAULT OPTION SET';
-					$conf['source'] = array('XX'=>'PLEASE REPLACE IT');
+			$col = (isset($this->table['columns'][$field]) ? $this->table['columns'][$field] : null);
+			if ($col === null) {
+				continue;
+			}
+			$title = (isset($col['title'.$this->intra->local]) && $col['title'.$this->intra->local]
+				? $col['title'.$this->intra->local]
+				: (isset($col['title']) && $col['title'] ? $col['title'] : (isset($col['Comment']) ? $this->intra->translate($col['Comment']) : ''))
+				);
+			$conf = array_merge((array)$col, array('type'=>(!$title ? 'hidden' : (isset($col['DataType']) ? $col['DataType'] : ''))));
+			if(isset($conf['type']) && $conf['type']==='FK'){
+				$conf['type'] = 'combobox';
+				if(isset($col['ref_table']) && $col['ref_table']){
+					try {
+						$tableRef = $this->oSQL->getTableInfo($col['ref_table']);	
+					} catch (Exception $e) {}
+				
+					if(isset($tableRef) && $tableRef && isset($tableRef['prefix']) && $tableRef['prefix'] && $tableRef['prefix']!='opt'){
+						$conf['source'] = $col['ref_table'];
+						$conf['source_prefix'] = $tableRef['prefix'];
+						$conf['type'] = 'ajax_dropdown';
+					} else {
+						$conf['type'] = 'combobox';
+						$conf['defaultText'] = 'THIS IS DEFAULT OPTION SET';
+						$conf['source'] = array('XX'=>'PLEASE REPLACE IT');
+					}
 				}
 			}
+			$value = (isset($this->item[$field]) ? $this->item[$field] : null);
+			$html .= $this->intra->field($title, $field, $value, $conf);
 		}
-		$html .= $this->intra->field($title, $field, $this->item[$field], $conf);
-	}
-	return $html;
+		return $html;
 }
 
 /**
@@ -465,15 +469,23 @@ public function updateTable($nd, $flagDontConvertToSQL = false){
  * @category Data Handling
  */
 public function getDelta($old, $new){
-	foreach($old as $key=>$value){
-		$old[$key] = (is_numeric($value) ? (double)$value : $value);
+		foreach($old as $key=>$value){
+			if(is_array($value)) {
+				$old[$key] = serialize($value);
+			} else {
+				$old[$key] = (is_numeric($value) ? (double)$value : $value);
+			}
+		}
+		foreach($new as $key=>$value){
+			if(is_array($value)) {
+				$new[$key] = serialize($value);
+			} else {
+				$new[$key] = (is_numeric($value) ? (double)$value : $value);
+			}
+		}
+		$this->delta = array_diff_assoc($new, $old);
+		return $this->delta;
 	}
-	foreach($new as $key=>$value){
-		$new[$key] = (is_numeric($value) ? (double)$value : $value);
-	}
-	$this->delta = array_diff_assoc($new, $old);
-	return $this->delta;
-}
 
 /**
  * This function fixes the situation when booelan (checkbox) field presents on the form but being unchecked, it doesn't appear in $nd ($_POST) array of data. This function returns fixed array of $nd, where unchecked elements are present with value of '0' (string zero). So [eiseItem::updateTable()](#eiseitem-updatetable) function updates these fields with 0 values. Function ```convertBooleanData()``` should be called prior to ```updateTable()```.
@@ -688,7 +700,7 @@ public function getFiles($opts = array()){
     $intra = $this->intra;
 
     $sqlFile = "SELECT *".
-    	($opts['selectedGUIDs']
+    	(isset($opts['selectedGUIDs']) && $opts['selectedGUIDs']
     		? ", CASE WHEN filGUID IN ('".implode("', '", (array)$opts['selectedGUIDs'])."') THEN 1 ELSE 0 END as selectedGUID"
     		: '')
     	." FROM stbl_file WHERE filEntityID='$entID' AND filEntityItemID='{$entItemID}'
@@ -1071,7 +1083,7 @@ static function sendMessages($conf){
 
     	// 4. merging metadata into message
     	$rwMsg['system'] = $conf['system'];
-    	$metadata = json_decode($rwMsg['msgMetadata'], true);
+    	$metadata = json_decode(isset($rwMsg['msgMetadata']) ? $rwMsg['msgMetadata'] : '', true);
     	if($metadata && is_array($metadata)){
     		$rwMsg = array_merge($rwMsg, $metadata);
     	}
@@ -1080,12 +1092,11 @@ static function sendMessages($conf){
     	// 5. Dealing with Names
     	$msg = [];
     	$msg['From'] = ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : $rwUsr_From['usrEmail']);
-    	$msg['To'] = ($rwMsg['msgToUserEmail']
-            	? ($rwMsg['msgToUserName'] ? "\"".$rwMsg['msgToUserName']."\" <".$rwMsg['msgToUserEmail'].">" : $rwMsg['msgToUserEmail'])
-            	: ($rwUsr_To['usrName'] ? "\"".$rwUsr_To['usrName']."\" <".$rwUsr_To['usrEmail'].">" : '')
-            );
+    	$msg['To'] = (isset($rwMsg['msgToUserEmail']) && $rwMsg['msgToUserEmail']
+           	? (isset($rwMsg['msgToUserName']) ? "\"".$rwMsg['msgToUserName']."\" <".$rwMsg['msgToUserEmail'].">" : $rwMsg['msgToUserEmail'])
+           	: (isset($rwUsr_To['usrName']) ? "\"".$rwUsr_To['usrName']."\" <".$rwUsr_To['usrEmail'].">" : ''));
 
-		if($conf['Content-Type'] == 'text/html'){
+		if(isset($conf['Content-Type']) && $conf['Content-Type'] == 'text/html'){
 		    $msg['Text'] = nl2br($rwMsg['msgText']); 
 		}else{
 			$msg['Text'] = $rwMsg['msgText'];
@@ -1123,7 +1134,7 @@ static function sendMessages($conf){
          
         } catch (eiseMailException $e){
 
-        	$err = ($msg['error'] ? $msg['error'] : "MESSAGE {$msg['msgID']} NOT SENT: ".$e->getMessage());
+        	$err = (isset($msg['error']) && $msg['error'] ? $msg['error'] : "MESSAGE {$msg['msgID']} NOT SENT: ".$e->getMessage());
             $strError .= "\n{$err}";
             $msgStatus = $err;
             $msgSendDate=NULL;

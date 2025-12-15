@@ -16,6 +16,13 @@
  */
 class eiseIntraData {
 	
+public $conf;
+public $oSQL;
+public $arrUsrData;
+public $local;
+public $intra;
+public $oSQL_arch;
+
 public $arrAttributeTypes = array(
     "integer" => 'integer'
     , "real" => 'real'
@@ -178,7 +185,8 @@ public function formatByType2PHP($type, $value, $decPlaces = null){
             $retVal = $this->datetimeSQL2PHP($value);
             break;
         case 'timestamp':
-            $retVal = $this->datetimeSQL2PHP( date('Y-m-d H:i:s', strtotime($value)) );
+            $timestamp = strtotime($value);
+            $retVal = ($timestamp !== false) ? $this->datetimeSQL2PHP(date('Y-m-d H:i:s', $timestamp)) : '';
             break;
         case 'time':
         default:
@@ -286,13 +294,13 @@ function result2JSON($rs, $arrConf = array()){
             $type = self::getIntraDataType( $arrFields[$key]['type'], $key );
             if( $type==='real' && is_numeric($value) ){
 
-                $decPlaces = (is_numeric($arrConf['fields'][$key]['decimalPlaces'])
+                $decPlaces = (isset($arrConf['fields'][$key]['decimalPlaces']) && is_numeric($arrConf['fields'][$key]['decimalPlaces'])
                     ? $arrConf['fields'][$key]['decimalPlaces']
-                    : (is_numeric($arrConf['fields'][$key]['minDecimalPlaces'])
+                    : (isset($arrConf['fields'][$key]['minDecimalPlaces']) && is_numeric($arrConf['fields'][$key]['minDecimalPlaces'])
                         ? self::getDecimalPlaces($value, $arrConf['fields'][$key]['minDecimalPlaces'])
-                        : ($arrFields[$key]['decimalPlaces']<6
+                        : (isset($arrFields[$key]['decimalPlaces']) && $arrFields[$key]['decimalPlaces']<6
                             ? $arrFields[$key]['decimalPlaces']
-                            : $intra->conf['decimalPlaces'])
+                            : $this->conf['decimalPlaces'])
                         )
 
                     );
@@ -310,7 +318,7 @@ function result2JSON($rs, $arrConf = array()){
 
             if (($arrConf['flagAllowDeny']=='allow' && in_array($key, $arrPermittedFields))
                 || ($arrConf['flagAllowDeny']=='deny' && !in_array($key, $arrPermittedFields))
-                || $arrConf['fields'][$key]['disabled'] || $arrConf['fields'][$key]['static']
+                || (isset($arrConf['fields'][$key]) && ($arrConf['fields'][$key]['disabled'] || $arrConf['fields'][$key]['static']))
                 || !$this->arrUsrData['FlagWrite']
                 ){
 
@@ -318,18 +326,24 @@ function result2JSON($rs, $arrConf = array()){
 
             }
 
-            if (isset($arrConf['arrHref'][$key]) || $arrConf['fields'][$key]['href']){
-                $href = ($arrConf['arrHref'][$key] ? $arrConf['arrHref'][$key] : $arrConf['fields'][$key]['href']);
-                $target = $arrConf['fields'][$key]['target'];
+            if ((isset($arrConf['arrHref'][$key]) && $arrConf['arrHref'][$key]) || (isset($arrConf['fields'][$key]['href']) && $arrConf['fields'][$key]['href'])) {
+                $href = (isset($arrConf['arrHref'][$key]) ? $arrConf['arrHref'][$key] : $arrConf['fields'][$key]['href']);
+                $target = isset($arrConf['fields'][$key]['target']) ? $arrConf['fields'][$key]['target'] : '';
                 foreach ($rw as $kkey => $vvalue){
-                    $href = str_replace("[".$kkey."]", (strpos($cell['href'], "[{$rowKey}]")==0 
-                                ? $vvalue // avoid urlencode() for first argument
-                                : urlencode($vvalue)), $href);
-                    $target = str_replace("[".$kkey."]", $vvalue, $target);
+                    if (isset($href)) {
+                        $href = str_replace("[".$kkey."]", (strpos($href, "[{$kkey}]")===0 
+                                    ? $vvalue // avoid urlencode() for first argument
+                                    : urlencode($vvalue)), $href);
+                    }
+                    if (isset($target)) {
+                        $target = str_replace("[".$kkey."]", $vvalue, $target);
+                    }
                 }
-                $arrRW[$key]['h'] = $href;
+                if (isset($href)) {
+                    $arrRW[$key]['h'] = $href;
+                }
                 $arrRW[$key]['rw'] = 'r';
-                if ($target) {
+                if (isset($target) && $target) {
                     $arrRW[$key]['tr'] = $target;
                 }
             }
@@ -689,10 +703,11 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
 
     }
 
-    $sql = "SELECT ".($this->local
-            ? "(CASE WHEN IFNULL(`".$arrFields["textField{$this->local}"]."`, '')='' 
+    $local = isset($this->local) ? $this->local : '';
+    $sql = "SELECT ".($local
+            ? "(CASE WHEN IFNULL(`".$arrFields["textField{$local}"]."`, '')='' 
                 THEN `".$arrFields["textField"]."` 
-                ELSE `".$arrFields["textField{$this->local}"]."`
+                ELSE `".$arrFields["textField{$local}"]."`
                 END)"
             : "`".$arrFields["textField"]."`"
             )." as optText
@@ -704,10 +719,10 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
                 ? ", {$arrFields["dataField"]} as optData"
                 : '')."
             ".(isset($arrFields['groupField'])
-                ? (($this->local && isset($arrFields['groupFieldLocal']))
-                    ? ", (CASE WHEN IFNULL(`{$arrFields["groupField{$this->local}"]}`, '')='' 
+                ? (($local && isset($arrFields['groupFieldLocal']))
+                    ? ", (CASE WHEN IFNULL(`".$arrFields["groupField{$local}"]."`, '')='' 
                         THEN `".$arrFields["groupField"]."` 
-                        ELSE `".$arrFields["groupField{$this->local}"]."`
+                        ELSE `".$arrFields["groupField{$local}"]."`
                         END)" 
                     : ", `".$arrFields['groupField']."`")
                     ." as optGroup"
@@ -741,7 +756,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
             .( ($flagShowDeleted===false && $arrFields["delField"]) ? " AND IFNULL(`{$arrFields["delField"]}`, 0)=0" : "")
             .$strExtra;
         if($strPrefix)
-            $sql .= "\r\nORDER BY `".(isset($arrFields['orderField']) && $arrFields['orderField'] ? $arrFields['orderField'] : $arrFields["textField{$this->local}"])."`";
+            $sql .= "\r\nORDER BY `".(isset($arrFields['orderField']) && $arrFields['orderField'] ? $arrFields['orderField'] : (isset($arrFields["textField{$local}"]) ? $arrFields["textField{$local}"] : $arrFields["textField"]))."`";
         else if ( isset($arrFields['orderField']) && $arrFields['orderField'] ) 
             $sql .= "\r\nORDER BY `{$arrFields['orderField']}`";
     }
@@ -811,7 +826,8 @@ public function arrSQL2PHP($arrSrc, $types = array()){
         if(is_array($value)){
             $arrRet[$key] = $this->arrSQL2PHP($value, $types);
         } else {
-            switch ($types[$key]) {
+            $type = isset($types[$key]) ? $types[$key] : '';
+            switch ($type) {
                 case 'date':
                     $arrRet[$key] = $this->dateSQL2PHP($value);
                     break;
@@ -822,7 +838,7 @@ public function arrSQL2PHP($arrSrc, $types = array()){
                     $arrRet[$key] = ($value === null ? '' : (int)$value);
                     break;
                 case 'real':
-                    $arrRet[$key] = ($value === null ? '' : $this->intra->decSQL2PHP($value));
+                    $arrRet[$key] = ($value === null ? '' : (isset($this->intra) ? $this->intra->decSQL2PHP($value) : $value));
                     break;
                 default:
                     $arrRet[$key] = $value;
@@ -900,7 +916,7 @@ function archiveTable($table, $criteria, $nodelete = false, $limit = ""){
     $oSQL = $this->oSQL;
     
     if (!isset($this->oSQL_arch))
-        $this->getArvhiceSQLObject();
+        $this->getArchiveSQLObject();
     
     $oSQL_arch = $this->oSQL_arch;
     $intra_arch = new eiseIntra($oSQL_arch);
