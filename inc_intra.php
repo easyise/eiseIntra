@@ -14,8 +14,8 @@
 
 GLOBAL $eiseIntraKey;
 
-include "inc_version.php";
-include "inc_config.php";
+include_once "inc_version.php";
+include_once "inc_config.php";
 if (!class_exists('eiseSQL')) 
     include "inc_mysqli.php";
 include "inc_intra_data.php";
@@ -106,6 +106,16 @@ private $arrClassInputTypes =
  * @category i18n
  */
 public $local = ''; // is local language selected or not
+
+/**
+ * Flag to indicate if batch processing is active
+ */
+public $flagBatch = false;
+
+/**
+ * Flag to indicate if redirect should be cancelled
+ */
+public $cancelRedirect = false;
 
 /**
  * Default configuration. Exact configuration parameters list is:
@@ -246,9 +256,8 @@ function __construct($oSQL = null, $conf = Array()){ //$oSQL is not mandatory an
     $this->checkLanguage();
     if ($this->local){
         @include "common/lang.php";
-        $this->lang = ($lang ? $lang : array());
+        $this->lang = (isset($lang) ? $lang : array());
     }
-
 }
 
 /**
@@ -1492,7 +1501,7 @@ function batchEcho($string){
                 )
             , $args) ;
     
-    echo ( $this->conf['batch_htmlspecialchars'] ? htmlspecialchars( $to_echo ) : $to_echo )
+    echo ( isset($this->conf['batch_htmlspecialchars']) && $this->conf['batch_htmlspecialchars'] ? htmlspecialchars( $to_echo ) : $to_echo )
         .( $args[count($args)-1]==='' ? '' : "\n" );
 
     ob_flush();
@@ -1508,6 +1517,7 @@ function batchEcho($string){
  */
 function setUserMessage($strMessage, $conf = array()){
     $conf = array_merge($this->conf, $conf);
+    $strLocation = (isset($conf['strLocation']) ? $conf['strLocation'] : $_SERVER['PHP_SELF']);
     setcookie ( $conf['UserMessageCookieName'], substr($strMessage, 0, 1024), 0, $this->getCookiePath($strLocation,  $conf) );
 }
 
@@ -1929,7 +1939,7 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
                             $rsCMB = $this->getDataFromCommonViews(null, null, $conf["source"]
                                 , $conf["source_prefix"]
                                 , (! ($this->arrUsrData['FlagWrite'] && (isset($conf['FlagWrite']) ? $conf['FlagWrite'] : 1) ) )
-                                , (string)$conf['extra']
+                                , (string)(isset($conf['extra']) ? $conf['extra'] : '')
                                 , true
                                 );
                         }
@@ -2380,7 +2390,7 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
     $strClass = $this->handleClass($confOptions);
     $strClassInput = 'eif-input'.($strClass ? ' '.$strClass : '');
 
-    $id = ($confOptions['id'] ? $confOptions['id'] : $strName);
+    $id = (isset($confOptions['id']) && $confOptions['id'] ? $confOptions['id'] : $strName);
     
     $strAttrib = $confOptions["strAttrib"];
 
@@ -2403,7 +2413,7 @@ function showCombo($strName, $strValue, $arrOptions, $confOptions=Array()){
             $confOptions['deletedOptions'] = array();
         foreach ($arrOptions as $key => $value){
             if (is_array($value)){ // if there's an optgoup
-                $retVal .= '<optgroup label="'.(isset($confOptions['optgroups']) ? $confOptions['optgroups'][$key] : $key).'">';
+                $retVal .= '<optgroup label="'.(isset($confOptions['optgroups']) && isset($confOptions['optgroups'][$key]) ? $confOptions['optgroups'][$key] : $key).'">';
                 foreach($value as $optVal=>$optText){
                     $retVal .= "<option value='$optVal'".((string)$optVal==(string)$strValue ? " SELECTED " : "").
                         (in_array($optVal, $confOptions['deletedOptions']) ? ' class="deleted"' : '').
@@ -2605,7 +2615,7 @@ function showAjaxDropdown($strFieldName, $strValue, $arrConfig) {
     if ($strValue!="" && $txt==""){
         $rs = $this->getDataFromCommonViews($strValue, "", $aSource['table'], $aSource['prefix']);
         $rw = $oSQL->fetch_array($rs);
-        $txt = $rw["optText"];
+        $txt = ($rw && isset($rw["optText"])) ? $rw["optText"] : "";
     }
 
     $strOut = "";
@@ -2753,7 +2763,7 @@ function loadCSS(){
  */
 private function getCachePreventor(){
     GLOBAL $intra;
-    return $intra->conf['cachePreventorVar'].'='.preg_replace('/\D/', '', $this->conf['versionIntra'].$this->conf['version']);
+    return $intra->conf['cachePreventorVar'].'='.preg_replace('/\D/', '', (isset($this->conf['versionIntra']) ? $this->conf['versionIntra'] : '').(isset($this->conf['version']) ? $this->conf['version'] : ''));
 
 }
 

@@ -1,7 +1,7 @@
 <?php 
 include "common/auth.php";
 
-if($_GET[$intra->conf['dataActionKey']]=='new')
+if(isset($_GET[$intra->conf['dataActionKey']]) && $_GET[$intra->conf['dataActionKey']]=='new')
     unset($dbName);
 
 $intra->requireComponent(array('grid', 'batch'));
@@ -106,7 +106,7 @@ if ($dbName!="") {
         $arrTables[] = $rwDB['Name'];
     }
     
-    if($arrFlags["hasIntraDBSV"]){
+    if(isset($arrFlags["hasIntraDBSV"]) && $arrFlags["hasIntraDBSV"]){
         $eiseIntraVersion = (int)$oSQL->d("SELECT MAX(fvrNumber) FROM `{$dbName}`.stbl_framework_version");
         include_once ( eiseIntraAbsolutePath."inc_dbsv.php" );
         $dbsv = new eiseDBSV(array('intra' => $intra
@@ -209,6 +209,7 @@ if ($arrFlags["hasEntity"]){
 
     $oSQL->q('SET SESSION group_concat_max_len = 1000000');
 
+    $strEntityHashes = '';
     foreach(eiseAdmin::$arrEntityTables as $tableName){
         if (!in_array($tableName, $arrTables))
           continue;
@@ -236,8 +237,7 @@ if ($arrFlags["hasDBSV"]) {
 </div>
 <?php 
 }
-if ($arrFlags["hasIntraDBSV"]) {
- ?>
+if (isset($arrFlags["hasIntraDBSV"]) && $arrFlags["hasIntraDBSV"]) { ?>
 <div class="eiseIntraField">
 <label><?php  echo $intra->translate('Framework Schema Version') ; ?>:</label>
 <div class="eiseIntraValue"><?php echo $eiseIntraVersion .'/'.$eiseIntraVersionAvailable.(

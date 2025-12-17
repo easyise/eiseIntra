@@ -1,5 +1,8 @@
 </div><!-- /div.ei-pane -->
-<?php  echo $extraBottomHTML; ?>
+<?php  
+$extraBottomHTML = isset($extraBottomHTML) ? $extraBottomHTML : '';
+echo $extraBottomHTML; 
+?>
 
 </body>
 </html>

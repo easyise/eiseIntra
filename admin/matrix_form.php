@@ -3,7 +3,7 @@ include 'common/auth.php';
 
 $intra->requireComponent('batch','grid');
 
-$DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['DataAction'] );
+$DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : (isset($_GET['DataAction']) ? $_GET['DataAction'] : ''));
 
 class cGridPGR extends eiseGrid{
 
@@ -40,7 +40,7 @@ function Update($q = NULL, $conf = Array()){
 
 }
 
-$rolID = (isset($_GET['rolID']) ? $_GET['rolID'] : $_COOKIE['rolID']);
+$rolID = (isset($_GET['rolID']) ? $_GET['rolID'] : (isset($_COOKIE['rolID']) ? $_COOKIE['rolID'] : null));
 
 $rolID = $oSQL->d('SELECT rolID FROM stbl_role WHERE rolID='.$oSQL->e($rolID));
 

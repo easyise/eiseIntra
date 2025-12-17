@@ -7,6 +7,9 @@
 <?php
 $intra->loadJS();
 $intra->loadCSS();
+
+$strHead = isset($strHead) ? $strHead : '';
+$flagNoMenu = isset($flagNoMenu) ? $flagNoMenu : false;
 ?>
 
 
@@ -23,7 +26,7 @@ echo "\t".$strHead."\r\n";
 
 <?php 
 if (!$flagNoMenu) {
-    echo $intra->actionMenu($arrActions, true);
+    echo $intra->actionMenu((isset($arrActions) ? $arrActions : array()), true);
 }
 ?>
 <div id="frameContent" class="ei-pane-framed">

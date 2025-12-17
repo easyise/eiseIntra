@@ -13,6 +13,14 @@ public $ent; // backward-compatibility
 
 public $conf;
 
+public $staID = null;
+public $entItemIDField;
+public $arrAtr = array();
+public $arrAct = array();
+public $flagArchive = false;
+public $item = array();
+public $oSQL_arch;
+
 private $eiseListPath = "../common/eiseList";
 private $eiseGridPath = "../common/eiseGrid";
 
@@ -37,7 +45,7 @@ private function init(){
         ($this->intra->conf['systemID'] ? $this->intra->conf['systemID'].':' : '')
         .$this->entID;
 
-    if($_SESSION[$sessKey]){
+    if(isset($_SESSION[$sessKey]) && $_SESSION[$sessKey]){
         $this->conf = $_SESSION[$sessKey];
         return $this->conf;
     }
@@ -50,7 +58,7 @@ private function init(){
         FROM stbl_entity WHERE entID=".$oSQL->e($this->entID);
     $rsEnt = $oSQL->q($sqlEnt);
     if ($oSQL->n($rsEnt)==0){
-        throw new Exception("Entity '{$entID}' not found");
+        throw new Exception("Entity '{$this->entID}' not found");
     }
 
 
@@ -62,6 +70,9 @@ private function init(){
     $this->ent["entScriptPrefix"] = self::getScriptPrefix($this->ent);
 
     $this->conf = $this->ent;
+    
+    $arrActUpd = null;
+    $arrActDel = null;
     
     // read attributes
     $this->conf['ATR'] = array();
@@ -191,7 +202,7 @@ private function init(){
                     , array('actOldStatusID'=>$rwATS['atsOldStatusID']
                         , 'actNewStatusID'=>$rwATS['atsNewStatusID'])
                     );
-        if($this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3]){
+        if(isset($this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3]) && $this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3] && isset($arrActDel)) {
             unset($this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3]);
             $this->conf['STA'][$rwATS['atsOldStatusID']]['ACT'][3] = $arrActDel;
         }
@@ -225,7 +236,7 @@ public function getRoleList(){
 /* checks whether is status ID in cookies or not */
 private function detectStatusID(){
 
-    $this->staID = isset($_GET[$this->entID."_staID"]) ? $_GET[$this->entID."_staID"] : $_COOKIE[$this->entID."_staID"];
+    $this->staID = (isset($_GET[$this->entID."_staID"]) ? $_GET[$this->entID."_staID"] : (isset($_COOKIE[$this->entID."_staID"]) ? $_COOKIE[$this->entID."_staID"] : null));
     if (isset($_GET[$this->entID."_staID"]))
         SetCookie($this->entID."_staID", $_GET[$this->entID."_staID"]);
 
@@ -273,7 +284,7 @@ protected function collectDataActions($arrConfig = Array(), $staID = null){
     $strRoleList = implode("', '", $this->getRoleList());
     
     if ($staID !== null){
-        $rwSta = $this->collectDataStatus($staID);
+        $rwSta = $this->__collectDataStatus($staID);
         $statusID = $staID;
     } else {
         $rwSta = $this->rwSta;
@@ -381,10 +392,10 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     $staID = $this->staID;
 
     $lst = new eiseList($oSQL, $listName, Array('title'=>$this->conf["entTitle{$strLocal}Mul"].($staID!=="" 
-            ? ': '.($this->conf['STA'][$staID]["staTitle{$strLocal}Mul"] ? $this->conf['STA'][$staID]["staTitle{$strLocal}Mul"] : $this->conf['STA'][$staID]["staTitle{$strLocal}"])
+            ? ': '.((isset($this->conf['STA'][$staID]["staTitle{$strLocal}Mul"]) && $this->conf['STA'][$staID]["staTitle{$strLocal}Mul"]) ? $this->conf['STA'][$staID]["staTitle{$strLocal}Mul"] : (isset($this->conf['STA'][$staID]["staTitle{$strLocal}"]) ? $this->conf['STA'][$staID]["staTitle{$strLocal}"] : ''))
             : '')
         ,  "intra" => $this->intra
-        , "cookieName" => $listName.$staID.($_GET["{$listName}_{$listName}FlagMyItems"]==="1" ? 'MyItems' : '')
+        , "cookieName" => $listName.$staID.((isset($_GET["{$listName}_{$listName}FlagMyItems"]) && $_GET["{$listName}_{$listName}FlagMyItems"]==="1") ? 'MyItems' : '')
         , "cookieExpire" => time()+60*60*24*30
             , 'defaultOrderBy'=>"{$this->entID}EditDate"
             , 'defaultSortOrder'=>"DESC"
@@ -477,7 +488,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     $iStartAddCol = 0;
     
     for ($ii=$iStartAddCol;$ii<count($arrAdditionalCols);$ii++){
-        if($arrAdditionalCols[$iStartAddCol]['columnAfter']!='')
+        if(isset($arrAdditionalCols[$iStartAddCol]['columnAfter']) && $arrAdditionalCols[$iStartAddCol]['columnAfter']!='')
             break;
         $lst->Columns[] = $arrAdditionalCols[$iStartAddCol];
         $iStartAddCol=$ii;
@@ -572,7 +583,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     $cols = array_keys($lst->Columns);
     foreach($arrAdditionalCols as $col){
         $fld = $col['field'];
-        $colAfter = $col['columnAfter'] ? $col['columnAfter'] : $fld;
+        $colAfter = (isset($col['columnAfter']) && $col['columnAfter']) ? $col['columnAfter'] : $fld;
         if(!$colAfter){
             $col['fieldInsertBefore'] = $cols[0];
         } else {
@@ -583,10 +594,10 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
 
     // check column-after
     for ($ii=$iStartAddCol;$ii<count($arrAdditionalCols);$ii++){
-        if ($arrAdditionalCols[$ii]['columnAfter']==$rwAtr['atrID']){
+        if (isset($arrAdditionalCols[$ii]['columnAfter']) && $arrAdditionalCols[$ii]['columnAfter']==$rwAtr['atrID']){
             $lst->Columns[] = $arrAdditionalCols[$ii];
             
-            while(isset($arrAdditionalCols[$ii+1]) && $arrAdditionalCols[$ii+1]['columnAfter']==""){
+            while(isset($arrAdditionalCols[$ii+1]) && (!isset($arrAdditionalCols[$ii+1]['columnAfter']) || $arrAdditionalCols[$ii+1]['columnAfter']=="")){
                 $ii++;
                 $lst->Columns[] = $arrAdditionalCols[$ii];
             }
@@ -720,6 +731,7 @@ function showAttributeValue($rwAtr, $suffix = ""){
                     eval ("\$arrOptions={$rwAtr["atrProgrammerReserved"]};");
                 }
             }
+            $strDisabled = '';
             $strRet = $intra->showCombo($inputName, $value, $arrOptions,
                 array_merge($arrInpConfig, Array("strAttrib" => " old_val=\"".htmlspecialchars($value)."\"".$strDisabled, $rwAtr["atrDefault"]
                     , "strZeroOptnText"=>"-")));
@@ -741,6 +753,7 @@ function showAttributeValue($rwAtr, $suffix = ""){
             array_merge($arrInpConfig, Array("strAttrib" => " old_val=\"".htmlspecialchars($value)."\"")));
           break;
        default:
+          $dtVal = '';
           $strRet = $intra->showTextBox($inputName, $value, array_merge($arrInpConfig, Array("strAttrib" => " old_val=\"".htmlspecialchars($dtVal)."\""
                 , "type"=>$rwAtr['atrType']
                 ))
@@ -749,6 +762,7 @@ function showAttributeValue($rwAtr, $suffix = ""){
     }
     
     if ($rwAtr["atrUOMTypeID"]){
+        $strLocal = $this->intra->local;
         $sqlUOM = "SELECT uomID as optValue, uomTitle{$strLocal} as optText FROM stbl_uom WHERE uomType='{$rwAtr["atrUOMTypeID"]}' ORDER BY uomOrder";
         $rsUOM = $oSQL->q($sqlUOM);
         while($rwUOM = $oSQL->f($rsUOM)) $arrOptions[$rwUOM["optValue"]]=$rwUOM["optText"];
@@ -800,7 +814,7 @@ function getFormForList($staID){
 function showActionRadios(){
    
     $oSQL = $this->oSQL;
-    $strLocal = $this->local;
+    $strLocal = $this->intra->local;
     
     if (!$this->intra->arrUsrData["FlagWrite"])
         return;
@@ -848,10 +862,12 @@ function showActionRadios(){
 function showActionButtons(){
    
     $oSQL = $this->oSQL;
-    $strLocal = $this->local;
+    $strLocal = $this->intra->local;
     
     if (!$this->intra->arrUsrData["FlagWrite"])
         return;
+
+    $strOut = '';
 
     if($this->staID!==null){
         if(is_array($this->conf['STA'][$this->staID]['ACT'])){
@@ -929,7 +945,7 @@ function checkArchiveTable (){
     $oSQL = $this->oSQL;
     $intra = $this->intra;
     
-    if (!isset($intra->$oSQL_arch)){
+    if (!isset($intra->oSQL_arch)){
         $oSQL_arch = $intra->getArchiveSQLObject();
     } else {
         $oSQL_arch = $intra->oSQL_arch;
@@ -1000,7 +1016,7 @@ function checkArchiveTable (){
     $sqlArchTable = "ALTER TABLE {$this->conf["entTable"]}{$strFields}";
     $oSQL_arch->q($sqlArchTable);
 	
-	$this->oSQL_arch = $oSQL_arch;
+	$this->oSQL_arch = isset($oSQL_arch) ? $oSQL_arch : null;
 	
 }
 
@@ -1053,18 +1069,19 @@ function getDropDownText($arrATR, $value){
 
     $strRet = null;
 
+    $arrOptions = array();
     if ( ($arrATR["atrType"] == "combobox") && $arrATR["atrDataSource"]=='' && preg_match('/^Array\(/i', $arrATR["atrProgrammerReserved"]) ) {
         eval( '$arrOptions = '.$arrATR["atrProgrammerReserved"].';' );
-        $strRet = ($arrOptions[$value]!=''
+        $strRet = (isset($arrOptions[$value]) && $arrOptions[$value]!=''
             ? $arrOptions[$value]
             : $arrATR["atrTextIfNull"]);
     } elseif ($arrATR["atrType"] == "combobox" && preg_match('/^Array\(/i', $arrATR["atrDataSource"]) ) {
         eval( '$arrOptions = '.$arrATR["atrDataSource"].';' );
-        $strRet = ($arrOptions[$value]!=''
+        $strRet = (isset($arrOptions[$value]) && $arrOptions[$value]!=''
             ? $arrOptions[$value]
             : $arrATR["atrTextIfNull"]);
     } elseif ($arrATR["atrType"] == "combobox" && ($arrOptions = @json_decode($arrATR["atrDataSource"], true)) ) {
-        $strRet = ($arrOptions[$value]!=''
+        $strRet = (isset($arrOptions[$value]) && $arrOptions[$value]!=''
             ? $arrOptions[$value]
             : $arrATR["atrTextIfNull"]);
     } else {
