@@ -68,7 +68,7 @@ $conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)$intra->arrUsrData[
         <div class="ei-logo-container">
             <div class="ei-logo-bg"></div>
             <i class="fa fa-angle-double-left sidebar-toggle"> </i>
-            <a href="index.php" target="_top" class="ei-logo"><?php echo ($intra->conf["stpCompanyName"]
+            <a href="index.php" target="_top" class="ei-logo"><?php echo (isset($intra->conf["stpCompanyName"]) && $intra->conf["stpCompanyName"]
                 ? $intra->conf["stpCompanyName"]
                 : $title) ?></a>
             <i class="fa fa-eye sidebar-pin"> </i>

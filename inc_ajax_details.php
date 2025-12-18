@@ -21,8 +21,8 @@ switch ($DataAction){
         die();
 
     case 'getTopLevelMenu':
-        if (isset($eiseIntraTopLevelMenu) && !empty($eiseIntraTopLevelMenu))
-            echo $intra->topLevelMenu($eiseIntraTopLevelMenu);
+        $eiseIntraTopLevelMenu = isset($eiseIntraTopLevelMenu) ? $eiseIntraTopLevelMenu : null;
+        echo $intra->topLevelMenu($eiseIntraTopLevelMenu);
         die();
 
     case 'getBookmarks':

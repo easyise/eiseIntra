@@ -994,19 +994,29 @@ public function getCurrentUserInfo(){
     $html = '';
     $html .= '<div class="ei-current-user-info">';
     $html .= '<span class="ui-helper-hidden-accessible"><input type="text"/></span>';
-    $html .= '<div class="ei-usrName">'.$this->arrUsrData['usrName'.$this->local].'</div>';
+    
+    $usrName = '';
+    if (!empty($this->local) && isset($this->arrUsrData['usrName'.$this->local])) {
+        $usrName = $this->arrUsrData['usrName'.$this->local];
+    } elseif (isset($this->arrUsrData['usrName'])) {
+        $usrName = $this->arrUsrData['usrName'];
+    }
+    $html .= '<div class="ei-usrName">'.$usrName.'</div>';
+    
     $html .= '<div class="ei-usrRoles">'.$this->translate('Roles:').'</div>';
     $html .= '<ul class="ei-roles">';
-    foreach ($this->arrUsrData['roles'] as $ix => $roleTitle) {
-        $html .= "<li><span class=\"ei-rolTitle\">{$roleTitle}</span> <small>({$this->arrUsrData['roleIDs'][$ix]})</small></li>";
+    
+    if (isset($this->arrUsrData['roles']) && is_array($this->arrUsrData['roles']) && !empty($this->arrUsrData['roles'])) {
+        foreach ($this->arrUsrData['roles'] as $ix => $roleTitle) {
+            $roleID = isset($this->arrUsrData['roleIDs'][$ix]) ? $this->arrUsrData['roleIDs'][$ix] : '';
+            $html .= "<li><span class=\"ei-rolTitle\">{$roleTitle}</span> <small>({$roleID})</small></li>";
+        }
     }
     $html .= '</ul>';
     $html .= '<div class="ei-logout"><a href="login.php">'.$this->translate('Logout').' <i class="fa fa-sign-out"> </i></a></div>';
     $html .= '</div>';
     return $html;
-}
-
-/**
+}/**
  * This function returns default icon menu class basng on page URI.
  * @ignore
  */
@@ -2856,7 +2866,7 @@ function cancelDataAction( &$nd = null, $flagRestore = false){
     static $dataAction;
 
     if ($dataAction===null){
-        $dataAction = $nd[$this->conf['dataActionKey']] ? $nd[$this->conf['dataActionKey']] : $_POST[$this->conf['dataActionKey']];
+        $dataAction = (isset($nd[$this->conf['dataActionKey']]) && $nd[$this->conf['dataActionKey']]) ? $nd[$this->conf['dataActionKey']] : (isset($_POST[$this->conf['dataActionKey']]) ? $_POST[$this->conf['dataActionKey']] : null);
     }
 
     if($nd!==null)
@@ -3065,6 +3075,9 @@ function getUserData_All($usrID, $strWhatData='all'){
  */
 static function getFullHREF($iframeHREF){
     $prjDir = dirname($_SERVER['REQUEST_URI']);
+    if ($_SERVER['HTTP_HOST']=== 'host.docker.internal') {
+        $_SERVER['HTTP_HOST'] = 'localhost';
+    }
     $flagHTTPS = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443;
     $strURL = 'http'
         .($flagHTTPS ? 's' : '')

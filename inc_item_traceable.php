@@ -1150,7 +1150,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
         if ($rwAtr["atrFlagHideOnLists"]) // if column should be hidden, skip
             continue;
 
-        if(!empty($this->staID) && !in_array($rwAtr['atrID'], (array)$conf['STA'][$this->staID]['satFlagShowInList'])) // id statusID field is set and atrribute is not set for show, skip
+        if(!empty($this->staID) && isset($conf['STA'][$this->staID]['satFlagShowInList']) && !in_array($rwAtr['atrID'], (array)$conf['STA'][$this->staID]['satFlagShowInList'])) // id statusID field is set and atrribute is not set for show, skip
             continue;
         
         $arr = array('title' => 
@@ -2136,8 +2136,8 @@ public function getActionLog($q){
             , 'aclOldStatusID_text' => $sta_old ? $sta_old['staTitle'.$this->intra->local] : ''
             , 'aclNewStatusID' => $acl['aclNewStatusID']
             , 'aclNewStatusID_text' => $sta_new ? $sta_new['staTitle'.$this->intra->local] : ''
-            , 'actTitle' => $act['actTitle'.$this->intra->local]
-            , 'actTitlePast' => $act['actTitlePast'.$this->intra->local]
+            , 'actTitle' => (isset($act['actTitle'.$this->intra->local]) ? $act['actTitle'.$this->intra->local] : '')
+            , 'actTitlePast' => (isset($act['actTitlePast'.$this->intra->local]) ? $act['actTitlePast'.$this->intra->local] : '')
             , 'aclComments' => $acl['aclComments']
             , 'aclFinishBy' => $this->intra->translate('by %s', $this->intra->getUserData($acl['aclFinishBy']))
             , 'aclEditBy' => $this->intra->translate('by %s', $this->intra->getUserData($acl['aclEditBy']))
@@ -2170,7 +2170,7 @@ public function getActionLog($q){
                     , 'aclOldStatusID' => null
                     , 'aclOldStatusID_text' => ''
                     , 'aclNewStatusID' => $acl['aclNewStatusID']
-                    , 'aclNewStatusID_text' => $this->conf['STA'][0]['staTitle'.$this->intra->local]
+                    , 'aclNewStatusID_text' => (isset($this->conf['STA'][0]) ? $this->conf['STA'][0]['staTitle'.$this->intra->local] : '')
                     , 'actTitle' => $this->intra->translate('Create')
                     , 'actTitlePast' => $this->intra->translate('Created')
                     , 'aclComments' => $acl['aclComments']
@@ -2246,7 +2246,7 @@ public function collectChecklist(){
 
         if($matchScore){
 
-            $rwCHK['checked'] = (bool)$this->item[$rwCHK['chkAttributeID']];
+            $rwCHK['checked'] = (bool)(isset($this->item[$rwCHK['chkAttributeID']]) ? $this->item[$rwCHK['chkAttributeID']] : false);
             $matching[] = $rwCHK;
 
         } else {
@@ -2283,13 +2283,13 @@ public function getChecklist(){
 
     foreach ($this->item['CHK'] as $rwCHK) {
         if(!$rwCHK['checked']){
-            $descr = __('Action required: %s', $this->conf['ACT'][$rwCHK['chkSetActionID']]["actTitle{$this->intra->local}"]);
+            $descr = __('Action required: %s', (isset($this->conf['ACT'][$rwCHK['chkSetActionID']]["actTitle{$this->intra->local}"]) ? $this->conf['ACT'][$rwCHK['chkSetActionID']]["actTitle{$this->intra->local}"] : ''));
         } else {
             $descr = '';
         }
         $chk = array(
                 'rowClass' => array('v'=>($rwCHK['checked'] ? 'checked' : '')),
-                'title' => $rwCHK["chkTitle{$this->intra->local}"],
+                'title' => (isset($rwCHK["chkTitle{$this->intra->local}"]) ? $rwCHK["chkTitle{$this->intra->local}"] : ''),
                 'description' => $descr,
                 'aclATA' => '',
 
@@ -2318,15 +2318,15 @@ public function getFields($aFields = null){
             ? array_keys($this->conf['ATR']) 
             : ($this->staID!==null
                 ? (isset($this->conf['flagShowOnlyEditable']) && $this->conf['flagShowOnlyEditable'] 
-                    ? $this->conf['STA'][$this->staID]['satFlagEditable']
-                    : $this->conf['STA'][$this->staID]['satFlagShowInForm']
+                    ? (isset($this->conf['STA'][$this->staID]['satFlagEditable']) ? $this->conf['STA'][$this->staID]['satFlagEditable'] : array())
+                    : (isset($this->conf['STA'][$this->staID]['satFlagShowInForm']) ? $this->conf['STA'][$this->staID]['satFlagShowInForm'] : array())
                     )
                 : array())
             )
         );
 
     $allowEdit = (($this->staID!==null 
-            ? $this->conf['STA'][$this->staID]['staFlagCanUpdate']
+            ? (isset($this->conf['STA'][$this->staID]['staFlagCanUpdate']) ? $this->conf['STA'][$this->staID]['staFlagCanUpdate'] : true)
             : true ) 
         && $this->intra->arrUsrData['FlagWrite']);
 
@@ -2354,7 +2354,7 @@ function getAttributeFields($fields, $item = null, $conf = array()){
 
     if(is_array($fields))
     foreach($fields as $field){
-        $atr = $this->conf['ATR'][$field];
+        $atr = (isset($this->conf['ATR'][$field]) ? $this->conf['ATR'][$field] : array());
 
         if(isset($conf['flagNonEmpty']) && $conf['flagNonEmpty'] && !$item[$field])
             continue;
@@ -2374,7 +2374,7 @@ function getAttributeFields($fields, $item = null, $conf = array()){
                 }
                 list($options['source_prefix'], $options['extra']) = self::getPrefixExtra($atr["atrProgrammerReserved"]);
                     
-                $options['defaultText'] = ($this->conf['ATR'][$field]['atrTextIfNull'] 
+                $options['defaultText'] = (isset($this->conf['ATR'][$field]['atrTextIfNull']) && $this->conf['ATR'][$field]['atrTextIfNull'] 
                     ? $this->conf['ATR'][$field]['atrTextIfNull']
                     : '-');
                 
@@ -2387,7 +2387,7 @@ function getAttributeFields($fields, $item = null, $conf = array()){
             $options['no_input_name'] = true;
         }
 
-        $html .= $this->intra->field($atr["atrTitle{$this->intra->local}"], $field, $item, $options);
+        $html .= $this->intra->field((isset($atr["atrTitle{$this->intra->local}"]) ? $atr["atrTitle{$this->intra->local}"] : ''), $field, $item, $options);
     }
 
     return $html;
