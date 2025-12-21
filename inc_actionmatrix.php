@@ -218,10 +218,10 @@ for ($j=0; $j<count($dstID); $j++){
 					?><td<?php echo ($i==$j? " class=\"auth-matrix-same\"" : "");?>><?php
 					$acts = array();
 					foreach ($this->conf['ACT'] as $act) {
-						if($act['actOldStatusID'][0]===null)
+						if(!isset($act['actOldStatusID'][0]) || $act['actOldStatusID'][0]===null)
 							continue;
 						foreach ($act['actOldStatusID'] as $action) {
-							if($action==$dstID[$i] && ($act['actNewStatusID'][0]==$dstID[$j] || ($act['actNewStatusID'][0]===null && $i==$j))) {
+							if($action==$dstID[$i] && ((isset($act['actNewStatusID'][0]) && $act['actNewStatusID'][0]==$dstID[$j]) || (!isset($act['actNewStatusID'][0]) && $i==$j))) {
 							$acts[] = $act;
 							break;
 						}
@@ -244,7 +244,7 @@ for ($j=0; $j<count($dstID); $j++){
 									foreach ((array)$this->mtxByAction[$rw['actID']] as $rwMTX) {
 										$conditions = '';
 										foreach ($this->mtxDataFields as $ix=>$field) {
-											if($rwMTX[$field]!==null && $rwMTX[$field]!=='' && $rwMTX[$field]!='%'){
+											if(isset($rwMTX[$field]) && $rwMTX[$field]!==null && $rwMTX[$field]!=='' && $rwMTX[$field]!='%'){
 											// if(true){
 												$atr = $this->conf['ATR'][$this->mtxDataAttrs[$ix]];
 												$cndts = preg_replace('/[^\<\>\=]/', '', $atr['atrMatrix']);
@@ -255,7 +255,7 @@ for ($j=0; $j<count($dstID); $j++){
 												$conditions .= ($conditions ? ', ' : '').$atr['atrTitle'.$intra->local].' '.$cndts.' '.$val;
 											}
 										}
-										echo "<li>{$this->roles[$rwMTX['mtxRoleID']]} ({$rwMTX['mtxRoleID']})".($conditions ? ": {$conditions}" : '')."</li>\n";
+										echo "<li>".(isset($this->roles[$rwMTX['mtxRoleID']]) ? $this->roles[$rwMTX['mtxRoleID']] : '')." (".(isset($rwMTX['mtxRoleID']) ? $rwMTX['mtxRoleID'] : '').")".($conditions ? ": {$conditions}" : '')."</li>\n";
 									}
 									?>
 								</ul>

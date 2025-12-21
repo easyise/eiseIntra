@@ -14,6 +14,8 @@ public $item;
 public $oSQL;
 public $intra;
 public $entID;
+public $id;
+public $flagFullEdit = false;
 public $flagIsManagement = false;
 
 public static $ts = array('ETD', 'ATD', 'ETA', 'ATA');
@@ -23,6 +25,7 @@ public static $ts = array('ETD', 'ATD', 'ETA', 'ATA');
  * Might contain ```aclGUID``` key if action has been obtained from stbl_action_log table. 
  */
 public $arrAction = array();
+public $conf = array();
 
 /**
  * Constructor of eiseAction class
@@ -71,7 +74,7 @@ public function __construct($item, $arrAct, $options = array()){
             $this->conf,
             $this->arrAction,
             $this->intra->arrPHP2SQL($toTrace, $types),
-            array('aclToDo'=> $nd['aclToDo'])
+            array('aclToDo'=> (isset($nd['aclToDo']) ? $nd['aclToDo'] : null))
         );
 
         $this->arrAction = array_merge($this->arrAction, $this->getTraceData());
@@ -131,7 +134,7 @@ public function __construct($item, $arrAct, $options = array()){
 public function execute(){
 
     // proceed with the action
-    if ($this->arrAction["actFlagAutocomplete"] && !$this->arrAction["aclGUID"]){
+    if ($this->arrAction["actFlagAutocomplete"] && (!isset($this->arrAction["aclGUID"]) || !$this->arrAction["aclGUID"])) {
 
         $this->add();
         $this->validate();
@@ -189,7 +192,7 @@ public function update($nd = null){
         } elseif (isset($nd[$atrID])) {
             $aToUpdate[$atrID] = $nd[$atrID];
         }
-        if (in_array($this->item->conf['ATR'][$atrID]['atrType'], array('boolean', 'checkbox'))) { // booleans are not transferrable via HTTP
+        if (isset($this->item->conf['ATR'][$atrID]['atrType']) && in_array($this->item->conf['ATR'][$atrID]['atrType'], array('boolean', 'checkbox'))) { // booleans are not transferrable via HTTP
             $aToUpdate[$atrID] = (isset($aToUpdate[$atrID]) ? $aToUpdate[$atrID] : '0');
         }
     }
@@ -242,7 +245,7 @@ public function add(){
     $this->item->beforeActionPlan($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
 
     // 1. obtaining aclGUID
-    $this->arrAction["aclGUID"] = ($this->arrAction["aclGUID"] ? $this->arrAction["aclGUID"] : $this->oSQL->d("SELECT UUID() # add action {$this->arrAction['actTitle']}"));
+    $this->arrAction["aclGUID"] = ((isset($this->arrAction["aclGUID"]) && $this->arrAction["aclGUID"]) ? $this->arrAction["aclGUID"] : $this->oSQL->d("SELECT UUID() # add action {$this->arrAction['actTitle']}"));
 
     $item_before = self::itemCleanUp($this->item->item_before, $this->item->conf['prefix']);
     
@@ -258,7 +261,7 @@ public function add(){
             : null
             );
 
-        $aToTrace[$field] = ($this->arrAction[$field]!==null
+        $aToTrace[$field] = (isset($this->arrAction[$field]) && $this->arrAction[$field]!==null
             ? $this->arrAction[$field]
             : $aToTrace[$field]
             );
@@ -279,7 +282,7 @@ public function add(){
             , aclItemDiff = NULL
             , aclItemAfter = NULL
             , aclItemTraced = ".$this->oSQL->e(json_encode($aToTrace))."
-        , aclComments = ".($this->arrAction['aclComments'] ? $this->oSQL->e($this->arrAction['aclComments']) : 'NULL')."
+        , aclComments = ".(isset($this->arrAction['aclComments']) && $this->arrAction['aclComments'] ? $this->oSQL->e($this->arrAction['aclComments']) : 'NULL')."
         , aclInsertBy = '{$this->intra->usrID}', aclInsertDate = NOW(), aclEditBy='{$this->intra->usrID}', aclEditDate=NOW()";
      
     $this->oSQL->q($sqlInsACL);  
@@ -308,12 +311,14 @@ function start(){
     if (!in_array($this->item->staID,  $this->conf['actOldStatusID']))
         throw new Exception("Action {$this->conf["actTitle"]} cannot be started for {$this->id} because of its status ({$this->item->staID})");
 
+    $oldStatusID = $this->arrAction['aclOldStatusID'];
+    $newStatusID = $this->arrAction['aclNewStatusID'];
     if (($oldStatusID!==$newStatusID 
           && $newStatusID!==""
         )
-        || $this->conf["actFlagInterruptStatusStay"]){
+        || (isset($this->conf["actFlagInterruptStatusStay"]) ? $this->conf["actFlagInterruptStatusStay"] : false)){
 
-        $this->onStatusDeparture($this->arrAction['aclOldStatusID']);
+        $this->item->onStatusDeparture($this->arrAction['aclOldStatusID']);
 
     }
 
@@ -337,7 +342,7 @@ function start(){
     $sqlUpdEntTable = "UPDATE {$this->item->conf["table"]} SET
             {$this->item->conf['prefix']}ActionLogID='{$this->arrAction['aclGUID']}'
             , {$this->item->conf['prefix']}EditBy='{$this->intra->usrID}', {$this->item->conf['prefix']}EditDate=NOW()
-            WHERE {$this->item->conf['PK']}='{$entItemID}'";
+            WHERE {$this->item->conf['PK']}='{$this->item->id}'";
     $this->oSQL->do_query($sqlUpdEntTable);
 
 }
@@ -368,11 +373,11 @@ public function validate(){
 	                throw new Exception('Item is already created');
 	            break;
 	        case 2:
-	            if(!$this->item->conf['STA'][$aclOldStatusID]['staFlagCanUpdate'] && !$this->flagFullEdit)
+	            if((!isset($this->item->conf['STA'][$aclOldStatusID]['staFlagCanUpdate']) || !$this->item->conf['STA'][$aclOldStatusID]['staFlagCanUpdate']) && !$this->flagFullEdit)
 	                throw new Exception('Update is not allowed');
 	            break;
 	        case 3:
-	            if(!$this->item->conf['STA'][$aclOldStatusID]['staFlagCanDelete'])
+	            if(!isset($this->item->conf['STA'][$aclOldStatusID]['staFlagCanDelete']) || !$this->item->conf['STA'][$aclOldStatusID]['staFlagCanDelete'])
 	                throw new Exception('Delete is not allowed');
 	            break;
 	        default:
@@ -390,14 +395,16 @@ public function validate(){
                     , $this->item->conf['entTitle'.$this->intra->local] 
                     , $this->item->id
                     , ( $this->conf['actTitle'.$this->intra->local] ? $this->conf['actTitle'.$this->intra->local] : $this->conf['actTitle'])
-                    , $this->item->conf['STA'][$this->item->item["{$this->item->conf['prefix']}StatusID"]]['staTitle'.$this->intra->local]));
+                    , (isset($this->item->conf['STA'][$this->item->item["{$this->item->conf['prefix']}StatusID"]]['staTitle'.$this->intra->local]) ? $this->item->conf['STA'][$this->item->item["{$this->item->conf['prefix']}StatusID"]]['staTitle'.$this->intra->local] : ''))
+    		);
     	    }
 	    if($this->conf['actNewStatusID'][0] && $this->arrAction["aclNewStatusID"] != $this->conf['actNewStatusID'][0]){
 	        throw new Exception($this->intra->translate("%s %s: Action \"%s\" could not run for destination status \"%s\""
                 , $this->item->conf['entTitle'.$this->intra->local] 
                 , $this->item->id
                 , ( $this->conf['actTitle'.$this->intra->local] ? $this->conf['actTitle'.$this->intra->local] : $this->conf['actTitle'])
-                , $this->item->conf['STA'][(string)$this->arrAction["aclNewStatusID"]]['staTitle'.$this->intra->local]));
+                , (isset($this->item->conf['STA'][(string)$this->arrAction["aclNewStatusID"]]['staTitle'.$this->intra->local]) ? $this->item->conf['STA'][(string)$this->arrAction["aclNewStatusID"]]['staTitle'.$this->intra->local] : ''))
+	    );
 	    }
 	}
 

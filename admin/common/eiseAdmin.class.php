@@ -257,9 +257,9 @@ function menu($target = null){
         $sqlEnt = "SELECT * FROM `{$dbName}`.`stbl_entity`";
         $rsEnt = $oSQL->do_query($sqlEnt);
         while ($rwEnt = $oSQL->fetch_array($rsEnt)){
-            $localTitle = (isset($intra->local)) ? $intra->local : '';
+            $local = (isset($intra->local)) ? $intra->local : '';
             $strRet .= '<li id="ent-'.$dbName."-".$rwEnt['entID']. '"><a href="entity_form.php?dbName='.urlencode($dbName).'&entID='.urlencode($rwEnt['entID']). '"><i class="fa fa-cog"></i> '
-                .$rwEnt['entTitle'.$localTitle]
+                .$rwEnt['entTitle'.$local]
                 .'</a>'."\n";
         }
 
@@ -282,7 +282,7 @@ function menu($target = null){
         $strRet .= "</ul>\n</li>\n";
     }
 
-    if ($arrFlags["hasMultiLang"]){
+    if (isset($arrFlags["hasMultiLang"]) && $arrFlags["hasMultiLang"]){
         $strRet .= '<li id="str-'.$dbName.'"><a href="translation_form.php"><i class="fa fa-language"></i> '.$this->translate('Translation table').'</a></li>'."\r\n";
     }
 
