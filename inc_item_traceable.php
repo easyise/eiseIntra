@@ -3060,7 +3060,7 @@ public function getWhosNextStatus($staID, $counter){
             continue;
         $classes = ($defaultActID==$act['actID'] ? ' default' : '');
         $iconClass = (preg_match('/^fa\-/', trim($act['actButtonClass'])) ? 'fa ' : (preg_match('/^ss\_/', trim($act['actButtonClass'])) ? 'ss_sprite ' : '')).$act['actButtonClass'];
-        $html .= '<li class="ei-whosnext-action '.$classes.'"><i class="'.$iconClass.'"> </i>'.$act["actTitle{$this->intra->local}"];
+        $html .= '<li class="ei-whosnext-action '.$classes.'" data-act-title="'.htmlspecialchars($act["actTitle{$this->intra->local}"]).'"><i class="'.$iconClass.'"> </i>'.$act["actTitle{$this->intra->local}"];
         if($act["actDescription{$this->intra->local}"]){
             $html .= '<small>'.$act["actDescription{$this->intra->local}"].'</small>';
         }
@@ -3120,7 +3120,10 @@ public function getWhosNextStatus($staID, $counter){
                           
                     }
                     $class = 'user-info'.($class ? ' disabled' : '').$class;
-                    $htmlUserList .= '<span class="'.$class.'">'.$this->intra->getUserData($usrID).($ix==count($aUsers)-1 ? '' : ', ').'</span>';
+                    $class .= isset($this->conf['flagWhosNextUserClickable']) && $this->conf['flagWhosNextUserClickable'] && $counter==1
+                        ? ' clickable'
+                        : '';
+                    $htmlUserList .= '<span class="'.$class.'" data-usrid="'.htmlspecialchars($usrID).'">'.$this->intra->getUserData($usrID).($ix==count($aUsers)-1 ? '' : ', ').'</span>';
                 }
                 $html .= $htmlUserList;
                 $html .= '<li class="roles">';
