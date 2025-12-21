@@ -2,7 +2,8 @@
 include 'inc_actionmatrix.php';
 $intra->requireComponent('jquery-ui', 'grid');
 
-$DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['DataAction'] );
+$DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] 
+    : (isset($_GET['DataAction']) ? $_GET['DataAction'] : null));
 
 $actID = (isset($_POST["actID"]) ? $_POST["actID"] : $_GET["actID"]);
 
@@ -448,7 +449,7 @@ $arrActions[]= Array ('title' => $rwAct["entTitle"]
        , 'class'=> 'ss_arrow_left'
     );
 
-if ($easyAdmin){
+if (isset($easyAdmin) && $easyAdmin){
     $arrActions[]= Array ("title" => "Clone"
        , "action" => "action_form.php?DataAction=clone&dbName={$dbName}&actID=".urlencode($actID)
        , "class"=> "ss_page_copy"

@@ -153,7 +153,7 @@ case 'dump':
                 $strTables .= $intra->dumpTables([$table], ['rows'=>$ids,
                             'sql_type'=>'INSERT',
                             'sql_columns'=>True,
-                            'columns' => ($_GET['extra']=='withActualFields' ? eiseAdmin::$arrEntitiesFields[$table] : null),
+                            'columns' => (isset($_GET['extra']) && $_GET['extra']=='withActualFields' ? eiseAdmin::$arrEntitiesFields[$table] : null),
                             'DropCreate'=>False ]
                         );
                          
@@ -197,7 +197,7 @@ case 'dump':
 
     
 
-    if ($_GET['flagDonwloadAsDBSV']){
+    if (!empty($_GET['flagDownloadAsDBSV'])){
         $sqlDBSV = "SHOW TABLES FROM `$dbName` LIKE 'stbl_version'";
         if ($oSQL->d($sqlDBSV)=='stbl_version'){
             $sqlVer = 'SELECT MAX(verNumber)+1 FROM stbl_version';
