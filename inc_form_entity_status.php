@@ -1,7 +1,8 @@
 <?php 
 $intra->requireComponent('jquery-ui', 'grid');
 
-$DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] : $_GET['DataAction'] );
+$DataAction  = (isset($_POST['DataAction']) ? $_POST['DataAction'] 
+    : (isset($_GET['DataAction']) ? $_GET['DataAction'] : null));
 
 $staID = (isset($_POST["staID"]) ? $_POST["staID"] : $_GET["staID"]);
 $entID = (isset($_POST["entID"]) ? $_POST["entID"] : $_GET["entID"]);

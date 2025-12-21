@@ -190,9 +190,9 @@ public function __construct($id = null,  $conf = array() ){
     }
 
     $this->conf['flagSuperuser'] = 
-        ($this->conf['entManagementRoles'] 
-        ? (bool)count(array_intersect((array)$this->intra->arrUsrData['roleIDs']
-        , explode(',', $this->conf['entManagementRoles'])))
+        ($this->conf['entManagementRoles'] && !empty($this->intra->arrUsrData['roleIDs'])
+        ? (bool)count(array_intersect($this->intra->arrUsrData['roleIDs']
+                , explode(',', $this->conf['entManagementRoles'])))
         : false);
 
     ;

@@ -422,6 +422,17 @@ function dumpTable ($tableName, $tableOptions){
 
     $oSQL = $this->oSQL;
     $flagView = false;
+
+    $tableOptions = array_merge(array(
+        'DropCreate' => true
+        , 'crlf'=>"\n"
+        , 'sql_type'=>'INSERT'
+        , 'sql_delayed'=>false
+        , 'sql_ignore'=>false
+        , 'sql_columns'=>false
+        , 'flagNoData'=>false
+        , 'rows'=>null
+        ), $tableOptions);
     
     $tableInfo = $oSQL->getTableInfo($tableName);
 
