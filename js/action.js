@@ -280,7 +280,7 @@ var fillChecklistAJAX = function($form, extra_entID){
 
 }
 
-var showMessages = function($form){
+var showMessages = function($form, options={}){
 
     var entID = $form.data('eiseIntraForm').entID;
     var entItemID = $form.data('eiseIntraForm').entItemID;
@@ -304,7 +304,7 @@ var showMessages = function($form){
 
     var msgmng = this;
 
-    var showNewMessageForm = function(){
+    var showNewMessageForm = function(fnCallback){
         var $frm = $(msgmng.htmlMsgForm).dialog({modal: true
                     , width: '400px'})
                     .eiseIntraForm();
@@ -312,6 +312,13 @@ var showMessages = function($form){
             .onclick = function(){
                 $frm.dialog('close').remove();
             };
+        if(fnCallback && typeof(fnCallback)=='function'){
+            fnCallback.call($frm);
+        }
+    }
+
+    if(options && options.showNewMessageForm){
+        return showNewMessageForm(options.fnCallback);
     }
 
     var strURL = (msgmng.flagURLSelf 
@@ -472,6 +479,22 @@ init: function( options ) {
                         width: 'auto',
                         height: 'auto',
                         modal: false,
+                        open: function(){
+                            $('.ei-whos-next .whos-next-status .actions > li ul li.users .user-info.clickable').click(function(){
+                                var usrID = $(this)[0].dataset.usrid,
+                                    userName = $(this).text().replace(/\([^\)]*\)[,\s]*$/, '').trim();
+                                var action = $(this).parents('.ei-whosnext-action ')[0].dataset.actTitle;
+                                showMessages($form, {showNewMessageForm: true, 
+                                        fnCallback: function(){
+                                            var $frm = this;    
+                                            $frm.find('#msgToUserID').val(usrID);
+                                            $frm.find('#msgToUserID_text').val(userName);
+                                            $frm.find('#msgSubject').val('Прошу '+action);
+                                            $frm.find('#msgText').val('Здравствуйте, '+userName+'!\n\nПрошу Вас выполнить действие: '+action+'\n\nСпасибо!\n');
+                                        }
+                                    });
+                            });
+                        },
                         buttons: [{text: 'Ok', click: function(){
                             $(this).dialog('close').remove();
                         }}]
