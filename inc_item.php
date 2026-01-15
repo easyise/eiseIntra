@@ -88,6 +88,10 @@ public $oSQL = null;
  */
 public $redirectTo, $msgToUser;
 
+public $msg = null;
+
+public $fil = null;
+
 public $sqlWhere;
 
 /**
@@ -872,57 +876,11 @@ function formFileAttach(){
  */
 function formMessages(){
 
-    $oldFlagWrite = $this->intra->arrUsrData['FlagWrite'];
-    $this->intra->arrUsrData['FlagWrite'] = true;
+	if(!$this->msg){
+		$this->msg = new eiseIntra\Messages($this);
+	}
 
-    $entID = ($this->conf['entID'] ? $this->conf['entID'] : $this->conf['prefix']);
-
-    $strRes = '<div id="ei_messages" class="eif-messages-dialog" title="'.$this->intra->translate('Messages').'">'."\n";
-
-    $strRes .= '<div class="eiseIntraMessage eif_template eif_evenodd">'."\n";
-    $strRes .= '<div class="eif_msgInsertDate"></div>';
-    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('From').':</label><span class="eif_msgFrom"></span></div>';
-    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('To').':</label><span class="eif_msgTo"></span></div>';
-    $strRes .= '<div class="eiseIntraMessageField eif_invisible"><label>'.$this->intra->translate('CC').':</label><span class="eif_msgCC"></span></div>';
-    $strRes .= '<div class="eiseIntraMessageField eif_invisible"><label>'.$this->intra->translate('Subject').':</label><span class="eif_msgSubject"></span></div>';
-    $strRes .= '<pre class="eif_msgText"></div>';
-    $strRes .= '</pre>'."\n";
-
-    $strRes .= '<div class="eif_notfound">';
-    $strRes .= '<td colspan=3>'.$this->intra->translate('No Messages Found').'</td>';
-    $strRes .= '</div>';
-
-    $strRes .= '<div class="eif_spinner">';
-    $strRes .= '</div>';
-    
-    $strRes .= '<div class="eiseIntraMessageButtons"><input type="button" id="msgNew" value="'.$this->intra->translate('New Message').'">';
-    $strRes .= '</div>';
-        
-    $strRes .= "</div>\r\n";
-
-    $strRes .= '<form id="ei_message_form" class="eif-message-form" title="'.$this->intra->translate('New Message').'" class="eiseIntraForm" method="POST">'."\n";
-    $strRes .= '<input type="hidden" name="DataAction" id="DataAction_attach" value="sendMessage">'."\r\n";
-    $strRes .= '<input type="hidden" name="entID" id="entID_Message" value="'.$entID.'">'."\r\n";
-    $strRes .= '<input type="hidden" name="entItemID" id="entItemID_Message" value="'.$this->id.'">'."\r\n";
-    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('To').':</label>'
-        .$this->intra->showAjaxDropdown('msgToUserID', '', array('required'=>true, 'source'=>'svw_user')).'</div>';
-    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('CC').':</label>'
-        .$this->intra->showAjaxDropdown('msgCCUserID', '', array('source'=>'svw_user')).'</div>';
-    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('Subject').':</label>'.$this->intra->showTextBox('msgSubject', '').'</div>';
-    $strRes .= '<div class="eiseIntraMessageBody">'.$this->intra->showTextArea('msgText', '').'</div>';
-    $strRes .= '<div class="eiseIntraMessageButtons"><input type="submit" id="msgPost" value="'.$this->intra->translate('Send').'">
-        <input type="button" id="msgClose" value="'.$this->intra->translate('Close').'">
-        </div>';
-    $strRes .= "</form>\r\n";
-
-	// DISABLED because mail sending is on crontab
-    // if( $this->intra->conf['flagRunMessageSend'] && file_exists(dirname($_SERVER['SCRIPT_FILENAME']).DIRECTORY_SEPARATOR.'bat_messagesend.php') ){
-    // 	$strRes .= "\n".'<script type="text/javascript">$(document).ready(function(){ $.get("bat_messagesend.php?nc="+Math.random()*1000); });</script>'."\n";
-    // }
-
-    $this->intra->arrUsrData['FlagWrite'] = $oldFlagWrite;
-
-    return $strRes;
+	return $this->msg->formMessages();
 
 }
 
@@ -935,25 +893,11 @@ function formMessages(){
  */
 public function getMessages(){
 
-    $oSQL = $this->oSQL;
-    $entID = ($this->conf['entID'] ? $this->conf['entID'] : $this->conf['prefix']);
-    $intra = $this->intra;
+	if(!$this->msg){
+		$this->msg = new eiseIntra\Messages($this);
+	}
 
-    $fields = $oSQL->ff('SELECT * FROM stbl_message WHERE 1=0');
-
-    $sqlMsg = "SELECT *
-    , (SELECT optText FROM svw_user WHERE optValue=msgFromUserID) as msgFrom
-    , (SELECT optText FROM svw_user WHERE optValue=msgToUserID) as msgTo
-    , (SELECT optText FROM svw_user WHERE optValue=msgCCUserID) as msgCC
-     FROM stbl_message 
-     WHERE msgEntityID='$entID' AND msgEntityItemID='{$this->id}'
-     ".($fields['msgFlagBroadcast'] 
-     	? "AND msgFlagBroadcast=0" 
-     	: '')."
-    ORDER BY msgInsertDate DESC";
-    $rsMsg = $oSQL->q($sqlMsg);
-
-    return $intra->result2JSON($rsMsg);
+	return $this->msg->getMessages();
 
 }
 
@@ -966,63 +910,11 @@ public function getMessages(){
  */
 public function sendMessage($nd){
 
-	$oSQL = $this->oSQL;
-	$entID = ($this->conf['entID'] ? $this->conf['entID'] : $this->conf['prefix']);
-	$intra = $this->intra;
+	if(!$this->msg){
+		$this->msg = new eiseIntra\Messages($this);
+	}
 
-	try {
-        $intra->checkMessageQueueExists();    
-    } catch (Exception $e) {
-        $intra->redirect( 'ERROR: '.$e->getMessage(), $this->conf['form'].'?'.$this->getURI() );
-    }
-
-    $fields = $oSQL->ff('SELECT * FROM stbl_message_queue WHERE 1=0');
-    if($fields['msgPassword']){
-        list($login, $password) = $this->intra->decodeAuthstring($_SESSION['authstring']);
-    }
-
-    $metadata = array('title'=>$this->conf['title'.$intra->local]
-        , 'number'=>$this->id
-        , 'id'=>$this->id
-    	, 'href'=>eiseIntra::getFullHREF($this->conf['form'].'?'.$this->getURI())
-    	);
-    if(isset($nd['msgMetadata'])){
-    	$metadata = array_merge(
-    		$metadata, 
-    		(is_array($nd['msgMetadata']) 
-    			?  $nd['msgMetadata']
-    			: (array)json_decode($nd['msgMetadata'], true)
-    			)
-    		);
-    }
-
-    $sqlMsg = "INSERT INTO stbl_message_queue SET
-        msgEntityID = ".$oSQL->e($entID)."
-        , msgEntityItemID = ".(!$nd['entItemID'] ? $oSQL->e($this->id) : $oSQL->e($nd['entItemID']))."
-        , msgFromUserID = '$intra->usrID'
-        , msgToUserID = ".($nd['msgToUserID']!="" ? $oSQL->e($nd['msgToUserID']) : "NULL")."
-        , msgCCUserID = ".($nd['msgCCUserID']!="" ? $oSQL->e($nd['msgCCUserID']) : "NULL")."\n"
-        .($fields['msgToUserEmail'] ? ", msgToUserEmail=".$oSQL->e($nd['msgToUserEmail']) : '')."\n"
-        .($fields['msgCCUserEmail'] ? ", msgCCUserEmail=".$oSQL->e($nd['msgCCUserEmail']) : '')."
-        , msgSubject = ".$oSQL->e($nd['msgSubject'])."
-        , msgText = ".$oSQL->e($nd['msgText'])
-        .($fields['msgPassword'] ? ", msgPassword=".$oSQL->e($intra->encrypt($password)) : '')."\n"
-        .($fields['msgFlagBroadcast'] ? ", msgFlagBroadcast=".(int)($nd['msgFlagBroadcast']) : '')."\n"
-        .($fields['msgGUID'] 
-        	? ", msgGUID=".($nd['msgGUID']!="" 
-	        	? $oSQL->e($nd['msgGUID']) 
-	        	: "UUID()"
-        	) 
-        	: '')."\n"
-        ."
-        , msgMetadata = ".$oSQL->e(json_encode($metadata, true))."
-        , msgSendDate = NULL
-        , msgReadDate = NULL
-        , msgFlagDeleted = 0
-        , msgInsertBy = '$intra->usrID', msgInsertDate = NOW(), msgEditBy = '$intra->usrID', msgEditDate = NOW()";
-    $oSQL->q($sqlMsg);
-
-	$intra->redirect($intra->translate('Message sent'), $this->conf['form'].'?'.$this->getURI());
+	return $this->msg->sendMessage($nd, $this);
 
 }
 
@@ -1035,129 +927,8 @@ public function sendMessage($nd){
  * 
  */
 static function sendMessages($conf){
-    
-    GLOBAL $intra;
 
-    $oSQL = $intra->oSQL;
-
-    $intra->checkMessageQueueExists();
-
-    include_once(commonStuffAbsolutePath.'/eiseMail/inc_eisemail.php');
-
-    $sqlMsg = "SELECT * FROM stbl_message_queue ORDER BY msgInsertDate DESC LIMIT 0,1";
-	$rsMsg = $oSQL->q($sqlMsg);
-    $fieldsMsg = $oSQL->ff($rsMsg);
-
-    $strError = ''; // errors will be here
-
-    while ($oSQL->n($rsMsg)==1) {
-
-    	$rwMsg = $oSQL->f($rsMsg);
-
-    	// 1. dealing with authentication basing on FROM and $conf
-    	$rwUsr_From = $intra->getUserData_All($rwMsg['msgFromUserID'], 'all');
-    	$arrAuth = array();
-    	switch($conf['authenticate']){
-    	    case 'email':
-    	        $arrAuth['login'] = $rwUsr_From['usrEmail'];
-    	        break;
-    	    case 'onbehalf':
-    	    case 'serviceaccount':
-    	        $arrAuth['login'] = $conf['login'];
-    	        $arrAuth['password'] = $intra->decrypt($conf['password']);
-    	        break;
-    	    default:
-    	        $arrAuth['login'] = $rwUsr_From['usrID'] ;
-    	        break;
-    	    
-    	}
-
-    	// 2. creating a sender
-    	$sender  = new eiseMail(array_merge($conf, $arrAuth));
-
-
-    	// 3. dealing with to/cc
-    	$rwUsr_To = $intra->getUserData_All($rwMsg['msgToUserID'], 'all');
-    	if ($rwMsg['msgCCUserID'])
-    	    $rwUsr_CC = $intra->getUserData_All($rwMsg['msgCCUserID'], 'all');
-
-    	// 4. merging metadata into message
-    	$rwMsg['system'] = $conf['system'];
-    	$metadata = json_decode(isset($rwMsg['msgMetadata']) ? $rwMsg['msgMetadata'] : '', true);
-    	if($metadata && is_array($metadata)){
-    		$rwMsg = array_merge($rwMsg, $metadata);
-    	}
-
-
-    	// 5. Dealing with Names
-    	$msg = [];
-    	$msg['From'] = ($rwUsr_From['usrName'] ? "\"".$rwUsr_From['usrName']."\"  <".$rwUsr_From['usrEmail'].">" : $rwUsr_From['usrEmail']);
-    	$msg['To'] = (isset($rwMsg['msgToUserEmail']) && $rwMsg['msgToUserEmail']
-           	? (isset($rwMsg['msgToUserName']) ? "\"".$rwMsg['msgToUserName']."\" <".$rwMsg['msgToUserEmail'].">" : $rwMsg['msgToUserEmail'])
-           	: (isset($rwUsr_To['usrName']) ? "\"".$rwUsr_To['usrName']."\" <".$rwUsr_To['usrEmail'].">" : ''));
-
-		if(isset($conf['Content-Type']) && $conf['Content-Type'] == 'text/html'){
-		    $msg['Text'] = nl2br($rwMsg['msgText']); 
-		}else{
-			$msg['Text'] = $rwMsg['msgText'];
-		}
-
-        if ($rwMsg['msgCCUserID'])
-            $msg['Cc'] = "\"".$rwUsr_CC['usrName']."\" <".$rwUsr_CC['usrEmail'].">";
-
-        $msg = array_merge($msg, $rwMsg);
-
-        if(!in_array($conf['authenticate'], ['onbehalf', 'serviceaccount'])) {
-	        if($conf['authenticate'] && $rwMsg['msgPassword'])
-	            $sender->conf['password'] = $intra->decrypt($rwMsg['msgPassword']);
-    	}
-
-    	// 6. Add message to send queue
-        $sender->addMessage($msg);
-
-        // 7. Trying to send
-        try {
-
-        	// 7.1 if no password - we throw an exceptyon
-        	if($conf['authenticate'] && (!$sender->conf['password'] && !$sender->conf['xoauth2_token'])) {
-	            throw new Exception('NO PASSWORD');
-	        }
-
-	        // 7.2 do the SEND
-            $sentMessages = $sender->send();
-
-            $msg = $sentMessages[0];
-
-            $msgStatus='Sent';
-           	$msgSendDate = date('Y-m-d H:i:s', $msg['send_time']);
-
-         
-        } catch (eiseMailException $e){
-
-        	$err = (isset($msg['error']) && $msg['error'] ? $msg['error'] : "MESSAGE {$msg['msgID']} NOT SENT: ".$e->getMessage());
-            $strError .= "\n{$err}";
-            $msgStatus = $err;
-            $msgSendDate=NULL;
-
-        }
-
-        try {
-        	$oSQL->q("INSERT INTO stbl_message SELECT * FROM stbl_message_queue WHERE stbl_message_queue.msgID={$msg['msgID']}");
-        	$oSQL->q("UPDATE stbl_message SET msgSendDate=".($msgSendDate===NULL ? 'NULL' : "'{$msgSendDate}'")."
-        			, msgStatus=".$oSQL->e($msgStatus)."
-        			WHERE msgID={$msg['msgID']}");
-        } catch (Exception $e) {
-        	$strError .= "Database error: ".$e->getMessage();
-        }
-        
-       	$oSQL->q("DELETE FROM stbl_message_queue WHERE msgID={$msg['msgID']}");
-
-    	$rsMsg = $oSQL->q($sqlMsg);
-    	
-    }
-
-    if($strError)
-        throw new Exception("QUEUE SEND ERROR: ".$strError);
+	eiseIntra\Messages::sendMessages($conf);
 
 }
 

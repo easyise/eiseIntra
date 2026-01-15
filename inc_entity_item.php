@@ -1600,7 +1600,7 @@ static function updateMessages($newData){
     $da = isset($newData["DataAction"]) ? $newData["DataAction"] : null;
 
     try {
-        $intra->checkMessageQueueExists();    
+        eiseIntra\Messages::checkMessageQueueExists($oSQL);    
     } catch (Exception $e) {
         $intra->redirect('ERROR: '.$e->getMessage(), $_SERVER["PHP_SELF"]."?{$newData['entID']}ID=".urlencode($newData["entItemID"]));
     }
