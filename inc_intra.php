@@ -3286,37 +3286,6 @@ static function debug($to_echo){
  
 }
 
-/**
- * @ignore
- */
-function checkMessageQueueExists(){
-
-    $oSQL = $this->oSQL;
-
-    $rs = $oSQL->q("SHOW TABLES LIKE 'stbl_message_queue'");
-    if($oSQL->n($rs)==0){
-
-        $rwCreate = $oSQL->f("SHOW CREATE TABLE stbl_message");
-        $sqlCreate = $rwCreate['Create Table'];
-
-        $sqlCreate = preg_replace('/stbl_message/', 'stbl_message_queue', $sqlCreate);
-        $sqlCreate = preg_replace('/,[\s]+KEY/', "\n -- , KEY", $sqlCreate);
-
-        try {
-            $oSQL->q("DROP TABLE IF EXISTS stbl_message_queue");
-            $oSQL->q($sqlCreate);
-        } catch (Exception $e) {
-
-            $dbname = $oSQL->d('SELECT DATABASE()');
-            $error = $e->getMessage();
-            throw new Exception("Unable to create message queue. Please check CREATE TABLE permissions of user '{$oSQL->dbuser}' on '{$dbname}'. Error: {$error}");
-            
-        }
-    }
-
-}
-
-
 }
 
 
@@ -3338,5 +3307,21 @@ if (!function_exists('__')) {
         }
     }
 }
+
+spl_autoload_register(function($class) {
+    $prefix = 'eiseIntra\\';
+    $baseDir = __DIR__;
+
+    if (strncmp($prefix, $class, strlen($prefix)) !== 0) {
+        return;
+    }
+
+    $relative = strtolower(substr($class, strlen($prefix)));
+    $file = $baseDir . '/inc_' . str_replace('\\', '/', $relative) . '.php';
+
+    if (is_file($file)) {
+        require_once $file;
+    }
+});
 
 
