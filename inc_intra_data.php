@@ -866,12 +866,15 @@ public function getSQLFields($tableInfo, $data){
 
         if(!in_array($field, $tableInfo['columns_index']))
             continue;
-        if( $value === null || (in_array($tableInfo['columns_types'][$field], ["FK", 'time', 'datetime', 'time']) && $value==='') ){
+
+        $col_type = isset($tableInfo['columns_types'][$field]) ? $tableInfo['columns_types'][$field] : 'text';
+
+        if( $value === null || (in_array($col_type, ["FK", 'time', 'datetime', 'time']) && $value==='') ){
             if($tableInfo['columns_dict'][$field]['Null']==='YES')
                 $sqlFields .= "\n, {$field}=NULL";
             continue;
         }
-        switch($tableInfo['columns_types'][$field]){
+        switch($col_type){
             case 'real':
                 $sqlFields .= "\n, {$field}=".(double)$value;
                 break;
