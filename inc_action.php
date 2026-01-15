@@ -683,10 +683,10 @@ function checkMandatoryFields(){
                 */
         } else {
 
-            if($rwATR['aatFlagMandatory'] && !$this->arrAction[$atrID])
+            if(isset($rwATR['aatFlagMandatory']) && $rwATR['aatFlagMandatory'] && empty($this->arrAction[$atrID]))
                 $aMandatoryFails[] = $atrID;
             
-            if($rwATR['aatFlagToChange'] && $this->arrAction[$atrID]!=$this->item->item[$atrID])
+            if(isset($rwATR['aatFlagToChange']) && $rwATR['aatFlagToChange'] && !empty($this->arrAction[$atrID]) && $this->arrAction[$atrID]!=$this->item->item[$atrID])
                 $aChangedFails[] = $atrID;
             
         }

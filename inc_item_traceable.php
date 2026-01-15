@@ -3132,7 +3132,7 @@ public function getWhosNextStatus($staID, $counter){
                     if(!$this->conf['Roles'][$rolID]['rolFlagVirtual']) {
                         $htmlRoleList .= ($htmlRoleList ? ', </span>' : '').'<span class="role-info">'.$this->conf['Roles'][$rolID]['rolTitle'.$this->intra->local];
                     } else {
-                        $rolIDs_original = array_unique((array)$aVirtualRoles[$rolID]);
+                        $rolIDs_original = isset($aVirtualRoles[$rolID]) ? array_unique((array)$aVirtualRoles[$rolID]) : array();
                         foreach ($rolIDs_original as $rolID_original) {
                             $htmlRoleList .= ($htmlRoleList ? ', </span>' : '').'<span class="role-info">'
                                 .($rolID_original 
