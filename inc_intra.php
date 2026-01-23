@@ -1596,7 +1596,7 @@ function checkLanguage(){
         }
         
     } else 
-    if (!isset($_COOKIE["l"]) && preg_match("/(ru|uk|be)/i", $_SERVER["HTTP_ACCEPT_LANGUAGE"])){
+    if (!isset($_COOKIE["l"]) && preg_match("/(ru|uk|be)/i", (isset($_SERVER["HTTP_ACCEPT_LANGUAGE"]) ? $_SERVER["HTTP_ACCEPT_LANGUAGE"] : "en") )) {
         SetCookie("l", "Local");
         $this->local = "Local";
     }
