@@ -504,7 +504,7 @@ function Authenticate($login, $password, $method="LDAP", $options=array()){
                 (!$options['dbhost'] ? 'localhost' : $options['dbhost'])
                 , $login
                 , $password
-                , (!$options["dbname"] ? 'mysql' : $options["dbname"])
+                , (!isset($options["dbname"]) || !$options["dbname"] ? 'mysql' : $options["dbname"])
                 );
         } catch(Exception $e){
             throw new eiseException($e->getMessage());
@@ -544,7 +544,7 @@ function Authenticate($login, $password, $method="LDAP", $options=array()){
 function session_initialize(){
    @session_set_cookie_params(0, $this->conf['cookiePath']);
    session_start();
-   $this->usrID = $_SESSION["usrID"];
+   $this->usrID = (isset($_SESSION["usrID"]) ? $_SESSION["usrID"] : null);
 } 
  
 /**

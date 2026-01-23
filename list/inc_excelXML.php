@@ -110,7 +110,7 @@ class excelXML
      * @param boolean $bStyleHeader Style first row as header
      * @param string $sWorksheetTitle Title for the worksheet
      */
-    public function __construct($sEncoding = 'UTF-8', $bConvertTypes = true, $sWorksheetTitle = 'Table1')
+    public function __construct($sEncoding = 'UTF-8', $bConvertTypes = true, $sWorksheetTitle = 'Table1', $bStyleHeader = false)
     {
         $this->bConvertTypes = $bConvertTypes;
         $this->bStyleHeader = $bStyleHeader;

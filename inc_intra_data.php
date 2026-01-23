@@ -318,7 +318,7 @@ function result2JSON($rs, $arrConf = array()){
 
             if (($arrConf['flagAllowDeny']=='allow' && in_array($key, $arrPermittedFields))
                 || ($arrConf['flagAllowDeny']=='deny' && !in_array($key, $arrPermittedFields))
-                || (isset($arrConf['fields'][$key]) && ($arrConf['fields'][$key]['disabled'] || $arrConf['fields'][$key]['static']))
+                || (isset($arrConf['fields'][$key]) && (!empty($arrConf['fields'][$key]['disabled']) || !empty($arrConf['fields'][$key]['static'])))
                 || !$this->arrUsrData['FlagWrite']
                 ){
 

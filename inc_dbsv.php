@@ -50,7 +50,7 @@ function __construct($conf = array()){
         throw new Exception('Database name not specified');
     }
 
-    if($conf['intra']){
+    if(isset($conf['intra']) && $conf['intra']){
         
         $this->intra = $conf['intra'];
         $this->authorized = true;
