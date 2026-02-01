@@ -310,7 +310,7 @@ static function sendMessages($conf){
     try {
 
         // 7.1 if no password - we throw an exceptyon
-        if($conf['authenticate'] && (!$sender->conf['password'] && !$sender->conf['xoauth2_token'])) {
+        if(!empty($conf['authenticate']) && (empty($sender->conf['password']) && empty($sender->conf['xoauth2_token']))) {
             throw new \Exception('NO PASSWORD');
         }
 

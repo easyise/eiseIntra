@@ -184,8 +184,8 @@ public function __construct($id = null,  $conf = array() ){
                 $this->virtualRoleMembers[$rwRole['rolID']] = $roleMembers;
             }
         }
-        $this->intra->arrUsrData['roles'] = @array_values($this->intra->arrUsrData['roles']);
-        $this->intra->arrUsrData['roleIDs'] = @array_values($this->intra->arrUsrData['roleIDs']);
+        $this->intra->arrUsrData['roles'] = array_values(is_array($this->intra->arrUsrData['roles']) ? $this->intra->arrUsrData['roles'] : []);
+        $this->intra->arrUsrData['roleIDs'] = array_values(is_array($this->intra->arrUsrData['roleIDs']) ? $this->intra->arrUsrData['roleIDs'] : []);
         $this->RLAByMatrix();
     }
 
