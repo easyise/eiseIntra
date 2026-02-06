@@ -4,6 +4,11 @@ include "common/auth.php";
 
 //-----------------------for debug
 //$rolID = 2;
+$DataAction = (!empty($_POST["DataAction"]) ? $_POST["DataAction"] 
+    : (!empty($_GET["DataAction"]) 
+        ? $_GET["DataAction"] 
+        : '')
+    );
 
 switch ($DataAction){
 
@@ -73,7 +78,7 @@ include eiseIntraAbsolutePath."inc_top.php";
 
 ?>
 
-<h1>Page matrix for <?php echo $rwPrj["prjTitle"] ; ?></h1>
+<h1>Page matrix for <?php echo ucfirst($intra->getDBName()); ?></h1>
 
 
 <?php
@@ -98,7 +103,7 @@ $sqlPages = "SELECT PG1.pagID
     , PG1.pagIdxRight
     , PG1.pagFlagShowInMenu
     ORDER BY PG1.pagIdxLeft";
-if ($_DEBUG) echo "<pre>",$sqlPages,"</pre>";
+
 $rsPages = $oSQL->do_query($sqlPages);
 
 ?>

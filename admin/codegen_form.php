@@ -3,6 +3,8 @@ include "common/auth.php";
 
 $tblName = $_GET["tblName"];
 
+$strHTML = "";
+
 define('CODE_INDENT', '    ');
 
 function fieldsByArray($toGen, $arrTable, $strArrName = '$_POST', $indent=''){
@@ -40,7 +42,7 @@ function fieldsByArray($toGen, $arrTable, $strArrName = '$_POST', $indent=''){
         
         
         
-        $rn = $prevCol["DataType"]=="activity_stamp" && $col["DataType"]=="activity_stamp" ? "" : "\n".$indent.CODE_INDENT;
+        $rn = isset($prevCol) && $prevCol["DataType"]=="activity_stamp" && $col["DataType"]=="activity_stamp" ? "" : "\n".$indent.CODE_INDENT;
       
         $strFields .= ($strFields!="" ? $rn.", " : "");
         $strFields .= (
@@ -772,6 +774,8 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
         $strTBL = $rwEnt["entTable"];
         $strLTBL = $rwEnt["entTable"]."_log";
 
+        $strKeysMaster = $strKeysLog = '';
+
         $arrReservedColumnNames = array("{$entPrefix}ID"
             , "{$entPrefix}StatusID"
             , "{$entPrefix}ActionLogID"
@@ -1207,7 +1211,164 @@ CREATE TABLE `{$rwEnt["entTable"]}_number` (
         echo "</pre>";
         ob_flush();
         die();
-        break;    
+        break;
+
+    case 'entity_files':
+        $sql = "SELECT * FROM stbl_entity WHERE entID='".$_GET["entID"]."'";
+        $rwEnt = $oSQL->f($sql);
+
+        $className = 'c'.str_replace(' ', '', ucwords($rwEnt["entTitle"]));
+        $filename_prefix = preg_replace('/^tbl_/', '', strtolower($rwEnt['entTable']));
+
+        $arrTable = $intra->getTableInfo($intra->getDBName(), $rwEnt["entTable"]);
+
+        $fieldsInsert = trim(fieldsByArray('UPDATE no_activity_stamp PHP', $arrTable, '$data', "                "));
+
+        $strCode = <<<EOF
+---- file: {$filename_prefix}.class.php ---------------------------------------------------------------------------------------------
+<?php
+class {$className} extends eiseItemTraceable {
+
+public function __construct(\$id=null, \$conf=array()){
+
+	parent::__construct(\$id, array_merge(\$conf, 
+        array('entID'=>'{$rwEnt['entID']}', 
+        'entPrefix'=> '{$rwEnt['entPrefix']}',
+        )));
+
+	\$this->intra->dataRead(array(), \$this);
+	\$this->intra->dataAction(array(), \$this);
+
+}
+
+public function getNewItemID(\$data = array()){
+
+	\$prefix = !empty(\$this->conf['number_prefix']) ? \$this->conf['number_prefix'] : 'PRFX';
+    \$datefmt = 'ym';
+    \$numlength = 5;
+
+    \$sqlNumber = "INSERT INTO tbl_item_number (nitmInsertDate) VALUES (NOW())";
+    \$this->oSQL->q(\$sqlNumber);
+    \$number = \$this->oSQL->i();
+    
+    \$this->oSQL->q("DELETE FROM tbl_item_number WHERE nitmID < {\$number}");
+
+    \$strID = \$prefix . date(\$datefmt) . '-' . str_pad(\$number, \$numlength, '0', STR_PAD_LEFT);
+    
+    return \$strID;
+    
+}
+
+public function newItem(\$nd = array()){
+
+    \$newID = \$this->getNewItemID(\$nd);
+    \$sql = "INSERT INTO {\$this->conf['table']} SET 
+    	{$fieldsInsert}
+        ".(\$newID ? ", {\$this->table['PK'][0]} = ".\$this->oSQL->e(\$newID) : '');
+    
+    \$this->oSQL->q(\$sql);
+
+    \$this->id = (\$newID ? \$newID : \$this->oSQL->i());
+
+    \$this->doAction(new eiseAction(\$this, array('actID'=>1)));
+}
+
+function getData(\$pk = null){
+
+    \$intra = \$this->intra; \$oSQL = \$this->oSQL;
+
+    parent::getData(\$pk);
+
+    if(!\$this->id) return;
+
+    return \$this->item;
+
+}
+
+public function updateTable(\$nd, \$flagDontConvertToSQL = false){
+
+    \$intra = \$this->intra;
+    \$oSQL = \$this->oSQL;
+
+    parent::updateTable(\$nd);
+
+}
+
+public function form( \$fields='', \$options = array('id'=>'frm_req') ){
+
+    \$intra = \$this->intra; \$oSQL = \$this->oSQL;
+	\$htmlFieldsetMain = \$this->intra->fieldset(\$this->intra->arrUsrData['pagTitle'.\$this->intra->local].
+		(\$this->id 
+			? ' '.\$this->id 
+			: ''), 
+			\$this->getStatusField()
+			.\$this->getActionLogSkeleton()
+			. \$this->getFields(),
+			array('id'=>'flds_main')
+			);
+
+	\$html = '<div class="ei-half-screen">'.\$htmlFieldsetMain.'</div>';
+	\$html .= '<div class="ei-half-screen">'.'</div>';
+
+	return parent::form(\$html, array('flagAddJavaScript'=>False, 'flagMessages'=>True, 'flagFiles'=>True));
+
+}
+
+
+
+}
+
+---- file: {$filename_prefix}_list.php ---------------------------------------------------------------------------------------------
+<?php
+include 'common/auth.php';
+include '{$filename_prefix}.class.php';
+
+\$item  = new {$className}();
+
+\$lst = \$item->getList(null);
+
+\$lst->handleDataRequest();
+
+
+
+include eiseIntraAbsolutePath."inc_top.php";
+
+\$lst->show();
+
+include eiseIntraAbsolutePath."inc_bottom.php";
+
+
+---- file: {$filename_prefix}_form.php  ---------------------------------------------------------------------------------------------
+<?php
+include "common/auth.php";
+include '{$filename_prefix}.class.php';
+
+\${$rwEnt['entPrefix']} = new c{$className}();
+
+\$arrActions = [];
+
+\$arrActions[]= Array ("title" => __("Back")
+     , "action" => \$intra->backref('{$filename_prefix}_list.php')
+     , "class"=> "ss_arrow_left"
+  );
+
+\$arrActions[] = Array(
+            'title'=> __("Who's next?")
+            ,'action'=> "#get_whos_next"
+            ,'class'=> "ss_group");
+
+\$arrActions = array_merge( \$arrActions, \${$rwEnt['entPrefix']}->arrActionButtons() );
+
+
+include eiseIntraAbsolutePath."inc_top.php";
+
+echo \${$rwEnt['entPrefix']}->form();
+
+include eiseIntraAbsolutePath."inc_bottom.php";
+
+EOF;
+       break;
+        
 }
 
 if ($strHTML){

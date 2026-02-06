@@ -4,18 +4,15 @@ include "common/auth.php";
 $oSQL->startProfiling();
 
 // Fixed undefined array key warnings by checking if keys exist first
-$DataAction = (isset($_GET["DataAction"]) ? $_GET["DataAction"] : (isset($_POST["DataAction"]) ? $_POST["DataAction"] : ''));
-$pagID = (isset($_GET["pagID"]) ? $_GET["pagID"] : (isset($_POST["pagID"]) ? $_POST["pagID"] : ''));
+$DataAction = (!empty($_GET["DataAction"]) ? $_GET["DataAction"] : (!empty($_POST["DataAction"]) ? $_POST["DataAction"] : ''));
+$pagID = (!empty($_GET["pagID"]) ? $_GET["pagID"] : (!empty($_POST["pagID"]) ? $_POST["pagID"] : ''));
 $pos = (isset($_GET["pos"]) ? $_GET["pos"] : (isset($_POST["pos"]) ? $_POST["pos"] : ''));
 $pagParentID = (isset($_GET["pagParentID"]) ? $_GET["pagParentID"] : (isset($_POST["pagParentID"]) ? $_POST["pagParentID"] : ''));
-
-$dbName = (isset($_GET["dbName"]) ? $_GET["dbName"] : (isset($_POST["dbName"]) ? $_POST["dbName"] : ''));
-
-$oSQL->select_db($dbName);
 
 $intra->requireComponent('grid');
 
 $intra->dataRead('get_privileges');
+
 function get_privileges($q){
     GLOBAL $intra, $oSQL;
 
@@ -372,6 +369,12 @@ $rsPAG = $oSQL->do_query($sqlPAG);
 $ffPage = $oSQL->ff($rsPAG);
 $rwPAG = $oSQL->fetch_array($rsPAG);
 
+if(!$rwPAG){
+    foreach($ffPage as $key=>$val){
+        $rwPAG[$key] = null;
+    }
+}
+
 if (isset($_GET["pagID"])){
 $arrActions[]= Array ("title" => "New item below"
 	   , "action" => "page_form.php?dbName=$dbName&pagParentID=".urlencode($_GET["pagID"])
@@ -514,10 +517,12 @@ echo $intra->fieldset($intra->translate("Check User"),
 
  ?>
 </div>
+<?php if($rwPAG["pagID"]): ?>
 
 <fieldset id="flds-privileges" class="normal"><legend>Privileges</legend>
 <div><?php $grid->Execute(); ?></div></fieldset>
 
+<?php endif;  ?>
 
 </form>
 

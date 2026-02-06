@@ -104,7 +104,7 @@ public function update($nd){
 
 }
 
-$chk = new cChecklist($_POST['chkID'] ? $_POST['chkID'] : $_GET['chkID']);
+$chk = new cChecklist(!empty($_POST['chkID']) ? $_POST['chkID'] : $_GET['chkID']);
 
 $entID = $chk->item['ent']['entID'];
 

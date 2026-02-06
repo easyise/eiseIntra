@@ -3,10 +3,20 @@ include 'common/auth.php';
 
 $intra->requireComponent('grid');
 
+$arrEntityFields = array_keys($oSQL->ff("SELECT * FROM stbl_entity WHERE 1=0"));
 
-if($_POST['DataAction']=='insert'){
+if(isset($_POST['DataAction'])  && $_POST['DataAction']=='insert'){
 
     $oSQL->startProfiling();
+
+    $sqlCheck = "SELECT COUNT(*) FROM stbl_entity 
+        WHERE entTable=".$oSQL->e($_POST['entTable'])."
+        OR entPrefix=".$oSQL->e($_POST['entPrefix'])."
+        OR entID=".$oSQL->e($_POST['entID']);
+    $entExists = $oSQL->d($sqlCheck);
+    if($entExists){
+            die("ERROR: Entity with such Table or Prefix or ID already exists");
+    }
 
     // 1. create entity table
     $oSQL->q("DROP TABLE IF EXISTS {$_POST['entTable']}");
@@ -32,7 +42,10 @@ if($_POST['DataAction']=='insert'){
 
     $oSQL->q("START TRANSACTION");
 
-    $entID = $oSQL->d("SELECT MAX(entID) FROM stbl_entity")+1;
+    $entID = (!empty($_POST['entID']) 
+        ? $_POST['entID']
+        : $oSQL->d("SELECT MAX(entID) FROM stbl_entity")+1
+    );
 
     # 2. create entity record
     $sqlEnt = "INSERT INTO stbl_entity SET
@@ -49,6 +62,7 @@ if($_POST['DataAction']=='insert'){
         , entTitleLocalAbl = ".$oSQL->e($_POST['entTitleLocalAbl'])."
         , entTable = ".$oSQL->e($_POST['entTable'])."
         , entPrefix = ".$oSQL->e($_POST['entPrefix'])."
+        ".(in_array('entType', $arrEntityFields) ? ", entType = ".$oSQL->e($_POST['entType']) : "")."
         , entManagementRoles = ".$oSQL->e($_POST['entManagementRoles']);
     $oSQL->q($sqlEnt);
 
@@ -120,7 +134,7 @@ if($_POST['DataAction']=='insert'){
 
 }
 
-$gridENT = new easyGrid($oSQL
+$gridENT = new eiseGrid($oSQL
         ,'ent'
         , Array(
                 'rowNum' =>40
@@ -197,6 +211,19 @@ $gridENT->Columns[] = Array(
         , 'field' => "entTitleLocalAbl"
         , 'type' => "text"
 );
+if(in_array('entType', $arrEntityFields)){
+    $gridENT->Columns[] = Array(
+            'title' => "Type"
+            , 'field' => "entType"
+            , 'type' => "combobox"
+            , 'filterable' => true
+            , 'options' => Array(
+                    'DOC' => 'DOC'
+                    , 'REF' => 'REF'
+                    , 'MTX' => 'MTX'
+                )
+    );
+}
 $gridENT->Columns[] = Array(
         'title' => "entTable"
         , 'field' => "entTable"
@@ -229,6 +256,7 @@ $(document).ready(function(){
                     , width: '450px'
                     , fields:[
                         { name: 'DataAction', type: 'hidden', value: 'insert' }
+                        , { name: 'entID',          title: 'ID', type: 'text', required: true }
                         , { name: 'entPrefix',          title: 'Prefix', type: 'text', required: true }
                         , { name: 'entTable',           title: 'Table', type: 'text', required: true }
                         , { name: 'entTitle',           title: 'Title (Eng)', type: 'text', required: true }
@@ -240,6 +268,10 @@ $(document).ready(function(){
                         , { name: 'entTitleLocalAcc',   title: 'Винитрельный пад.', type: 'text', required: true }
                         , { name: 'entTitleLocalIns',   title: 'Творительный пад.', type: 'text', required: true }
                         , { name: 'entTitleLocalAbl',   title: 'Предложный пад.', type: 'text', required: true }
+                        , { name: 'entType',   title: 'Тип', type: 'combobox', 
+                                defaultText: '-',
+                                options: [{v:'DOC',t:'DOC'}, {v:'REF',t:'REF'}, {v:'MTX',t:'MTX'}], 
+                                required: false }
                         , { name: 'entManagementRoles', title: 'Roles', type: 'text', required: true }
                     ]
                     , onsubmit: function(){

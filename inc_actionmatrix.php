@@ -137,9 +137,12 @@ function actionGrid($actID){
 	
 	$gridMTX = $this->gridMTX;
 
-	foreach ((array)$this->mtxByAction[$actID] as $rwMTX) {
-		$gridMTX->Rows[] = $rwMTX;
+	if(!empty($this->mtxByAction[$actID])){
+		foreach ($this->mtxByAction[$actID] as $rwMTX) {
+			$gridMTX->Rows[] = $rwMTX;
 	}
+	}
+	
 
 	$html .= $gridMTX->get_html();
 
