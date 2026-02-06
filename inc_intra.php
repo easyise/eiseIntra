@@ -337,17 +337,16 @@ function getEncryptionKey(){
  */
 function encrypt($encrypt) {
     $key = $this->getEncryptionKey();
-
-    if(!$key ||  !is_callable('mcrypt_encrypt')){
+    if(!$key) {
         return base64_encode($encrypt);
     }
-
+    
     $encrypt = serialize($encrypt);
-    $iv = mcrypt_create_iv(mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_CBC), MCRYPT_DEV_URANDOM);
+    $iv = openssl_random_pseudo_bytes(16);
     $key = pack('H*', $key);
     $mac = hash_hmac('sha256', $encrypt, substr(bin2hex($key), -32));
-    $passcrypt = mcrypt_encrypt(MCRYPT_RIJNDAEL_256, $key, $encrypt.$mac, MCRYPT_MODE_CBC, $iv);
-    $encoded = base64_encode($passcrypt).'|'.base64_encode($iv);
+    $encrypted = openssl_encrypt($encrypt.$mac, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
+    $encoded = base64_encode($encrypted).'|'.base64_encode($iv);
     return $encoded;
 }
  
@@ -363,6 +362,34 @@ function encrypt($encrypt) {
  * @return string Encrypted string.
  */
 function decrypt($decrypt) {
+    $key = $this->getEncryptionKey();
+    if(!$key) {
+        return base64_decode($decrypt);
+    }
+    
+    $parts = explode('|', $decrypt.'|');
+    $decoded = base64_decode($parts[0]);
+    $iv = base64_decode($parts[1]);
+    
+    if(strlen($iv) !== 16) return $this->decrypt_old($decrypt);
+    
+    $key = pack('H*', $key);
+    $decrypted = openssl_decrypt($decoded, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv);
+    
+    $mac = substr($decrypted, -64);
+    $decrypted = substr($decrypted, 0, -64);
+    $calcmac = hash_hmac('sha256', $decrypted, substr(bin2hex($key), -32));
+    
+    if($calcmac !== $mac) return $this->decrypt_old($decrypt);
+    return unserialize($decrypted);
+}
+
+/**
+ * Special function to decrypt old-style encrypted strings with mcrypt.
+ * 
+ */
+function decrypt_old($decrypt) {
+
     $key = $this->getEncryptionKey();
 
     if(!$key ||  !is_callable('mcrypt_decrypt')){
@@ -2772,8 +2799,12 @@ function loadCSS(){
  * @return string The query string.
  */
 private function getCachePreventor(){
-    GLOBAL $intra;
-    return $intra->conf['cachePreventorVar'].'='.preg_replace('/\D/', '', (isset($this->conf['versionIntra']) ? $this->conf['versionIntra'] : '').(isset($this->conf['version']) ? $this->conf['version'] : ''));
+    return $this->conf['cachePreventorVar'].'='.preg_replace('/\D/'
+        , ''
+        , (isset($this->conf['versionIntra']) 
+            ? $this->conf['versionIntra'] 
+            : '')
+           .(isset($this->conf['version']) ? $this->conf['version'] : ''));
 
 }
 
