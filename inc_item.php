@@ -124,11 +124,11 @@ public function __construct($id = null,  $conf = array() ){
 	$this->conf['list'] = isset($conf['list']) ? $conf['list'] : $conf['name'].'_list.php';
 
 	$this->conf['title'] = isset($conf['title']) ? $conf['title'] 
-		: ($intra->arrUsrData["pagTitle"]
+		: (!empty($intra->arrUsrData["pagTitle"])
 			? $intra->arrUsrData["pagTitle"]
 			: $this->conf['title']) ;
 	$this->conf['titleLocal'] = isset($conf['titleLocal']) ? $conf['titleLocal'] 
-		: ($intra->arrUsrData["pagTitleLocal"]
+		: (!empty($intra->arrUsrData["pagTitleLocal"])
 			? $intra->arrUsrData["pagTitleLocal"]
 			: $this->conf['titleLocal']) ;
 
