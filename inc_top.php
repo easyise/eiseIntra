@@ -48,8 +48,8 @@ $conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)$intra->arrUsrData[
         </div>
         <div class="ei-login-info"><?php 
 
-        $usrName = ($authmethod=="mysql" ? $oSQL->dbuser : $intra->arrUsrData["usrName{$intra->local}"]);
-        $usrDescr = ($authmethod=="mysql" ? '@'.$oSQL->dbhost : (isset($intra->arrUsrData["usrDescription{$intra->local}"]) ? $intra->arrUsrData["usrDescription{$intra->local}"] : ''));
+        $usrName = (isset($authmethod) && $authmethod=="mysql" ? $oSQL->dbuser : $intra->arrUsrData["usrName{$intra->local}"]);
+        $usrDescr = (isset($authmethod) && $authmethod=="mysql" ? '@'.$oSQL->dbhost : (isset($intra->arrUsrData["usrDescription{$intra->local}"]) ? $intra->arrUsrData["usrDescription{$intra->local}"] : ''));
 
         if(isset($intra->arrUsrData['usrIcon']) && $intra->arrUsrData['usrIcon']!=='')
             echo '<div class="ei-user-icon"><img src="'.$intra->arrUsrData['usrIcon'].'"></div>'."\n";

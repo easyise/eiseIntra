@@ -1582,6 +1582,7 @@ function getUserMessage(){
  * @return array of user ID's
  */
 function getRoleUsers($rolID) {
+   $arrRoleUsers = array();
    $sqlRoleUsers = "SELECT rluUserID
        FROM stbl_role ROL
        INNER JOIN stbl_role_user RLU ON RLU.rluRoleID=ROL.rolID
