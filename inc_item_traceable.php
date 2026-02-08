@@ -2993,12 +2993,12 @@ public function getNextBiggerStatus($staID){
     $nextBiggerStatus = max(array_keys($this->conf['STA']));
     foreach ((array)$sta['ACT'] as $act){
         // echo '<pre>'.var_export($act['RLA'], true);
-        if($act['actNewStatusID'][0]===null 
-            || $act['actNewStatusID'][0]==$staID 
+        if((isset($act['actNewStatusID'][0]) ? $act['actNewStatusID'][0] : null)===null 
+            || (isset($act['actNewStatusID'][0]) ? $act['actNewStatusID'][0] : null)==$staID 
             || count($act['RLA'])==0
-            || $act['actFlagSystem'])
+            || (isset($act['actFlagSystem']) && $act['actFlagSystem']))
             continue;
-        if($act['actNewStatusID'][0]>$staID && $act['actNewStatusID'][0] < $nextBiggerStatus){
+        if((isset($act['actNewStatusID'][0]) ? $act['actNewStatusID'][0] : null)>$staID && (isset($act['actNewStatusID'][0]) ? $act['actNewStatusID'][0] : null) < $nextBiggerStatus){
             $nextBiggerStatus = $act['actNewStatusID'][0];   
         }
     }
@@ -3038,7 +3038,7 @@ public function getWhosNextStatus($staID, $counter){
     foreach ((array)$sta['ACT'] as $act){
         if(count($act['RLA'])==0)
             continue;
-        if($act['actNewStatusID'][0]==$nextBiggerStatus){
+        if((isset($act['actNewStatusID'][0]) ? $act['actNewStatusID'][0] : null)==$nextBiggerStatus){
             $defaultActID = ($defaultActID === null ? $act['actID'] : $defaultActID);
             $actNext[] = $act;
         }
@@ -3050,7 +3050,7 @@ public function getWhosNextStatus($staID, $counter){
     // $html .= '<pre>'.var_export((array)$sta['ACT'], true).'</pre>';
     $htmlNext = '';
     foreach ((array)$sta['ACT'] as $act) {
-        if($act['actNewStatusID'][0]==$staID)
+        if((isset($act['actNewStatusID'][0]) ? $act['actNewStatusID'][0] : null)==$staID)
             continue;
         // if($act['actFlagSystem'])
         //     continue;
@@ -3064,7 +3064,7 @@ public function getWhosNextStatus($staID, $counter){
         if($act["actDescription{$this->intra->local}"]){
             $html .= '<small>'.$act["actDescription{$this->intra->local}"].'</small>';
         }
-        if( !$act['actFlagSystem'] ){
+        if( !(isset($act['actFlagSystem']) && $act['actFlagSystem']) ){
 
             $html .= '<ul class="users-roles">';
             $aUsers = array();
