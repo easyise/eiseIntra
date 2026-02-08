@@ -244,7 +244,7 @@ for ($j=0; $j<count($dstID); $j++){
 								<?php echo ($rw["actDescription$intra->local"] ? "<div><small>".$rw["actDescription$intra->local"]."</small></div>" : '');?>
 								<ul class="roles">
 									<?php
-									foreach ((array)$this->mtxByAction[$rw['actID']] as $rwMTX) {
+									foreach ((array)(isset($this->mtxByAction[$rw['actID']]) ? $this->mtxByAction[$rw['actID']] : array()) as $rwMTX) {
 										$conditions = '';
 										foreach ($this->mtxDataFields as $ix=>$field) {
 											if(isset($rwMTX[$field]) && $rwMTX[$field]!==null && $rwMTX[$field]!=='' && $rwMTX[$field]!='%'){
