@@ -529,11 +529,11 @@ public function handleDataRequest(){ // handle requests and return them with Aja
             $cols = [];
             
             foreach($this->Columns as $col) {
-                if (($col["title"] ?? "")=="" 
+                if (!isset($col['title']) || $col['title'] == ''
                     || in_array($col["field"], $this->arrHiddenCols)
                     || in_array($col['field'], $this->conf['hiddenColsExcel'])
-                    || ($col['flagNoExcel'] ?? false)
-                    || ($col['checkbox'] ?? false)) {
+                    || (isset($col['flagNoExcel']) && $col['flagNoExcel'])
+                    || (isset($col['checkbox']) && $col['checkbox'])) {
 
                     $col['flagNoExcel'] = true;
                     continue;
@@ -561,7 +561,7 @@ public function handleDataRequest(){ // handle requests and return them with Aja
                 
                 $arrRow = Array();
                 foreach($cols as $ii=>$col) {
-                    if ($col['flagNoExcel'] ?? false) {
+                    if (isset($col['flagNoExcel']) && $col['flagNoExcel']) {
                         continue;
                     }
                     $arrRow[$col["field"]] = $this->formatData($col, trim($rw[$col["field"]]), $rw);
@@ -1636,21 +1636,21 @@ private function getSearchCondition(&$col){
                     for ($i=0;$i<count($arrMatch[0]);$i++){
                         $cond = $i==0 ? ""
                             : (
-                              $arrMatch[1][$i]=="&" || $arrMatch[1][$i]=="&&" || $arrMatch[1][$i]=="AND"
+                              (isset($arrMatch[1][$i]) && ($arrMatch[1][$i]=="&" || $arrMatch[1][$i]=="&&" || $arrMatch[1][$i]=="AND"))
                               ? "AND"
                               : "OR" );
-                        $oper = $arrMatch[2][$i]=="" ? "=" : $arrMatch[2][$i];
+                        $oper = (empty($arrMatch[2][$i]) ? "=" : $arrMatch[2][$i]);
 
                         $strCondition .= ($cond ? " ".$cond." " : "")."DATEDIFF(".$col['searchExpression'].", '".
                             (strlen($arrMatch[$arrRex['ixOf']['Y']+2][$i])==2 ? '20'.$arrMatch[$arrRex['ixOf']['Y']+2][$i] : $arrMatch[$arrRex['ixOf']['Y']+2][$i])
                             ."-".$arrMatch[$arrRex['ixOf']['m']+2][$i]
                             ."-".$arrMatch[$arrRex['ixOf']['d']+2][$i]
-                            .(isset($arrMatch[6]) ? $arrMatch[6][$i] : "") // time
+                            .(isset($arrMatch[6][$i]) ? $arrMatch[6][$i] : "") // time
                             ."')".$oper."0";
                     }
                 }
 
-                $strCondition = $i>1 ? "(".$strCondition.")" : $strCondition;
+                $strCondition = ($i>1 ? "(".$strCondition.")" : $strCondition);
 
             }
             
@@ -1756,7 +1756,7 @@ private function getRowArray($index, $rw){
 }
 
 private function formatData($col, $val, $rw){
-    switch ($col['type'] ?? 'text') {
+    switch (isset($col['type']) ? $col['type'] : 'text') {
             case "date":
                 $val = $this->DateSQL2PHP($val, $this->conf['dateFormat']);
                 break;
@@ -1777,8 +1777,8 @@ private function formatData($col, $val, $rw){
                     ? 0
                     : (isset($col['decimalPlaces']) ? $col['decimalPlaces'] : $this->conf['decimalPlaces'])
                     );
-                $val = round((float)$val, $decimalPlaces);
-                $val = number_format($val, $decimalPlaces
+                $val = round((float)$val, (int)$decimalPlaces);
+                $val = number_format((float)$val, (int)$decimalPlaces
                         , (isset($col['decimalSeparator']) ? $col['decimalSeparator'] : $this->conf['decimalSeparator'])
                         , (isset($col['thousandsSeparator']) ? $col['thousandsSeparator'] : $this->conf['thousandsSeparator']) );
                 break;
@@ -1797,7 +1797,7 @@ private function formatData($col, $val, $rw){
             case "text":
             default:
                 mb_internal_encoding("UTF-8");
-                $limitOutput = $col["limitOutput"] ?? 0;
+                $limitOutput = (isset($col["limitOutput"]) ? $col["limitOutput"] : 0);
                 $val = ($limitOutput > 0 && mb_strlen($rw[$col['field']]) > $limitOutput) 
                     ? mb_substr($rw[$col['field']], 0, $limitOutput)."..." 
                     : $val;
