@@ -753,7 +753,7 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
         }
 
         $sql .= "\r\nWHERE (\r\n{$sqlVariations}\r\n)"
-            .( ($flagShowDeleted===false && $arrFields["delField"]) ? " AND IFNULL(`{$arrFields["delField"]}`, 0)=0" : "")
+            .( ($flagShowDeleted===false && !empty($arrFields["delField"])) ? " AND IFNULL(`{$arrFields["delField"]}`, 0)=0" : "")
             .$strExtra;
         if($strPrefix)
             $sql .= "\r\nORDER BY `".(isset($arrFields['orderField']) && $arrFields['orderField'] ? $arrFields['orderField'] : (isset($arrFields["textField{$local}"]) ? $arrFields["textField{$local}"] : $arrFields["textField"]))."`";

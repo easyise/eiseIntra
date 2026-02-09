@@ -984,7 +984,7 @@ public function menu($target = null){
                 $strRet .= "<li id='".$rw["pagID"]."_".$rwSta["staID"]."'><a{$target} href='"
                     .$rw["pagFile"]."?{$entPrefix}_staID={$rwSta["staID"]}'>"
                     .'<i class="fa '.$staMenuItemClass.'"></i>'
-                    .($rwSta["staTitle{$this->local}Mul"] ? $rwSta["staTitle{$this->local}Mul"] : $rwSta["staTitle{$this->local}"])
+                    .(!empty($rwSta["staTitle{$this->local}Mul"]) ? $rwSta["staTitle{$this->local}Mul"] : $rwSta["staTitle{$this->local}"])
                     .(preg_match('/^\<ul/i', ltrim($customSubMenu_sta))
                         ? ' <i class="fa fa-angle-left pull-right"></i>' 
                         : '')
