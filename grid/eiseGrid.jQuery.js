@@ -1269,7 +1269,10 @@ eiseGrid.prototype.updateRow = function(oTr, fieldInitiator){
     if(fieldInitiator && this.conf.fields[fieldInitiator].flagDontUpdateRow)
         return;
     
-    oTr.find("input")[1].value="1";
+    var oInpUpdated = oTr.find("input")[1];
+    if (oInpUpdated) {
+        oInpUpdated.value="1";
+    }
     oTr.addClass('eg-updated');
 
 }

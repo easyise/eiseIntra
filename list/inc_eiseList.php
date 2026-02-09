@@ -529,11 +529,11 @@ public function handleDataRequest(){ // handle requests and return them with Aja
             $cols = [];
             
             foreach($this->Columns as $col) {
-                if ($col["title"]=="" 
+                if (($col["title"] ?? "")=="" 
                     || in_array($col["field"], $this->arrHiddenCols)
                     || in_array($col['field'], $this->conf['hiddenColsExcel'])
-                    || $col['flagNoExcel']
-                    || $col['checkbox']) {
+                    || ($col['flagNoExcel'] ?? false)
+                    || ($col['checkbox'] ?? false)) {
 
                     $col['flagNoExcel'] = true;
                     continue;
@@ -561,7 +561,7 @@ public function handleDataRequest(){ // handle requests and return them with Aja
                 
                 $arrRow = Array();
                 foreach($cols as $ii=>$col) {
-                    if ($col['flagNoExcel']) {
+                    if ($col['flagNoExcel'] ?? false) {
                         continue;
                     }
                     $arrRow[$col["field"]] = $this->formatData($col, trim($rw[$col["field"]]), $rw);
@@ -1625,6 +1625,7 @@ private function getSearchCondition(&$col){
 
             foreach($this->conf['dateRegExs'] as $arrRex){
 
+                $i = 0;
                 $prgFull = '/'.$prgOperators.$arrRex['rex'].($col['type']=='datetime' 
                     ? '( '.$arrRex['rexTime'].'){0,1}'
                     : '')
@@ -1644,7 +1645,7 @@ private function getSearchCondition(&$col){
                             (strlen($arrMatch[$arrRex['ixOf']['Y']+2][$i])==2 ? '20'.$arrMatch[$arrRex['ixOf']['Y']+2][$i] : $arrMatch[$arrRex['ixOf']['Y']+2][$i])
                             ."-".$arrMatch[$arrRex['ixOf']['m']+2][$i]
                             ."-".$arrMatch[$arrRex['ixOf']['d']+2][$i]
-                            .$arrMatch[6][$i] // time
+                            .(isset($arrMatch[6]) ? $arrMatch[6][$i] : "") // time
                             ."')".$oper."0";
                     }
                 }
@@ -1755,7 +1756,7 @@ private function getRowArray($index, $rw){
 }
 
 private function formatData($col, $val, $rw){
-    switch ($col['type']) {
+    switch ($col['type'] ?? 'text') {
             case "date":
                 $val = $this->DateSQL2PHP($val, $this->conf['dateFormat']);
                 break;
@@ -1776,7 +1777,7 @@ private function formatData($col, $val, $rw){
                     ? 0
                     : (isset($col['decimalPlaces']) ? $col['decimalPlaces'] : $this->conf['decimalPlaces'])
                     );
-                $val = round($val, $decimalPlaces);
+                $val = round((float)$val, $decimalPlaces);
                 $val = number_format($val, $decimalPlaces
                         , (isset($col['decimalSeparator']) ? $col['decimalSeparator'] : $this->conf['decimalSeparator'])
                         , (isset($col['thousandsSeparator']) ? $col['thousandsSeparator'] : $this->conf['thousandsSeparator']) );
@@ -1796,8 +1797,9 @@ private function formatData($col, $val, $rw){
             case "text":
             default:
                 mb_internal_encoding("UTF-8");
-                $val = ($col["limitOutput"] > 0 && mb_strlen($rw[$col['field']]) > $col["limitOutput"]) 
-                    ? mb_substr($rw[$col['field']], 0, $col["limitOutput"])."..." 
+                $limitOutput = $col["limitOutput"] ?? 0;
+                $val = ($limitOutput > 0 && mb_strlen($rw[$col['field']]) > $limitOutput) 
+                    ? mb_substr($rw[$col['field']], 0, $limitOutput)."..." 
                     : $val;
                 break;
         }
