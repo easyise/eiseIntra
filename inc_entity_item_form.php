@@ -822,11 +822,11 @@ function showMessages_skeleton(){
     $strRes .= '<input type="hidden" name="DataAction" id="DataAction_attach" value="messageSend">'."\r\n";
     $strRes .= '<input type="hidden" name="entID" id="entID_Message" value="'.$this->entID.'">'."\r\n";
     $strRes .= '<input type="hidden" name="entItemID" id="entItemID_Message" value="'.$this->entItemID.'">'."\r\n";
-    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('To').':</label>'
+    $strRes .= '<div class="eiseIntraMessageField eif-field"><label>'.$this->intra->translate('To').':</label>'
         .$this->intra->showAjaxDropdown('msgToUserID', '', array('required'=>true, 'strTable'=>'svw_user')).'</div>';
-    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('CC').':</label>'
+    $strRes .= '<div class="eiseIntraMessageField eif-field"><label>'.$this->intra->translate('CC').':</label>'
         .$this->intra->showAjaxDropdown('msgCCUserID', '', array('strTable'=>'svw_user')).'</div>';
-    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('Subject').':</label>'.$this->intra->showTextBox('msgSubject', '').'</div>';
+    $strRes .= '<div class="eiseIntraMessageField eif-field"><label>'.$this->intra->translate('Subject').':</label>'.$this->intra->showTextBox('msgSubject', '').'</div>';
     $strRes .= '<div class="eiseIntraMessageBody">'.$this->intra->showTextArea('msgText', '').'</div>';
     $strRes .= '<div class="eiseIntraMessageButtons"><input type="submit" id="msgPost" value="'.$this->intra->translate('Send').'">
         <input type="button" id="msgClose" value="'.$this->intra->translate('Close').'">

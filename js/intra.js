@@ -739,7 +739,7 @@ var setCurrentDate = function(oInp){
 }
 
 var getFieldLabel = function(oInp){
-    return oInp.parents('.eiseIntraField').first().find('label').last();
+    return oInp.parents('.eiseIntraField, .eif-field').first().find('label').last();
 }
 var getFieldLabelText = function(oInp){
     return getFieldLabel(oInp).text().replace(/[\:\*]+$/, '');
@@ -987,7 +987,7 @@ init: function( options ) {
  * options can bu used here to set validation callback functions (validators)
  */
 validate: function( options ) {
-    
+
     if ($(this).find('#DataAction')=='delete')
         return true;
     
@@ -1057,7 +1057,14 @@ validate: function( options ) {
                     return false;
                 }
                 break;
-                
+
+            case 'ajax_dropdown':
+                if ($inpToCheck.attr('required')==='required' && $inpToCheck.prev('input').val()==''){
+                    alert(getFieldLabelText($inpToCheck)+" is mandatory");
+                    $(this).focus();
+                    canSubmit = false;
+                    return false;
+                }
             default:
                  break;
         }

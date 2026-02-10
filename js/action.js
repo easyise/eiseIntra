@@ -308,6 +308,9 @@ var showMessages = function($form, options={}){
         var $frm = $(msgmng.htmlMsgForm).dialog({modal: true
                     , width: '400px'})
                     .eiseIntraForm();
+        $frm.submit(function(ev){
+            return $frm.eiseIntraForm('validate')
+        })
         $frm.find('#msgClose')[0]
             .onclick = function(){
                 $frm.dialog('close').remove();

@@ -3,6 +3,9 @@ namespace eiseIntra;
 
 require_once(dirname(__FILE__).'/inc_item.php');
 
+define('MESSAGE_P_CLEANUP', 0.1); // probability of cleanup routine to be triggered on each sendMessages() function call.
+define('MESSAGE_DAYS_CLEANUP', 7); // number of days after which unsent messages will be cleaned up from queue.
+
 class Messages {
 
 public $item;
@@ -44,10 +47,10 @@ function formMessages(){
 
     $strRes .= '<div class="eiseIntraMessage eif_template eif_evenodd">'."\n";
     $strRes .= '<div class="eif_msgInsertDate"></div>';
-    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('From').':</label><span class="eif_msgFrom"></span></div>';
-    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('To').':</label><span class="eif_msgTo"></span></div>';
-    $strRes .= '<div class="eiseIntraMessageField eif_invisible"><label>'.$this->intra->translate('CC').':</label><span class="eif_msgCC"></span></div>';
-    $strRes .= '<div class="eiseIntraMessageField eif_invisible"><label>'.$this->intra->translate('Subject').':</label><span class="eif_msgSubject"></span></div>';
+    $strRes .= '<div class="eiseIntraMessageField eif-field"><label>'.$this->intra->translate('From').':</label><span class="eif_msgFrom"></span></div>';
+    $strRes .= '<div class="eiseIntraMessageField eif-field"><label>'.$this->intra->translate('To').':</label><span class="eif_msgTo"></span></div>';
+    $strRes .= '<div class="eiseIntraMessageField eif-field eif_invisible"><label>'.$this->intra->translate('CC').':</label><span class="eif_msgCC"></span></div>';
+    $strRes .= '<div class="eiseIntraMessageField eif-field eif_invisible"><label>'.$this->intra->translate('Subject').':</label><span class="eif_msgSubject"></span></div>';
     $strRes .= '<pre class="eif_msgText"></div>';
     $strRes .= '</pre>'."\n";
 
@@ -67,11 +70,11 @@ function formMessages(){
     $strRes .= '<input type="hidden" name="DataAction" id="DataAction_attach" value="sendMessage">'."\r\n";
     $strRes .= '<input type="hidden" name="entID" id="entID_Message" value="'.$entID.'">'."\r\n";
     $strRes .= '<input type="hidden" name="entItemID" id="entItemID_Message" value="'.$this->id.'">'."\r\n";
-    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('To').':</label>'
+    $strRes .= '<div class="eiseIntraMessageField eif-field"><label>'.$this->intra->translate('To').':</label>'
         .$this->intra->showAjaxDropdown('msgToUserID', '', array('required'=>true, 'source'=>'svw_user')).'</div>';
-    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('CC').':</label>'
+    $strRes .= '<div class="eiseIntraMessageField eif-field"><label>'.$this->intra->translate('CC').':</label>'
         .$this->intra->showAjaxDropdown('msgCCUserID', '', array('source'=>'svw_user')).'</div>';
-    $strRes .= '<div class="eiseIntraMessageField"><label>'.$this->intra->translate('Subject').':</label>'.$this->intra->showTextBox('msgSubject', '').'</div>';
+    $strRes .= '<div class="eiseIntraMessageField eif-field"><label>'.$this->intra->translate('Subject').':</label>'.$this->intra->showTextBox('msgSubject', '').'</div>';
     $strRes .= '<div class="eiseIntraMessageBody">'.$this->intra->showTextArea('msgText', '').'</div>';
     $strRes .= '<div class="eiseIntraMessageButtons"><input type="submit" id="msgPost" value="'.$this->intra->translate('Send').'">
         <input type="button" id="msgClose" value="'.$this->intra->translate('Close').'">
@@ -209,7 +212,15 @@ static function sendMessages($conf){
 
     $oSQL = $intra->oSQL;
 
+    $oSQL->startProfiling();
+
+    $oSQL->q('START TRANSACTION');
+
     self::checkMessageQueueExists();
+
+    self::cleanupMessageQueue($oSQL);
+
+    $oSQL->q('COMMIT');
 
     include_once(commonStuffAbsolutePath.'/eiseMail/inc_eisemail.php');
 
@@ -221,8 +232,15 @@ static function sendMessages($conf){
 	$rsMsg = $oSQL->q($sqlMsg);
     
     $rwMsg = $oSQL->f($rsMsg);
-    if($oSQL->n($rsMsg)==0)
-    	return; // nothing to send
+    if($oSQL->n($rsMsg)==0){
+        $oSQL->q("COMMIT");
+        echo "No messages to send.\n";
+        if($conf['verbose']){
+            $oSQL->showProfileInfo();
+        }
+        return; // nothing to send
+    }
+    	
 
     // 1. dealing with authentication basing on FROM and $conf
     $rwUsr_From = $intra->getUserData_All($rwMsg['msgFromUserID'], 'all');
@@ -246,6 +264,8 @@ static function sendMessages($conf){
     $sender  = new \eiseMail(array_merge($conf, $arrAuth));
 
     do {
+        // re-fetching FROM user data for each message, because it can be different for different messages
+        $rwUsr_From = $intra->getUserData_All($rwMsg['msgFromUserID'], 'all');
 
         // 3. dealing with to/cc
     	$rwUsr_To = $intra->getUserData_All($rwMsg['msgToUserID'], 'all');
@@ -267,7 +287,10 @@ static function sendMessages($conf){
     	$msg['To'] = (!empty($rwMsg['msgToUserEmail'])
            	? (!empty($rwMsg['msgToUserName']) ? "\"".$rwMsg['msgToUserName']."\" <".$rwMsg['msgToUserEmail'].">" : $rwMsg['msgToUserEmail'])
            	: (!empty($rwUsr_To['usrName']) ? "\"".$rwUsr_To['usrName']."\" <".$rwUsr_To['usrEmail'].">" : ''));
-        $rwMsg['msgToUserEmail'] = (!empty($rwMsg['msgToUserEmail']) ? $rwMsg['msgToUserEmail'] : $rwUsr_To['usrEmail']);
+        $rwMsg['msgToUserEmail'] = (!empty($rwMsg['msgToUserEmail']) 
+            ? $rwMsg['msgToUserEmail'] 
+            : (!empty($rwUsr_To['usrEmail']) ? $rwUsr_To['usrEmail'] : '')
+            );
 
 		if(isset($conf['Content-Type']) && $conf['Content-Type'] == 'text/html'){
 		    $msg['Text'] = nl2br($rwMsg['msgText']); 
@@ -298,6 +321,9 @@ static function sendMessages($conf){
             $oSQL->q("UPDATE stbl_message_queue SET 
                 msgStatus = 'No To email'
                 WHERE msgID={$msg['msgID']}");
+            $sqlMove = "INSERT INTO stbl_message SELECT * FROM stbl_message_queue WHERE stbl_message_queue.msgID={$msg['msgID']}";
+            $oSQL->q($sqlMove);
+            $oSQL->q("DELETE FROM stbl_message_queue WHERE msgID={$msg['msgID']}");
             continue;
         }
 
@@ -351,6 +377,10 @@ static function sendMessages($conf){
 
     $oSQL->q("COMMIT");
 
+    if($conf['verbose']){
+        $oSQL->showProfileInfo();
+    }
+
 }
 
 /**
@@ -385,6 +415,21 @@ public static function checkMessageQueueExists($oSQL=null){
 
 }
 
+public static function cleanupMessageQueue($oSQL=null){
 
+    GLOBAL $intra;
+    if($oSQL===null)
+        $oSQL = $intra->oSQL;
+
+    $days = MESSAGE_DAYS_CLEANUP;
+
+    if(mt_rand(0, 100)/100 < MESSAGE_P_CLEANUP){
+        // it deletes unsent messages older than 1 day to stbl_message with appropriate status and then deletes them from queue. This is a safety measure to prevent queue from being clogged with unsendable messages (e.g. due to wrong email address or SMTP issues).
+        $sqlDelete = "DELETE FROM stbl_message_queue WHERE msgInsertDate < DATE_SUB(NOW(), INTERVAL {$days} DAY)
+                AND (msgStatus IS NULL OR msgStatus != 'Sent')";
+        $oSQL->q($sqlDelete);
+    }
     
+}
+
 }
