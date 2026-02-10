@@ -1031,10 +1031,13 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
     unset($conf4list['STA']);
     unset($conf4list['ACT']);
 
+    $staTitle = isset($this->conf['STA'][$this->staID]["staTitle{$strLocal}Mul"])
+        ? $this->conf['STA'][$this->staID]["staTitle{$strLocal}Mul"]
+        : (isset($this->conf['STA'][$this->staID]["staTitle{$strLocal}"]) ? $this->conf['STA'][$this->staID]["staTitle{$strLocal}"] : '');
     $conf4list = array_merge($conf4list,
         Array('title'=>$this->conf["title{$strLocal}Mul"].(
                 $this->staID!==null
-                ? ': '.($this->conf['STA'][$this->staID]["staTitle{$strLocal}Mul"] ? $this->conf['STA'][$this->staID]["staTitle{$strLocal}Mul"] : $this->conf['STA'][$this->staID]["staTitle{$strLocal}"])
+                ? ': '.$staTitle
                 : '')
             ,  "intra" => $this->intra
             , "cookieName" => $listName.$this->staID.(isset($_GET["{$listName}_{$listName}FlagMyItems"]) && $_GET["{$listName}_{$listName}FlagMyItems"]==="1" ? 'MyItems' : '')
