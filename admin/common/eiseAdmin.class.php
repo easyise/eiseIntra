@@ -502,7 +502,10 @@ function dumpTable ($tableName, $tableOptions){
     $rsFields = $oSQL->q($sqlFields);
     while($rwField = $oSQL->f($rsFields)){
 
-        if( !$tableOptions['columns'] || ($tableOptions['columns'] && in_array($rwField['Field'], $tableOptions['columns'])) ) {
+        $columns = (!empty($tableOptions['columns']) && is_array($tableOptions['columns']) 
+            ? $tableOptions['columns']
+            : Array());
+        if( !$columns || ($columns && in_array($rwField['Field'], $columns)) ) {
             $arrFields[$rwField['Field']] = $rwField;
             $strFields .= ($strFields=='' ? '' : ', ')."`{$rwField['Field']}`";  
         }

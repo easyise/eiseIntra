@@ -190,7 +190,7 @@ case 'dump':
                 break;
         }
 
-        if($_GET['flagNoData']) $arrOptions['flagNoData'] = true;
+        if(!empty($_GET['flagNoData'])) $arrOptions['flagNoData'] = true;
         $strTables = $intra->dumpTables($arrTablesToDump, $arrOptions);
 
     }
