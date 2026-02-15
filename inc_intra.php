@@ -2040,6 +2040,10 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
 
     if($title!==null){
 
+        if(isset($conf['details']) && $conf['details']!==null){
+            $html .= '<div class="eif-details" id="'.$conf['id']."_details".'">'.htmlspecialchars($conf['details']).'</div>';
+        }
+
         $html .= (isset($conf['extraHTML']) ? $conf['extraHTML'] : '').'</div>'."\r\n\r\n";
 
     }

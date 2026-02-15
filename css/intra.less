@@ -825,11 +825,15 @@ td     {  	vertical-align: top; padding: 0;}
     vertical-align: top;
 }
 
+body {
+    --eif-label-width: 23%;
+}
+
 .eiseIntraForm  label{
     float: left;
     clear: left;
     cursor: default !important;
-    width: 23%;
+    width: var(--eif-label-width);
     padding-right: 1% !important;
 }
 
@@ -849,15 +853,46 @@ td     {  	vertical-align: top; padding: 0;}
     line-height: 20px;
 }
 
-.eif-form .eif-field > label {
-    &:after {
-        content: ":";
+.eif-form .eif-field {
+    & > label {
+        &:after {
+            content: ":";
+        }
+    }
+    & > .eif-details {
+        display: block; 
+        font-size: 0.9em; 
+        color: #666; 
+        margin-top: 0.2em; 
+        margin-left: var(--eif-label-width);
     }
 }
 .eif-form .eif-field.required > label {
     &:after {
         content: "*:";
     }
+}
+
+.eif-form .eif-field > .eif-input {
+
+    color: @eif-input-color;
+    background-color: @eif-input-background-color;
+    border-color: @eif-input-border-color;
+    border-width: @eif-input-border-width;
+    border-radius: @eif-input-border-radius;
+    border-style: solid;
+
+    &.input-spinner {
+        padding-right: 20px;
+        background: @spinner-small no-repeat right center;
+        background-color: @eif-input-background-color;
+    }
+}
+
+.eif-half-screen {
+    width: 48%;
+    display: inline-block;
+    vertical-align: top;
 }
 
 .eif-form .eif-field- > label,
@@ -893,7 +928,7 @@ td     {  	vertical-align: top; padding: 0;}
 
 .eiseIntraForm .eiseIntraValue {
     clear: right;
-    width: 73%;
+    width: calc(~"100% - var(--eif-label-width)" - 10px);
 }
 
 .eif-form-dialog {
@@ -908,7 +943,7 @@ td     {  	vertical-align: top; padding: 0;}
     }
     & .eiseIntraValue {
 
-        width: 63%;
+        width: calc(100% - 33%);
 
             & input[type="checkbox"], input[type="radio"] {
                 width: auto !important;
@@ -1314,7 +1349,7 @@ div.eiseIntraComment {
 }
 
 .eif_spinner {
-    background: url("/common/images/spinner_large.gif") no-repeat scroll center center transparent;
+    background: @spinner-large no-repeat scroll center center transparent;
 }
 
 
