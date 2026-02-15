@@ -142,7 +142,7 @@ public $headerColumns = array(); // array of header columns, indexed by field na
 public $hiddenInputs = array(),
     $permissions = array(),
     $arrWidth = array(),
-    $Tabs3D = null,
+    $Tabs3D = array(),
     $arrSpans = array(), // array of spans for the header columns, indexed by field name
     $newData_transposed = array(); // array of transposed data for updates
 
@@ -914,7 +914,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     $nIteration = 0;
     foreach($arrSuffix as $suffix){
 
-        $_val = ($suffix ? $val[$suffix] : $val);
+        $_val = ($suffix && isset($val[$suffix]) ? $val[$suffix] : $val);
         $_field = ($suffix ? $field."[{$suffix}]" : $field);
         $_textfield = ($suffix ? $field."_text[{$suffix}]" : $field.'_text');
         $_checkfield = ($suffix ? $field."_chk[{$suffix}]" : $field.'_chk');
@@ -1339,47 +1339,76 @@ function json( $newData = null, $conf = array() ){
 
     $aRet = array();
 
+    $arrTabKeys = array();
+    foreach($this->Tabs3D as $tab){
+        $arrTabKeys[] = $tab['ID'];
+    }
+
+    if(empty($arrTabKeys)){
+        $arrTabKeys[] = '';
+    }
+
+    
     for($i=1;$i<count((array)$newData[$pkColName]);$i++){
 
         $a = array();
         foreach($this->Columns as $col){
 
-            $text = '';
+            foreach($arrTabKeys as $tabKey){
 
-            switch($col['type']){
-                case 'order':
-                    $val = $i;
-                    break;
-                case 'date':
-                    $val = (isset($this->oSQL) ? $this->oSQL->unq($intra->datePHP2SQL($newData[$col['field']][$i])) : '');
-                    break;
-                case 'datetime':
-                    $val = (isset($this->oSQL) ? $this->oSQL->unq($intra->datetimePHP2SQL($newData[$col['field']][$i])) : '');
-                    break;
-                case "integer":
-                case "real":
-                case "numeric":
-                case "number":
-                case "money":
-                    $val = (isset($this->oSQL) ? $this->oSQL->unq($intra->decPHP2SQL($newData[$col['field']][$i])) : '');
-                    break;
-                case 'combobox':
-                case 'select':
-                case 'ajax_dropdown':
-                    $val = ($newData[$col['field']][$i]!=='' ? $newData[$col['field']][$i] : null);
-                    $text = ($newData[$col['field']][$i]!=='' ? $newData[$col['field'].'_text'][$i] : '');
-                    break;
-                default: 
-                    $val = $newData[$col['field']][$i];
-                    break;
+                if(!$tabKey){
+                    $data = (isset($newData[$col['field']][$i]) ? $newData[$col['field']][$i] : null);
+                    $text = (isset($newData[$col['field'].'_text'][$i]) ? $newData[$col['field'].'_text'][$i] : null);
+                } else {
+                    $data = (isset($newData[$col['field']][$tabKey][$i]) 
+                        ? $newData[$col['field']][$tabKey][$i] 
+                        : (isset($newData[$col['field']][$i]) ? $newData[$col['field']][$i] : null));
+                    $text = (isset($newData[$col['field'].'_text'][$tabKey][$i]) 
+                        ? $newData[$col['field'].'_text'][$tabKey][$i] 
+                        : (isset($newData[$col['field'].'_text'][$i]) 
+                            ? $newData[$col['field'].'_text'][$i] 
+                            : null));
+                }
+                
+                switch($col['type']){
+                    case 'order':
+                        $val = $i;
+                        break;
+                    case 'date':
+                        $val = (isset($this->oSQL) ? $this->oSQL->unq($intra->datePHP2SQL($data)) : '');
+                        break;
+                    case 'datetime':
+                        $val = (isset($this->oSQL) ? $this->oSQL->unq($intra->datetimePHP2SQL($data)) : '');
+                        break;
+                    case "integer":
+                    case "real":
+                    case "numeric":
+                    case "number":
+                    case "money":
+                        $val = (isset($this->oSQL) ? $this->oSQL->unq($intra->decPHP2SQL($data)) : '');
+                        break;
+                    case 'combobox':
+                    case 'select':
+                    case 'ajax_dropdown':
+                        $val = ($data!=='' ? $data : null);
+                        $text = ($text!=='' ? $text : '');
+                        break;
+                    default: 
+                        $val = $data;
+                        break;
+                }
+                if(!$tabKey){
+                    $a[$col['field']] = $val;
+                    if($text)
+                        $a[$col['field'].'_text'] = $text;
+                } else {
+                    $a[$col['field']][$tabKey] = $val;
+                    if($text)
+                        $a[$col['field'].'_text'][$tabKey] = $text;
+                }
             }
-            $a[$col['field']] = $val;
-            if($text)
-                $a[$col['field'].'_text'] = $text;
         }
-        
         $aRet[] = $a;
-
     }
 
     return ( $conf['flagDontEncode'] ? $aRet : json_encode($aRet) );
@@ -1392,6 +1421,7 @@ function json( $newData = null, $conf = array() ){
  */
 function getPK(){
 
+    $pkColName = "";
     foreach($this->Columns as $i=>$col){
         if ($this->Columns[$i]['type']=="row_id") {
             $pkColName = $this->Columns[$i]['field'];
