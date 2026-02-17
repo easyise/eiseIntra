@@ -307,7 +307,9 @@ public function doAction($arrNewData = null, $aclOldStatusID = null, $aclNewStat
     }
 
     // proceed with the action
-    if ($this->arrAction["actFlagAutocomplete"] && $this->arrAction["aclGUID"]==""){
+    $actFlagAutocomplete = (isset($this->arrAction["actFlagAutocomplete"]) ? $this->arrAction["actFlagAutocomplete"] : null);
+    $aclGUID = (isset($this->arrAction["aclGUID"]) ? $this->arrAction["aclGUID"] : "");
+    if ($actFlagAutocomplete && $aclGUID==""){
         
         $this->checkMandatoryFields();
         $this->addAction();
@@ -450,7 +452,8 @@ public function addAction($arrAction = null){
     // 3. insert ATV
 	// generate script that copy data from the master table
 	$arrFields = Array();
-    foreach( (array)$this->arrAction["aatFlagToTrack"] as $atrID => $rwAAT ){
+	$aatFlagToTrack = (isset($this->arrAction["aatFlagToTrack"]) ? $this->arrAction["aatFlagToTrack"] : array());
+    foreach( (array)$aatFlagToTrack as $atrID => $rwAAT ){
         
         // define attributes for timestamp
         if ($rwAAT["aatFlagTimestamp"]) {
@@ -547,7 +550,7 @@ function finishAction(){
     $usrID = $this->intra->usrID;
     $oSQL = $this->oSQL;
     
-    if (!$this->arrAction["aclActionPhase"]){
+    if (isset($this->arrAction["aclActionPhase"]) && !$this->arrAction["aclActionPhase"]){
         $this->onActionStart($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
     }
     
@@ -568,7 +571,8 @@ function finishAction(){
             , {$this->conf['entPrefix']}EditBy='{$this->intra->usrID}', {$this->conf['entPrefix']}EditDate=NOW()";
 
         // update tracked attributes
-        foreach( (array)$this->arrAction["aatFlagToTrack"] as $atrID=>$xx ){
+        $aatFlagToTrack = (isset($this->arrAction["aatFlagToTrack"]) ? $this->arrAction["aatFlagToTrack"] : array());
+        foreach( (array)$aatFlagToTrack as $atrID=>$xx ){
             $sqlUpdEntTable .= "\r\n, {$atrID} = (SELECT l{$atrID} FROM {$this->conf["entTable"]}_log WHERE l{$this->conf['entPrefix']}GUID='{$this->arrAction["aclGUID"]}')";
         }
 
@@ -580,7 +584,8 @@ function finishAction(){
         }
 
         // update userstamps
-        foreach ( (array)$this->arrAction["aatFlagUserStamp"] as $atrID => $xx ) {
+        $aatFlagUserStamp = (isset($this->arrAction["aatFlagUserStamp"]) ? $this->arrAction["aatFlagUserStamp"] : array());
+        foreach ( (array)$aatFlagUserStamp as $atrID => $xx ) {
             if(array_key_exists($atrID, (array)$this->arrAction["aatFlagToTrack"]))
                 continue;
             $sqlUpdEntTable .= "\r\n, {$atrID} = ".$oSQL->e($this->intra->usrID);
@@ -646,7 +651,8 @@ function finishAction(){
             INNER JOIN stbl_status ON aclNewStatusID=staID AND staEntityID='{$this->entID}'
             WHERE aclGUID='{$this->arrAction["aclGUID"]}'";
         
-        $arrSAT = $this->conf['STA'][$this->arrAction['aclNewStatusID']]['satFlagTrackOnArrival'];
+        $aclNewStatusID = (isset($this->arrAction['aclNewStatusID']) ? $this->arrAction['aclNewStatusID'] : null);
+        $arrSAT = (isset($this->conf['STA'][$aclNewStatusID]['satFlagTrackOnArrival']) ? $this->conf['STA'][$aclNewStatusID]['satFlagTrackOnArrival'] : null);
         if (!empty($arrSAT)){
             $sqlSAT = "INSERT INTO {$this->conf["entTable"]}_log (
                 l{$this->conf['entPrefix']}GUID
@@ -694,12 +700,12 @@ public function prepareActions(){
         $this->arrNewData["actID"] = 2;
     }
     
-    if(!$this->item['ACL']){
+    if(!isset($this->item['ACL'])){
         $this->getEntityItemAllData(array('ACL'));
     }
 
     //collect coming action
-    if ($this->arrNewData["aclGUID"]){
+    if (!empty($this->arrNewData["aclGUID"])){
         if(!$this->arrNewData['isUndo'])
             $rwACT = $this->item['ACL'][$this->arrNewData["aclGUID"]]; //if ACL GUID specified, we try to locate action in ACL
         else {
@@ -711,16 +717,18 @@ public function prepareActions(){
     }
 
     if (!$rwACT){
-        throw new Exception("Action not found for ID/GUID {$this->arrNewData["actID"]}/{$this->arrNewData["aclGUID"]}");
+        $actID = (isset($this->arrNewData["actID"]) ? $this->arrNewData["actID"] : "NULL");
+        $aclGUID = (isset($this->arrNewData["aclGUID"]) ? $this->arrNewData["aclGUID"] : "NULL");
+        throw new Exception("Action not found for ID/GUID {$actID}/{$aclGUID}");
     }
     
     $aclOldStatusID = isset($this->arrNewData["aclOldStatusID"]) 
         ? $this->arrNewData["aclOldStatusID"] 
-        : ($this->arrNewData["aclGUID"] 
+        : (!empty($this->arrNewData["aclGUID"]) 
             ? $rwACT["aclOldStatusID"] 
             : $this->item["staID"]);
     $aclNewStatusID = isset($this->arrNewData["aclNewStatusID"]) ? $this->arrNewData["aclNewStatusID"] : $rwACT["aclNewStatusID"];
-    $this->arrAction["aclComments"] = $this->arrNewData["aclComments"];
+    $this->arrAction["aclComments"] = (isset($this->arrNewData["aclComments"]) ? $this->arrNewData["aclComments"] : null);
 
     if(!$rwACT['actEntityID']){
         switch($rwACT['actID']){
@@ -753,17 +761,18 @@ public function prepareActions(){
     
     $this->arrAction = array_merge($rwACT, $this->arrAction);
 
-    if($timestamp = $this->arrNewData['aclETD'])
+    if($timestamp = (isset($this->arrNewData['aclETD']) ? $this->arrNewData['aclETD'] : null))
         $this->arrAction['aclETD_attr'] = $this->intra->datePHP2SQL($timestamp);
-    if($timestamp = $this->arrNewData['aclETA'])
+    if($timestamp = (isset($this->arrNewData['aclETA']) ? $this->arrNewData['aclETA'] : null))
         $this->arrAction['aclETA_attr'] = $this->intra->datePHP2SQL($timestamp);
-    if($timestamp = $this->arrNewData['aclATD'])
+    if($timestamp = (isset($this->arrNewData['aclATD']) ? $this->arrNewData['aclATD'] : null))
         $this->arrAction['aclATD_attr'] = $this->intra->datePHP2SQL($timestamp);
-    if($timestamp = $this->arrNewData['aclATA'])
+    if($timestamp = (isset($this->arrNewData['aclATA']) ? $this->arrNewData['aclATA'] : null))
         $this->arrAction['aclATA_attr'] = $this->intra->datePHP2SQL($timestamp);
 
-    if (is_array($this->arrAction["aatFlagToTrack"]))
-        foreach($this->arrAction["aatFlagToTrack"] as $atrID=>$options){
+    $aatFlagToTrack = (isset($this->arrAction["aatFlagToTrack"]) ? $this->arrAction["aatFlagToTrack"] : array());
+    if (is_array($aatFlagToTrack))
+        foreach($aatFlagToTrack as $atrID=>$options){
             // define attributes for timestamp
             $arrTS = $this->conf['ACT'][$rwACT['actID']]['aatFlagTimestamp'];
             if (in_array($atrID, $arrTS)) {
@@ -1051,10 +1060,11 @@ function checkMandatoryFields(){
     $entTable = $this->conf["entTable"];
     $rwEnt = $this->item;
     $flagAutocomplete = $this->arrAction["actFlagAutocomplete"];
-    $aclGUID = $this->arrAction["aclGUID"];
+    $aclGUID = (isset($this->arrAction["aclGUID"]) ? $this->arrAction["aclGUID"] : null);
 
-    if(is_array($this->arrAction["aatFlagMandatory"]))
-        foreach($this->arrAction["aatFlagMandatory"] as $atrID => $rwATR){
+    $aatFlagMandatory = (isset($this->arrAction["aatFlagMandatory"]) ? $this->arrAction["aatFlagMandatory"] : array());
+    if(is_array($aatFlagMandatory))
+        foreach($aatFlagMandatory as $atrID => $rwATR){
                 
             $oldValue = $this->item[$atrID];
             
@@ -1621,7 +1631,13 @@ static function updateMessages($newData){
                 , msgSubject = ".$oSQL->e($newData['msgSubject'])."
                 , msgText = ".$oSQL->e($newData['msgText']).
                 ($fields['msgPassword'] ? ", msgPassword=".$oSQL->e($intra->encrypt($password)) : '')
-                ."
+                .(isset($fields['msgMetadata']) && isset($newData['msgMetadata']) && $newData['msgMetadata']!=''
+                    ? ", msgMetadata=".$oSQL->e(json_encode(
+                        is_array($newData['msgMetadata'])
+                            ? $newData['msgMetadata']
+                            : (array)json_decode($newData['msgMetadata'], true)
+                        , true))
+                : '')."
                 , msgSendDate = NULL
                 , msgReadDate = NULL
                 , msgFlagDeleted = 0

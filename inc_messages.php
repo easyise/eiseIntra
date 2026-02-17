@@ -166,14 +166,14 @@ public function sendMessage($nd){
 
     $sqlMsg = "INSERT INTO stbl_message_queue SET
         msgEntityID = ".$oSQL->e($entID)."
-        , msgEntityItemID = ".(!$nd['entItemID'] ? $oSQL->e($this->item->id) : $oSQL->e($nd['entItemID']))."
+        , msgEntityItemID = ".(empty($nd['entItemID']) ? $oSQL->e($this->item->id) : $oSQL->e($nd['entItemID']))."
         , msgFromUserID = '$intra->usrID'
-        , msgToUserID = ".($nd['msgToUserID']!="" ? $oSQL->e($nd['msgToUserID']) : "NULL")."
-        , msgCCUserID = ".($nd['msgCCUserID']!="" ? $oSQL->e($nd['msgCCUserID']) : "NULL")."\n"
+        , msgToUserID = ".(isset($nd['msgToUserID']) && $nd['msgToUserID']!="" ? $oSQL->e($nd['msgToUserID']) : "NULL")."
+        , msgCCUserID = ".(isset($nd['msgCCUserID']) && $nd['msgCCUserID']!="" ? $oSQL->e($nd['msgCCUserID']) : "NULL")."\n"
         .(isset($fields['msgToUserEmail']) && !empty($nd['msgToUserEmail']) ? ", msgToUserEmail=".$oSQL->e($nd['msgToUserEmail']) : '')."\n"
         .(isset($fields['msgCCUserEmail']) && !empty($nd['msgCCUserEmail']) ? ", msgCCUserEmail=".$oSQL->e($nd['msgCCUserEmail']) : '')."
-        , msgSubject = ".$oSQL->e($nd['msgSubject'])."
-        , msgText = ".$oSQL->e($nd['msgText'])
+        , msgSubject = ".$oSQL->e(isset($nd['msgSubject']) ? $nd['msgSubject'] : "")."
+        , msgText = ".$oSQL->e(isset($nd['msgText']) ? $nd['msgText'] : "")
         .(isset($fields['msgPassword']) && $this->conf['mail_send_authenticate'] == 'email' ? ", msgPassword=".$oSQL->e($intra->encrypt($password)) : '')."\n"
         .(isset($fields['msgFlagBroadcast']) && isset($nd['msgFlagBroadcast']) ? ", msgFlagBroadcast=".(int)($nd['msgFlagBroadcast']) : '')."\n"
         .(isset($fields['msgGUID']) 

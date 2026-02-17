@@ -500,7 +500,8 @@ public function handleDataRequest(){ // handle requests and return them with Aja
                 die();
             }
             
-            if ($this->conf['debug'])
+            $arrRet = array('status'=>'ok', 'data'=>$rwAgr);
+            if ($this->conf['debug']) {
                 $arrDebug = Array(
                     "get" => $_GET
                     , "cookie" => $_COOKIE
@@ -511,8 +512,8 @@ public function handleDataRequest(){ // handle requests and return them with Aja
                     , 'conf' => $this->conf
                     );
 
-            $arrRet = array_merge((array)$arrDebug, array('status'=>'ok'
-                , 'data'=>$rwAgr));
+                $arrRet = array_merge((array)$arrDebug, $arrRet);
+            }
 
             echo json_encode(  $arrRet );
 
