@@ -945,7 +945,7 @@ function _sort_STA_ACT($a, $b){
  * 
  * @category Events and Actions
  */
-public function RLAByMatrix(){
+public function RLAByMatrix(){  
 
     if(!$this->conf['entMatrix'])
         return;
@@ -991,8 +991,7 @@ public function RLAByMatrix(){
             asort($this->conf['STA'][$staID]['ACT'][$actID]['RLA_tiers']);
         }
     }
-    // echo 'rla by action';
-    // die( '<pre>'.var_export($this->conf['ACT'][42199], true).'</pre>' );
+    
 }
 
 /**
@@ -1899,8 +1898,8 @@ public function processCheckmarks($arrAction){
         
     }
 
-    // die('<pre>'.var_export($this->table, true));
-    return $checkmarks_required && ($checkmarks_required == $checkmarks_completed);
+    // die('<pre>'.$checkmarks_required."\n\n".var_export($this->item['CHK'] , true));
+    return $checkmarks_required>0 ? ($checkmarks_required == $checkmarks_completed) : true;
 
 }
 
@@ -2206,10 +2205,12 @@ public function collectChecklist(){
         return null;
 
     $this->item['CHK'] = [];
-    $this->item['CHK_ACT_unnecesary'] = [];
+    $this->item['CHK_ACT_checked'] = []; // array of action IDs which checkmarks are checked
+    $this->item['CHK_ACT_unnecesary'] = []; // array of action IDs which checkmarks are not matching, so they are not necessary to be checked
 
 
     $matching = [];
+    $checked = [];
     $unnecesary = [];
     
     foreach ($this->conf['CHK'] as $rwCHK) {
@@ -2249,8 +2250,12 @@ public function collectChecklist(){
 
         if($matchScore){
 
-            $rwCHK['checked'] = (bool)(isset($this->item[$rwCHK['chkAttributeID']]) ? $this->item[$rwCHK['chkAttributeID']] : false);
+            $flagChecked = (bool)(isset($this->item[$rwCHK['chkAttributeID']]) ? $this->item[$rwCHK['chkAttributeID']] : false);
+            $rwCHK['checked'] = $flagChecked;
             $matching[] = $rwCHK;
+            if($flagChecked){
+                $checked[] = $rwCHK['chkSetActionID'];
+            }
 
         } else {
 
@@ -2262,6 +2267,7 @@ public function collectChecklist(){
     }
 
     $this->item['CHK'] = $matching;
+    $this->item['CHK_ACT_checked'] = $checked;
     $this->item['CHK_ACT_unnecesary'] = $unnecesary;
 
     return $matching;
@@ -2313,7 +2319,7 @@ public function getChecklist(){
  * 
  * @category Data Display
  */
-public function getFields($aFields = null){
+public function getFields($aFields = null, $conf = []){
 
     $aToGet = ($aFields!==null 
         ? $aFields 
@@ -2333,7 +2339,7 @@ public function getFields($aFields = null){
             : true ) 
         && $this->intra->arrUsrData['FlagWrite']);
 
-    return $this->getAttributeFields($aToGet, $this->item, array('FlagWrite'=>$allowEdit));
+    return $this->getAttributeFields($aToGet, $this->item, array_merge(array('FlagWrite'=>$allowEdit), $conf));
 
 }
 
@@ -2358,6 +2364,10 @@ function getAttributeFields($fields, $item = null, $conf = array()){
     if(is_array($fields))
     foreach($fields as $field){
         $atr = (isset($this->conf['ATR'][$field]) ? $this->conf['ATR'][$field] : array());
+
+        if(isset($conf['callbackBefore']) && is_callable(array($this, $conf['callbackBefore']))){
+            $html .= call_user_func_array(array($this, $conf['callbackBefore']), array($field));
+        }
 
         if(isset($conf['flagNonEmpty']) && $conf['flagNonEmpty'] && !$item[$field])
             continue;
@@ -2391,7 +2401,14 @@ function getAttributeFields($fields, $item = null, $conf = array()){
         }
 
         $html .= $this->intra->field((isset($atr["atrTitle{$this->intra->local}"]) ? $atr["atrTitle{$this->intra->local}"] : ''), $field, $item, $options);
+
+        if(isset($conf['callbackAfter']) && is_callable(array($this, $conf['callbackAfter']))){
+            $html .= call_user_func_array(array($this, $conf['callbackAfter']), array($field));
+        }
+
     }
+
+    
 
     return $html;
 
@@ -2430,10 +2447,23 @@ public function arrActionButtons(){
         });
 
         foreach($arrActions_ as $rwAct){
-
-            if((isset($rwAct['actFlagSystem']) && $rwAct['actFlagSystem']) 
-                || ($this->conf['CHK'] && in_array($rwAct['actID'], (array)$this->item['CHK_ACT_unnecesary'])))
+            
+            // skip system actions or unnecessary actions for current item (based on checkmarks)
+            if(isset($rwAct['actFlagSystem']) && $rwAct['actFlagSystem']){
                 continue;
+            }
+
+            // in case of checkmarks
+            if($this->conf['CHK']){
+                // skip if checkmarks are checked
+                if(in_array($rwAct['actID'], (array)$this->item['CHK_ACT_checked'])){
+                    continue;
+                }
+                // skip if checkmarks are not matching, so action is not necessary
+                if(in_array($rwAct['actID'], (array)$this->item['CHK_ACT_unnecesary'])){
+                    continue;
+                }
+            }
 
             if ($this->id) {
                 try {
@@ -2491,9 +2521,9 @@ public function arrActionButtons(){
             );
     }
 
-
+    // die('<pre>'.var_export($arrActions, true));
    
-   return $arrActions;
+    return $arrActions;
 }
 
 /**
