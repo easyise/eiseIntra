@@ -414,7 +414,7 @@ public function validate(){
     ? (array)$this->arrAction['aatFlagMandatory']
     : [];
     foreach ($mandatory as $atrID => $props) {
-        $v = ($this->arrAction[$atrID]
+        $v = (!empty($this->arrAction[$atrID])
                 ? $this->arrAction[$atrID]
                 : ($this->item->item[$atrID])
                 ); 
@@ -731,8 +731,10 @@ public function checkPermissions(){
 
     $rwAct = $this->arrAction;
     $aUserRoles = array_merge(array($this->item->conf['RoleDefault']), $this->intra->arrUsrData['roleIDs']);
-    if(count(array_intersect($aUserRoles, $rwAct['RLA']))==0)
+    if(count(array_intersect($aUserRoles, $rwAct['RLA']))==0){
+        // die('<pre>'.var_export($rwAct, true).'</pre>');
         throw new Exception($this->intra->translate("%s: user %s not authorized because not member of (%s)",$this->arrAction['actTitle'.$this->intra->local], $this->intra->usrID, implode(', ', $rwAct['RLA'])) );
+    }
     $reason = '';
     if(count($this->item->checkDisabledRoleMembership($this->intra->usrID, $rwAct, $reason)) > 0)
          throw new Exception($this->intra->translate("Not authorized as %s", $reason));
