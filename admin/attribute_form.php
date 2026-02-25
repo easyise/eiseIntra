@@ -34,6 +34,7 @@ switch($DataAction){
                     , `atrCheckMask`
                     , `atrDataSource`
                     , `atrFlagHideOnLists`
+                    , atrMatrix
                     , `atrFlagDeleted`
                     , `atrInsertBy`, `atrInsertDate`, `atrEditBy`, `atrEditDate`
                 ) VALUES (
@@ -51,6 +52,7 @@ switch($DataAction){
                     , ".$oSQL->escape_string($_POST['atrProgrammerReserved'])."
                     , ".$oSQL->escape_string($_POST['atrCheckMask'])."
                     , ".$oSQL->escape_string($_POST['atrDataSource'])."
+                    , ".$oSQL->escape_string($_POST['atrMatrix'])."
                     , '".($_POST['atrFlagHideOnLists']=='on' ? 1 : 0)."'
                     , '".($_POST['atrFlagDeleted']=='on' ? 1 : 0)."'
                     , '$intra->usrID', NOW(), '$intra->usrID', NOW());";
@@ -72,6 +74,7 @@ switch($DataAction){
                     , atrCheckMask = ".$oSQL->escape_string($_POST['atrCheckMask'])."
                     , atrDataSource = ".$oSQL->escape_string($_POST['atrDataSource'])."
                     , atrHref = ".$oSQL->escape_string($_POST['atrHref'])."
+                    , atrMatrix = ".$oSQL->escape_string($_POST['atrMatrix'])."
                     , atrFlagHideOnLists = '".($_POST['atrFlagHideOnLists']=='on' ? 1 : 0)."'
                     , atrFlagDeleted = '".($_POST['atrFlagDeleted']=='on' ? 1 : 0)."'
                     , atrEditBy = '$intra->usrID', atrEditDate = NOW()
@@ -217,6 +220,16 @@ include eiseIntraAbsolutePath.'inc_top.php';
 <div class="eiseIntraField">
 <label><?php echo $intra->translate("True when attribute no longer used"); ?>:</label><?php
  echo $intra->showCheckBox("atrFlagDeleted", $rwATR["atrFlagDeleted"]);?></div>
+
+<?php echo $intra->field('Matrix attribute?', 'atrMatrix', $rwATR['atrMatrix'], array('type'=>'combobox', 
+    'source'=>array('='=>'=', 
+        '<'=>'<', 
+        '>'=>'>',
+        '<='=>'<=',
+        '>='=>'>=',
+        '<>'=>'<>',
+        ),
+    'defaultText'=>'n/a')); ?>
 
 <div class="eiseIntraField">
 
