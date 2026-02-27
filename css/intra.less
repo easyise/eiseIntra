@@ -1068,6 +1068,8 @@ input[type=checkbox].eiseIntraValue {
 
     & .eif_aclTracedHTML {
 
+        --eif-label-width: 30%;
+
         & .eiseIntraValue {
             font-size: 1em;
             line-height: 1.1em;
@@ -1083,7 +1085,7 @@ input[type=checkbox].eiseIntraValue {
             background-color: #00000008;
             
             & > label {
-                width: 25%;
+                width: var(--eif-label-width);
                 text-align: right;
                 margin-right: 5px;
                 font-family: ArialNarrow, serif;
