@@ -175,7 +175,7 @@ public function __construct($id = null,  $conf = array() ){
                     $this->intra->arrUsrData['roles'][] = isset($rwRole['rolTitle'.$this->intra->local]) ? $rwRole['rolTitle'.$this->intra->local] : '';
                     $this->intra->arrUsrData['roleIDs'][] = $rwRole['rolID'];
                 } else {
-                    $ix = array_search( $rwRole['rolID'], (array)$this->intra->arrUsrData['roleIDs'] );
+                    $ix = array_search( $rwRole['rolID'], !empty($this->intra->arrUsrData['roleIDs']) ? $this->intra->arrUsrData['roleIDs'] : [] );
                     if($ix!==false){
                         unset($this->intra->arrUsrData['roles'][$ix]);
                         unset($this->intra->arrUsrData['roleIDs'][$ix]);
@@ -184,8 +184,8 @@ public function __construct($id = null,  $conf = array() ){
                 $this->virtualRoleMembers[$rwRole['rolID']] = $roleMembers;
             }
         }
-        $this->intra->arrUsrData['roles'] = array_values(is_array($this->intra->arrUsrData['roles']) ? $this->intra->arrUsrData['roles'] : []);
-        $this->intra->arrUsrData['roleIDs'] = array_values(is_array($this->intra->arrUsrData['roleIDs']) ? $this->intra->arrUsrData['roleIDs'] : []);
+        $this->intra->arrUsrData['roles'] = array_values(!empty($this->intra->arrUsrData['roles']) ? $this->intra->arrUsrData['roles'] : []);
+        $this->intra->arrUsrData['roleIDs'] = array_values(!empty($this->intra->arrUsrData['roleIDs']) ? $this->intra->arrUsrData['roleIDs'] : []);
         $this->RLAByMatrix();
     }
 
@@ -1619,6 +1619,72 @@ function getAllData($toRetrieve = null){
     
     return $this->item;
     
+}
+
+/**
+ * This function executes automatic processing for 
+ */
+public static function automaticProcessing($aStatuses=[]){
+
+    GLOBAL $intra;
+    GLOBAL $oSQL;
+
+    $emptyItem = new static(null);
+    $intra->batchEcho("Starting automatic processing for entity '{$emptyItem->conf['entTitle']}'...");
+    
+    $aStatusAction = array();
+
+    foreach($emptyItem->conf['ACT'] as $actID=>$rwAct){
+        $matrix = isset($rwAct['MTX']) ? $rwAct['MTX'] : array();
+        foreach ($matrix as $mtxRow) {
+            if($mtxRow['mtxRoleID']=='_ROBOT'){
+                foreach ((array)$rwAct['actOldStatusID'] as $oldStatusID) {
+                    if($aStatuses && !in_array($oldStatusID, $aStatuses))
+                        continue;
+                    if(!isset($aStatusAction[$oldStatusID]))
+                        $aStatusAction[$oldStatusID] = array();
+                    $aStatusAction[$oldStatusID][] = $actID;
+                }
+            }
+        }
+    }
+
+    $aStatuses2Execute = array_keys($aStatusAction);
+
+    asort($aStatuses2Execute);
+
+    foreach($aStatuses2Execute as $staID){
+        $staTitle = $emptyItem->conf['STA'][$staID]["staTitle"];
+        $intra->batchEcho("Processing status '{$staTitle}':");
+        $sql = "SELECT {$emptyItem->conf['prefix']}ID as ID 
+            FROM {$emptyItem->conf['table']} 
+            WHERE {$emptyItem->conf['prefix']}StatusID={$staID}";
+        $rs = $oSQL->q($sql);
+        $aToProcess = array();
+        while ($rw = $oSQL->f($rs)) {
+            $aToProcess[] = $rw['ID'];
+        }
+        foreach ($aToProcess as $itemID) {
+            foreach ($aStatusAction[$staID] as $actID) {
+                $actTitle = $emptyItem->conf['ACT'][$actID]["actTitle"];
+                try {
+                    $oSQL->q('START TRANSACTION');
+                    $item = new static($itemID);
+                    $intra->batchEcho("\t\tProcessing item ID {$itemID} for action '{$actTitle}' (ID: {$actID})...", '');
+                    $act = new eiseAction($item, array('actID' => $actID));
+                    $item->doAction($act);
+                    $oSQL->q('COMMIT');
+                    $intra->batchEcho("done,");
+                } catch (Exception $e) {
+                    $oSQL->q('ROLLBACK');
+                    // log error and continue with next item
+                    $intra->batchEcho("ERROR processing item ID {$itemID} for action '{$actTitle}' (ID: {$actID}): " . $e->getMessage());
+                }
+                break; // RUN ONLY FIRST ACTION
+            }
+        }
+    }
+
 }
 
 /**
