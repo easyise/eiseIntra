@@ -45,7 +45,7 @@ public function __construct($ent){
         $sqlMtx = "SELECT * FROM {$this->ent->conf['entTable']}_matrix";
         $rsMtx = $this->oSQL->q($sqlMtx);
         while ($rwMtx = $this->oSQL->f($rsMtx)) {
-            $rwMtx['mtxActionID'] = ($rwMtx['mtxActionID'] ? $rwMtx['mtxActionID'] : $rwMtx['mtxEventID']);
+            $rwMtx['mtxActionID'] = (!empty($rwMtx['mtxActionID']) ? $rwMtx['mtxActionID'] : $rwMtx['mtxEventID']);
             $this->mtx[] = $rwMtx;
         }
     } else {
@@ -182,17 +182,17 @@ function table(){
 	$dstID = array();
 	$dstTitle = array();
 
-	if(isset($this->conf['STA'][0]) && $this->conf['STA'][0]['staID']!=='0'){
+	if(isset($this->conf['STA'][0]) && isset($this->conf['STA'][0]['staID']) && $this->conf['STA'][0]['staID']!=='0'){
 	// if($this->conf['STA'][0]['staID']!=='0'){
 		$dstID[] = 0;
 		$dstTitle[] = $strLocal ? "Новый" : "New";
 	}
 	
 	foreach ($this->conf['STA'] as $rw) {
-		if($rw['staFlagDeleted'])
+		if(!empty($rw['staFlagDeleted']))
 			continue;
-		$dstID[] = $rw["staID"];
-		$dstTitle[] = $rw["staTitle{$intra->local}"];
+		$dstID[] = !empty($rw["staID"]) ? $rw["staID"] : null;
+		$dstTitle[] = !empty($rw["staTitle{$intra->local}"]) ? $rw["staTitle{$intra->local}"] : null;
 	}
 	$strTableID = md5(time());
 
