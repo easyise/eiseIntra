@@ -930,8 +930,13 @@ private function init(){
  * @ignore
  */
 function _sort_STA_ACT($a, $b){
-    return (isset($b['actNewStatusID'][0]) ?  $b['actNewStatusID'][0] : 0)
-        - (isset($a['actNewStatusID'][0]) ? $a['actNewStatusID'][0] : 0);
+    $status_a = (isset($a['actNewStatusID'][0]) ?  $a['actNewStatusID'][0] : 0);
+    $status_b = (isset($b['actNewStatusID'][0]) ?  $b['actNewStatusID'][0] : 0);
+    $priority_a = (isset($a['actPriority']) ?  $a['actPriority'] : 0) + 1;
+    $priority_b = (isset($b['actPriority']) ?  $b['actPriority'] : 0) + 1;
+    
+    return ($status_b * $priority_b) - ($status_a * $priority_a);
+
 }
 
 /**
