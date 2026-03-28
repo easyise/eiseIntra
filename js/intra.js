@@ -1606,7 +1606,6 @@ addField: function( field ){
             break;
         case 'file':
             element = $('<input type="file">');
-            field.valueWidth = '49%'
             element.addClass('eif-input');
             break;
         case 'checkbox':
