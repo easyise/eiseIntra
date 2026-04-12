@@ -543,7 +543,7 @@ public function attachFile($nd){
     $entID = ( $this->conf['entID'] ? $this->conf['entID'] : $this->conf['prefix'] );
     $oSQL = $this->oSQL;
 
-    $err = '';
+    $error = '';
 
     try {
         $filesPath = self::checkFilePath($this->intra->conf["stpFilesPath"]);
@@ -552,7 +552,7 @@ public function attachFile($nd){
     }
 
     $guids = array();
-    if($error==''){
+    if($error=='' && isset($_FILES['attachment'])){
 		
         foreach((array)$_FILES['attachment']['error'] as $ix => $err){
             if($err!=0) 
@@ -582,7 +582,7 @@ public function attachFile($nd){
 	                if(!$d){
 	                	$error = "ERROR: Unable to create directory: ".$filesPath.Date("Y/m");
 	                	break;
-	                }   	
+	                }
 	            }
             
             	copy($f["tmp_name"], $filesPath.$filename);
@@ -594,7 +594,7 @@ public function attachFile($nd){
                 filGUID = '{$filGUID}'
                 , filEntityID = '{$entID}'
                 , filEntityItemID = '{$this->id}'
-                , filName = '{$f["name"]}'
+                , filName = ".$oSQL->e($f["name"])."
                 , filNamePhysical = '{$filename}'
                 , filLength = '{$f["size"]}'
                 , filContentType = '{$f["type"]}'

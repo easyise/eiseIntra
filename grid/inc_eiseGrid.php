@@ -38,6 +38,7 @@ static $defaultWidthsByType = array(
         , 'integer' => '60px'
         , 'real' => '80px'
         , 'money' => '80px'
+        , 'filesize' => '80px'
 
         , 'date' => '90px'
         , 'datetime' => '120px'
@@ -937,6 +938,13 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                     break;
                 case "order":
                     $_val = ($ixRow+1);
+                    break;
+                case "filesize":
+                    foreach (array('B', 'KB', 'MB', 'GB', 'TB') as $unit) {
+                        if (abs($_val) < 1024) break;
+                        $_val /= 1024;
+                    }
+                    $_val = number_format($_val, 2, $this->conf['decimalSeparator'], $this->conf['thousandsSeparator']).' '.$unit;
                     break;
                 case "money":
                 case "float":

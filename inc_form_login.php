@@ -102,7 +102,7 @@ $(document).ready(function(){
 
 </script>
 
-<div style="margin: 0 auto;width:33%">
+<div class="ei-login-container">
 
 <h1>Welcome to <?php  echo $title ; ?></h1>
 
