@@ -613,7 +613,7 @@ public function attachFile($nd){
                 filGUID = '{$filGUID}'
                 , filEntityID = '{$entID}'
                 , filEntityItemID = '{$this->id}'
-                , filName = '{$f["name"]}'
+                , filName = ".$oSQL->e($f["name"])."
                 , filNamePhysical = '{$filename}'
                 , filLength = '{$f["size"]}'
                 , filContentType = '{$f["type"]}'

@@ -454,11 +454,152 @@ option.deleted {
     text-align:center;
 }
 
-.form-login h1 {
-    color: #06183D;
-    font-family: GTPressuraMono, Calibri, sans-serif;
+.ei-login-container {
+    width: 100%;
+    max-width: 420px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2), 0 5px 15px rgba(0,0,0,0.1);
+    border: 1px solid rgba(255,255,255,0.4);
+    padding: 40px 50px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 10;
 }
 
+.form-login {
+    background: linear-gradient(135deg, @color-ocean-silence 0%, @color-deep-sea 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    
+    &::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: radial-gradient(circle at top right, rgba(209, 109, 52, 0.2), transparent 40%),
+                    radial-gradient(circle at bottom left, rgba(42, 93, 115, 0.4), transparent 40%);
+        z-index: 1;
+    }
+}
+
+.form-login h1 {
+    color: @color-deep-sea;
+    font-family: 'TTNormsProMedium', Calibri, sans-serif;
+    font-size: 26px;
+    text-align: center;
+    margin: 0 0 30px 0;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.form-login .eiseIntraMainForm {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.form-login .eiseIntraMainForm legend {
+    display: none; /* Hide legend for a cleaner look */
+}
+
+.form-login div.eiseIntraField,
+.form-login .eiseIntraField {
+    background: transparent;
+    border: none;
+    margin-bottom: 20px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-login .field_title,
+.form-login .intraFieldTitle {
+    text-align: left;
+    color: #555;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    padding: 0;
+    font-family: 'Open Sans', sans-serif;
+}
+
+.form-login .field_value,
+.form-login .intraFieldValue,
+.form-login .eiseIntraValue {
+    border: none;
+    padding: 0;
+    width: 100% !important;
+    margin-left: 0 !important;
+}
+
+.form-login .eiseIntraForm label {
+    width: 100% !important;
+    max-width: none !important;
+    float: none !important;
+    text-align: left !important;
+}
+
+.form-login .eiseIntraForm input[type="text"],
+.form-login .eiseIntraForm input[type="password"] {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+    background: #f9f9f9;
+}
+
+.form-login .eiseIntraForm input[type="text"]:focus,
+.form-login .eiseIntraForm input[type="password"]:focus {
+    border-color: @color-ocean-silence;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(42, 93, 115, 0.15);
+    outline: none;
+}
+
+.form-login input#btnsubmit {
+    width: 100%;
+    background: @color-ocean-silence;
+    color: #fff;
+    border: none;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+    font-family: 'TTNormsProMedium', sans-serif;
+    letter-spacing: 0.5px;
+}
+
+.form-login input#btnsubmit:hover {
+    background: darken(@color-ocean-silence, 5%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(42, 93, 115, 0.3);
+}
+
+.form-login #div-login {
+    text-align: center;
+    color: #777;
+    font-size: 12px;
+    margin-top: 15px;
+    background: transparent;
+    padding: 0;
+    border: none;
+}
+
+.form-login #div-login strong {
+    color: #333;
+}
 
 
 /*************************************************/
@@ -549,6 +690,149 @@ option.deleted {
     min-height: 64px;
 }
 
+.ui-dialog {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    padding: 0;
+    
+    .ui-dialog-titlebar {
+        background: @color-ocean-silence;
+        color: #fff;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 0;
+        font-family: @ei-app-title-font;
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
 
+        .ui-dialog-title {
+            font-size: 1em;
+            font-weight: 600;
+        }
 
- 
+        .ui-dialog-titlebar-close {
+            background: transparent;
+            border: none;
+            right: 10px;
+            top: 50%;
+            margin-top: -10px;
+            width: 20px;
+            height: 20px;
+            opacity: 0.8;
+            transition: opacity 0.2s ease;
+
+            .ui-icon {
+                background-image: url("images/ui-icons_ffffff_256x240.png") !important;
+                transform: scale(1.1);
+            }
+
+            &:hover {
+                background: transparent;
+                opacity: 1;
+            }
+        }
+    }
+
+    .ui-dialog-content {
+        padding: 15px 20px;
+        background: #fff;
+    }
+}
+
+.eif-form-dialog {
+    .eiseIntraField {
+        margin-bottom: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+
+        label {
+            width: 100%;
+            font-weight: 600;
+            color: #444;
+            text-align: left;
+            margin: 0;
+            padding: 0;
+            font-size: 13px;
+        }
+
+        .eiseIntraValue {
+            width: 100%;
+            margin: 0;
+        }
+    }
+
+    input[type="file"] {
+        display: block;
+        width: 100%;
+        padding: 15px;
+        background: #f9f9f9;
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+            border-color: @color-ocean-silence;
+            background: #f1f5f9;
+        }
+    }
+
+    .eif-actionButtons {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+
+        input[type="submit"], input[type="button"], button {
+            border-radius: 6px;
+            padding: 10px 24px;
+            font-weight: 600;
+            font-size: 14px;
+            height: auto;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        input[type="submit"] {
+            background: @color-ocean-silence;
+            color: white;
+
+            &:hover {
+                background: lighten(@color-ocean-silence, 5%);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            }
+        }
+
+        input[type="button"]:not([type="submit"]), .eif_btnClose {
+            background: #f0f0f0;
+            color: #333;
+
+            &:hover {
+                background: #e2e2e2;
+            }
+        }
+    }
+}
+
+.ui-widget-overlay {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    opacity: 1;
+}
+
+.ei-pane {
+    overflow-x: hidden;
+    overflow-y: auto;
+}
