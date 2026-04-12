@@ -3095,6 +3095,10 @@ public function getNextBiggerStatus($staID){
     $sta = $this->conf['STA'][$staID];
 
     $nextBiggerStatus = max(array_keys($this->conf['STA']));
+
+    if(empty($sta['ACT']))
+        return $nextBiggerStatus;
+
     foreach ((array)$sta['ACT'] as $act){
         // echo '<pre>'.var_export($act['RLA'], true);
         if((isset($act['actNewStatusID'][0]) ? $act['actNewStatusID'][0] : null)===null 
@@ -3135,11 +3139,13 @@ public function getWhosNextStatus($staID, $counter){
 
     
     $nextBiggerStatus = $this->getNextBiggerStatus($staID);
+
+    $acts = !empty($sta['ACT']) && is_array($sta['ACT']) ? $sta['ACT'] : array();
     
     $defaultActID = null;
     $actNext = [];
     $htmlNext = '';
-    foreach ((array)$sta['ACT'] as $act){
+    foreach ($acts as $act){
         if(count($act['RLA'])==0)
             continue;
         if((isset($act['actNewStatusID'][0]) ? $act['actNewStatusID'][0] : null)==$nextBiggerStatus){
@@ -3153,7 +3159,7 @@ public function getWhosNextStatus($staID, $counter){
     $html .= '<ul class="actions">';
     // $html .= '<pre>'.var_export((array)$sta['ACT'], true).'</pre>';
     $htmlNext = '';
-    foreach ((array)$sta['ACT'] as $act) {
+    foreach ($acts as $act) {
         if((isset($act['actNewStatusID'][0]) ? $act['actNewStatusID'][0] : null)==$staID)
             continue;
         // if($act['actFlagSystem'])
