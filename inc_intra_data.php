@@ -793,7 +793,7 @@ public function arrPHP2SQL($arrSrc, $types = array()){
                     $arrRet[$key] = $this->oSQL->unq(($value == null ? 'NULL' : (int)$value));
                     break;
                 case 'real':
-                    $arrRet[$key] = $this->oSQL->unq($this->decPHP2SQL($value));
+                    $arrRet[$key] = $this->oSQL->unq($value == null ? 'NULL' : $this->decPHP2SQL($value) );
                     break;
                 case 'FK':
                 case 'select':
