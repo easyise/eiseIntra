@@ -29,6 +29,7 @@ public $conf = array(
 	, 'form' => 'item_form.php'
 	, 'list' => 'item_list.php'
 	, 'flagFormShowAllFields' => false
+	, 'fileInputName' => 'attachment'
 	);
 
 /**
@@ -539,11 +540,13 @@ public function convertBooleanData($nd, $aBooleanFields = null){
  * @category Files
  */
 public function attachFile($nd){
+
+	$fileInputName = $this->conf['fileInputName'];
     
     $entID = ( $this->conf['entID'] ? $this->conf['entID'] : $this->conf['prefix'] );
     $oSQL = $this->oSQL;
 
-    $error = '';
+    $err = $error = '';
 
     try {
         $filesPath = self::checkFilePath($this->intra->conf["stpFilesPath"]);
@@ -551,19 +554,35 @@ public function attachFile($nd){
         $error = $this->intra->translate("ERROR: file upload error: %s", $e->getMessage());
     }
 
-    $guids = array();
-    if($error=='' && isset($_FILES['attachment'])){
-		
-        foreach((array)$_FILES['attachment']['error'] as $ix => $err){
-            if($err!=0) 
-                continue;
+	$guids = array();
+    if($error=='' && !empty($_FILES[$fileInputName]) && is_array($_FILES[$fileInputName])){
 
-            $f = array(
-                'name'=> $_FILES['attachment']['name'][$ix]
-                , 'type' => $_FILES['attachment']['type'][$ix]
-                , 'size' => $_FILES['attachment']['size'][$ix]
-                , 'tmp_name' =>  $_FILES['attachment']['tmp_name'][$ix]
-                );
+		$files2attach = array();
+
+		if(!is_array($_FILES[$fileInputName]['error'])){
+			$files2attach[] = array(
+				'name'=> $_FILES[$fileInputName]['name']
+				, 'type' => $_FILES[$fileInputName]['type']
+				, 'size' => $_FILES[$fileInputName]['size']
+				, 'tmp_name' =>  $_FILES[$fileInputName]['tmp_name']
+				, 'error' => $_FILES[$fileInputName]['error']
+				);
+		} else {
+			foreach($_FILES[$fileInputName]['error'] as $ix => $err){
+				$files2attach[] = array(
+					'name'=> $_FILES[$fileInputName]['name'][$ix]
+					, 'type' => $_FILES[$fileInputName]['type'][$ix]
+					, 'size' => $_FILES[$fileInputName]['size'][$ix]
+					, 'tmp_name' =>  $_FILES[$fileInputName]['tmp_name'][$ix]
+					, 'error' => $_FILES[$fileInputName]['error'][$ix]
+					);
+			}
+
+		}
+		
+        foreach($files2attach as $ix => $f){
+            if($f['error']!=0) 
+                continue;
 
             $filGUID = $oSQL->d("SELECT UUID() as GUID");
             $filename = Date("Y/m/").$filGUID.".att";
@@ -582,7 +601,7 @@ public function attachFile($nd){
 	                if(!$d){
 	                	$error = "ERROR: Unable to create directory: ".$filesPath.Date("Y/m");
 	                	break;
-	                }
+	                }   	
 	            }
             
             	copy($f["tmp_name"], $filesPath.$filename);
@@ -594,7 +613,7 @@ public function attachFile($nd){
                 filGUID = '{$filGUID}'
                 , filEntityID = '{$entID}'
                 , filEntityItemID = '{$this->id}'
-                , filName = ".$oSQL->e($f["name"])."
+                , filName = '{$f["name"]}'
                 , filNamePhysical = '{$filename}'
                 , filLength = '{$f["size"]}'
                 , filContentType = '{$f["type"]}'
@@ -612,7 +631,7 @@ public function attachFile($nd){
     $this->redirectTo = $this->conf['form'].'?'.$this->getURI();
     $this->msgToUser = ($error 
         ? $error 
-        : (count($guids) ? '' : 'ERROR: ').$this->intra->translate("Files uploaded: %s ", count($guids)));
+        : (count($guids)==0 && is_array($_FILES[$fileInputName]['error']) ? 'ERROR: ' : '').$this->intra->translate("Files uploaded: %s ", count($guids)));
 
     $files = $this->getFiles(array('selectedGUIDs'=>$guids));
 
