@@ -1925,7 +1925,7 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
             case "money":
             case "real":
                 $html .= $this->showTextBox($name
-                    , $this->decSQL2PHP($value, isset($conf['decimalPlaces']) && $conf['decimalPlaces']!==null ? (int)$conf['decimalPlaces'] : 2) 
+                    , ($value!==null && $value !== '' ? $this->decSQL2PHP($value, isset($conf['decimalPlaces']) && $conf['decimalPlaces']!==null ? (int)$conf['decimalPlaces'] : 2) : '')
                     , $conf); 
                 break;
 
@@ -2041,7 +2041,7 @@ public function field( $title, $name=null, $val_in=null, $conf=array() ){
     if($title!==null){
 
         if(isset($conf['details']) && $conf['details']!==null){
-            $html .= '<div class="eif-details" id="'.$conf['id']."_details".'">'.htmlspecialchars($conf['details']).'</div>';
+            $html .= '<div class="eif-details" id="'.$conf['id']."_details".'">'.$conf['details'].'</div>';
         }
 
         $html .= (isset($conf['extraHTML']) ? $conf['extraHTML'] : '').'</div>'."\r\n\r\n";
