@@ -1219,7 +1219,7 @@ function actionMenu($arrActions = array(), $flagShowLink=false){
 
 /**
  * This method includes specified $components into your PHP code by calling corresponding include() PHP functions and filling out __$arrJS__ and __$arrCSS__ arrays.
- * @param variant $components Array or string with eiseIntra's component name. Name set can be the following:  
+ * @param mixed $components Array or string with eiseIntra's component name. Name set can be the following:  
  * - base - core components, they're included by default
  * - batch - JavaScripts necessary to run batches
  * - list - eiseList
