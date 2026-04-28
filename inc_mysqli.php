@@ -230,7 +230,7 @@ class eiseSQL extends mysqli{
  *
  * @category Database routines
  *
- * @param variant $mysqli_result_or_query - it could be MySQL result object or a string with SQL query. 
+ * @param mixed $mysqli_result_or_query - it could be MySQL result object or a string with SQL query. 
  *
  * @return associative array with field names as keys, like MySQL result::fetch_assoc()
  */   
@@ -251,7 +251,7 @@ class eiseSQL extends mysqli{
  *
  * @category Database routines
  *
- * @param variant $mysqli_result - MySQL result object. 
+ * @param mixed $mysqli_result - MySQL result object. 
  *
  * @return enumerated array, like MySQL result::fetch_array()
  */
@@ -264,7 +264,7 @@ class eiseSQL extends mysqli{
  *
  * @category Database routines
  *
- * @param variant $result_or_query - MySQL result object or SQL query. 
+ * @param mixed $result_or_query - MySQL result object or SQL query. 
  *
  * @return array, like MySQL result::fetch_fields()
  */
@@ -300,7 +300,7 @@ class eiseSQL extends mysqli{
  *
  * @category Database routines
  *
- * @param variant $mysqli_result_or_query - it could be MySQL result object or a string with SQL query. 
+ * @param mixed $mysqli_result_or_query - it could be MySQL result object or a string with SQL query. 
  *
  * @return associative array with field names as keys, like MySQL result::fetch_assoc()
  */
