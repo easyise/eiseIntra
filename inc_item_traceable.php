@@ -277,6 +277,11 @@ public function update($nd){
 public function updateTable($nd, $flagDontConvertToSQL = false){
 
     foreach ($this->conf['ATR'] as $atrID => $props) {
+        if(!$props['atrFlagEditable']){
+            unset($nd[$atrID]);
+            continue;
+        }
+
         if(in_array($props['atrType'], ['ajax_dropdown', 'combobox', 'radio'])){
             if( in_array($atrID, array_keys($nd) ) )
                 foreach($this->table['columns'] as $field=>$field_props){
@@ -2471,7 +2476,11 @@ function getAttributeFields($fields, $item = null, $conf = array()){
             $options['no_input_name'] = true;
         }
 
-        $html .= $this->intra->field((isset($atr["atrTitle{$this->intra->local}"]) ? $atr["atrTitle{$this->intra->local}"] : ''), $field, $item, $options);
+        $title = (isset($atr["atrTitle{$this->intra->local}"]) ? $atr["atrTitle{$this->intra->local}"] : '');
+        $html .= ($atr['atrType']=='file'
+            ? $this->showFileField($title, $field, $item[$field], $options)
+            : $this->intra->field($title, $field, $item, $options)
+        );
 
         if(isset($conf['callbackAfter']) && is_callable(array($this, $conf['callbackAfter']))){
             $html .= call_user_func_array(array($this, $conf['callbackAfter']), array($field));

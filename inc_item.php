@@ -765,6 +765,30 @@ public static function checkFilePath($filesPath){
     return $filesPath;
 }
 
+public function showFileField($title, $field, $value, $conf = array()){
+
+	$intra = $this->intra;
+
+	if (empty($this->item['files']) && $this->id) {
+		$this->item['files'] = $this->getFiles();
+	}
+
+	$files = $this->item['files']; // array filGUID => array with file record data
+
+	$baseFileHref = eiseIntra::getFullHREF($this->conf['form'].'?'.$this->getURI())."&DataAction=getFile&filGUID=";
+
+	$details = '';
+	if($this->item[$field] && in_array($value, array_keys($this->item['files'])) ){
+		// http://local.yusen/treasury/cnt_validation_form.php?DataAction=getFile&cnvID=CNV2604-25743&filGUID=6ee16c3c-34ae-11f1-88ca-ae9934201da4
+		$details = '<a href="'.$baseFileHref.urlencode($files[$this->item[$field]]['filGUID']).'" target="_blank">'
+				.$files[$this->item[$field]]['filName']
+				.'</a>'."<br>";
+	} 
+	
+	return $intra->field($title, $field, null, array_merge($conf, ['type'=>'file', 'details'=>$details]));
+
+}
+
 /**
  * This function obtains file path from stbl_file for given file GUID and then it echoes file contents with [eiseIntra::file()](#eiseintra-file) function.
  * 
