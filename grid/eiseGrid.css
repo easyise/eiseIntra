@@ -204,6 +204,16 @@ td.eg-numeric
     white-space: nowrap !important;
 }
 
+td.eg-align-left {
+    text-align: left;
+}
+td.eg-align-center {
+    text-align: center;
+}
+td.eg-align-right {
+    text-align: right;
+}
+
 select.eg-floating-select {
     display: none;
     position: absolute;
