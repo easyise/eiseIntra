@@ -566,24 +566,29 @@ function showComments(){
     $oSQL = $this->oSQL;
     $intra = $this->intra;   
 
-    $strComments = '';
-
-    $strComments .= '<div class="eiseIntraField">'."\r\n";
-
+    $strComments = '<div class="eiseIntraField">'."\r\n";
     $strComments .= '<label>'.$this->intra->translate("Comments").':</label>'."\r\n";
     $strComments .= '<div class="eiseIntraValue">'."\r\n";
 
     if ($this->intra->arrUsrData["FlagWrite"] && !$this->flagArchive){
         $strComments .= '<textarea class="eiseIntraComment"></textarea>'."\r\n";
     }
+    
+    $ic = 0;
     foreach ($this->item["comments"] as $ix => $rwSCM){
+        if ($ic == 1) $strComments .= '<div class="eiseIntraCommentsHistory" style="display:none;">';
         $strComments .= '<div id="scm_'.$rwSCM["scmGUID"].'" class="eiseIntraComment'.($intra->usrID==$rwSCM["scmInsertBy"] ? " eiseIntraComment_removable" : "").'">'."\r\n";
-        $strComments .= '<div class="eiseIntraComment_userstamp">'.$intra->getUserData($rwSCM["scmInsertBy"]).' '.$intra->translate('at').' '.$intra->dateSQL2PHP($rwSCM["scmInsertDate"], "d.m.Y H:i")."\r\n";
-        $strComments .= '</div>'."\r\n";
+        $strComments .= '<div class="eiseIntraComment_userstamp">'.$intra->getUserData($rwSCM["scmInsertBy"]).' '.$intra->translate('at').' '.$intra->dateSQL2PHP($rwSCM["scmInsertDate"], "d.m.Y H:i").'</div>'."\r\n";
         $strComments .= '<div>'.str_replace("\n", "<br>", htmlspecialchars($rwSCM["scmContent"] )).'</div>'."\r\n";
         $strComments .= '</div>'."\r\n";
-        
+        $ic++;
     }
+    
+    if ($ic > 1) {
+        $strComments .= '</div>'."\r\n";
+        $strComments .= '<a href="#" class="eiseIntraCommentsToggle" data-show-all="'.$intra->translate('Show all').'" data-hide="'.$intra->translate('Hide').'">['.$intra->translate('Show all').' ('.$ic.')]</a>'."\r\n";
+    }
+    
     $strComments .= '</div>'."\r\n";
 
 

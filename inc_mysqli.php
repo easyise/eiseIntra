@@ -181,7 +181,7 @@ class eiseSQL extends mysqli{
  *
  * @category Database routines
  *
- * @return MySQL resource
+ * @return mysqli_result|bool
  */
     function q($query){ 
         
@@ -232,7 +232,7 @@ class eiseSQL extends mysqli{
  *
  * @param mixed $mysqli_result_or_query - it could be MySQL result object or a string with SQL query. 
  *
- * @return associative array with field names as keys, like MySQL result::fetch_assoc()
+ * @return array Associative array with field names as keys, like MySQL result::fetch_assoc()
  */   
     function f($mysqli_result_or_query){ //fetch_assoc
         if (is_object($mysqli_result_or_query)){
@@ -302,7 +302,7 @@ class eiseSQL extends mysqli{
  *
  * @param mixed $mysqli_result_or_query - it could be MySQL result object or a string with SQL query. 
  *
- * @return associative array with field names as keys, like MySQL result::fetch_assoc()
+ * @return array Associative array with field names as keys, like MySQL result::fetch_assoc()
  */
     function d($mysqli_result_or_query){ 
         if (is_object($mysqli_result_or_query)){

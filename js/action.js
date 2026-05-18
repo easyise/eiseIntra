@@ -565,7 +565,7 @@ init: function( options ) {
                                 var strUserStamp = data.user;
                     
                                 var newCommentHTML = '<div id="scm_'+scmGUID+'" class="eiseIntraComment">'+
-                                    '<div class="eiseIntraComment_userstamp">'+data.user+'</div>'+
+                                    '<div class="eiseIntraComment_userstamp">'+data.user+': </div>'+
                                     '<div>'+data.text+'</div>'+
                                     '</div>';
                                 
@@ -588,6 +588,23 @@ init: function( options ) {
             .blur(function(){
                 window.setTimeout(function(){$controls.slideUp()}, 3000);
             });
+
+        // toggle history
+        $this.on('click', '.eiseIntraCommentsToggle', function(e){
+            e.preventDefault();
+            var $link = $(this);
+            var $history = $this.find('.eiseIntraCommentsHistory');
+            var labelShow = $link.data('show-all');
+            var labelHide = $link.data('hide');
+            if ($history.is(':visible')){
+                $history.slideUp();
+                $link.removeClass('expanded').text($link.text().replace(labelHide, labelShow));
+            } else {
+                $history.slideDown();
+                $link.addClass('expanded').text($link.text().replace(labelShow, labelHide));
+            }
+        });
+
         $this.find('div.eiseIntraComment_removable').click(function(){
             var $divComment = $(this);
             showCommentControls($controls, $divComment

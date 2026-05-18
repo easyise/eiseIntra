@@ -872,8 +872,9 @@ function updateMasterTable($arrNewData = Array(), $flagUpdateMultiple = false, $
             continue;
         
         if ((!$FlagWrite && !$flagFullEditMode)                                                      // not editable
+            || !isset($arrNewData[$atrID])                                     // not set
             || ($arrNewData[$atrID]=="" && $flagUpdateMultiple)       // empty on multiple updates
-            || !isset($arrNewData[$rwSAT["atrID"]]))                           // not set
+            )
         continue;
         
         $newValue = null;
@@ -1332,9 +1333,9 @@ static function addComment($arrCommentData){
          , scmInsertBy, scmInsertDate, scmEditBy, scmEditDate
          ) VALUES (
          @scmGUID
-         , ".($arrCommentData['scmEntityItemID']!="" ? "'".$arrCommentData['scmEntityItemID']."'" : "NULL")."
-         , ".($arrCommentData['scmAttachmentID']!="" ? "'".$arrCommentData['scmAttachmentID']."'" : "NULL")."
-         , ".$oSQL->escape_string($arrCommentData['scmContent'])."
+         , ".(isset($arrCommentData['scmEntityItemID']) && $arrCommentData['scmEntityItemID']!="" ? "'".$arrCommentData['scmEntityItemID']."'" : "NULL")."
+         , ".(isset($arrCommentData['scmAttachmentID']) && $arrCommentData['scmAttachmentID']!="" ? "'".$arrCommentData['scmAttachmentID']."'" : "NULL")."
+         , ".$oSQL->escape_string(isset($arrCommentData['scmContent']) ? $arrCommentData['scmContent'] : "")."
          , '{$intra->usrID}', NOW(), '{$intra->usrID}', NOW());";
     $oSQL->do_query($sqlIns);
      

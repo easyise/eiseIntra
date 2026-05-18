@@ -731,6 +731,19 @@ public function checkPermissions(){
 
     $rwAct = $this->arrAction;
     $aUserRoles = array_merge(array($this->item->conf['RoleDefault']), $this->intra->arrUsrData['roleIDs']);
+    
+    if (method_exists($this->item, 'getVirtualRoleMembers')) {
+        foreach ((array)(isset($this->item->conf['RolesVirtual']) ? $this->item->conf['RolesVirtual'] : array()) as $rwRole) {
+            if (isset($rwRole['rolID'])) {
+                $roleMembers = $this->item->getVirtualRoleMembers($rwRole['rolID']);
+                if (in_array(strtoupper($this->intra->usrID), array_keys($roleMembers))) {
+                    $aUserRoles[] = $rwRole['rolID'];
+                }
+            }
+        }
+    }
+    $aUserRoles = array_values(array_unique($aUserRoles));
+
     if(count(array_intersect($aUserRoles, $rwAct['RLA']))==0){
         // die('<pre>'.var_export($rwAct, true).'</pre>');
         throw new Exception($this->intra->translate("%s: user %s not authorized because not member of (%s)",$this->arrAction['actTitle'.$this->intra->local], $this->intra->usrID, implode(', ', $rwAct['RLA'])) );

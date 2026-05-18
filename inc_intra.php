@@ -474,6 +474,7 @@ function password_verify($pass, $hash){
  */
 function Authenticate($login, $password, $method="LDAP", $options=array()){
 
+    $options = (array)$options;
     $oSQL = $this->oSQL;
     
     switch($method) {
@@ -528,10 +529,10 @@ function Authenticate($login, $password, $method="LDAP", $options=array()){
     case "mysql":
         try {
             $this->oSQL = new eiseSQL (
-                (!$options['dbhost'] ? 'localhost' : $options['dbhost'])
+                (empty($options['dbhost']) ? 'localhost' : $options['dbhost'])
                 , $login
                 , $password
-                , (!isset($options["dbname"]) || !$options["dbname"] ? 'mysql' : $options["dbname"])
+                , (empty($options["dbname"]) ? 'mysql' : $options["dbname"])
                 );
         } catch(Exception $e){
             throw new eiseException($e->getMessage());
@@ -539,7 +540,7 @@ function Authenticate($login, $password, $method="LDAP", $options=array()){
         break;
     } 
 
-    if($options['flagNoSession'])
+    if(!empty($options['flagNoSession']))
         return true;
 
     $this->session_initialize();
