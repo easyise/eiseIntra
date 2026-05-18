@@ -1,5 +1,6 @@
 <?php
 $DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : (isset($_GET["DataAction"]) ? $_GET["DataAction"] : '');
+$authmethod = isset($authmethod) ? $authmethod : 'LDAP';
 
 if(!isset($intra))
     $intra = new eiseIntra($oSQL, Array('version'=>$version));

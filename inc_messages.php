@@ -16,7 +16,9 @@ public $id;
 
 static $defaultConf = array(
     'mail_send_batchsize' => 10,
-    'mail_send_authenticate' => 'email'    , // options: 'email', 'onbehalf', 'serviceaccount'
+    'mail_send_authenticate' => 'email', // options: 'email', 'onbehalf', 'serviceaccount'
+    'verbose' => false,
+    'system' => '',
 );
 
 public function __construct($item){
@@ -224,7 +226,12 @@ static function sendMessages($conf){
 
     include_once(commonStuffAbsolutePath.'/eiseMail/inc_eisemail.php');
 
-    $conf = array_merge(self::$defaultConf, $conf);
+    $conf = array_merge([
+        'mail_send_batchsize' => 10,
+        'mail_send_authenticate' => 'email',
+        'verbose' => false,
+        'system' => '',
+    ], self::$defaultConf, (array)$conf);
     
     $limits = (($conf['authenticate']=='email') ? 'LIMIT 1' : "LIMIT {$conf['mail_send_batchsize']}");
     $oSQL->q("START TRANSACTION");
@@ -235,7 +242,7 @@ static function sendMessages($conf){
     if($oSQL->n($rsMsg)==0){
         $oSQL->q("COMMIT");
         echo "No messages to send.\n";
-        if($conf['verbose']){
+        if(!empty($conf['verbose'])){
             $oSQL->showProfileInfo();
         }
         return; // nothing to send
@@ -377,7 +384,7 @@ static function sendMessages($conf){
 
     $oSQL->q("COMMIT");
 
-    if($conf['verbose']){
+    if(!empty($conf['verbose'])){
         $oSQL->showProfileInfo();
     }
 

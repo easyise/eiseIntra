@@ -1378,7 +1378,7 @@ function json( $newData = null, $conf = array() ){
                             : null));
                 }
                 
-                switch($col['type']){
+                switch(isset($col['type']) ? $col['type'] : 'text'){
                     case 'order':
                         $val = $i;
                         break;
