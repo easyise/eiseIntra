@@ -277,10 +277,8 @@ public function update($nd){
 public function updateTable($nd, $flagDontConvertToSQL = false){
 
     foreach ($this->conf['ATR'] as $atrID => $props) {
-        if(!$props['atrFlagEditable']){
+        if(!in_array($atrID, $this->conf['STA'][$this->staID]['satFlagEditable']))
             unset($nd[$atrID]);
-            continue;
-        }
 
         if(in_array($props['atrType'], ['ajax_dropdown', 'combobox', 'radio'])){
             if( in_array($atrID, array_keys($nd) ) )
@@ -624,8 +622,8 @@ private function init(){
         (isset($this->intra->conf['systemID']) && $this->intra->conf['systemID']!=='' ? $this->intra->conf['systemID'].':' : '')
         .$this->entID;
 
-    if(isset($_SESSION[$sessKey]) && !$this->conf['flagDontCacheConfig']){
-    // if(false){
+    // if(isset($_SESSION[$sessKey]) && !$this->conf['flagDontCacheConfig']){
+    if(false){
         $this->conf = array_merge($this->conf, $_SESSION[$sessKey]);
         return $this->conf;
     }
@@ -2194,6 +2192,8 @@ public function getActionLog($q){
     if($q['order']='reverse'){
         $arrACL = array_reverse($arrACL);
     }
+
+    // die('<pre>'.var_export($arrACL, true));
     foreach ($arrACL as $aclGUID => $acl) {
 
 

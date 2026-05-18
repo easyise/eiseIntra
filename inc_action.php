@@ -112,7 +112,7 @@ public function __construct($item, $arrAct, $options = array()){
                 .$arrAct['aclComments'];
             break;
         default:
-            if($this->arrAction['actNewStatusID'][0]===null){ // if we move to the same status
+            if(empty($this->arrAction['actNewStatusID'][0]) || $this->arrAction['actNewStatusID'][0]===null){ // if we move to the same status
                 $this->arrAction['aclNewStatusID'] = $item->staID;
                 // die('<pre>'.var_export($this->arrAction, true));
             }
@@ -242,7 +242,7 @@ public function update($nd = null){
 public function add(){
 
     // 0. Trigger beforeActionPlan hook
-    $this->item->beforeActionPlan($this->arrAction['actID'], $this->arrAction['aclOldStatusID'], $this->arrAction['aclNewStatusID']);
+    $this->item->beforeActionPlan($this->arrAction['actID'], $this->arrAction['aclOldStatusID'] ?? null, $this->arrAction['aclNewStatusID'] ?? null);
 
     // 1. obtaining aclGUID
     $this->arrAction["aclGUID"] = ((isset($this->arrAction["aclGUID"]) && $this->arrAction["aclGUID"]) ? $this->arrAction["aclGUID"] : $this->oSQL->d("SELECT UUID() # add action {$this->arrAction['actTitle']}"));
@@ -274,8 +274,8 @@ public function add(){
         aclGUID = '{$this->arrAction["aclGUID"]}'
         , aclActionID = ".(int)$this->arrAction["actID"]."
         , aclEntityItemID = '".$this->item->id."'
-        , aclOldStatusID = ".($this->arrAction['aclOldStatusID']===null ? "NULL"  : "'".(string)$this->arrAction['aclOldStatusID']."'")."
-        , aclNewStatusID = ".($this->arrAction['aclNewStatusID']===null ? "NULL"  : "'".(string)$this->arrAction['aclNewStatusID']."'")."
+        , aclOldStatusID = ".(($this->arrAction['aclOldStatusID'] ?? null)===null ? "NULL"  : "'".(string)$this->arrAction['aclOldStatusID']."'")."
+        , aclNewStatusID = ".(($this->arrAction['aclNewStatusID'] ?? null)===null ? "NULL"  : "'".(string)$this->arrAction['aclNewStatusID']."'")."
             , aclActionPhase = 0
             {$timestamps}
             , aclItemBefore = ".$this->oSQL->e(json_encode($item_before))."

@@ -464,7 +464,6 @@ public function updateTable($nd, $flagDontConvertToSQL = false){
 
 	return $this->getDelta($this->item_before, $this->item);
 
-	//die('<pre>ND:'.var_export($nd_sql, true)."\nDelta:".var_export($this->delta, true));
 }
 
 
