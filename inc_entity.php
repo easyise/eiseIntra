@@ -2,7 +2,7 @@
 
 class eiseEntity {
 
-const sessKeyPrefix = 'ent:';
+const sessKeyPrefix = 'nlg:';
 
 public $oSQL;
 public $entID;
@@ -42,7 +42,7 @@ function __construct ($oSQL, $intra, $entID) {
 private function init(){
 
     $sessKey = self::sessKeyPrefix.
-        ($this->intra->conf['systemID'] ? $this->intra->conf['systemID'].':' : '')
+        (!empty($this->intra->conf['systemID']) ? $this->intra->conf['systemID'].':' : '')
         .$this->entID;
 
     if(isset($_SESSION[$sessKey]) && $_SESSION[$sessKey]){
@@ -818,6 +818,8 @@ function showActionRadios(){
     
     if (!$this->intra->arrUsrData["FlagWrite"])
         return;
+
+    $strOut = '';
 
     if(is_array($this->conf['STA'][$this->staID]['ACT']))
         foreach($this->conf['STA'][$this->staID]['ACT'] as $rwAct){
