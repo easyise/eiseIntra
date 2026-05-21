@@ -32,7 +32,20 @@ $conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)$intra->arrUsrData[
 
 <?php if (!$flagNoHeader): ?>
     <div id="header" class="ei-header" role="nav">
-        <div class="ei-app-title"><span class="sidebar-toggle fa fa-bars"></span><a href="<?php echo dirname($_SERVER['PHP_SELF']).'/' ?>"><?php echo $title; ?></a></div>
+        <div class="ei-app-title"><span class="sidebar-toggle fa fa-bars"></span><a href="<?php echo dirname($_SERVER['PHP_SELF']).'/' ?>"><?php 
+            if (preg_match('/^(.*?)([aAåÅаА])(.*)$/us', $title, $matches)) {
+                echo htmlspecialchars($matches[1]);
+                $logoPath = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . '/common/images/Logo_Aring_Beige.svg';
+                if (file_exists($logoPath)) {
+                    echo '<img src="/common/images/Logo_Aring_Beige.svg" class="ei-app-title-logo" alt="'.htmlspecialchars($matches[2]).'">';
+                } else {
+                    echo htmlspecialchars($matches[2]);
+                }
+                echo htmlspecialchars($matches[3]);
+            } else {
+                echo htmlspecialchars($title);
+            }
+        ?></a></div>
         <div class="ei-top-level-menu-container"> </div>
         
         <?php if ($warning): ?>
