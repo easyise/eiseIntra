@@ -78,7 +78,6 @@ static function getPrefixExtra($prgRcv){
 }
 
 public $flagArchive = false; // if set to true, the item is archived: all data is obtained from archive table.
-public $flagFullEdit = false;
 
 /**
  * @ignore
@@ -277,14 +276,14 @@ public function update($nd){
  * @category Data Handling
  * 
  */
-public function updateTable(array $nd, $flagDontConvertToSQL = false){
+public function updateTable($nd, $flagDontConvertToSQL = false){
 
     $editable = isset($this->conf['STA'][$this->staID]['satFlagEditable']) && is_array($this->conf['STA'][$this->staID]['satFlagEditable'])
         ? $this->conf['STA'][$this->staID]['satFlagEditable']
         : array();
 
     foreach ($this->conf['ATR'] as $atrID => $props) {
-        if(!$this->flagFullEdit && !in_array($atrID, $editable))
+        if(!in_array($atrID, $editable))
             unset($nd[$atrID]);
 
         if(in_array($props['atrType'], ['ajax_dropdown', 'combobox', 'radio'])){
@@ -318,7 +317,6 @@ public function updateFullEdit($nd){
 
     $this->checkForCheckboxes($nd);
 
-    $this->flagFullEdit = true;
     $this->updateTable($nd);
     if (isset($this->item['ACL'])) {
         foreach($this->item['ACL'] as $aclGUID=>$rwACL){

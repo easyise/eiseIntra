@@ -435,7 +435,7 @@ public function preventRecursiveHooks(&$nd = array()){
  * 
  * @category Data Handling
  */
-public function updateTable(array $nd, $flagDontConvertToSQL = false){
+public function updateTable($nd, $flagDontConvertToSQL = false){
 
 	$sqlFields = '';
 
