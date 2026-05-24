@@ -78,6 +78,7 @@ static function getPrefixExtra($prgRcv){
 }
 
 public $flagArchive = false; // if set to true, the item is archived: all data is obtained from archive table.
+public $flagFullEdit = false;
 
 /**
  * @ignore
@@ -243,7 +244,9 @@ public function update($nd){
     // 1. update master table
     $nd_ = $nd;
     $atrs = array_keys($this->conf['ATR']);
-    $editable = (array)$this->conf['STA'][$this->staID]['satFlagEditable'];
+    $editable = (isset($this->conf['STA'][$this->staID]['satFlagEditable']) && is_array($this->conf['STA'][$this->staID]['satFlagEditable'])
+        ? $this->conf['STA'][$this->staID]['satFlagEditable']
+        : array());
 
     $this->checkForCheckboxes($nd_);
 
@@ -274,10 +277,14 @@ public function update($nd){
  * @category Data Handling
  * 
  */
-public function updateTable($nd, $flagDontConvertToSQL = false){
+public function updateTable(array $nd, $flagDontConvertToSQL = false){
+
+    $editable = isset($this->conf['STA'][$this->staID]['satFlagEditable']) && is_array($this->conf['STA'][$this->staID]['satFlagEditable'])
+        ? $this->conf['STA'][$this->staID]['satFlagEditable']
+        : array();
 
     foreach ($this->conf['ATR'] as $atrID => $props) {
-        if(!in_array($atrID, $this->conf['STA'][$this->staID]['satFlagEditable']))
+        if(!$this->flagFullEdit && !in_array($atrID, $editable))
             unset($nd[$atrID]);
 
         if(in_array($props['atrType'], ['ajax_dropdown', 'combobox', 'radio'])){
@@ -311,6 +318,7 @@ public function updateFullEdit($nd){
 
     $this->checkForCheckboxes($nd);
 
+    $this->flagFullEdit = true;
     $this->updateTable($nd);
     if (isset($this->item['ACL'])) {
         foreach($this->item['ACL'] as $aclGUID=>$rwACL){
@@ -622,8 +630,8 @@ private function init(){
         (isset($this->intra->conf['systemID']) && $this->intra->conf['systemID']!=='' ? $this->intra->conf['systemID'].':' : '')
         .$this->entID;
 
-    // if(isset($_SESSION[$sessKey]) && !$this->conf['flagDontCacheConfig']){
-    if(false){
+    if(isset($_SESSION[$sessKey]) && !$this->conf['flagDontCacheConfig']){
+    // if(false){
         $this->conf = array_merge($this->conf, $_SESSION[$sessKey]);
         return $this->conf;
     }
@@ -2445,7 +2453,7 @@ function getAttributeFields($fields, $item = null, $conf = array()){
             $html .= call_user_func_array(array($this, $conf['callbackBefore']), array($field));
         }
 
-        if(isset($conf['flagNonEmpty']) && $conf['flagNonEmpty'] && !$item[$field])
+        if(isset($conf['flagNonEmpty']) && $conf['flagNonEmpty'] && empty($item[$field]))
             continue;
 
         $options = array('type'=>$atr['atrType']
@@ -2478,7 +2486,7 @@ function getAttributeFields($fields, $item = null, $conf = array()){
 
         $title = (isset($atr["atrTitle{$this->intra->local}"]) ? $atr["atrTitle{$this->intra->local}"] : '');
         $html .= ($atr['atrType']=='file'
-            ? $this->showFileField($title, $field, $item[$field], $options)
+            ? $this->showFileField($title, $field, (isset($item[$field]) ? $item[$field] : null), $options)
             : $this->intra->field($title, $field, $item, $options)
         );
 
