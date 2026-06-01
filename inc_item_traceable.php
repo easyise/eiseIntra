@@ -278,6 +278,10 @@ public function update($nd){
  */
 public function updateTable($nd, $flagDontConvertToSQL = false){
 
+    if($_POST['DataAction']=='updateFullEdit' && preg_match('/entityitem_form\.php$/i', $_SERVER['PHP_SELF'])){
+        parent::updateTable($nd, $flagDontConvertToSQL);
+    }
+
     $editable = isset($this->conf['STA'][$this->staID]['satFlagEditable']) && is_array($this->conf['STA'][$this->staID]['satFlagEditable'])
         ? $this->conf['STA'][$this->staID]['satFlagEditable']
         : array();
