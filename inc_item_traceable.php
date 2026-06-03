@@ -2252,18 +2252,22 @@ public function getActionLog($q){
     }
 
     if(!in_array(1, $aActionIDs)){
+
+        $staID_new = array_keys($this->conf['STA'])[0];
+        $staTitle_new = (isset($this->conf['STA'][$staID_new]) ? $this->conf['STA'][$staID_new]['staTitle'.$this->intra->local] : '');
+
         $aCreate = array('aclGUID' => null
                     , 'actID' => 1
                     , 'aclActionPhase' => 2
                     , 'aclOldStatusID' => null
                     , 'aclOldStatusID_text' => ''
-                    , 'aclNewStatusID' => $acl['aclNewStatusID']
-                    , 'aclNewStatusID_text' => (isset($this->conf['STA'][0]) ? $this->conf['STA'][0]['staTitle'.$this->intra->local] : '')
-                    , 'actTitle' => $this->intra->translate('Create')
-                    , 'actTitlePast' => $this->intra->translate('Created')
-                    , 'aclComments' => $acl['aclComments']
-                    , 'aclFinishBy' => $this->intra->translate('%s by %s', ucfirst($acl['actTitlePast'.$this->intra->local]), $this->intra->getUserData($this->item[$this->conf['prefix'].'InsertBy']))
-                    , 'aclEditBy' => $this->intra->translate('%s by %s', ucfirst($acl['actTitlePast'.$this->intra->local]), $this->intra->getUserData($this->item[$this->conf['prefix'].'InsertBy']))
+                    , 'aclNewStatusID' => $staID_new
+                    , 'aclNewStatusID_text' => $staTitle_new
+                    , 'actTitle' => __('Create')
+                    , 'actTitlePast' => __('Created')
+                    , 'aclComments' => ''
+                    , 'aclFinishBy' => $this->intra->translate('%s by %s', ucfirst(__('Created')), $this->intra->getUserData($this->item[$this->conf['prefix'].'InsertBy']))
+                    , 'aclEditBy' => $this->intra->translate('%s by %s', ucfirst(__('Created')), $this->intra->getUserData($this->item[$this->conf['prefix'].'InsertBy']))
                     , 'aclEditDate' => $this->intra->datetimeSQL2PHP($this->item[$this->conf['prefix'].'InsertDate'])
                     , 'aclATA' => $this->intra->datetimeSQL2PHP($this->item[$this->conf['prefix'].'InsertDate'])
                     );
