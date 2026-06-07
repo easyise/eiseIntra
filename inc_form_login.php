@@ -65,6 +65,8 @@ $intra->logout();
 <title><?php  echo $title ; ?></title>
 
 <?php
+$arrJS[] = eiseIntraRelativePath.'js/three.r134.min.js';
+$arrJS[] = eiseIntraRelativePath.'js/vanta.net.min.js';
 $intra->loadCSS();
 $intra->loadJS();
 ?>
@@ -76,9 +78,9 @@ if(isset($AUTH_USER)){
     $arrUsr = explode("[\\]", $AUTH_USER);
     $usrID = strtoupper($arrUsr[count($arrUsr)-1]);
 }
-if (isset($strMode) && $strMode == "LDAP"){
+if (isset($authmethod) && $authmethod == "LDAP"){
 	$ldap_conn = ldap_connect($ldap_server);
-	$binding = @ldap_bind($ldap_conn, $ldap_anonymous_login, $ldap_anonymous_pass);
+	$binding = @ldap_bind($ldap_conn, $ldap_anonymous_login, $ldap_anonymous_password);
 }
  ?>
 
@@ -99,18 +101,42 @@ $(document).ready(function(){
         document.getElementById("login").focus();
         document.getElementById("login").select();
     }, 1);
+
+    if (typeof VANTA !== 'undefined' && typeof VANTA.NET === 'function') {
+        VANTA.NET({
+            el: "body",
+            mouseControls: true,
+            touchControls: true,
+            gyroControls: false,
+            minHeight: 200.00,
+            minWidth: 200.00,
+            scale: 1.00,
+            scaleMobile: 1.00,
+            color: 0x2a5d73,
+            backgroundColor: 0x152630,
+            points: 12.00,
+            maxDistance: 20.00,
+            spacing: 16.00
+        });
+    }
 });
 
 </script>
 
 <div class="ei-login-container">
 
+<div class="ei-login-header">
+    <div class="ei-login-logo" title="TAGLEX"></div>
+    <div class="ei-login-subtitle">By your business standards</div>
+</div>
+
+<div class="ei-login-body">
 <h1>Welcome to <?php  echo $title ; ?></h1>
 
 <?php 
 if (isset($_GET["error"]) && $_GET['error']){
 ?>
-<div class="eiseIntraError" style="text-align: center; margin-left: auto; margin-right: auto; margin-top: 30px; text-align: left; padding-left: 30px;">ERROR: <?php  echo $_GET["error"] ; ?></div>
+<div class="eiseIntraError" style="text-align: center; margin-left: auto; margin-right: auto; margin-top: 20px; text-align: left; padding-left: 30px;">ERROR: <?php  echo $_GET["error"] ; ?></div>
 <?php
 }
  ?>
@@ -137,6 +163,7 @@ echo $intra->field('', null, $intra->showButton('btnsubmit'
 
 </fieldset>
 </form>
+</div>
 </div>
 
 <?php  echo $extraBottomHTML; ?>
