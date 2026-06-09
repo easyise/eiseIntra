@@ -162,19 +162,19 @@ var eiseIntraActionSubmit = function(event, $form){
             $form.find("#aclGUID").val(o.aclGUID);
 
             var arrFieldsToFill = [];
-            if(o.act.aatFlagMandatory)
+            if(o.act.aatFlagMandatory){
                 $.each(o.act.aatFlagMandatory, function(fieldName, arrFlags){
                     $inp = $form.find('#'+fieldName);
-                    if((typeof($inp[0])=='undefined' || $inp.attr('readonly'))
-                        && ($inp.length && $inp.attr('type')!='combobox')
-                    ){
+                                         
+                    if(typeof($inp[0])=='undefined' || $inp.attr('readonly')){
                         arrFieldsToFill.push({name: o.atr[fieldName].atrID
                             , title: ($form.data('eiseIntraForm').conf.local ? o.atr[fieldName].atrTitleLocal : o.atr[fieldName].atrTitle)
                             , type: (o.atr[fieldName].atrType=='boolean' ? 'checkbox' : o.atr[fieldName].atrType)
-                            , defaultValue: o.atr[fieldName].atrDefault
+                            , value: o.atr[fieldName].atrDefault || $initiatorButton.data('default-'+fieldName)
                             , required: ['boolean', 'checkbox'].includes(o.atr[fieldName].atrType) ? false : true});
                     }
                 });
+            }
 
             if (o.act.actFlagComment=='1' || ((event.originalEvent.ctrlKey || event.originalEvent.metaKey))){
                 arrFieldsToFill.push({name: 'aclComments', title: 'Comments', type: 'textarea', required: true});
