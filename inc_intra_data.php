@@ -771,15 +771,28 @@ function getDataFromCommonViews($strValue, $strText, $strTable, $strPrefix, $fla
  * This function recursively converts data in associative array according to type definition supplied in $types parameter. Suitable for situations when you need locale-indepedent json.
  * 
  */
-public function arrPHP2SQL($arrSrc, $types = array()){
+public function arrPHP2SQL($arrSrc, $types=null){
     $aInt = array();
     $arrRet = array();
     foreach((array)$arrSrc as $key=>$value){
-        $flagIsText = false;
+        if ($types === null)
+            $type = 'text';
+        else if (is_array($types)) {
+            $type = isset($types[$key]) ? $types[$key] : null;
+        } else if (is_string($types))
+            $type = $types;
+        else
+            $type = 'text';
+
         if(is_array($value)){
-            $arrRet[$key] = $this->arrPHP2SQL($value, $types);
+            $arrRet[$key] = $this->arrPHP2SQL($value, $type);
         } else {
-            switch (isset($types[$key]) ? $types[$key] : 'text') {
+            
+            if($type===null){
+                continue;
+            }
+
+            switch ($type) {
                 case 'date':
                     $arrRet[$key] = $this->oSQL->unq($this->datePHP2SQL($value));
                     break;
