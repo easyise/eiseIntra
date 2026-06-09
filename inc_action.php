@@ -50,7 +50,7 @@ public function __construct($item, $arrAct, $options = array()){
 	if(!$arrAct['actID'] && !$arrAct['aclGUID'])
 		$arrAct['actID'] = 2;
 
-    $types = array();
+    $types = array('aclComments'=>'text');
     foreach(self::$ts as $_ts)
         $types['acl'.$_ts] = 'datetime';
     $types = array_merge($types, $this->item->conf['attr_types']);
