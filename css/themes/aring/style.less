@@ -464,16 +464,47 @@ option.deleted {
 
 .ei-login-container {
     width: 100%;
-    max-width: 420px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
+    max-width: 380px;
+    background: #eef2f5;
     border-radius: 16px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.2), 0 5px 15px rgba(0,0,0,0.1);
-    border: 1px solid rgba(255,255,255,0.4);
-    padding: 40px 50px;
-    margin: 0 auto;
+    overflow: hidden;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     position: relative;
     z-index: 10;
+}
+
+.ei-login-header {
+    background: @ei-logo-bg-color;
+    padding: 30px 20px 24px 20px;
+    text-align: center;
+}
+
+.ei-login-logo {
+    max-width: 180px;
+    background-image: @ei-logo;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    width: 180px;
+    height: 180px / @ei-logo-ratio;
+    display: inline-block;
+}
+
+.ei-login-subtitle {
+    color: #a0b0b9;
+    letter-spacing: 0.5px;
+}
+
+.ei-login-body {
+    padding: 30px 35px 35px 35px;
+}
+
+.ei-login-body h1 {
+    color: @color-deep-sea;
+    margin: 0 0 20px 0;
+    text-transform: none;
+    text-align: center;
 }
 
 .form-login {
@@ -491,18 +522,8 @@ option.deleted {
         background: radial-gradient(circle at top right, rgba(209, 109, 52, 0.2), transparent 40%),
                     radial-gradient(circle at bottom left, rgba(42, 93, 115, 0.4), transparent 40%);
         z-index: 1;
+        pointer-events: none;
     }
-}
-
-.form-login h1 {
-    color: @color-deep-sea;
-    font-family: 'TTNormsProMedium', Calibri, sans-serif;
-    font-size: 26px;
-    text-align: center;
-    margin: 0 0 30px 0;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
 }
 
 .form-login .eiseIntraMainForm {
@@ -526,17 +547,6 @@ option.deleted {
     flex-direction: column;
 }
 
-.form-login .field_title,
-.form-login .intraFieldTitle {
-    text-align: left;
-    color: #555;
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    padding: 0;
-    font-family: 'Open Sans', sans-serif;
-}
-
 .form-login .field_value,
 .form-login .intraFieldValue,
 .form-login .eiseIntraValue {
@@ -546,67 +556,66 @@ option.deleted {
     margin-left: 0 !important;
 }
 
+.form-login .eiseIntraField label,
 .form-login .eiseIntraForm label {
+    color: #475569;
     width: 100% !important;
     max-width: none !important;
-    float: none !important;
-    text-align: left !important;
+    text-align: left;
 }
 
 .form-login .eiseIntraForm input[type="text"],
 .form-login .eiseIntraForm input[type="password"] {
-    width: 100%;
-    padding: 12px 16px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 10px 14px;
     font-size: 14px;
     box-sizing: border-box;
     transition: all 0.3s ease;
-    background: #f9f9f9;
+    background: #f8fafc;
 }
 
 .form-login .eiseIntraForm input[type="text"]:focus,
 .form-login .eiseIntraForm input[type="password"]:focus {
-    border-color: @color-ocean-silence;
-    background: #fff;
-    box-shadow: 0 0 0 3px rgba(42, 93, 115, 0.15);
+    border-color: @color-orange-sun;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(209, 109, 52, 0.15);
     outline: none;
 }
 
-.form-login input#btnsubmit {
-    width: 100%;
-    background: @color-ocean-silence;
-    color: #fff;
+/* Login submit button */
+.form-login .eiseIntraSubmit,
+.form-login input[type="submit"] {
+    background: @color-orange-sun;
+    color: #ffffff;
     border: none;
-    padding: 14px;
-    font-size: 16px;
-    font-weight: 600;
-    border-radius: 8px;
+    border-radius: 6px;
+    padding: 12px;
+    box-shadow: 0 4px 10px rgba(209, 109, 52, 0.2);
+    width: 100% !important;
     cursor: pointer;
-    transition: all 0.3s ease;
-    margin-top: 10px;
-    font-family: 'TTNormsProMedium', sans-serif;
-    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
 }
 
-.form-login input#btnsubmit:hover {
-    background: darken(@color-ocean-silence, 5%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(42, 93, 115, 0.3);
+.form-login .eiseIntraSubmit:hover,
+.form-login input[type="submit"]:hover {
+    background: darken(@color-orange-sun, 5%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(209, 109, 52, 0.3);
 }
 
 .form-login #div-login {
-    text-align: center;
-    color: #777;
+    margin-top: 20px;
     font-size: 12px;
-    margin-top: 15px;
+    color: #64748b;
+    text-align: center;
     background: transparent;
     padding: 0;
     border: none;
 }
 
 .form-login #div-login strong {
-    color: #333;
+    color: #1e293b;
 }
 
 
