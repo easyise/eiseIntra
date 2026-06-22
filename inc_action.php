@@ -82,7 +82,7 @@ public function __construct($item, $arrAct, $options = array()){
 
 	} else {
 		$this->conf = $item->conf['ACT'][(string)$arrAct['actID']];
-        $nd_SQL = $this->intra->arrPHP2SQL($nd, $types);
+        $nd_SQL = array_merge($nd, $this->intra->arrPHP2SQL($nd, $types)); // in order to keep flags e.g. flagSkipIfNoPermissions
         $this->arrAction = array_merge($this->conf, $nd_SQL);
 	}
 
