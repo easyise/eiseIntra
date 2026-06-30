@@ -1211,14 +1211,26 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
 
         $arr['nowrap'] = true;
        
-        if ($rwAtr['atrType']=="combobox" || $rwAtr['atrType']=="ajax_dropdown")
-        if (!preg_match("/^Array/i", $rwAtr['atrProgrammerReserved']))
-        { 
-            $arr['source'] = $rwAtr['atrDataSource'];
-            list($arr['source_prefix'], $arr['extra']) = self::getPrefixExtra($rwAtr["atrProgrammerReserved"]);
-            $arr['defaultText'] = $rwAtr['atrDefault'];
-        } else 
-            $arr['type'] = "text";
+        if ($rwAtr['atrType']=="combobox" || $rwAtr['atrType']=="ajax_dropdown"){
+            if ($rwAtr['atrType']=='combobox' && preg_match("/^Array/i", $rwAtr['atrProgrammerReserved'])){
+                $arr['type'] = "text";
+            } elseif ($rwAtr["atrType"] == "combobox" && ($arrOptions = @json_decode($rwAtr["atrDataSource"], true)) ) {
+                $arr['source'] = $arrOptions;
+                $sql = "CASE ";
+                foreach($arrOptions as $key=>$val){
+                    $sql .= "WHEN {$key} THEN {$oSQL->e($val)} ";
+                }
+                $sql .= "ELSE '-' END";
+                $arr['sql'] = $sql;
+                $arr['defaultText'] = '-';
+            
+            } else { 
+                $arr['source'] = $rwAtr['atrDataSource'];
+                list($arr['source_prefix'], $arr['extra']) = self::getPrefixExtra($rwAtr["atrProgrammerReserved"]);
+                $arr['defaultText'] = $rwAtr['atrDefault'];
+            } 
+                
+        }
         $lst->Columns[$atrID] = $arr;
        
     }
