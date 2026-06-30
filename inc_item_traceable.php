@@ -1216,12 +1216,14 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
                 $arr['type'] = "text";
             } elseif ($rwAtr["atrType"] == "combobox" && ($arrOptions = @json_decode($rwAtr["atrDataSource"], true)) ) {
                 $arr['source'] = $arrOptions;
-                $sql = "CASE ";
+                $sql = "CASE {$rwAtr['atrID']} ";
                 foreach($arrOptions as $key=>$val){
                     $sql .= "WHEN {$key} THEN {$oSQL->e($val)} ";
                 }
                 $sql .= "ELSE '-' END";
+                // die('<pre>'.$sql.'</pre>');
                 $arr['sql'] = $sql;
+                // $arr['type'] = "text";
                 $arr['defaultText'] = '-';
             
             } else { 
@@ -1967,12 +1969,25 @@ public function processCheckmarks($arrAction){
     if(!isset($this->item['CHK']) || !$this->item['CHK'])
         return true;
 
+    // for actions that set new status despite checkmarks
+    $arrActionSetCheckmarks = array();
+    foreach ($this->item['CHK'] as $rwCHK) {
+        if($rwCHK['chkTargetStatusID']==$arrAction["aclNewStatusID"]){
+            $arrActionSetCheckmarks[] = $rwCHK['chkAttributeID'];
+        }
+    }
+    if (!in_array($arrAction['actID'], $arrActionSetCheckmarks)) {
+        return true;
+    }
+
     $required = [];
     $checkmarks_required = 0;
     $checkmarks_completed = 0;
     foreach ($this->item['CHK'] as $rwCHK) {
-        if($rwCHK['chkTargetStatusID']==$arrAction["aclNewStatusID"]){
+        if($rwCHK['chkTargetStatusID']==$arrAction["aclNewStatusID"]) {
+
             $checkmarks_required += 1;
+
             if($rwCHK['checked']){
                 $checkmarks_completed += 1;
             } else {
@@ -1994,7 +2009,7 @@ public function processCheckmarks($arrAction){
         
     }
 
-    // die('<pre>'.$checkmarks_required."\n\n".var_export($this->item['CHK'] , true));
+    // die('<pre>'.$checkmarks_required."\n\n".var_export($this->item['CHK'] , true)."\n\n".var_export($arrAction, true).'</pre>' );
     return $checkmarks_required>0 ? ($checkmarks_required == $checkmarks_completed) : true;
 
 }
