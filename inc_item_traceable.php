@@ -278,7 +278,7 @@ public function update($nd){
  */
 public function updateTable($nd, $flagDontConvertToSQL = false){
 
-    if($_POST['DataAction']=='updateFullEdit' && preg_match('/entityitem_form\.php$/i', $_SERVER['PHP_SELF'])){
+    if(!empty($_POST['DataAction']) && $_POST['DataAction']=='updateFullEdit' && preg_match('/entityitem_form\.php$/i', $_SERVER['PHP_SELF'])){
         parent::updateTable($nd, $flagDontConvertToSQL);
     }
 
@@ -1973,10 +1973,11 @@ public function processCheckmarks($arrAction){
     $arrActionSetCheckmarks = array();
     foreach ($this->item['CHK'] as $rwCHK) {
         if($rwCHK['chkTargetStatusID']==$arrAction["aclNewStatusID"]){
-            $arrActionSetCheckmarks[] = $rwCHK['chkAttributeID'];
+            $arrActionSetCheckmarks[] = $rwCHK['chkSetActionID'];
         }
     }
     if (!in_array($arrAction['actID'], $arrActionSetCheckmarks)) {
+        // die('<pre>Action '.$arrAction['actID'].' '.var_export($arrActionSetCheckmarks, true).'</pre>');
         return true;
     }
 
