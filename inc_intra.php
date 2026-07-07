@@ -1281,6 +1281,20 @@ function requireComponent($components){
                 $this->requireComponent('jquery-ui');
                 $arrJS[] = eiseIntraRelativePath.'js/eiseIntraReports.jQuery.js';
                 break;
+            
+            case 'moment':
+                $arrJS[] = eiseIntraRelativePath.'lib/moment.js';
+                
+                break;
+            case 'fullcalendar':
+                $this->requireComponent('moment');
+                $arrJS[] = eiseIntraRelativePath.'lib/fullcalendar/fullcalendar.min.js';
+                $arrCSS[] = eiseIntraRelativePath.'lib/fullcalendar/fullcalendar.min.css';
+                if($this->local)
+                    $arrJS[] = eiseIntraRelativePath.'lib/fullcalendar/locale/ru.js';
+
+                // die('<pre>'.var_export($arrJS, true).'</pre>');
+                break;
 
             default:
                 # code...
