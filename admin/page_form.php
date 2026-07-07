@@ -198,41 +198,7 @@ switch($DataAction){
 
             $pagID = $oSQL->i();
 			
-			$sqlPGR = "INSERT INTO stbl_page_role(
-               pgrPageID
-               , pgrRoleID
-               , pgrFlagRead
-    		   , pgrFlagCreate
-    		   , pgrFlagUpdate
-    		   , pgrFlagDelete
-               , pgrFlagWrite
-               , pgrInsertBy
-               , pgrInsertDate
-               , pgrEditBy
-               , pgrEditDate
-               ) SELECT
-                {$pagID} as pgrPageID
-               , rolID as pgrRoleID
-               , 0 as pgrFlagRead
-    		   , 0 as pgrFlagCreate
-    		   , 0 as prgFlagUpdate
-    		   , 0 as pgrFlagDelete
-               , 0 as pgrFlagWrite
-               , '{$intra->usrID}' as pgrInsertBy, NOW(), '{$intra->usrID}' as pgrEditBy
-               , NOW()
-               FROM stbl_role;\r";	
-            $oSQL->q($sqlPGR);		
-			
-			$oSQL->q("UPDATE stbl_page_role
-							SET pgrFlagRead = 1
-							,pgrFlagCreate = 0
-							,pgrFlagUpdate = 0
-							,pgrFlagDelete = 0
-							,pgrFlagWrite = 0
-							where pgrRoleID = 'Admin'
-                            AND pgrPageID={$pagID}");
-
-            $rwPage = $oSQL->f("SELECT * FROM stbl_page WHERE pagID={$pagID}");
+			$rwPage = $oSQL->f("SELECT * FROM stbl_page WHERE pagID={$pagID}");
 
             RecalculatePageTree($oSQL, NULL, $iCounter);
 							
@@ -243,36 +209,34 @@ switch($DataAction){
             $rwPage = $oSQL->f($rsPage);
             $oSQL->q("UPDATE stbl_page SET {$fields} WHERE pagID={$pagID}");
             
-            foreach($_POST['inp_page_role_updated'] as $i=>$updated){
-                if(!$updated)
-                    continue;
-                $rolID = $_POST['rolID'][$i];
-                $sqlCheck = "SELECT pgrID FROM stbl_page_role WHERE pgrPageID={$pagID} AND pgrRoleID=".$oSQL->e($rolID);
-                $pgrID = $oSQL->d($sqlCheck);
-                $fields = ", pgrFlagRead = '".(int)($_POST['pgrFlagRead'][$i])."'
-                        , pgrFlagCreate = '".(int)($_POST['pgrFlagCreate'][$i])."'
-                        , pgrFlagUpdate = '".(int)($_POST['pgrFlagUpdate'][$i])."'
-                        , pgrFlagDelete = '".(int)($_POST['pgrFlagDelete'][$i])."'
-                        , pgrFlagWrite = '".(int)($_POST['pgrFlagWrite'][$i])."'";
-                if($pgrID){
-                    $sql = "UPDATE stbl_page_role SET
-                        pgrEditBy = '$intra->usrID', pgrEditDate = NOW()
-                        {$fields}   
-                    WHERE `pgrID` = ".(int)($pgrID);
-                } else {
-                    $sql = "INSERT INTO stbl_page_role SET
-                        pgrPageID={$pagID}, pgrRoleID=".$oSQL->e($rolID)."
-                        , pgrInsertBy = '$intra->usrID', pgrInsertDate = NOW()
-                        , pgrEditBy = '$intra->usrID', pgrEditDate = NOW()
-                        {$fields}";
-                }
-                $oSQL->q($sql);
-            }
-
             if ($_POST["pagParentID"]!=$rwPage["pagParentID"]) {
                   RecalculatePageTree($oSQL, NULL, $iCounter);
             }
                
+        }
+
+        $oSQL->q("DELETE FROM stbl_page_role WHERE pgrPageID={$pagID}");
+
+        foreach($_POST['inp_page_role_updated'] as $i=>$updated){
+            
+            if($_POST['pgrFlagRead'][$i] || $_POST['pgrFlagCreate'][$i] || $_POST['pgrFlagUpdate'][$i] || $_POST['pgrFlagDelete'][$i] || $_POST['pgrFlagWrite'][$i]){
+
+                $rolID = $_POST['rolID'][$i];
+                $fields = ", pgrFlagRead = ".(int)($_POST['pgrFlagRead'][$i])."
+                        , pgrFlagCreate = ".(int)($_POST['pgrFlagCreate'][$i])."
+                        , pgrFlagUpdate = ".(int)($_POST['pgrFlagUpdate'][$i])."
+                        , pgrFlagDelete = ".(int)($_POST['pgrFlagDelete'][$i])."
+                        , pgrFlagWrite = ".(int)($_POST['pgrFlagWrite'][$i]);
+                
+                $sql = "INSERT INTO stbl_page_role SET
+                        pgrPageID={$pagID}, pgrRoleID=".$oSQL->e($rolID)."
+                        , pgrInsertBy = '$intra->usrID', pgrInsertDate = NOW()
+                        , pgrEditBy = '$intra->usrID', pgrEditDate = NOW()
+                        {$fields}";
+                
+                $oSQL->q($sql);
+                
+            }
         }
 
         // $oSQL->showProfileInfo();

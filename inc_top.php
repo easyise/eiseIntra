@@ -19,7 +19,10 @@ $extraHTML = isset($extraHTML) ? $extraHTML : '';
 $arrActions = isset($arrActions) ? $arrActions : [];
 
 $paneClass = "ei-pane{$intra->conf['frame']}".($flagNoHeader ? ' no-header' : '');
-$conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)$intra->arrUsrData['FlagWrite'] ]  );
+$conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)$intra->arrUsrData['FlagWrite']
+    , 'usrID'=> ($intra instanceof eiseAdmin ? null : $intra->arrUsrData['usrID'])
+    , 'roleIDs'=> ($intra instanceof eiseAdmin ? null : implode(',', $intra->arrUsrData['roleIDs']))
+ ]  );
  ?>
 
 <link rel="icon" href="./favicon.ico" type="image/x-icon" />
