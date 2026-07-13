@@ -1218,6 +1218,7 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
                 $arr['source'] = $arrOptions;
                 $sql = "CASE {$rwAtr['atrID']} ";
                 foreach($arrOptions as $key=>$val){
+                    $key = is_numeric($key) ? $key : $oSQL->e($key);
                     $sql .= "WHEN {$key} THEN {$oSQL->e($val)} ";
                 }
                 $sql .= "ELSE '-' END";
