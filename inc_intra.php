@@ -3230,7 +3230,7 @@ static function getKeyboardVariations($src){
  *
  * @category Utilities
  */
-protected function buildLess(){
+public function buildLess($extraLessToBuild = array()){
 
     GLOBAL $eiseIntraCSSTheme, $eiseIntraFlagBuildLess, $eiseIntraLessToBuild;
 
@@ -3243,25 +3243,40 @@ protected function buildLess(){
     }
     
     require_once eiseIntraLibAbsolutePath.'less.php/Less.php';
-
-    try {
-        $strThemePath = $_SERVER['DOCUMENT_ROOT'].str_replace('/', DIRECTORY_SEPARATOR, eiseIntraCSSPath.'themes/'.$eiseIntraCSSTheme.'/');
- 
-        foreach( (array)$eiseIntraLessToBuild as $stylesheet){
-            $parser = new Less_Parser( array( 'compress' => true ) );
-            $parser->parseFile( $strThemePath.$stylesheet.'.less' );
-            $css = $parser->getCss();
-            file_put_contents($strThemePath.$stylesheet.'.css', $css);
-        }
-
-    } catch (Exception $e) {
-        echo '<pre>';
-        echo $e->getMessage();
-        die();
-    }
- 
     
- 
+    if(!$extraLessToBuild):
+        try {
+            $strThemePath = $_SERVER['DOCUMENT_ROOT'].str_replace('/', DIRECTORY_SEPARATOR, eiseIntraCSSPath.'themes/'.$eiseIntraCSSTheme.'/');
+
+            foreach( (array)$eiseIntraLessToBuild as $stylesheet){
+                $parser = new Less_Parser( array( 'compress' => true ) );
+                $parser->parseFile( $strThemePath.$stylesheet.'.less' );
+                $css = $parser->getCss();
+                file_put_contents($strThemePath.$stylesheet.'.css', $css);
+            }
+
+        } catch (Exception $e) {
+            echo '<pre>';
+            echo $e->getMessage();
+            die();
+        }
+    else:
+        try {
+            foreach($extraLessToBuild as $orig => $dest){
+                $parser = new Less_Parser( array( 'compress' => true ) );
+                $parser->parseFile($orig);
+                $css = $parser->getCss();
+                file_put_contents($dest, $css);
+            }
+
+        } catch (Exception $e) {
+            echo '<pre>';
+            echo $e->getMessage();
+            die();
+        }
+    endif;
+    
+
 }
  
  
