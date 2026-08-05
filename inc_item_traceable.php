@@ -1442,7 +1442,14 @@ public function getVirtualRoleMembers($rolID){
             break;
 
         case '__EDITOR':
-            $statusActionLogID = $this->item[$this->conf['prefix'].'StatusActionLogID'];
+            $lastStatusChangeField = $this->conf['prefix'].'StatusActionLogID';
+            $statusActionLogID = (!empty($this->item[$lastStatusChangeField]) 
+                ? $this->item[$lastStatusChangeField] 
+                : (!empty($this->item['ACL'])
+                    ? array_key_first($this->item['ACL'])
+                    : null
+                    )
+                );
             $lastEditor = null;
             if ($statusActionLogID && isset($this->item['ACL'][$statusActionLogID])) {
                 $lastEditor = $this->item['ACL'][$statusActionLogID]['aclInsertBy'];
