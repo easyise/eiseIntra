@@ -9,7 +9,8 @@ $dbName = $oSQL->dbname;
 
 //$_DEBUG = true;
 
-$DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] : $_GET["DataAction"];
+$DataAction = isset($_POST["DataAction"]) ? $_POST["DataAction"] 
+    : (isset($_GET["DataAction"]) ? $_GET["DataAction"] : "");
 
 $gridROL = new eiseGrid($oSQL
         ,'rol'
@@ -26,6 +27,11 @@ $gridROL = new eiseGrid($oSQL
 $gridROL->Columns[]  = Array(
             'type' => 'row_id'
             , 'field' => 'rolID_id'
+        );
+$gridROL->Columns[]  = Array(
+            'type' => 'order'
+            , 'field' => 'rol_order'
+            , 'title' => '#'
         );
 $gridROL->Columns[] = Array(
         'title' => "ID"
@@ -52,12 +58,14 @@ $gridROL->Columns[] = Array(
         , 'field' => "rolFlagDefault"
         , 'type' => "checkbox"
         , 'width' => '30px'
+        , 'filterable' => true
 );
 $gridROL->Columns[] = Array(
         'title' => "virt"
         , 'field' => "rolFlagVirtual"
         , 'type' => "checkbox"
         , 'width' => '30px'
+        , 'filterable' => true
 );
 $gridROL->Columns[] = Array(
         'title' => "Members"
@@ -65,6 +73,13 @@ $gridROL->Columns[] = Array(
         , 'type' => "text"
         , 'disabled' => "[rolFlagDefault]"
         , 'width' => "100%"
+        , 'filterable' => true
+);
+$gridROL->Columns[] = Array(
+        'title' => "del?"
+        , 'field' => "rolFlagDeleted"
+        , 'type' => "checkbox"
+        , 'width' => '30px'
         , 'filterable' => true
 );
 
@@ -155,21 +170,74 @@ switch($DataAction){
         break;
 }
 
+$arrActions = [array(
+    'title' => __("Roles Report"),
+    'action' => '#roles_report',
+    'class' => 'fa-file-text-o',
+)];
+
 include eiseIntraAbsolutePath."inc_top.php";
 ?>
-
-<h1>Roles</h1>
 
 <style type="text/css">
 th.rol_rolID {
     padding-right: 10px;
     text-align: right;
 }
+
+.role-report {
+    width: 100%;
+    height: 400px;
+}
 </style>
 
 <script>
 $(document).ready(function(){  
-	$('.eiseGrid').eiseGrid();
+	var $grid = $('.eiseGrid').eiseGrid();
+
+    $('a[href="#roles_report"]').click(function(){
+        var text = '# Roles Report\n\n',
+            $initiator = $(this);
+        $grid.find('tr:visible').each(function(){
+            var $tr = $(this);
+            var rolID = $tr.find('td.rol-rolID input').val();
+            var rolTitle = $tr.find('td.rol-rolTitle input').val();
+            var rolTitleLocal = $tr.find('td.rol-rolTitleLocal input').val();
+
+            var rolMembersText = $tr.find('td.rol-rolMembers input').val();
+            var rolMembers = rolMembersText ? rolMembersText.split(',').map(function(el){return el.trim();}).filter(function(el){return el!='';}) : [];
+
+            var rolNameAD = 'prg-CommonDB-'+rolID;
+            
+            text += 'Role: '+rolID+' ('+rolTitleLocal+')\n';
+            text += 'AD Group: '+rolNameAD+'\n';
+            for (var i=0;i<rolMembers.length;i++){
+                text += '- '+rolMembers[i]+'\n';
+            }
+            text += '\n';
+            text += '---\n\n';
+        });
+
+         $initiator.eiseIntraForm('createDialog', {
+            title: $initiator.text()
+            , width: '800px'
+            , fields: [
+                {title: ''
+                    , name: 'role_report'
+                    , type: 'textarea'
+                    , class: 'role-report'
+                    , value: text
+                    }
+            ]
+            , onsubmit: function(){
+                $(this).dialog('close');
+                return false;
+            }
+        })
+        
+
+        return false;
+    });
 });
 </script>
 
@@ -186,7 +254,10 @@ while ($rwROL = $oSQL->fetch_array($rsROL)){
     $gridROL->Rows[] = $rwROL;
 }
 
-$gridROL->Execute();
+$gridHTML = $gridROL->get_html();
+
+echo $intra->fieldset(__("Roles"), $gridHTML, Array('width'=>'100%'));
+
 ?>
 
 <?php
