@@ -65,8 +65,11 @@ $intra->logout();
 <title><?php  echo $title ; ?></title>
 
 <?php
-$arrJS[] = eiseIntraRelativePath.'js/three.r134.min.js';
-$arrJS[] = eiseIntraRelativePath.'js/vanta.net.min.js';
+global $eiseIntraCSSTheme;
+if (isset($eiseIntraCSSTheme) && $eiseIntraCSSTheme === 'aring') {
+    $arrJS[] = eiseIntraLibRelativePath.'vanta/three.r134.min.js';
+    $arrJS[] = eiseIntraLibRelativePath.'vanta/vanta.net.min.js';
+}
 $intra->loadCSS();
 $intra->loadJS();
 ?>
