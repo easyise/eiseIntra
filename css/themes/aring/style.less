@@ -160,12 +160,20 @@
     border-bottom: 4px solid #372e2c;
 }
 
-.ei-app-title-logo {
-    height: 28px;
-    width: auto;
-    vertical-align: middle;
-    margin-top: -13px;
-    filter: drop-shadow(@ei-app-title-shadow-offset @ei-app-title-shadow-offset @ei-app-title-shadow-blur @ei-app-title-shadow);
+.ei-app-title {
+    .ei-title-logo {
+        display: inline-block;
+        width: 26px;
+        background: url('/common/images/Logo_Aring_Beige.svg') no-repeat center center;
+        background-size: contain;
+        text-indent: -9999px;
+        overflow: hidden;
+        vertical-align: middle;
+        margin-top: -12px;
+        margin-left: -2px;
+        margin-right: -2px;
+        filter: drop-shadow(@ei-app-title-shadow-offset @ei-app-title-shadow-offset @ei-app-title-shadow-blur @ei-app-title-shadow);
+    }
 }
 
 .ei-sidebar-menu .ei-sidebar-menu-content .sidebar-menu .sidebar-header {
