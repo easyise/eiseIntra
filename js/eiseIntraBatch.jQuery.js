@@ -51,10 +51,23 @@ init: function(arg){
 
     var interval;
 
+    var title = 'Batch Job';
+    if (conf.title) {
+        title = conf.title;
+    } else {
+        try {
+            if (this[0] !== window && this[0] !== document) {
+                title = this.text() || 'Batch Job';
+            }
+        } catch(e) {
+            // keep default 'Batch Job'
+        }
+    }
+
     $dlg = $('<div class="ei-batch-window"><iframe name="ei-batch"></iframe><div class="eif-actionButtons"><button class="btn-close">Close</button></div></div>').dialog({
             modal: true
             , width: '80%'
-            , title: (!conf.title ? this.text() : conf.title)
+            , title: title
             , close: function(event, ui){
 
                 if(typeof   conf.onclose === 'function')

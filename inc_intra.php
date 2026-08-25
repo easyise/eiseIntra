@@ -482,7 +482,7 @@ function Authenticate($login, $password, $method="LDAP", $options=array()){
         GLOBAL $ldap_server;
         GLOBAL $ldap_domain;
         GLOBAL $ldap_dn;
-        GLOBAL $ldap_conn, $ldap_anonymous_login, $ldap_anonymous_pass;
+        GLOBAL $ldap_conn, $ldap_anonymous_login, $ldap_anonymous_password;
         if (preg_match("/^([a-z0-9]+)[\/\\\]([a-z0-9]+)$/i", $login, $arrMatch)){
             $login = $arrMatch[2];
             $ldap_domain = strtolower($arrMatch[1].".e-ise.com");
@@ -493,7 +493,7 @@ function Authenticate($login, $password, $method="LDAP", $options=array()){
             }
             
         $ldap_conn = ldap_connect($ldap_server);
-        $binding = @ldap_bind($ldap_conn, $ldap_anonymous_login, $ldap_anonymous_pass);
+        $binding = @ldap_bind($ldap_conn, $ldap_anonymous_login, $ldap_anonymous_password);
         
         if (!$binding){
             $method = "database";

@@ -88,12 +88,12 @@ var getCell = function(elem){
             style = ' ss:StyleID="s22"';
             break;
         case 'float':
-            val = parseFloat($elem.text().replace(',', ''));
+            val = parseFloat($elem.text().replace(/,/g, ''));
             val = isNaN(val) ?  '' : val;
             typeExcel = 'Number';
             break;
         case 'int':
-            val = parseInt($elem.text().replace(',', ''));
+            val = parseInt($elem.text().replace(/,/g, ''));
             val = isNaN(val) ?  '' : val;
             typeExcel = 'Number';
             break;
@@ -103,49 +103,80 @@ var getCell = function(elem){
             break;
     }
 
-    
+
     return '<Cell'+style+'><Data ss:Type="'+typeExcel+'">'+escapeHtml(val)+'</Data></Cell>\n';
 
 }
 
+var buildRows = function($rows, isHeader) {
+    var grid = [];
+    var xml = '';
+
+    $rows.each(function(r) {
+        var $tr = $(this);
+        var rowStyle = isHeader ? ' ss:StyleID="Hdr"' : '';
+        xml += '<Row' + rowStyle + '>\n';
+
+        var colIndex = 1;
+
+        if (!grid[r]) {
+            grid[r] = [];
+        }
+
+        var cellsSelector = isHeader ? 'th' : 'td';
+        $tr.find(cellsSelector).each(function() {
+            var elem = this;
+            var $elem = $(this);
+
+            while (grid[r][colIndex]) {
+                colIndex++;
+            }
+
+            var rowspan = parseInt($elem.attr('rowspan')) || 1;
+            var colspan = parseInt($elem.attr('colspan')) || 1;
+
+            for (var i = 0; i < rowspan; i++) {
+                var targetRow = r + i;
+                if (!grid[targetRow]) {
+                    grid[targetRow] = [];
+                }
+                for (var j = 0; j < colspan; j++) {
+                    grid[targetRow][colIndex + j] = true;
+                }
+            }
+
+            var cellXml = getCell(elem);
+
+            var cellAttrs = '';
+            cellAttrs += ' ss:Index="' + colIndex + '"';
+            if (rowspan > 1) {
+                cellAttrs += ' ss:MergeDown="' + (rowspan - 1) + '"';
+            }
+            if (colspan > 1) {
+                cellAttrs += ' ss:MergeAcross="' + (colspan - 1) + '"';
+            }
+
+            cellXml = cellXml.replace('<Cell', '<Cell' + cellAttrs);
+
+            xml += cellXml;
+
+            colIndex += colspan;
+        });
+
+        xml += '</Row>\n';
+    });
+
+    return xml;
+};
+
 var gimmeExcel = function(options = {}){
     
-    var $table = this
-        , strTH = ''
-        , rows = '';
+    var $table = this;
 
-    $.extend(options, conf)
+    $.extend(options, conf);
 
-    $table.find('thead tr').each(function(){
-
-        strTH += '<Row ss:StyleID="Hdr">\n';
-
-        $(this).find('th').each(function(){
-            var th = this
-                , $th = $(this)
-                ;
-
-            strTH += getCell(th);
-
-        })
-        
-        strTH += '</Row>\n';
-
-    })
-
-    $table.find('tbody tr').each(function(){
-
-        var $tr = $(this);
-        rows += '<Row>\n';
-
-        $tr.find('td').each(function(){
-            rows += getCell(this)
-        })
-
-
-        rows += '</Row>\n';
-
-    })
+    var strTH = buildRows($table.find('thead tr'), true);
+    var rows = buildRows($table.find('tbody tr'), false);
 
     var strSheet = '<?xml version="1.0" encoding="utf-8"?>\n<?mso-application progid="Excel.Sheet"?>\n'
         strSheet += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">\n';
