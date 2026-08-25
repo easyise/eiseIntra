@@ -3112,7 +3112,7 @@ function getUserData_All($usrID, $strWhatData='all'){
             return $rwUser["usrNameLocal"];
         case "email":
         case "e-mail":
-            return $rwUser["usrEMail"];
+            return $rwUser["usrEmail"];
         default:
             return $rwUser[$strWhatData];
    }
