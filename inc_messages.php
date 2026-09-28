@@ -300,7 +300,11 @@ static function sendMessages($conf){
             );
 
 		if(isset($conf['Content-Type']) && $conf['Content-Type'] == 'text/html'){
-		    $msg['Text'] = nl2br($rwMsg['msgText']); 
+		    if(preg_match('/<(table|thead|tbody|tr|td|th|p|div|ul|ol|li|br)\b/i', $rwMsg['msgText'])){
+		        $msg['Text'] = $rwMsg['msgText'];
+		    } else {
+		        $msg['Text'] = nl2br($rwMsg['msgText']); 
+		    }
 		}else{
 			$msg['Text'] = $rwMsg['msgText'];
 		}

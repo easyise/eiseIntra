@@ -1438,7 +1438,18 @@ public function getVirtualRoleMembers($rolID){
     switch ($rolID) {
 
         case '__CREATOR':
-            return array(strtoupper($this->item[$this->conf['prefix'].'InsertBy'])=>null);
+            $creator = $this->item[$this->conf['prefix'].'InsertBy'] 
+                ?? ($this->item[$this->table['prefix'].'InsertBy'] 
+                ?? null);
+            if (!$creator) {
+                foreach ((array)$this->item as $k => $v) {
+                    if (substr($k, -8) === 'InsertBy' && !empty($v)) {
+                        $creator = $v;
+                        break;
+                    }
+                }
+            }
+            return ($creator ? array(strtoupper($creator)=>null) : array());
             break;
 
         case '__EDITOR':
@@ -2292,6 +2303,9 @@ public function getActionLog($q){
         $staID_new = array_keys($this->conf['STA'])[0];
         $staTitle_new = (isset($this->conf['STA'][$staID_new]) ? $this->conf['STA'][$staID_new]['staTitle'.$this->intra->local] : '');
 
+        $insertBy = $this->item[$this->conf['prefix'].'InsertBy'] ?? ($this->item[$this->table['prefix'].'InsertBy'] ?? null);
+        $insertDate = $this->item[$this->conf['prefix'].'InsertDate'] ?? ($this->item[$this->table['prefix'].'InsertDate'] ?? null);
+
         $aCreate = array('aclGUID' => null
                     , 'actID' => 1
                     , 'aclActionPhase' => 2
@@ -2302,10 +2316,10 @@ public function getActionLog($q){
                     , 'actTitle' => __('Create')
                     , 'actTitlePast' => __('Created')
                     , 'aclComments' => ''
-                    , 'aclFinishBy' => $this->intra->translate('%s by %s', ucfirst(__('Created')), $this->intra->getUserData($this->item[$this->conf['prefix'].'InsertBy']))
-                    , 'aclEditBy' => $this->intra->translate('%s by %s', ucfirst(__('Created')), $this->intra->getUserData($this->item[$this->conf['prefix'].'InsertBy']))
-                    , 'aclEditDate' => $this->intra->datetimeSQL2PHP($this->item[$this->conf['prefix'].'InsertDate'])
-                    , 'aclATA' => $this->intra->datetimeSQL2PHP($this->item[$this->conf['prefix'].'InsertDate'])
+                    , 'aclFinishBy' => ($insertBy ? $this->intra->translate('%s by %s', ucfirst(__('Created')), $this->intra->getUserData($insertBy)) : '')
+                    , 'aclEditBy' => ($insertBy ? $this->intra->translate('%s by %s', ucfirst(__('Created')), $this->intra->getUserData($insertBy)) : '')
+                    , 'aclEditDate' => ($insertDate ? $this->intra->datetimeSQL2PHP($insertDate) : null)
+                    , 'aclATA' => ($insertDate ? $this->intra->datetimeSQL2PHP($insertDate) : null)
                     );
 
         $aRet = ($q['order']=='reverse' ? array_merge([$aCreate], $aRet) : array_merge($aRet, [$aCreate]));

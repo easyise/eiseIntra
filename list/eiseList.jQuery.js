@@ -900,7 +900,7 @@ eiseList.prototype.appendRow = function (index, rw){
             
         } else {
         
-            if (rw.r[fieldName].v!=null && rw.r[fieldName].v!="")
+            if (rw.r[fieldName].v !== null && rw.r[fieldName].v !== undefined && rw.r[fieldName].v !== "")
                 $(this).attr("value", rw.r[fieldName].v);
             
             if ($(this).hasClass('el-boolean') && text=="1"){
