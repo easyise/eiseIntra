@@ -1593,6 +1593,9 @@ addField: function( field ){
             } else {
                 $.each(field.options, function(ix, item){
                     $opt = $('<option>');
+                    if (typeof(item)=='string') {
+                        item = {v: ix, t: item};
+                    }
                     $opt.prop('value', item.v);
                     $opt.text(item.t);
                     $opt.appendTo(element);
