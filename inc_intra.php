@@ -1579,10 +1579,21 @@ function setUserMessage($strMessage, $conf = array()){
  * @return string with user message
  */
 function getUserMessage(){
-    $strRet = isset($_COOKIE[$this->conf['UserMessageCookieName']]) ? $_COOKIE[$this->conf['UserMessageCookieName']] : '';
+    $cookieName = $this->conf['UserMessageCookieName'];
+    $strRet = isset($_COOKIE[$cookieName]) ? $_COOKIE[$cookieName] : '';
     if($strRet){
-        setcookie($this->conf['UserMessageCookieName'], '', 0, $this->getCookiePath($_SERVER['PHP_SELF']));
-        setcookie($this->conf['UserMessageCookieName'], ''); // backward-compatibility
+        $paths = array_unique([
+            $this->getCookiePath($_SERVER['PHP_SELF']),
+            dirname($_SERVER['PHP_SELF']),
+            rtrim(dirname($_SERVER['PHP_SELF']), '/\\').'/',
+            '/',
+            $this->conf['cookiePath'],
+            ''
+        ]);
+        foreach ($paths as $p) {
+            setcookie($cookieName, '', time() - 86400, $p);
+        }
+        unset($_COOKIE[$cookieName]);
     }
     return $strRet;
 }
