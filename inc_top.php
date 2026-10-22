@@ -19,9 +19,9 @@ $extraHTML = isset($extraHTML) ? $extraHTML : '';
 $arrActions = isset($arrActions) ? $arrActions : [];
 
 $paneClass = "ei-pane{$intra->conf['frame']}".($flagNoHeader ? ' no-header' : '');
-$conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)$intra->arrUsrData['FlagWrite']
-    , 'usrID'=> ($intra instanceof eiseAdmin ? null : $intra->arrUsrData['usrID'])
-    , 'roleIDs'=> ($intra instanceof eiseAdmin ? null : implode(',', $intra->arrUsrData['roleIDs']))
+$conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)($intra->arrUsrData['FlagWrite'] ?? 0)
+    , 'usrID'=> ($intra instanceof eiseAdmin ? null : ($intra->arrUsrData['usrID'] ?? null))
+    , 'roleIDs'=> ($intra instanceof eiseAdmin ? null : (is_array($intra->arrUsrData['roleIDs'] ?? null) ? implode(',', $intra->arrUsrData['roleIDs']) : ''))
  ]  );
  ?>
 
@@ -38,7 +38,10 @@ $conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)$intra->arrUsrData[
         <?php if ($eiseIntraCSSTheme!='aring'): ?>
         <div class="ei-app-title"><span class="sidebar-toggle fa fa-bars"></span><a href="<?php echo dirname($_SERVER['PHP_SELF']).'/' ?>"><?php echo $title; ?></a></div>
         <?php else: ?>
-        <div class="ei-app-title"><span class="sidebar-toggle fa fa-bars"></span><a href="<?php echo dirname($_SERVER['PHP_SELF']).'/' ?>"><?php echo preg_replace('/([aAåÅаА])/u', '<span class="ei-title-logo">$1</span>', htmlspecialchars($title), 1); ?></a></div>
+        <div class="ei-app-title"><span class="sidebar-toggle fa fa-bars"></span><a href="<?php echo dirname($_SERVER['PHP_SELF']).'/' ?>"><?php 
+            $svgLogo = '<svg class="ei-title-logo" width="26" height="28" viewBox="120 110 252 272" role="img" aria-label="$1"><path fill="currentColor" d="m286.11,196.26c6.63-8.66,10.57-19.47,10.57-31.21,0-28.39-23.11-51.5-51.5-51.5s-51.5,23.11-51.5,51.5c0,12.44,4.42,23.86,11.79,32.76l-82.05,181.18h34.49l33.53-76.24c15.23,12.52,34.57,19.71,54.83,19.71s39.23-6.95,54.38-19.26l33.32,75.79h35.15l-83.01-182.73Zm-40.92-54.57c12.9,0,23.36,10.46,23.36,23.36s-10.46,23.36-23.36,23.36-23.36-10.46-23.36-23.36,10.46-23.36,23.36-23.36Zm1.07,152.61c-16.43,0-31.96-7.01-42.85-18.88l26.87-61.07c4.72,1.43,9.72,2.19,14.89,2.19,5.65,0,11.11-.91,16.21-2.61l27.3,61.99c-10.89,11.66-26.15,18.38-42.42,18.38Z"/></svg>';
+            echo preg_replace('/([aAåÅаА])/u', $svgLogo, htmlspecialchars($title ?? ''), 1); 
+        ?></a></div>
         <?php endif ?>
         <div class="ei-top-level-menu-container"> </div>
         

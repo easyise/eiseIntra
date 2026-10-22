@@ -21,9 +21,9 @@ if (!class_exists('eiseSQL'))
 include "inc_intra_data.php";
 include "inc_item.php";
 
-//define('jQueryVersion', '3.3.1'); // you can re-define this constant in your script if you need more modern jQUery version
-//define('jQueryVersion', '1.6.1');
-define('jQueryVersion', '1.12.4');
+if (!defined('jQueryVersion')){
+    define('jQueryVersion', '1.12.4');
+}
 
 /**
  * eiseIntra is the core class that encapsulates routines for authenication, form elements display, data handling, redirection and debug.
@@ -891,7 +891,7 @@ public function menu($target = null){
                 #LEFT JOIN stbl_role_user RLU ON PGR.pgrRoleID=RLU.rluRoleID
         WHERE 
          #(RLU.rluUserID='{$this->usrID}' OR ROL.rolFlagDefault=1)
-         (ROL.rolID IN ('".implode("','", $this->arrUsrData['roleIDs'])."') OR ROL.rolFlagDefault=1)
+         (ROL.rolID IN ('".implode("','", (array)($this->arrUsrData['roleIDs'] ?? []))."') OR ROL.rolFlagDefault=1)
          AND PG1.pagFlagShowInMenu=1
         GROUP BY 
                 PG1.pagID
