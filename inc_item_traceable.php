@@ -910,7 +910,7 @@ private function init(){
 
     $aAtrMTX = array();
     foreach ($this->conf['ATR'] as $atrID => $atr) {
-        if($atr['atrMatrix'])
+        if($atr['atrMatrix'] ?? false)
             $aAtrMTX[$atrID] = preg_replace('/[^\<\>\=]/', '', $atr['atrMatrix']);
     }
     $this->conf['AtrMTX'] = $aAtrMTX;
