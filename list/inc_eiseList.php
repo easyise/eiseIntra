@@ -1190,7 +1190,8 @@ private function handleInput(){
 
     $s_cookie_w_filter = serialize(array_merge($this->arrCookieToSet, $arrCookieFilter));
 
-    SetCookie($this->conf["cookieName"], (strlen($s_cookie_w_filter) >= 4094 ? serialize($this->arrCookieToSet) : $s_cookie_w_filter), $this->conf["cookieExpire"], $_SERVER["PHP_SELF"]);
+    $cookiePath = !empty($_SERVER["PHP_SELF"]) ? explode(' ', $_SERVER["PHP_SELF"])[0] : "/";
+    SetCookie($this->conf["cookieName"], (strlen($s_cookie_w_filter) >= 4094 ? serialize($this->arrCookieToSet) : $s_cookie_w_filter), $this->conf["cookieExpire"], $cookiePath);
 
     if ($this->flagExcel)
         $this->iMaxRows = 0;
@@ -1696,9 +1697,17 @@ private function getCachedColumns(){
 
 private function getCachedSQL(){
     
-    $this->strSQL = $_SESSION[$this->name."_sql"];
-    $this->strSQLAggregate = $_SESSION[$this->name."_sqlAggregate"];
-    $this->sqlPK = $_SESSION[$this->name."_sqlPK"];
+    $this->strSQL = $_SESSION[$this->name."_sql"] ?? '';
+    $this->strSQLAggregate = $_SESSION[$this->name."_sqlAggregate"] ?? '';
+    $this->sqlPK = $_SESSION[$this->name."_sqlPK"] ?? '';
+
+    if (empty($this->strSQL)) {
+        $this->handleInput();
+        $this->composeSQL();
+        if ($this->conf["cacheSQL"]) {
+            $this->cacheSQL();
+        }
+    }
     
 }
 

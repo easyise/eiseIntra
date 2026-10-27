@@ -1216,17 +1216,16 @@ public function getList($arrAdditionalCols = Array(), $arrExcludeCols = Array())
                 $arr['type'] = "text";
             } elseif ($rwAtr["atrType"] == "combobox" && ($arrOptions = @json_decode($rwAtr["atrDataSource"], true)) ) {
                 $arr['source'] = $arrOptions;
-                $sql = "CASE {$rwAtr['atrID']} ";
-                foreach($arrOptions as $key=>$val){
-                    $key = is_numeric($key) ? $key : $oSQL->e($key);
-                    $sql .= "WHEN {$key} THEN {$oSQL->e($val)} ";
-                }
-                $sql .= "ELSE '-' END";
-                // die('<pre>'.$sql.'</pre>');
-                $arr['sql'] = $sql;
-                // $arr['type'] = "text";
                 $arr['defaultText'] = '-';
-            
+                if (trim($rwAtr["atrDataSource"])[0] === '[') {
+                    $sql = "CASE {$rwAtr['atrID']} ";
+                    foreach($arrOptions as $key=>$val){
+                        $key = is_numeric($key) ? $key : $oSQL->e($key);
+                        $sql .= "WHEN {$key} THEN {$oSQL->e($val)} ";
+                    }
+                    $sql .= "ELSE '-' END";
+                    $arr['sql'] = $sql;
+                }
             } else { 
                 $arr['source'] = $rwAtr['atrDataSource'];
                 list($arr['source_prefix'], $arr['extra']) = self::getPrefixExtra($rwAtr["atrProgrammerReserved"]);

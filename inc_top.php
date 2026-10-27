@@ -19,9 +19,9 @@ $extraHTML = isset($extraHTML) ? $extraHTML : '';
 $arrActions = isset($arrActions) ? $arrActions : [];
 
 $paneClass = "ei-pane{$intra->conf['frame']}".($flagNoHeader ? ' no-header' : '');
-$conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)$intra->arrUsrData['FlagWrite']
-    , 'usrID'=> ($intra instanceof eiseAdmin ? null : $intra->arrUsrData['usrID'])
-    , 'roleIDs'=> ($intra instanceof eiseAdmin ? null : implode(',', $intra->arrUsrData['roleIDs']))
+$conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)($intra->arrUsrData['FlagWrite'] ?? 0)
+    , 'usrID'=> ($intra instanceof eiseAdmin ? null : ($intra->arrUsrData['usrID'] ?? null))
+    , 'roleIDs'=> ($intra instanceof eiseAdmin ? null : (is_array($intra->arrUsrData['roleIDs'] ?? null) ? implode(',', $intra->arrUsrData['roleIDs']) : ''))
  ]  );
  ?>
 
@@ -38,7 +38,14 @@ $conf_to_set = array_merge($intra->conf, [ 'FlagWrite'=>(int)$intra->arrUsrData[
         <?php if ($eiseIntraCSSTheme!='aring'): ?>
         <div class="ei-app-title"><span class="sidebar-toggle fa fa-bars"></span><a href="<?php echo dirname($_SERVER['PHP_SELF']).'/' ?>"><?php echo $title; ?></a></div>
         <?php else: ?>
-        <div class="ei-app-title"><span class="sidebar-toggle fa fa-bars"></span><a href="<?php echo dirname($_SERVER['PHP_SELF']).'/' ?>"><?php echo preg_replace('/([aAåÅаА])/u', '<span class="ei-title-logo">$1</span>', htmlspecialchars($title), 1); ?></a></div>
+        <div class="ei-app-title"><span class="sidebar-toggle fa fa-bars"></span><a href="<?php echo dirname($_SERVER['PHP_SELF']).'/' ?>"><?php 
+            $logoPath = rtrim($_SERVER['DOCUMENT_ROOT'] ?? '', '/') . '/common/images/Logo_Aring_Beige.svg';
+            if (file_exists($logoPath) || file_exists(dirname(dirname(__FILE__)) . '/images/Logo_Aring_Beige.svg')) {
+                echo preg_replace('/([aAåÅаА])/u', '<span class="ei-title-logo">$1</span>', htmlspecialchars($title ?? ''), 1);
+            } else {
+                echo htmlspecialchars($title ?? '');
+            }
+        ?></a></div>
         <?php endif ?>
         <div class="ei-top-level-menu-container"> </div>
         

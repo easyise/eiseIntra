@@ -915,7 +915,7 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
     $nIteration = 0;
     foreach($arrSuffix as $suffix){
 
-        $_val = ($suffix && isset($val[$suffix]) ? $val[$suffix] : $val);
+        $_val = ($suffix ? (isset($val[$suffix]) ? $val[$suffix] : null) : $val);
         $_field = ($suffix ? $field."[{$suffix}]" : $field);
         $_textfield = ($suffix ? $field."_text[{$suffix}]" : $field.'_text');
         $_checkfield = ($suffix ? $field."_chk[{$suffix}]" : $field.'_chk');
@@ -1033,13 +1033,13 @@ protected function __paintCell($col, $ixCol, $ixRow, $rowID=""){
                     break;
                 case "boolean":
                 case "checkbox":
-                    $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".@htmlspecialchars($_val)."\">";
+                    $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".@htmlspecialchars(is_array($_val) ? '' : (string)$_val)."\">";
                     $strCell .= "<input{$classAttr} type=\"checkbox\" name=\"{$_checkfield}[]\"".($_val==true ? " checked" : "").">";
                     break;
                 case "combobox":
                 case "select":
-                    $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".@htmlspecialchars($_val)."\">";
-                    $strCell .= "<input{$classAttr} type=\"text\" name=\"{$_textfield}[]\" value=\"".@htmlspecialchars($this->getSelectValue($cell, $row, $suffix))."\">";
+                    $strCell .= "<input type=\"hidden\" name=\"{$_field}[]\" value=\"".@htmlspecialchars(is_array($_val) ? '' : (string)$_val)."\">";
+                    $strCell .= "<input{$classAttr} type=\"text\" name=\"{$_textfield}[]\" value=\"".@htmlspecialchars((string)$this->getSelectValue($cell, $row, $suffix))."\">";
                     if ($ixRow===null && $nIteration==0){ //paint floating select
                         $strCell .= "<select id=\"select-{$col['field']}\" class=\"eg-floating-select\">\r\n";
                         $strCell .= (isset($cell['defaultText']) ? "\t<option value=\"\">{$cell['defaultText']}\r\n" : "");
@@ -1260,7 +1260,7 @@ function Update($newData = null, $conf = array()){
     if( $arrTable['PKtype']=='GUID' && !isset( $newData[$arrTable['PK'][0]]) )
         $extraFieldsIns[$arrTable['PK'][0]] = 'UUID()';
 
-    foreach (explode("|", $newData["inp_".$this->name."_deleted"]) as $idToDelete)
+    foreach (explode("|", (string)($newData["inp_".$this->name."_deleted"] ?? '')) as $idToDelete)
         if ($idToDelete!="") {
             $oSQL->q("DELETE FROM {$this->conf['strTable']} WHERE ".$this->getMultiPKCondition($arrTable['PK'], $idToDelete));
         }
@@ -1269,7 +1269,7 @@ function Update($newData = null, $conf = array()){
 
     foreach ($this->newData_transposed as $ix => $row) {
 
-        if( ($flagPOST || $conf['flagOnlyUpdated']) && !$newData["inp_{$this->name}_updated"][$ix+1]){
+        if( ($flagPOST || $conf['flagOnlyUpdated']) && empty($newData["inp_{$this->name}_updated"][$ix+1])){
             continue;
         }
 
@@ -1357,7 +1357,7 @@ function json( $newData = null, $conf = array() ){
     }
 
     
-    for($i=1;$i<count((array)$newData[$pkColName]);$i++){
+    for($i=1;$i<count((array)($newData[$pkColName] ?? []));$i++){
 
         $a = array();
         foreach($this->Columns as $col){

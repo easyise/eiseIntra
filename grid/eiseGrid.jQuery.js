@@ -2543,10 +2543,10 @@ conf: function( conf ) {
         grid.conf = $.extend(grid.conf, conf)
 
         if(typeof(conf.onDblClick)=='function'){
-            grid.dblclickCallback = data.conf.onDblClick;    
+            grid.dblclickCallback = grid.conf.onDblClick;    
         }
         if(typeof(conf.onAddRow)=='function'){
-            grid.addRowCallback = data.conf.onAddRow;    
+            grid.addRowCallback = grid.conf.onAddRow;    
         }
 
     });
