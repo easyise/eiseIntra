@@ -68,7 +68,7 @@ $gridPGR->Columns[] = Array(
         'title' => $intra->translate("Page")
         , 'field' => "pagFullTitle"
         , 'type' => "text"
-        , 'href' => 'page_form.php?dbName='.$dbName.'&pagID=[pgrPageID]'
+        , 'href' => 'page_form.php?dbName='.$dbName.'&pagID=[pagID]'
         , 'static' => true
         , 'mandatory' => true
         , 'width' => '100%'
